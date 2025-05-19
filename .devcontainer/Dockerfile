@@ -8,12 +8,21 @@ RUN apt-get update \
     && apt-get install -y zsh git curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Oh My Zsh for the 'node' user
-RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" --unattended \
-    && chsh -s /usr/bin/zsh node
-
 # Install Mintlify CLI
-RUN npm install -g @mintlify/cli
+RUN npm install -g mint@latest
+
+# Because Jonathon likes to use ZSH
+ENV ZSH=/home/node/.oh-my-zsh
+RUN if [ ! -d "${ZSH}" ]; then \
+      git clone https://github.com/ohmyzsh/ohmyzsh.git "${ZSH}"; \
+    fi \
+    && cp "${ZSH}/templates/zshrc.zsh-template" /home/node/.zshrc \
+    && sed -i 's|^export ZSH=.*|export ZSH="'"${ZSH}"'"|' /home/node/.zshrc \
+    && sed -i 's|^ZSH_THEME=.*|ZSH_THEME="robbyrussell"|' /home/node/.zshrc \
+    && echo "alias mintdev='CHOKIDAR_USEPOLLING=true mint dev --verbose'" \
+       >> /home/node/.zshrc
+
+RUN chown -R node:node /home/node
 
 # Revert to the non-root user for security
 USER node

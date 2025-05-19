@@ -2,16 +2,35 @@
   "name": "Speckle Mintlify Docs",
   "build": {
     "dockerfile": "Dockerfile",
-    "args": { "VARIANT": "20" }
+    "args": {
+      "VARIANT": "20"
+    }
   },
-  "settings": {
-    "terminal.integrated.shell.linux": "/usr/bin/zsh"
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/usr/bin/zsh",
+            "args": [
+              "-l"
+            ]
+          }
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      },
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "mintlify.mintlify-vscode",
+        "mintlify.mintlify-snippets",
+        "mintlify.document"
+      ]
+    }
   },
-  "extensions": [
-    "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode",
-    "mintlify.mintlify-vscode"
+  "mounts": [
+    "source=speckle-docs-zsh-history,target=/home/node/.zsh_history,type=volume"
   ],
-  "postCreateCommand": "npm install && mintlify init",
+  "postCreateCommand": "[ -f package.json ] && npm install || echo 'No package.json, skipping npm install'",
   "remoteUser": "node"
 }
