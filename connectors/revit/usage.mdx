@@ -1,6 +1,6 @@
 ---
 title: Using Speckle with Revit
-description: 'Step-by-step guide for using the Revit Connector'
+description: 'Frequently asked questions for using the Revit connector'
 ---
 
 ## Publishing a model
@@ -22,24 +22,24 @@ Publishing from Revit to Speckle lets you share your BIM data, including geometr
   </Accordion>
 
 <Accordion title="How do I publish models from Revit views?">
-  Click the Settings option while publishing a new version to your Speckle
-  model. Set the Filter setting to View, and then select the view you would like
-  to publish from. [ @bilal screenshot here ]
+1. Click the **Settings** option while publishing a new version to your Speckle model.
+2. Set the **Filter** setting to **View**, and then select the view you would like to publish from.
 </Accordion>
 
 <Accordion title="How do I publish models by Revit category?">
-  Click the Settings option while publishing a new version to your Speckle
-  model. Set the Filter setting to Category, and then select the categories you
-  would like to publish. [ @bilal screenshot here ]
+1. Click the **Settings** option while publishing a new version to your Speckle model.
+2. Set the **Filter** setting to **Category**, and then select the categories you would like to publish.
 </Accordion>
 
 <Accordion title="How do I make sure my Revit model is aligned with my other Speckle models?">
-  Use reference setting (@bjorn need to followup here, is this on publish or
-  load)
+If you are using reference points to coordinate your project, you can publish your Revit model according to a specific reference point:
+1. Click the **Settings** option while publishing a new version.
+2. Set the **Reference Point** setting to your desired reference point.
+Your published model will now be oriented according to your specified reference point.
 </Accordion>
 
-  <Accordion title="How do I see the custom properties on my published Revit elements, like parameters or material quantities?">
-  All custom properties can be found under the properties field when you select and view a Revit object in your browser.
+<Accordion title="How do I see the custom properties on my published Revit elements, like parameters or material quantities?">
+All custom properties can be found under the `properties` field when you select and view a Revit object in your browser.
 Custom properties vary depending on the type of Revit element, and can include:
 
     - element id, built-in category, and workset properties
@@ -47,7 +47,13 @@ Custom properties vary depending on the type of Revit element, and can include:
     - parameters
     - structural material properties (such as density and compressive strength)
 
-  </Accordion>
+</Accordion>
+
+<Accordion title="How do I publish my rebar as solid objects instead of curves?">
+1. Click the **Settings** option while publishing a new version.
+2. Toggle the **Set Rebars As Volumetric** setting to true.
+Caution: publishing all rebars as their volumetric representations can significantly slow down publishing speed. 
+</Accordion>
 
 </AccordionGroup>
 
@@ -60,16 +66,17 @@ Loading models from Speckle into Revit lets you import geometry and data from ot
   <Accordion title="How are Speckle models loaded in Revit?">
   All objects in Speckle models are loaded as Direct Shapes (generic models) with a default category in Revit. If your model contains block instances, each instance will be loaded as its own generic model. Each object will be loaded with:
   - render material (if any)
-  - Mesh, Curve, or Solid (only from Rhino and Grasshopper) geometry.
+  - `Mesh`, `Curve`, or `Solid` (only from Rhino and Grasshopper) geometry.
   </Accordion>
 
 <Accordion title="Can I load custom properties in Revit, like parameters?">
-  Currently, you can not load any custom properties on your Speckle model
-  objects into Revit.
+  Currently, you can not load any custom properties on your Speckle model objects into Revit.
 </Accordion>
 
 <Accordion title="How do I load a Speckle Model according to a specific reference point in Revit?">
-  @bjorn need more info here
+  If you are loading a Speckle Revit model that was published with a reference point, the model will be loaded according to the transformation of that reference point. 
+  Any existing reference points in your Revit document will be ignored. 
+  Models published from other applications cannot be loaded according to a reference point in your Revit document.
 </Accordion>
 
 <Accordion title="How do I change the material of a Speckle model object I loaded in Revit?">
@@ -91,12 +98,37 @@ General troubleshooting steps, such as checking your internet connection, ensuri
 
 <AccordionGroup>
 
-<Accordion title="My Speckle model was loaded in an incorrect position. ">
-  [TODO]
+<Accordion title="The Speckle plugin is not showing up after I installed the connector.">
+  Make sure your version of Revit is supported. Installation issues are also sometimes caused by conflicting plugins. Please report your problem in our Community Forum: https://speckle.community/c/help 
+  Include the following information:
+  - Your application version
+  - Your Speckle connector version
 </Accordion>
-<Accordion title="Loading fails as the model from Speckle is too far from the Revit origin.">
-  [TODO]
+
+<Accordion title="My Speckle model was loaded in an incorrect position.">
+  If you are loading models published from Revit, ask the author of the model to publish again using the correct reference point from their Revit file.
+  Make sure they are using the same reference point transformations as you are. 
+  For models from other applications, please request a reference coordination feature in our Community Forum: https://speckle.community/c/features
 </Accordion>
+
+<Accordion title="Loading fails if the model from Speckle is too far from the Revit origin.">
+ In this case, you will need to ask the author of the model you want to load to re-publish the model closer to the origin.
+</Accordion>
+
+<Accordion title="Some objects that I published or loaded are missing from my model.">
+ If you published a model with objects missing some pieces, this may be fixable by changing your **Detail Level** setting to **Fine**.
+After you publish or load a Speckle model, click on the **Report** button to see any errors that may have occurred. 
+Click on any item in the report to highlight that item in your application. Some objects may not be supported for publishing or loading.
+</Accordion>
+
+<Accordion title="The plugin UI is empty or unresponsive, or my application crashed while I was using the connector.">
+For major issues, you can sometimes find a `log` file in your directory at `AppData\Roaming\Speckle\Logs`. Please report your problem in our Community Forum: https://speckle.community/c/help 
+Include the following information:
+- Your software version
+- Your Speckle connector version
+- A copy of the log 
+</Accordion>
+
 <Info>
   If you have any questions or run into issues, visit our [community space](https://speckle.community/).
   We're here to help!
