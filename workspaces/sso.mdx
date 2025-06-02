@@ -1,16 +1,59 @@
 ---
 title: "Single Sign-On (SSO)"
-description: "Secure your workspace"
+description: "Secure who can access your workspace"
 ---
 
 <Note>
   SSO is available on the Business plan.
 </Note>
 
-{/* (WIP) */}
+Single Sign-On (SSO) allows users to access Speckle using your organization's existing identity provider.
 
-SSO is a user authentication process that allows a user to access multiple applications with one set of login credentials.
+### How do you enable SSO?
+Admins can enable SSO under Workspace Settings → Security.
 
-Admins can enable SSO under Settings -\> Security and the page contains. We are more than happy to jump on a quick call with you if you need help with this process.
+<Info>
+  Need help setting up SSO? We're happy to jump on a call to walk you through the process. [Contact us](mailto:support@speckle.systems) to schedule a meeting.
+</Info>
 
-When SSO is enabled,
+<Steps>
+  <Step title="Create an OpenID Connect application">
+    Set up a new web application using the OpenID Connect protocol in your identity provider's panel. This will generate the necessary settings for Speckle.
+
+    When configuring the application, use this **Redirect URL** (callback):
+    ```
+      https://app.speckle.systems/api/v1/workspaces/speckle-demos/sso/oidc/callback
+    ```
+
+    Set the application grant type to "authorization_code" and configure these scopes:
+
+    | Scope | Resultant claims |
+    |-------|------------------|
+    | openid | - |
+    | profile | name, given_name, family_name |
+    | email | email |
+</Step>
+  <Step title="Configure SSO in Speckle">
+    Fill in the SSO configuration form with details from your identity provider:
+    - **Provider**: The label displayed on the login button in Speckle
+    - **Client ID**: From your identity provider application
+    - **Client secret**: From your identity provider application  
+    - **Issuer URL**: Your identity provider's issuer URL
+  </Step>
+  <Step title="Enable SSO">
+    Click **Add** to save your SSO configuration. Once SSO is enabled, all workspace members will be required to authenticate with SSO credentials the next time they access the workspace.
+  </Step>
+</Steps>
+
+### When SSO is enabled
+
+1. Users will see your organization's SSO option when they are invited to the workspace.
+2. Existing workspace members will be prompted to authenticate with SSO the next time they access the workspace.
+3. Users with the Guest role can still access the workspace without SSO, since this role is designed for external collaborators.
+
+<Warning>
+  SSO provides authentication but not automatic user provisioning. Users removed from your identity provider will still be in your list of members in Speckle until a Admin in Speckle has removed them.
+</Warning>
+<Info>
+  If your organization uses SSO, you don't need to enable [domain protection](/workspaces/domain-protection) as SSO provides equivalent security controls.
+</Info>
