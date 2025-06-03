@@ -1,0 +1,149 @@
+---
+title: How to use Speckle for Grasshopper
+sidebarTitle: Grasshopper
+description: "Step-by-step guide for using the Grasshopper connector"
+---
+
+import Versions from '/snippets/versions.mdx';
+import Setup from "/snippets/connectors/setup.mdx";
+import SetupFaq from "/snippets/connectors/setup-faq.mdx";
+import LoadFaq from "/snippets/connectors/load-faq.mdx";
+import LearnMore from "/snippets/learn-more.mdx";
+
+<Versions
+  app="Grasshopper"
+  versions="Rhino 7 & 8"
+  os="Windows"
+/>
+
+## Setup
+
+<Tip> The **Rhino** and **Grasshopper** connectors are bundled, so if you installed one, you don't need to install the other.</Tip>
+
+<Steps>
+    <Setup app="Grasshopper" />
+    <Step title="Open the Grasshopper connector">
+      1. In Rhino, add your account in the Rhino connector.
+      2. Open Grasshopper, and select the **Speckle** tab in the ribbon.
+      <Frame>
+      <img src="/images/connectors/grasshopper_toolbar.jpg" alt="Grasshopper toolbar" />
+      </Frame>
+    </Step>
+</Steps>
+
+<AccordionGroup>
+    <SetupFaq app="Grasshopper" />
+</AccordionGroup>
+
+## Publishing a Model
+
+<Steps>
+  <Step title="Create a **Collection** with objects">
+  1. Add a **Create Collection** node from the Collections category to the canvas.
+  2. Connect the geometry you want to publish to the input of the **Create Collection** node.
+  </Step>
+
+  <Step title="Get your Speckle model link">
+  1. Add a **Speckle Model URL** node to the canvas.
+  2. Choose a [project]():
+      - Click on the **Project** button to select a project from the dropdown
+      - or use the search bar to find another project. 
+  3. Choose a [model]():
+      - Click on the **Model** button to select a model from the dropdown
+      - or use the search bar to find another model. 
+  </Step>
+
+  <Step title="Publish your model">
+    1. Add a **Publish** node to the canvas and connect your inputs:
+      - Add your **Create Collection** output to the Collection input.
+      - Add your **Speckle Model URL** output to the Model Link input.
+    2. Click **Publish**.
+    Your model is now published to Speckle and is available to the rest of your team.
+    <Frame title="Publish">
+    <img src="/images/connectors/grasshopper_publish.jpg" alt="Grasshopper publish" />
+    </Frame>
+  </Step>
+</Steps>
+
+<AccordionGroup>
+    <Accordion title="How do I create properties by key value, instead of using the **Create Properties** node?">
+      In Rhino 8, you can use the native Grasshopper **User Text** node to create properties by keys and values.
+      Just plug the Content output of the node into any input expecting a Speckle Properties param. 
+      In Rhino 7, currently there is no way to create properties by key value.
+    </Accordion>
+
+    <Accordion title="How do I sync my property and collection names with their inputs?">
+      If you keep your params organized with their own names, then you can easily inherit these names when using the **Create Properties** or **Create Collection** nodes.
+      To sync individual input names:
+      - hold down the **TAB** key when plugging in your input property, objects, or collection.
+      To automatically sync all input names:
+      - right-click the **Create Properties** or **Create Collection** node.
+      - select **Inherit all names**
+      The **Inherit all names** option will lock input name editing, and always keep your input names synced with their sources.
+    </Accordion>
+
+    <Accordion title="How do I create new projects or models to publish to?">
+      Currently, it's not possible to create new projects or models in Grasshopper. All project management should be done in your web browser.
+    </Accordion>
+
+    <Accordion title="Can I create specific objects for other applications like Revit or ETABs?">
+      All models published in Grasshopper will only contain geometry, and will be loaded as geometry with render materials and colors in other applications (and properties, if Rhino or PowerBI). 
+      We do not currently support customizing objects for specific applications.
+    </Accordion>
+
+    <Accordion title="How do I change my account?">
+      Right click your **Speckle Model URL** node and select **Change accounts** to change your account.
+    </Accordion>
+</AccordionGroup>    
+
+## Loading a Model
+
+<Steps>
+  <Step title="Get your Speckle model link">
+    1. Add a **Speckle Model URL** node to the canvas.
+    2. Choose a [project]():
+        - Click on the **Project** button to select a project from the dropdown
+        - or use the search bar to find another project. 
+    3. Choose a [model]():
+        - Click on the **Model** button to select a model from the dropdown
+        - or use the search bar to find another model. 
+    4. Choose a [version]():
+        - Latest version is loaded by default.
+        - To load a specific version, click on the **Version** button and select. 
+  </Step>
+
+  <Step title="Load your model">
+    1. Add a **Load** node to the canvas and connect your input:
+      - Add your **Speckle Model URL** output to the Model Link input.
+    2. Click **Load**.
+    Your selected model version is now loaded in Grasshopper.
+  </Step>
+
+  <Step title="Get your model objects">
+    1. Add a **Query objects** node to the canvas and connect your input:
+      - Add your **Load** output to the collection input.
+    2. You can now work with your loaded objects in Grasshopper.
+    <Frame>
+    <img src="/images/connectors/grasshopper_load.jpg" alt="Grasshopper load" />
+    </Frame>
+  </Step>
+</Steps>
+
+<AccordionGroup>
+
+    <Accordion title="How do I access object fields that I see in the web browser, but that are not in my Grasshopper object properties?">
+    If you want to access geometry properties like what you would see in **dev mode** in your browser, you can use the **Deconstruct** node.
+    However, if you are looking for fields on a **DataObject** - e.g. the location curve of a **RevitObject**, they currently cannot be accessed in Grasshopper.
+    </Accordion>
+
+    <Accordion title="Can I load a model via URL?">
+    Yes. Copy your URL to a **Panel** and connect it to your **Speckle Model URL** node.
+    </Accordion>
+
+    <Accordion title="How do I change my account?">
+      Right click your **Speckle Model URL** node and select **Change accounts** to change your account.
+    </Accordion>
+
+</AccordionGroup>
+
+<LearnMore />
