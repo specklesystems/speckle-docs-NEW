@@ -1,0 +1,89 @@
+---
+title: Loader
+description: Abstract class that is the base for all concrete loader implementations.
+---
+
+
+## Constructors
+
+### constructor
+
+```typescript
+constructor(resource: string, resourceData?: string | ArrayBuffer)
+```
+
+Populates the loader with data.
+
+**Parameters**
+
+- **resource**: This can either be a resource URL, either an resource ID
+- _(optional)_ **resourceData**: Explicit data you want to load
+
+## Accessors
+
+### resource
+
+```typescript
+get resource(): string
+```
+
+Gets the loader's resource.
+
+**Returns**: string
+
+## Methods
+
+### load
+
+```typescript
+abstract load(): Promise<boolean>
+```
+
+This function needs to handle all the resource loading.
+
+**Returns**: A promise which resolves to a boolean indicating if the loading process completed successfully (true) or was interrupted/failed (false)
+
+### cancel
+
+```typescript
+abstract cancel()
+```
+
+This function needs to cancel any ongoing loading process and clean afterwards.
+
+**Returns**: void
+
+### dispose
+
+```typescript
+abstract dispose()
+```
+
+This function needs to dispose of the loader and it's allocated resources.
+
+**Returns**: void
+
+## Typedefs
+
+### LoaderEvent
+
+```typescript
+enum LoaderEvent {
+  LoadProgress = 'load-progress',
+  LoadCancelled = 'load-cancelled',
+  LoadWarning = 'load-warning'
+}
+```
+The basic events any Loader implementation should use. Implemented and used by both `SpeckleLoader` and `ObjLoader` fully or partially.
+
+### LoaderEventPayload
+
+```typescript
+interface LoaderEventPayload {
+  [LoaderEvent.LoadProgress]: { progress: number; id: string }
+  [LoaderEvent.LoadCancelled]: string
+  [LoaderEvent.LoadWarning]: { message: string }
+}
+```
+Mapping of loader events to event handler argument types
+

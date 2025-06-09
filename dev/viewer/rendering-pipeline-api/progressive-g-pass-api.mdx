@@ -1,0 +1,52 @@
+---
+title: ProgressiveGPass
+description: Base abstract class for all passes that need to converge/accumulate over more than one frame.
+---
+
+[BaseGPass](/viewer/rendering-pipeline-api/base-g-pass-api) -> [ProgressiveGPass](/viewer/rendering-pipeline-api/progressive-g-pass-api)
+
+## Accessors
+
+### accumulationFrames
+
+```typescript
+get accumulationFrames(): number
+set accumulationFrames(value: number)
+```
+
+Gets or sets the total number of frames the pass needs to converge/accumulate in.
+
+**Returns**: `number`
+
+### frameIndex
+
+```typescript
+get frameIndex(): number
+set frameIndex(value: number)
+```
+
+Gets or sets the frame index in the current convergence/accumulation cycle.
+
+**Returns**: `number`
+
+## Methods
+
+### render
+
+```typescript
+render(
+  renderer: WebGLRenderer,
+  camera?: PerspectiveCamera | OrthographicCamera | null,
+  scene?: Scene
+): boolean
+```
+
+Implementation for the base class abstract `render` which automatically returns `true` while `frameIndex < accumulationFrames`, and `false` otherwise.
+
+**Parameters**:
+
+- **renderer**: The hosting [`WebGLRenderer`](https://threejs.org/docs/index.html?q=webgl#api/en/renderers/WebGLRenderer)
+- *optional* **camera**: The rendering camera.
+- *optional* **scene**: The scene to render.
+
+**Returns**: `boolean` 

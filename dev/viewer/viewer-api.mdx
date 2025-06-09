@@ -1,0 +1,512 @@
+---
+title: Viewer
+description: The Speckle Viewer API
+---
+
+## Constructors
+
+### constructor
+
+```typescript
+new Viewer(container: HTMLElement, params: ViewerParams)
+```
+
+**Parameters**
+
+- **container**: [_HTMLElement_](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement)
+- **params**: [_ViewerParams_](#viewer)
+
+**Returns**: [**_Viewer_**](#viewer)
+
+## Accessors
+
+### Utils
+
+```typescript
+get Utils(): Utils
+```
+
+**Returns**: [**_Utils_**](#utilsinterface)
+
+### World
+
+```typescript
+get World(): World
+```
+
+**Returns**: [**_World_**](#worldclass)
+
+## Methods
+
+### cancelLoad
+
+```typescript
+cancelLoad(url: string, unload?: boolean): Promise<void>
+```
+
+Cancels any ongoing loading operations, with the option of unloading an current progress
+
+**Parameters**
+
+- **url**: _string_
+- _(optional)_ **unload**: _boolean_
+
+**Returns**: A promise which resolves when the operation completes
+
+### createExtension
+
+```typescript
+createExtension<T extends Extension>(type: new () => T): T
+```
+
+Creates and registers the extension of the specified type constructor
+
+**Parameters**
+
+- **type**: [_Extension_]() subclass
+
+**Returns**: The extension instance
+
+### dispose
+
+```typescript
+dispose(): void
+```
+
+Disposes the viewer instance
+
+**Returns**: _void_
+
+### getContainer
+
+```typescript
+getContainer(): HTMLElement
+```
+
+Gets HTML container used at viewer initialisation
+
+**Returns**: [**_HTMLElement_**](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement)
+
+### getExtension
+
+```typescript
+getExtension<T extends Extension>(type: new () => T): T
+```
+
+Gets the extension of type T registered with the viewer.
+
+**Returns**: [_Extension_]() subclass, undefined if it does not exist
+
+### getObjectProperties
+
+```typescript
+getObjectProperties(resourceURL?: string, bypassCache?: boolean): Promise<PropertyInfo[]>
+```
+
+Goes through all objects and builds [_PropertyInfo_](#propertyinfo) objects asynchronously.
+
+<Callout type="warning">
+When executing for a very large number of objects, this method can take long to finish
+</Callout>
+
+**Parameters**
+
+- **resourceURL**: The id of the node where to start building properties.
+- _(optional)_ **bypassCache**: Enabled the use of the property cache. Default _false_
+
+**Returns**: [_PropertyInfo[]_](#propertyinfo)
+
+### getRenderer
+
+```typescript
+getRenderer(): SpeckleRenderer
+```
+
+Gets the [_SpeckleRenderer_](/dev/viewer/speckle-renderer-api) instance associated with the viewer.
+
+**Returns**: [_SpeckleRenderer_](/dev/viewer/speckle-renderer-api)
+
+### getViews
+
+```typescript
+getViews(): SpeckleView[]
+```
+
+Gets all the current [_SpeckleView_](#speckleview) instances.
+
+**Returns**: [_SpeckleView[]_](#speckleview)
+
+### getWorldTree
+
+```typescript
+getWorldTree(): WorldTree
+```
+
+Gets the [_WorldTree_](/dev/viewer/world-tree-api) instance associated with the viewer.
+
+**Returns**: [_WorldTree[]_](/dev/viewer/world-tree-api)
+
+### hasExtension
+
+```typescript
+hasExtension<T extends Extension>(type: Constructor<T>): boolean
+```
+
+Returns `true` if specified extension type exists, `false` otherwise
+
+**Returns**: _boolean_
+
+### init
+
+```typescript
+init(): Promise<void>
+```
+
+Initializes the viewer asynchronously and loads required assets.
+
+**Returns**: _Promise< void >_
+
+### loadObject
+
+```typescript
+loadObject(loader: SpeckleLoader, autoFit?: boolean): Promise<void>
+```
+
+Loads an object using the specified loader.
+
+**Parameters**
+
+- **loader**: [_SpeckleLoader_](/dev/viewer/loader-api)
+- _(optional)_ **autoFit**: _boolean_ - Whether to automatically fit the view to the loaded object
+
+**Returns**: _Promise< void >_ 
+
+
+### on
+
+```typescript
+on<T extends ViewerEvent>(
+  eventType: T,
+  handler: (arg: ViewerEventPayload[T]) => void
+): void
+```
+
+Subscribes handlers to [_ViewerEvent_](/dev/viewer/viewer-api#viewerevent)s.
+
+**Parameters**
+
+- **eventType**: The [_ViewerEvent_](/dev/viewer/viewer-api#viewerevent) the handler needs to register to
+- **handler**: The event handler
+
+**Returns**: _void_
+
+### query
+
+```typescript
+query<T extends Query>(query: T): QueryArgsResultMap[T['operation']]
+```
+
+General purpose mechanism for getting spatial information from the viewer.
+
+**Parameters**
+
+- **query**: The [_Query_](#query) to run
+
+**Returns**: [_QueryResult_](#queryresult)
+
+### requestRender
+
+```typescript
+requestRender(flags?: number): void
+```
+
+Requests the viewer to render one or more frames.
+
+**Parameters**
+
+- _(optional)_ **flags**: [_UpdateFlags_](/dev/viewer/viewer-api#updateflags). If no flags are provided it defaults to _UpdateFlags.RENDER_.
+
+**Returns**: _void_
+
+### resize
+
+```typescript
+resize(): void
+```
+
+Resize the viewer manually. The dimensions will be inherited from the container.
+
+**Returns**: _void_
+
+### screenshot
+
+```typescript
+screenshot(): Promise<string>
+```
+
+Takes a snapshot of the current viewer camera view and returns it as a base64 encoded string.
+
+**Returns**: A promise which resolves to a base64 encoded image.
+
+### setLightConfiguration
+
+```typescript
+setLightConfiguration(config: LightConfiguration): void
+```
+
+Applies the provided [_LightConfiguration_](/dev/viewer/viewer-api#lightconfiguration).
+
+**Returns**: _void_
+
+### unloadAll
+
+```typescript
+unloadAll(): Promise<void>
+```
+
+Unloads and disposes everything that's currently loaded.
+
+**Returns**: _Promise< void > _
+
+### unloadObject
+
+```typescript
+unloadObject(url: string): Promise<void>
+```
+
+Unloads and disposes the specified resource associated with the provided url.
+
+**Parameters**
+
+- **url**: The resource id to unload.
+
+**Returns**: _Promise< void > _
+
+## Typedefs
+
+### LightConfiguration
+
+```typescript
+interface LightConfiguration {
+  enabled?: boolean;
+  castShadow?: boolean;
+  intensity?: number;
+  color?: number;
+  indirectLightIntensity?: number;
+  shadowcatcher?: boolean;
+}
+```
+
+- **enabled**: Enables direct lighting (sun).
+- **castShadow**: Enables shadows.
+- **intensity**: Direct light(sun) intensity.
+- **color**: Direct light(sun) color.
+- **indirectLightIntensity**: Indirect IBL intensity.
+- **shadowcatcher**: Enables _The Shadowcatcher_. 🛸
+
+### ObjectLayers
+
+```typescript
+enum ObjectLayers {
+  STREAM_CONTENT_MESH = 10,
+  STREAM_CONTENT_LINE = 11,
+  STREAM_CONTENT_POINT = 12,
+  STREAM_CONTENT_TEXT = 13,
+  STREAM_CONTENT_POINT_CLOUD = 14,
+
+  NONE = 0,
+  STREAM_CONTENT = 1,
+  PROPS = 2,
+  SHADOWCATCHER = 3,
+  OVERLAY = 4,
+  MEASUREMENTS = 5,
+}
+```
+
+All the layers the viewer uses for rendering objects and props. Rendering order generally follows the order of layers values. The same layers are also used for raycasting, where they are all enabled by default except _STREAM_CONTENT_POINT_ which is disabled
+
+### PropertyInfo
+
+```typescript
+interface PropertyInfo {
+  key: string;
+  objectCount: number;
+  type: "number" | "string";
+}
+```
+
+- **key**: Property identifier, flattened.
+- **objectCount**: Total number of objects that have this property.
+- **type**: If the property is numeric or string based.
+
+### SelectionEvent
+
+```typescript
+type SelectionEvent = {
+  multiple: boolean;
+  event?: PointerEvent;
+  hits: Array<{
+    node: TreeNode;
+    point: Vector3;
+  }>;
+};
+```
+
+Payload for _ViewerEvent.ObjectClicked_ and _ViewerEvent.ObjectDoubleClicked_.
+
+- **multiple**: Whether this is a multiple selection or not.
+- **event**: The browser [_PointerEvent_](https://developer.mozilla.org/en-US/docs/Web/API/PointerEvent) piggybacked.
+- **hits**: The array of hits sorted by distance, where closest is first. _node_ is the intersected [_TreeNode_](/viewer/world-tree-api.md#treenode) and _point_ is it's point of intersection.
+
+### SpeckleView
+
+```typescript
+type SpeckleView = {
+  name: string;
+  id: string;
+  view: Record<string, unknown>;
+};
+```
+
+- **name**: Human readable name.
+- **id**: View's speckle id.
+- **view**: View's associated speckle data .
+
+### SunLightConfiguration
+
+```typescript
+interface SunLightConfiguration extends LightConfiguration {
+  elevation?: number;
+  azimuth?: number;
+  radius?: number;
+}
+```
+
+- **elevation**: Sun elevation in polar coordinates.
+- **azimuth**: Sun azimuth in polar coordinates.
+- **radius**: Sun distance from [_World_](/viewer/viewer-api.md#worldclass) center.
+
+### UpdateFlags
+
+```typescript
+enum UpdateFlags {
+  RENDER = 0b1,
+  SHADOWS = 0b10,
+  CLIPPING_PLANES = 0b100,
+  RENDER_RESET = 0b1000
+}
+```
+
+Specifies which rendering aspects need to be updated. UpdateFlags work by bit masking. So if you want multiple flags, you need to _OR_ them.
+
+### UtilsInterface
+
+```typescript
+interface Utils {
+  screenToNDC(
+    x: number,
+    y: number,
+    width?: number,
+    height?: number
+  ): { x: number; y: number };
+  NDCToScreen(
+    x: number,
+    y: number,
+    width?: number,
+    height?: number
+  ): { x: number; y: number };
+}
+```
+
+Two utilities that help you move values form NDC to Screen space and back.
+
+### ViewerEvent
+
+```typescript
+enum ViewerEvent {
+  ObjectClicked = "object-clicked",
+  ObjectDoubleClicked = "object-doubleclicked",
+  DownloadComplete = "download-complete",
+  LoadComplete = "load-complete",
+  LoadProgress = "load-progress",
+  UnloadComplete = "unload-complete",
+  LoadCancelled = "load-cancelled",
+  UnloadAllComplete = "unload-all-complete",
+  Busy = "busy",
+  FilteringStateSet = "filtering-state-set",
+  LightConfigUpdated = "light-config-updated",
+}
+```
+
+All the events the viewer can emit.
+
+### ViewerEventPayload
+
+```typescript
+interface ViewerEventPayload {
+  [ViewerEvent.ObjectClicked]: SelectionEvent | null
+  [ViewerEvent.ObjectDoubleClicked]: SelectionEvent | null
+  [ViewerEvent.LoadComplete]: string
+  [ViewerEvent.UnloadComplete]: string
+  [ViewerEvent.UnloadAllComplete]: void
+  [ViewerEvent.Busy]: boolean
+  [ViewerEvent.FilteringStateSet]: FilteringState
+  [ViewerEvent.LightConfigUpdated]: LightConfiguration
+}
+```
+
+Mapping of viewer events to event handler argument types
+### ViewerParams
+
+```typescript
+interface ViewerParams {
+  showStats: boolean;
+  environmentSrc: Asset;
+  verbose: boolean;
+}
+```
+
+- **showStats**: Displays a [stats](https://github.com/mrdoob/stats.js) panel.
+- **environmentSrc**: The URL of the image used for indirect IBL.
+- **verbose**: Enables viewer logs.
+
+### Asset
+
+```typescript   
+enum AssetType {
+  TEXTURE_8BPP = 'png', 
+  TEXTURE_HDR = 'hdr',
+  TEXTURE_EXR = 'exr',
+  FONT_JSON = 'font-json'
+}
+
+interface Asset {
+  id: string
+  src: string
+  type: AssetType
+}
+```
+
+- **id**: Mandatory id of the asset.
+- **src**: The URL of the asset. Supports inline base64 encoded assets
+- **type**: _AssetType_
+<Warning>
+For correct asset caching use need to use unique asset ids!
+</Warning>
+
+### WorldClass
+
+```typescript
+class World {
+  readonly worldBox: Box3
+  get worldSize(): Box3
+  get worldOrigin(): Vector3
+
+  expandWorld(box: Box3)
+  reduceWorld(box: Box3)
+  updateWorld()
+  resetWorld()
+  getRelativeOffset(offsetAmount: number = 0.001): number
+```
+
+Utility class for keeping track of the total dimensions of loaded objects. It's mostly used for informative purposes
