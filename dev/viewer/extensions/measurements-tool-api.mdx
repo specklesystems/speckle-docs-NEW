@@ -1,0 +1,155 @@
+---
+title: MeasurementsTool
+description: This extension provides basic configurable measurement capabilities. The tool is autonomous, and is able to create measurements on it's own.
+---
+
+<Warning>
+  This extension requires and active CameraController extension implementation.
+</Warning>
+
+## Accessors
+
+### activeMeasurement
+
+```typescript
+get activeMeasurement(): Measurement
+```
+
+Gets the currently ongoing measurement. Null if there is none.
+
+**Returns**: [_Measurement_](/dev/viewer/extensions/measurements-tool-api#measurement)
+
+### enabled
+
+```typescript
+get enabled(): boolean
+set enabled(value: boolean)
+```
+
+Enables/disables the extension.
+
+**Returns**: boolean
+
+### options
+
+```typescript
+get options(): MeasurementOptions
+set options(value: MeasurementOptions)
+```
+
+Gets and sets the extension options.
+
+**Returns**: [_MeasurementOptions_](/dev/viewer/extensions/measurements-tool-api#measurementoptions)
+
+### selectedMeasurement
+
+```typescript
+get selectedMeasurement(): Measurement
+```
+
+Gets the currently selected measurement. Null if there is none.
+
+**Returns**: [_Measurement_](/dev/viewer/extensions/measurements-tool-api#measurement)
+
+## Methods
+
+### clearMeasurements
+
+```typescript
+clearMeasurements(): void
+```
+
+Removes all measurements, including finished or ongoing now.
+
+**Returns**: void
+
+### fromMeasurementData
+
+```typescript
+fromMeasurementData(startPoint: Vector3, endPoint: Vector3): void
+```
+
+Programatically adds a measurements.
+
+<Warning>
+  Currently only _PointToPoint_ measurements can pe programatically added
+</Warning>
+
+**Parameters**
+
+- **startPoint**: Vector3
+- **endPoint**: Vector3
+
+**Returns**: void
+
+### removeMeasurement
+
+```typescript
+removeMeasurement(): void
+```
+
+Removes any currently ongoing measurements.
+
+**Returns**: void
+
+## Typedefs
+
+### Measurement
+
+```typescript
+abstract class Measurement extends Object3D
+```
+
+Abstract class for all measurement types.
+
+### MeasurementOptions
+
+```typescript
+interface MeasurementOptions {
+  visible: boolean;
+  type?: MeasurementType;
+  vertexSnap?: boolean;
+  units?: string;
+  precision?: number;
+  chain?: boolean;
+}
+```
+
+The options for newly created measurements.
+
+- **visible**: If the measurements are visible
+- _optional_ **type**: Current measurement type to create
+- _optional_ **vertexSnap**: Should the cursor snap to the nearest vertex
+- _optional_ **units**: The measurement units
+- _optional_ **precision**: The number of decimals to be displayed
+- _optional_ **chain**: Automatically connects last measurement with the new one
+
+### MeasurementType
+
+```typescript
+enum MeasurementType {
+  PERPENDICULAR,
+  POINTTOPOINT,
+  AREA,
+  POINT,
+}
+```
+
+Measurement types.
+
+## Constants
+
+### DefaultMeasurementsOptions
+
+```typescript
+const DefaultMeasurementsOptions = {
+  visible: true,
+  type: MeasurementType.POINTTOPOINT,
+  vertexSnap: true,
+  units: 'm',
+  precision: 2,
+  chain: false,
+};
+```
+
+The default extension options.
