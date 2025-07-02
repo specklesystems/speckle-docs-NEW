@@ -3,15 +3,15 @@ title: AccelerationStructure
 description: Thin wrapper around the three-mesh-bvh library's MeshBVH class with some additional specific functionality.
 ---
 
-The viewer is using [_three-mesh-bvh_](https://github.com/gkjohnson/three-mesh-bvh) 
-as the backbone for it's BVH implementation. The AccelerationStructure class is a 
-thin wrapper around the library's 
-[_MeshBVH_](https://threejs.org/docs/index.html?q=box#api/en/math/Box3) class 
+The viewer is using [_three-mesh-bvh_](https://github.com/gkjohnson/three-mesh-bvh)
+as the backbone for it's BVH implementation. The AccelerationStructure class is a
+thin wrapper around the library's
+[_MeshBVH_](https://threejs.org/docs/index.html?q=box#api/en/math/Box3) class
 with some additional specific functionality.
 
-The speckle viewer uses a dual level BVH for optimal acceleration. The 
-`AccelerationStructure` is the functional element of the _bottom-level_ acceleration 
-structure. Each individual object will have it's own BVH, encapsulated by an 
+The speckle viewer uses a dual level BVH for optimal acceleration. The
+`AccelerationStructure` is the functional element of the _bottom-level_ acceleration
+structure. Each individual object will have it's own BVH, encapsulated by an
 `AccelerationStructure` object.
 
 ## Constructors
@@ -47,9 +47,11 @@ get geometry(): BufferGeometry
 ```
 
 Gets the three.js geometry associated to the BVH.
-:::tip
-When building a BVH, three-mesh-bvh library needs a three.js geometry as input. This is that geometry. We don't use it for rendering.
-:::
+
+<Tip>
+  When building a BVH, three-mesh-bvh library needs a three.js geometry as
+  input. This is that geometry. We don't use it for rendering.
+</Tip>
 
 **Returns**: [_BufferGeometry_](https://threejs.org/docs/index.html?q=buffer#api/en/core/BufferGeometry)
 
@@ -72,7 +74,7 @@ Build a BVH using the provided geometry data.
 
 - **indices**: Geometry indices
 - **position**: Geometry vertex positions
-- **options**: [_BVHOptions_](/viewer/acceleration-structure-api.md#bvhoptions)
+- **options**: [_BVHOptions_](/dev/viewer/acceleration-structure-api#bvhoptions)
 - _optional_ **transform**: A [_Matrix4_](https://threejs.org/docs/index.html?q=matri#api/en/math/Matrix4) that transforms the geometry data before building the BVH
 
 **Returns**: [_MeshBVH_](https://github.com/gkjohnson/three-mesh-bvh/blob/master/src/core/MeshBVH.js)
@@ -193,9 +195,16 @@ transformInput<T extends Vector3 | Ray | Box3>(input: T): T
 ```
 
 Transform input vector, ray or box from world space into the acceleration structure's space.
-:::warning
-All the AccelerationStructure methods that deal with querying the BVH: [getBoundingBox](/viewer/acceleration-structure-api.md#getboundingbox), [getVertexAtIndex](/viewer/acceleration-structure-api.md#getvertexatindex), [raycast](/viewer/acceleration-structure-api.md#raycast), [raycastFirst](/viewer/acceleration-structure-api.md#raycastfirst), [shapecast](/viewer/acceleration-structure-api.md#shapecast) already call this function implicitly.
-:::
+
+<Warning>
+  All the AccelerationStructure methods that deal with querying the BVH:
+  [getBoundingBox](/dev/viewer/acceleration-structure-api#getboundingbox),
+  [getVertexAtIndex](/dev/viewer/acceleration-structure-api#getvertexatindex),
+  [raycast](/dev/viewer/acceleration-structure-api#raycast),
+  [raycastFirst](/dev/viewer/acceleration-structure-api#raycastfirst),
+  [shapecast](/dev/viewer/acceleration-structure-api#shapecast) already call
+  this function implicitly.
+</Warning>
 
 **Parameters**
 
@@ -216,9 +225,15 @@ Transform input vector, ray or box from the acceleration structure's space into 
 **Parameters**
 
 - **input**: [_Vector3_](https://threejs.org/docs/index.html?q=vec#api/en/math/Vector3) | [_Ray_](https://threejs.org/docs/index.html?q=ray#api/en/math/Ray) | [_Box3_](https://threejs.org/docs/index.html?q=box#api/en/math/Box3)
-  :::warning
-  All the AccelerationStructure methods that deal with querying the BVH: [getBoundingBox](/viewer/acceleration-structure-api.md#getboundingbox), [getVertexAtIndex](/viewer/acceleration-structure-api.md#getvertexatindex), [raycast](/viewer/acceleration-structure-api.md#raycast), [raycastFirst](/viewer/acceleration-structure-api.md#raycastfirst), [shapecast](/viewer/acceleration-structure-api.md#shapecast) already call this function implicitly.
-  :::
+  <Warning>
+    All the AccelerationStructure methods that deal with querying the BVH:
+    [getBoundingBox](/dev/viewer/acceleration-structure-api#getboundingbox),
+    [getVertexAtIndex](/dev/viewer/acceleration-structure-api#getvertexatindex),
+    [raycast](/dev/viewer/acceleration-structure-api#raycast),
+    [raycastFirst](/dev/viewer/acceleration-structure-api#raycastfirst),
+    [shapecast](/dev/viewer/acceleration-structure-api#shapecast) already call
+    this function implicitly.
+  </Warning>
 
 **Returns**: [_Vector3_](https://threejs.org/docs/index.html?q=vec#api/en/math/Vector3) | [_Ray_](https://threejs.org/docs/index.html?q=ray#api/en/math/Ray) | [_Box3_](https://threejs.org/docs/index.html?q=box#api/en/math/Box3)
 
@@ -236,14 +251,14 @@ Archtype for Vector2, Vector3 and Vector4.
 
 ```typescript
 interface BVHOptions {
-  strategy: SplitStrategy
-  maxDepth: number
-  maxLeafTris: number
-  verbose: boolean
-  useSharedArrayBuffer: boolean
-  setBoundingBox: boolean
-  onProgress?: () => void
-  [SKIP_GENERATION]: boolean
+  strategy: SplitStrategy;
+  maxDepth: number;
+  maxLeafTris: number;
+  verbose: boolean;
+  useSharedArrayBuffer: boolean;
+  setBoundingBox: boolean;
+  onProgress?: () => void;
+  [SKIP_GENERATION]: boolean;
 }
 ```
 

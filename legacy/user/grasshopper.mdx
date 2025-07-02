@@ -20,7 +20,7 @@ We have renamed some core concepts in Speckle to be more widely understandable.
 ## Getting started
 
 Speckle currently supports Grasshopper for McNeel Rhino 6 and 7.
-To install this Connector and connect your Speckle account, make sure to follow the instructions in [Speckle Manager](/user/manager).
+To install this Connector and connect your Speckle account, make sure to follow the instructions in [Speckle Manager](/legacy/user/manager).
 
 <img src="/images/legacy/gh/speckle-gh-main-tab.png" alt="GH Connector components" />
 
@@ -35,7 +35,7 @@ The following component categories are intended for all users:
 We've also built a few components designed for advanced users and developers:
 
 - Dev/Conversion: Conversion + serialization nodes.
-- Dev/Transports: Not sure what transports are? Check [this](/dev/transports.md) out!
+- Dev/Transports: Transports are used to send data to and receive data from Speckle.
 
 ### Ribbon tabs
 
@@ -68,12 +68,11 @@ In visual programming environments, Speckle Streams are identified by their URLs
 - `https://app.speckle.systems/streams/3073b96e86` points to the `main` branch on Stream `3073b96e86`
 - `https://app.speckle.systems/streams/3073b96e86/branches/dev` points to a branch named `dev` on Stream `3073b96e86`
 - `https://app.speckle.systems/streams/3073b96e86/commits/604bea8cc6` points to a specific commit `604bea8cc6` on Stream `3073b96e86`
-- `https://app.speckle.systems/streams/3073b96e86/globals/d227da61c1` points to the [globals](/user/web.html#globals) at `d227da61c1` on Stream `3073b96e86` (the globals id is optional)
 
 <Tip>
 Unsure what _commits_ and _branches_ are? 🤔
 
-No worries, you don't need to know what they are to use Speckle! But if you're curious, you can read about them in [concepts](/user/concepts).
+No worries, you don't need to know what they are to use Speckle!
 </Tip>
 
 We'll see how branch and commit URLs are used in the following sections.
@@ -90,9 +89,9 @@ To select the stream you want send data to,just pass in its URL as a string to t
 
 Alternatively, you can also use one of the following nodes to create or retrieve existing streams:
 
-- [Create Stream](/user/grasshopper.md#create-stream)
-- [Get Stream](/user/grasshopper.md#get-stream)
-- [List Streams](/user/grasshopper.md#list-streams)
+- [Create Stream](/legacy/user/grasshopper#create-stream)
+- [Get Stream](/legacy/user/grasshopper#get-stream)
+- [List Streams](/legacy/user/grasshopper#list-streams)
 
 <Note>
 While you can send data to streams and branches, you cannot send data to a specific commit. This is because commits represent your stream in a specific point in time. Therefore, everything that gets sent to Speckle is already a commit.
@@ -114,7 +113,7 @@ The commit message will be visible in Speckle Web (where you will also be able t
 
 Once you've lined up your objects (and optionally written a commit message) the only thing left to do is to press the **Send button**.
 
-![gh-send](./img-gh/gh-send.gif)
+![gh-send](/images/legacy/gh/gh-send.gif)
 
 <Tip>
 To view the data you just sent in Grasshopper, right-click the `Send` node and select the `View commit ...` option. This should open a new browser window loading the _stream url_. You can share that url with any collaborators so they can receive the data.
@@ -138,7 +137,7 @@ To target a specific branch, simply use the branch URL, such as: `https://app.sp
 
 Receiving data is very simple. You just need a `Receive` node, and a stream URL.
 
-![gh-receive](./img-gh/gh-receive.gif)
+![gh-receive](/images/legacy/gh/gh-receive.gif)
 
 When new data is pushed to this stream a notification will appear on the receive node, highlighting this fact.
 
@@ -171,7 +170,7 @@ You can find the ID of an object from the Speckle Web interface:
 
 ## Creating custom objects
 
-A custom object is a [Base Object](/user/concepts.html#the-base-object) with custom properties assigned to it. It's basically a custom data structure you can create to send data in a specific format that you define.
+A custom object is a Base Object with custom properties assigned to it. It's basically a custom data structure you can create to send data in a specific format that you define.
 
 There's several different ways to create custom speckle objects using the Grasshopper. One of them is using the `Create Speckle Object` node.
 
@@ -193,9 +192,9 @@ Choosing the wrong access type for your data may result in duplicated data being
 
 Every property can also be specified as _detached/non-detached_. When a property is _detached_, it means that the objects it contains will be saved as independent entities in the Speckle database. All properties are detached by default for performance reasons, but you can choose not to by specifying `Do not detach` on the right-click menu. Primitive types (int/double/bool/etc...) are never detached even if flagged as such.
 
-Want to dig deeper into Detach/Do Not Detatch? Take a look at [this](/dev/decomposition.md) dev doc about the Decomposition API.
+Want to dig deeper into Detach/Do Not Detatch? Take a look at the Decomposition API.
 
-![Detach/Do not detach](./img-gh/menu-DoNotDetach.gif)
+![Detach/Do not detach](/images/legacy/gh/menu-DoNotDetach.gif)
 
 #### Optional
 
@@ -203,7 +202,7 @@ Every property can also be flagged as _optional_. This will allow you to create 
 
 Please Note: There is a limitation on this behavior. At least one of the node's inputs must be _non-optional_.
 
-![Optional menu](./img-gh/menu-Optional.gif)
+![Optional menu](/images/legacy/gh/menu-Optional.gif)
 
 <Tip>
 When you activate any of the previous options, the corresponding icon will be shown in the parameter, very much like the `Graft/Flatten/Simplify` options.
@@ -215,16 +214,16 @@ When you activate any of the previous options, the corresponding icon will be sh
 
 All inputs can be renamed following the normal Grasshopper way. Just right-click the input you wish to rename, and write a new name for it in the first field of the pop-up menu.
 
-![Classic input renaming](./img-gh/gh-cso-rename-classic.gif)
+![Classic input renaming](/images/legacy/gh/gh-cso-rename-classic.gif)
 
 Most of the time, Grasshopper user's may have already named some of their input connections, and you can _inherit_ those names in your input in several ways:
 
 1. Use the `Inherit names` option in each input _right-click menu_.
-   ![Right-click menu "Inherit names" option](./img-gh/gh-cso-rename-menu.gif)
+   ![Right-click menu "Inherit names" option](/images/legacy/gh/gh-cso-rename-menu.gif)
 2. Double-click the input while pressing `shift`.
-   ![Shift + double-click "Inherit names" shortcut](./img-gh/gh-cso-rename-shiftdoubleclick.gif)
+   ![Shift + double-click "Inherit names" shortcut](/images/legacy/gh/gh-cso-rename-shiftdoubleclick.gif)
 3. Drag a new connection into the parameter while pressing `tab`.
-   ![Tab + drag connection "Inherit names" shortcut](./img-gh/gh-cso-rename-tabdrag.gif)
+   ![Tab + drag connection "Inherit names" shortcut](/images/legacy/gh/gh-cso-rename-tabdrag.gif)
 
 <Tip>
 All renaming options and shortcuts are available in any other "variable input" speckle nodes, such as:
@@ -241,7 +240,7 @@ Speckle 2.0 lets you create _Speckle BIM Elements_ from Rhino Geometry, so you c
 <img src="/images/legacy/gh/gh-bim.png" alt="Grasshopper BIM" />
 
 <Tip>
-You'll find the same functionality for Rhino, which is now covered not by object types but by using [Speckle Mapper](/user/rhino.html#rhino-mapper).
+You'll find the same functionality for Rhino, which is now covered not by object types but by using [Speckle Mapper](/legacy/user/rhino#rhino-mapper).
 </Tip>
 
 
@@ -363,7 +362,7 @@ If you're just using the **Objects kit**, our recommended approach is to use the
 
 <img src="/images/legacy/gh/nodes-schema-builder.png" alt="Schema Builder node" />
 
-The **Schema Builder** node is a very powerful one. It works similarly to the node above as it allows to create custom objects, but it does so by following pre-existing schemas. To learn more about [schemas and kits](/dev/kits) check out or dev section.
+The **Schema Builder** node is a very powerful one. It works similarly to the node above as it allows to create custom objects, but it does so by following pre-existing schemas.
 
 By default, the Schema Builder node comes with a series of types, these include mainly building elements to enhance interoperability between Rhino/Grasshopper and other BIM software solutions like Revit.
 
@@ -627,7 +626,7 @@ The **Synchronous Receive** node performs receive operations in the same way as 
 
 ### Create Speckle Object
 
-Please refer to the [Creating custom objects](/user/grasshopper.html#creating-custom-objects) section.
+Please refer to the [Creating custom objects](/legacy/user/grasshopper#creating-custom-objects) section.
 
 ### Create Speckle Object by Key/Value pairs
 
@@ -707,7 +706,7 @@ The **Extend Speckle Object by Key/Value** provides a way to add new properties 
 
 ### Schema Builder
 
-Please refer to the [Using the Schema Builder](/user/grasshopper.html#schema-builder) section.
+Please refer to the [Using the Schema Builder](/legacy/user/grasshopper#schema-builder) section.
 
 #### Inputs
 

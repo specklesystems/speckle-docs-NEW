@@ -1,20 +1,18 @@
 ---
 title: Rendering
+description: With the introduction of custom loaders, we've potentially broadened the scope of what the viewer could be used for, however our goal and purpose is still focusing on AEC related visualisation, with a strong bias towards Speckle data. Because Speckle data is organized in a certain way, the viewer creates some concepts and abstractions around it so that clients can use it efficiently.
 ---
 
-With the introduction of custom loaders, we've potentially broadened the scope of 
-what the viewer could be used for, however our goal and purpose is still focusing 
-on AEC related visualisation, with a strong bias towards Speckle data. Because 
-Speckle data is organized in a certain way, the viewer creates some concepts and 
-abstractions around it so that clients can use it efficiently.
-
-One such abstraction is the `NodeRenderView`, which is intensely used by the viewer 
+One such abstraction is the `NodeRenderView`, which is intensely used by the viewer
 core as well as viewer extensions.
 
 ## RenderViews
 
-The nodes from the previously defined [WorldTree](/viewer/viewer-data/#worldTree) 
-can contain any kind of data. Some of them contain rendering related data, like meshes, lines, points. A 'RenderView' of a node is just it's rendering related data from the viewer's point of view. The viewer will use render views for all rendering related operations instead of the node itself.
+The nodes from the previously defined [WorldTree](/dev/viewer/viewer-data/#worldtree)
+can contain any kind of data. Some of them contain rendering related data, like meshes,
+lines, points. A 'RenderView' of a node is just it's rendering related data from
+the viewer's point of view. The viewer will use render views for all rendering related
+operations instead of the node itself.
 
 Across the viewer-core and viewer extensions, render views are required to be passed around for various entry points.
 
@@ -35,7 +33,7 @@ const renderTree = worldTree.getRenderTree();
 You can be more specific and get a render tree instance for only a part of the model by providing an object id. The id you provide to `getRenderTree` represents the root of the render tree. So the call below will you get you the render tree highlighted in the image below:
 
 ```typescript
-const renderTree = worldTree.getRenderTree("2f1bd7295481641c888f09b5fbb6dc2b");
+const renderTree = worldTree.getRenderTree('2f1bd7295481641c888f09b5fbb6dc2b');
 ```
 
 <Frame>
@@ -47,7 +45,7 @@ It's important to note that you should always get the minimum render tree for yo
 Once you got hold of a render tree, you can start fetching render views:
 
 ```typescript
-const nodeId = "2f1bd7295481641c888f09b5fbb6dc2b";
+const nodeId = '2f1bd7295481641c888f09b5fbb6dc2b';
 const renderTree = worldTree.getRenderTree(nodeId);
 // Get all render views starting from the root of the render tree
 const node = worldTree.findId(nodeId);
@@ -66,7 +64,8 @@ viewer.setMaterial(rvs, materialData);
 
 ## Batching
 
-The viewer will automatically attempt to batch together any renderables you provide within a `loadObject` cycle. In order for batching to take place, the following conditions need to met:
+The viewer will automatically attempt to batch together any renderables you provide
+within a `loadObject` cycle. In order for batching to take place, the following conditions need to met:
 
 - Objects need to be of the same [_GeometryType_](/dev/viewer/render-view-api#geometrytype-enum).
 - Objects need to belong to the same subtree i.e loaded from within the same `loadObject` call.
@@ -78,4 +77,7 @@ Additional aspects of batching are:
 - Batches are limited to a maximum of 500,000 vertices.
 - Batches have a maximum object count limited by the platform's `Max Vertex Uniform Vectors` count.
 
-Batching improves overall performance significantly by drastically reducing the number of draw calls needed, especially in typical AEC scenarios where you can easily reach tens of thousands, or even more, individual objects that need to get drawn. Regardless, batching does not restrict manipulating objects individually in any way. This is achieved using [_BatchObject_](/viewer/batch-object-api.md)s.
+Batching improves overall performance significantly by drastically reducing the number of draw calls needed,
+especially in typical AEC scenarios where you can easily reach tens of thousands, or even more,
+individual objects that need to get drawn. Regardless, batching does not restrict manipulating
+objects individually in any way. This is achieved using [_BatchObject_](/dev/viewer/batch-object-api)s.

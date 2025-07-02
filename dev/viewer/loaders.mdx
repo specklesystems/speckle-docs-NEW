@@ -1,9 +1,9 @@
 ---
 title: Loaders
+description: The viewer provides a loader system which allows for virtually any data to be loaded in.
 ---
 
-
-The viewer provides a loader system which allows for virtually any data to be loaded in. The `SpeckleLoader` is an example of such loader that specialises on loading speckle data.
+The `SpeckleLoader` is an example of such loader that specialises on loading speckle data.
 
 If we take a look at how the viewer loads data:
 
@@ -11,7 +11,8 @@ If we take a look at how the viewer loads data:
 loadObject(loader: Loader): Promise<void>
 ```
 
-We see that it delegates the loading process to a `Loader` object that we specify. The `Loader` class is abstract and intentionally thin:
+We see that it delegates the loading process to a `Loader` object that we specify.
+The `Loader` class is abstract and intentionally thin:
 
 ```typescript
 public abstract load(): Promise<boolean>
@@ -35,11 +36,11 @@ public abstract convertNodeToGeometryData(node: NodeData): GeometryData
 public abstract disposeNodeGeometryData(node: NodeData): void
 ```
 
-The up-to-date types the viewer works with can be found [here](/viewer/geometry-converter-api.md#speckletype), however internally the viewer doesn't rely that much on these types, and they are mostly relevant at conversion time.
+The up-to-date types the viewer works with can be found [here](/dev/viewer/geometry-converter-api#speckletype), however internally the viewer doesn't rely that much on these types, and they are mostly relevant at conversion time.
 
 The most important function than needs to be implemented by any geometry converter is `convertNodeToGeometryData` which takes tree nodes and builds `GeometryData` objects for them, which allow the viewer to render the objects correctly.
 
-Once a geometry converter is implemented, you don't need to call any of it's method on your own. Everything will be called automatically in step 3, where we build the `RenderTree`. A [RenderTree](/viewer/viewer-rendering.md#rendertree) is simply a subtree of the WorldTree (or the entirety of it) with added rendering-related functionality. In order to build a RenderTree:
+Once a geometry converter is implemented, you don't need to call any of it's method on your own. Everything will be called automatically in step 3, where we build the `RenderTree`. A [RenderTree](/dev/viewer/viewer-rendering#rendertree) is simply a subtree of the WorldTree (or the entirety of it) with added rendering-related functionality. In order to build a RenderTree:
 
 ```typescript
 const geometryConverter = new MyGeometryConverter();
@@ -51,7 +52,7 @@ For examples of using our loading system and concrete implementations of `Loader
 - [Speckle loader and converter](https://github.com/specklesystems/speckle-server/tree/main/packages/viewer/src/modules/loaders/Speckle)
 - [OBJ loader and converter (geometry only)](https://github.com/specklesystems/speckle-server/tree/main/packages/viewer/src/modules/loaders/OBJ)
 
-You can run the live example with the OBJLoader [here](https://stackblitz.com/edit/speckle-obj-loader?embed=1&file=src/main.ts&view=preview&hideExplorer=true&hideNavigation=true) 
+You can run the live example with the OBJLoader [here](https://stackblitz.com/edit/speckle-obj-loader?embed=1&file=src/main.ts&view=preview&hideExplorer=true&hideNavigation=true)
 or <Tooltip tip="Embedding works only on chromium based browsers">embedded</Tooltip> below:
 
 <Frame caption="OBJ Loader Example">
