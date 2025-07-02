@@ -1,0 +1,94 @@
+---
+title: Full Migration
+---
+
+The encouraged way, is to conform to the new API as soon as possible. The following 
+guide will attempt to help with the initial migration from the old API to the new one.
+
+### Extensions:
+
+A lot of existing viewer functionality has been transferred over to modular `Extensions`. 
+In order to continue to make use of this functionality, the viewer clients now need to 
+explicitly enable extensions by calling `createExtension` with the extension's constructor 
+as the argument. For example, the complete functionality set requires all the extensions 
+enabled.
+
+```typescript
+const cameraController = this.createExtension(CameraController)
+const selection = this.createExtension(LegacySelectionExtension)
+const sections = this.createExtension(SectionTool)
+const sectionOutlines = this.createExtension(SectionOutlines)
+const measurements = this.createExtension(MeasurementsExtension)
+const filtering = this.createExtension(FilteringExtension)
+const explodeExtension = this.createExtension(ExplodeExtension)
+const diffExtension = this.createExtension(DiffExtension)
+```
+
+### General:
+
+- `ViewerParams`no longer has a `keepGeometryData` property. Redundant geometry 
+  data is by default removed and cannot be kept
+- `SectionBoxChanged` and `SectionBoxUpdated` removed from `ViewerEvent` and replaced 
+  by `SectionToolEvent.Updated` in `SectionTool` extension
+- `SelectionEvent.hits` changed to `Array<{node: TreeNode, point: Vector3}>`
+- `requestRender` from `Viewer` now takes optional `UpdateFlags`
+- `getObjects` removed from `Viewer`. Similar functionality exists with `getObject` 
+  in `SpeckleRenderer`
+- `explode` removed from `Viewer` and replaced by having an `ExplodeExtension` active. 
+  Explode time is now controller via `setExplode` in `ExplodeExtension`
+- `getDataTree` and `DataTree` type still exist, but are deprecated and will be 
+  soon removed completely. Any functionality can now be replicated with `WorldTree`
+- `cameraHandler` removed from `Viewer` and replaced by `controls` accessor in `CameraController`.
+
+### Section Box:
+
+- `setSectionBox` removed from `Viewer` and replaced by `setBox` in`SectionTool`
+- `getSectionBoxFromObjects` removed from `Viewer`  and replaced by `boxFromObjects` 
+  from `SpeckleRenderer`
+- `getCurrentSectionBox` removed from `Viewer` and replace by `getCurrentBox` in`SectionTool`
+- `toggleSectionBox` removed from `Viewer` and replaced by `toggle` in `SectionTool`
+- `sectionBoxOff` and `sectionBoxOn` removed from `Viewer` and replaced by the `enabled` 
+  accessor in `SectionTool`
+
+### Camera:
+
+- `zoom` removed from `Viewer` and replaced by `setCameraView` in `CameraController` 
+  extension
+- `toggleCameraProjection` removed from `Viewer` and replaced by `toggleCameras` in 
+  `CameraController` extension
+- `setView` removed from `Viewer` and replaced by `setCameraView` in `CameraController` 
+  extension
+- `loadObject` signature changed to `loadObject(loader: Loader, zoomToObject?: boolean)` 
+  and it's now asynchronous
+- `loadObjectAsync` removed from `Viewer`
+
+### Diffing:
+
+- `diff` removed from `Viewer` and replaced by `diff` in `DiffExtension`
+- `undiff` removed from `Viewer` and replaced by `undiff` in `DiffExtension`
+- `setDiffTime` and `setVisualDiffMode` removed from `Viewer` and replaced by 
+  `updateVisualDiff` in `DiffExtension`
+
+### Filtering and Selection:
+
+- `applyFilter` removed from `Viewer`
+- `getObjectProperties` is now asynchronous
+- `showObjects` and `hideObjects` are removed from `Viewer` and moved to `FilteringExtension`
+- `isolateObjects` and `unIsolateObjects` are removed from `Viewer` and moved to `FilterinExtension`
+- `selectObjects` is removed from `Viewer` and replaced by `selectObjects` in `SelectionExtension`
+- `resetSelection` is removed from `Viewer` and replaced by `clearSelection` in `SelectionExtension`
+- `highlightObjects` and `resetHighlight` are removed from `Viewer`
+- `setColorFilter` ans `removeColorFilter` are removed from `Viewer` and replaced 
+  by `setColorFilter`and `removeColorFilter` in `FilteringExtension`
+- `setUserObjectColors` is remove from `Viewer` and replaced by `setUserObjectColors` 
+  in `SelectionExtension` but usage is discouraged since paradigm no longer applies
+- `resetFilters`  is removed from `Viewer` and replaced by `resetFilters` in `SelectionExtension`
+
+### Measurements:
+
+- `enableMeasurements` removed from `Viewer` and replaced by having a 
+  `MeasurementsExtension` active and it’s `enabled` accessor set
+- `setMeasurementOptions` removed from `Viewer` and replaced by the `options` 
+  accessor in `MeasurementsExtension`
+- `removeMeasurement` removed from `Viewer` and replaced by `removeMeasurement` 
+  in `MeasurementsExtension`

@@ -1,0 +1,215 @@
+---
+title: Pipeline
+description: Abstract class that is the base for all concrete rendering pipeline implementations.
+---
+
+## Constructors
+
+### constructor
+
+        ```typescript
+        constructor(speckleRenderer: SpeckleRenderer)
+        ```
+
+**Parameters**
+
+- **speckleRenderer**: The hosting renderer as [SpeckleRenderer](/developers/viewer/speckle-renderer-api)
+
+## Properties
+
+### drawingSize
+
+```typescript
+protected drawingSize: Vector2;
+```
+
+The final display size for the pipeline in pixels. DPR is already factored in.
+
+**Returns**: [`Vector2`](https://threejs.org/docs/index.html?q=vect#api/en/math/Vector2)
+
+### passList
+
+```typescript
+protected passList: Array<GPass>;
+```
+
+The pipeline's ordered [GPass](/developers/viewer/rendering-pipeline-api/g-pass-api).
+
+**Returns**: `Array<`[`GPass`](/developers/viewer/rendering-pipeline-api/g-pass-api)`>`
+
+### speckleRenderer
+
+```typescript
+protected speckleRenderer: SpeckleRenderer;
+```
+
+The hosting speckle renderer instance
+
+**Returns**: [SpeckleRenderer](/developers/viewer/speckle-renderer-api)
+
+## Accessors
+
+### passes
+
+```typescript
+get passes(): Array<GPass>;
+```
+
+Gets the current ordered pass list
+
+**Returns**: `Array<`[`GPass`](/developers/viewer/rendering-pipeline-api/g-pass-api)`>`
+
+## Methods
+
+### createMultipleRenderTarget
+
+```typescript
+static createMultipleRenderTarget(
+  count: number,
+  options?: WebGLRenderTargetOptions,
+  width?: number,
+  height?: number
+): WebGLMultipleRenderTargets
+        static createMultipleRenderTarget(
+          count: number,
+          options?: WebGLRenderTargetOptions,
+          width?: number,
+          height?: number
+        ): WebGLMultipleRenderTargets
+```
+
+Creates an MRT enabled three.js render target.
+
+<Warning>
+  The resulting render target will be using a 32 bit depth + stencil
+  _renderbuffer_.
+</Warning>
+
+<Warning>
+  Because the Speckle viewer is still using an older version of three.js the
+  type `WebGLMultipleRenderTargets` does not exist anymore in their
+  documentation. However it works similarly to the regular `WebGLRenderTarget`
+</Warning>
+
+**Parameters**
+
+- **count**: The number of color attachements to the framebuffer
+- **options**: [WebGLRenderTargetOptions](https://threejs.org/docs/index.html?q=webgl#api/en/renderers/WebGLRenderTarget)
+- **width**: If none specified it will default to `1`
+- **height**: If none specified it will default to `1`
+
+**Returns**: [`WebGLMultipleRenderTargets`](https://threejs.org/docs/index.html?q=webgl#api/en/renderers/WebGLRenderTarget)
+
+### createRenderTarget
+
+```typescript
+static createRenderTarget(
+  options?: WebGLRenderTargetOptions,
+  width?: number,
+  height?: number
+): WebGLRenderTarget
+```
+
+Creates a three.js render target.
+
+<Warning>
+  The resulting render target will be using a 32 bit depth + stencil
+  _renderbuffer_.
+</Warning>
+
+<Warning>
+  Because the Speckle viewer is still using an older version of three.js the
+  type `WebGLMultipleRenderTargets` does not exist anymore in their
+  documentation. However it works similarly to the regular `WebGLRenderTarget`
+</Warning>
+
+**Parameters**
+
+- **options**: [`WebGLRenderTargetOptions`](https://threejs.org/docs/index.html?q=webgl#api/en/renderers/WebGLRenderTarget)
+- **width**: If none specified it will default to `1`
+- **height**: If none specified it will default to `1`
+
+**Returns**: [`WebGLRenderTarget`](https://threejs.org/docs/index.html?q=webgl#api/en/renderers/WebGLRenderTarget)
+
+### getPass
+
+```typescript
+getPass(name: string): GPass[]
+```
+
+Get's all the passes with the provided name
+
+**Parameters**
+
+- **name**: The name of the pass to get
+
+**Returns**: [`GPass[]`](/developers/viewer/rendering-pipeline-api/g-pass-api)
+
+### onAfterPipelineRender
+
+```typescript
+onAfterPipelineRender(): void
+```
+
+Callback for before the pipeline starts to render
+
+**Returns**: void
+
+### onBeforePipelineRender
+
+```typescript
+onBeforePipelineRender(): void
+```
+
+Callback for before the pipeline has finished rendering
+
+**Returns**: void
+
+### render
+
+```typescript
+render(): boolean
+```
+
+**Returns**: boolean
+
+### reset
+
+```typescript
+reset(): void
+```
+
+Callback for before the pipeline has finished rendering
+
+**Returns**: void
+
+### resize
+
+```typescript
+resize(width: number, height: number): void
+```
+
+Resets the pipeline
+
+**Returns**: void
+
+**Parameters**
+
+- **width**: The new width of the pipeline
+- **height**: The new height of the pipeline
+
+**Returns**: void
+
+### setClippingPlanes
+
+```typescript
+setClippingPlanes(planes: Plane[]): void
+```
+
+Propagates clipping planes towards the pipeline's consituent passes
+
+**Parameters**
+
+- **planes**: The clipping [`Planes`](https://threejs.org/docs/index.html?q=plane#api/en/math/Plane)
+
+**Returns**: void
