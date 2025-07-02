@@ -1,0 +1,78 @@
+---
+title: SSL Certificates
+description: SSL/TLS configuration for Speckle server
+---
+
+## Overview
+
+SSL certificates encrypt communication between clients and the server.
+
+## Development
+
+Generate a self-signed certificate:
+
+```bash
+# Generate private key and certificate
+openssl genrsa -out server.key 2048
+openssl req -new -key server.key -out server.csr
+openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
+```
+
+Configure in `.env`:
+```env
+SSL_ENABLED=true
+SSL_KEY_PATH=./server.key
+SSL_CERT_PATH=./server.crt
+```
+
+## Production
+
+### Let's Encrypt (Recommended)
+
+```bash
+# Install certbot
+sudo apt install certbot
+
+# Obtain certificate
+sudo certbot certonly --standalone -d your-domain.com
+
+# Configure
+SSL_ENABLED=true
+SSL_KEY_PATH=/etc/letsencrypt/live/your-domain.com/privkey.pem
+SSL_CERT_PATH=/etc/letsencrypt/live/your-domain.com/fullchain.pem
+```
+
+### Auto-renewal
+```bash
+# Add to crontab
+0 12 * * * /usr/bin/certbot renew --quiet
+```
+
+## Docker with Nginx
+
+```yaml
+version: '3.8'
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+
+  speckle-server:
+    image: speckle/speckle-server
+    environment:
+      - SSL_ENABLED=false  # Let nginx handle SSL
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `SSL_ENABLED` | Enable SSL/TLS |
+| `SSL_KEY_PATH` | Path to private key |
+| `SSL_CERT_PATH` | Path to certificate |
+| `SSL_CA_PATH` | Path to CA certificate (optional) |

@@ -1,0 +1,368 @@
+---
+title: Deploy to Kubernetes
+description: Deploy Speckle server to Kubernetes for enterprise and production environments
+---
+
+Kubernetes deployment is ideal for **enterprise environments** requiring high availability, scalability, and advanced orchestration. This guide covers production-ready Kubernetes deployment of the Speckle server.
+
+## Overview
+
+Kubernetes deployment provides:
+- **High Availability**: Multi-node deployment with automatic failover
+- **Scalability**: Horizontal and vertical scaling capabilities
+- **Advanced Orchestration**: Rolling updates, health checks, and auto-recovery
+- **Enterprise Features**: Load balancing, ingress management, and monitoring
+
+## Prerequisites
+
+Before deploying to Kubernetes:
+
+- **Kubernetes cluster** (v1.20+) with at least 3 nodes
+- **kubectl** configured and connected to your cluster
+- **Helm** (v3.0+) for package management
+- **Ingress controller** (nginx, traefik, or similar)
+- **Storage class** for persistent volumes
+- **Domain name** and SSL certificates
+- **Minimum 8GB RAM** and **50GB storage** per node
+
+## Quick Start with Helm
+
+1. **Add the Speckle Helm repository**:
+```bash
+helm repo add speckle https://specklesystems.github.io/speckle-server
+helm repo update
+```
+
+2. **Create namespace**:
+```bash
+kubectl create namespace speckle
+```
+
+3. **Install Speckle server**:
+```bash
+helm install speckle-server speckle/speckle-server \
+  --namespace speckle \
+  --set server.url=https://your-domain.com \
+  --set postgres.enabled=true \
+  --set ingress.enabled=true
+```
+
+## Production Configuration
+
+### Values File Configuration
+
+Create a `values.yaml` file for production deployment:
+
+```yaml
+# Server Configuration
+server:
+  name: "Production Speckle Server"
+  description: "Enterprise Speckle server"
+  url: "https://your-domain.com"
+  replicas: 3
+
+# Database Configuration
+postgres:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 100Gi
+    storageClass: "fast-ssd"
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1"
+    limits:
+      memory: "4Gi"
+      cpu: "2"
+
+# Redis Configuration
+redis:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# Ingress Configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: your-domain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: speckle-tls
+      hosts:
+        - your-domain.com
+
+# Storage Configuration
+storage:
+  type: "s3"  # or "local"
+  s3:
+    bucket: "speckle-data"
+    region: "us-west-2"
+    accessKey: "${S3_ACCESS_KEY}"
+    secretKey: "${S3_SECRET_KEY}"
+
+# Monitoring
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: true
+
+# Backup Configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: 30
+  s3:
+    bucket: "speckle-backups"
+    region: "us-west-2"
+```
+
+### Advanced Deployment
+
+```bash
+# Install with custom values
+helm install speckle-server speckle/speckle-server \
+  --namespace speckle \
+  -f values.yaml \
+  --set secrets.s3AccessKey="${S3_ACCESS_KEY}" \
+  --set secrets.s3SecretKey="${S3_SECRET_KEY}"
+```
+
+## Infrastructure Setup
+
+### Cluster Requirements
+
+**Minimum cluster configuration**:
+- **3 worker nodes** with 4+ cores and 8GB+ RAM each
+- **Control plane** with 2+ cores and 4GB+ RAM
+- **Storage**: 100GB+ per node for persistent volumes
+- **Network**: Low-latency inter-node communication
+
+**Recommended cluster configuration**:
+- **5+ worker nodes** with 8+ cores and 16GB+ RAM each
+- **High-availability control plane** (3+ nodes)
+- **SSD storage** for database and cache
+- **Load balancer** for ingress traffic
+
+### Storage Setup
+
+Configure storage classes for different workloads:
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+  iops: "3000"
+  throughput: "125"
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard-ssd
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+```
+
+### Ingress and SSL
+
+Set up ingress controller with SSL:
+
+```bash
+# Install nginx-ingress
+helm install nginx-ingress ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --create-namespace
+
+# Install cert-manager for SSL certificates
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --set installCRDs=true
+```
+
+## Monitoring and Observability
+
+### Prometheus and Grafana
+
+```yaml
+# Add to values.yaml
+monitoring:
+  prometheus:
+    enabled: true
+    retention: 30d
+  grafana:
+    enabled: true
+    adminPassword: "secure-password"
+    dashboards:
+      speckle: true
+```
+
+### Logging
+
+Configure centralized logging:
+
+```yaml
+# Fluentd configuration
+logging:
+  fluentd:
+    enabled: true
+    elasticsearch:
+      host: "elasticsearch-cluster"
+      port: 9200
+```
+
+## Backup and Disaster Recovery
+
+### Automated Backups
+
+```yaml
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: 30
+  s3:
+    bucket: "speckle-backups"
+    region: "us-west-2"
+  database:
+    enabled: true
+    schedule: "0 1 * * *"  # Daily at 1 AM
+  storage:
+    enabled: true
+    schedule: "0 3 * * *"  # Daily at 3 AM
+```
+
+### Disaster Recovery
+
+1. **Regular backups** to multiple regions
+2. **Cross-region replication** for critical data
+3. **Automated failover** procedures
+4. **Recovery testing** schedule
+
+## Scaling and Performance
+
+### Horizontal Pod Autoscaling
+
+```yaml
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+```
+
+### Resource Optimization
+
+```yaml
+resources:
+  requests:
+    memory: "2Gi"
+    cpu: "1"
+  limits:
+    memory: "4Gi"
+    cpu: "2"
+```
+
+## Security
+
+### Network Policies
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+```
+
+### RBAC Configuration
+
+```yaml
+rbac:
+  enabled: true
+  serviceAccount:
+    create: true
+    annotations: {}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Pod startup failures**:
+```bash
+kubectl describe pod -n speckle <pod-name>
+kubectl logs -n speckle <pod-name>
+```
+
+**Database connection issues**:
+```bash
+kubectl exec -n speckle -it <postgres-pod> -- psql -U speckle
+```
+
+**Ingress problems**:
+```bash
+kubectl describe ingress -n speckle
+kubectl get events -n ingress-nginx
+```
+
+### Performance Tuning
+
+- **Database optimization**: Connection pooling, query optimization
+- **Cache tuning**: Redis memory and eviction policies
+- **Storage optimization**: SSD usage, I/O optimization
+
+## Maintenance
+
+### Rolling Updates
+
+```bash
+# Update to new version
+helm upgrade speckle-server speckle/speckle-server \
+  --namespace speckle \
+  -f values.yaml
+```
+
+### Health Checks
+
+Monitor cluster health:
+```bash
+kubectl get nodes
+kubectl top nodes
+kubectl top pods -n speckle
+```
+
+---
+
+<Note>
+**Enterprise Support**: For enterprise deployments, consider our professional support services and custom deployment assistance.
+</Note> 
