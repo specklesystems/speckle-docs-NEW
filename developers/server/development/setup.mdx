@@ -1,0 +1,96 @@
+---
+title: Environment Setup
+description: Complete guide to get Speckle server running locally for development, testing, and contribution
+---
+
+<Note>
+  **Development vs Production**: This setup is for development and testing only.
+  For production deployment, use the [Docker
+  Compose](/developers/server/deployment/docker-compose) or
+  [Kubernetes](/developers/server/deployment/kubernetes) guides.
+</Note>
+
+## Project Structure
+
+The Speckle server is organized as a monorepo with the following key packages:
+
+- **`packages/server`**: Main API server (Node.js)
+- **`packages/frontend-2`**: Web interface (Vue.js)
+- **`packages/viewer`**: 3D viewer (Three.js)
+- **`packages/preview-service`**: Preview image generation
+- **`packages/webhook-service`**: Webhook processing
+- **`packages/fileimport-service`**: File import processing
+
+## Prerequisites
+
+Before setting up your development environment, ensure you have:
+
+- **Git** for version control
+- **Node.js** (check package.json engines field for version requirements)
+- **Docker and Docker Compose** for containerized services
+- **GitHub SSH key** (optional, for SSH-based cloning)
+
+## Supported Platforms
+
+Speckle server has been developed on Linux, Windows WSL2, and MacOS. It _does not_ work on Windows without WSL2.
+
+On MacOS devices with Apple based chips (M2, M3 etc.) it is possible to run the server as described below, but building and running Dockerfiles takes a lot of time (due to emulation of an x86 platform).
+
+## Setup Instructions
+
+To run a barebones Speckle Server, you need to run:
+
+- the `frontend-2` package (Vue.js web interface)
+- the `server` package (Node.js API server)
+
+Optionally, to enable extra functionality, microservices should be run separately:
+
+- the `preview-service` package generates preview images for streams
+- the `webhook-service` package is responsible with calling the configured webhooks
+- the `fileimport-service` package parses and imports uploaded files into Speckle
+
+<Steps>
+<Step title="Clone and setup repository">
+```bash 
+git clone git@github.com:specklesystems/speckle-server.git cd
+speckle-server corepack enable yarn yarn build 
+```
+</Step>
+<Step title="Start Docker services">
+```bash 
+yarn dev:docker:up 
+```
+</Step>
+<Step title="Configure environment files">
+```bash 
+cp packages/server/.env.example packages/server/.env 
+cp packages/server/.env.test-example packages/server/.env.test 
+cp packages/frontend-2/.env.example packages/frontend-2/.env 
+```
+</Step>
+
+<Step title="Start development server">
+```bash 
+yarn dev 
+```
+</Step>
+<Step title="Wait for the frontend to build">
+  Wait for the Vue.js frontend to build, and you have a fully functional Speckle
+  Server running at `http://localhost:3000`.
+</Step>
+</Steps>
+
+<Warning>
+  Don't forget to set up the variables in the `.env` & `.env.test` files
+  according to your deployment
+</Warning>
+
+
+In this deployment type, the Vue.js frontend app will listen by default on the local interface (not available over the network) on `port 8080`, but will have no knowledge about the `server` component, and thus **should not be accessed directly**.
+
+The Node.js server component will listen on the local interface (not available over the network) on `port 3000`, and will proxy the frontend requests to the Vue.js frontend component (as configured in .env file).
+
+## Getting Help
+
+- **Community Forum**: [speckle.community](https://speckle.community)
+- **GitHub Issues**: [speckle-server issues](https://github.com/specklesystems/speckle-server/issues)

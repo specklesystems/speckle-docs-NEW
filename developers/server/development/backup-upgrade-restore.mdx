@@ -1,0 +1,123 @@
+---
+title: Backup, Upgrade & Restore
+description: Database backup, upgrade, and restore for Speckle server
+---
+
+We recommend backing up your database regularly, and especially prior to upgrading Speckle. Backing up a database is often a requirement of a database upgrade, migrating your database between servers, or recovering from an incident.
+
+Speckle's preferred method of backing up and restoring data in a Postgres database is with pgAdmin. This guide assumes you are running Speckle via Docker-Compose.
+
+## Prerequisites
+
+1. Docker should be installed and running
+2. Manual installation instructions should have been completed
+
+## Setup pgAdmin
+
+<Steps>
+<Step title="Check and start pgAdmin">
+Check if pgAdmin is already running:
+```bash
+docker ps --filter name='pgadmin'
+```
+
+If not running, create `docker-compose-pgadmin.yml` with the following configuration:
+```yaml
+version: '3'
+services:
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: 'admin@localhost.com'
+      PGADMIN_DEFAULT_PASSWORD: 'admin'
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    ports:
+      - '127.0.0.1:16543:80'
+networks:
+  default:
+    name: speckle-server
+volumes:
+  pgadmin-data:
+```
+
+Then start pgAdmin:
+```bash
+docker compose --file docker-compose-pgadmin.yml up --detach
+```
+</Step>
+
+<Step title="Access pgAdmin">
+Find the pgAdmin port and access the dashboard:
+```bash
+docker ps --filter name='pgadmin'
+```
+
+Open `http://127.0.0.1:16543/` in your browser (replace 16543 with your actual port).
+</Step>
+</Steps>
+
+## Backup
+
+<Steps>
+<Step title="Backup database">
+Connect to pgAdmin, then connect to your Postgres server. Right-click on the `speckle` database, select `Backup...`, choose a location, and click `Backup` to start the process.
+</Step>
+</Steps>
+
+## Upgrade
+
+<Steps>
+<Step title="Deploy new version">
+Clone the Speckle Server repository and deploy the updated version:
+```bash
+git clone https://github.com/specklesystems/speckle-server.git
+cd speckle-server
+git checkout tags/2.9.0 -b main
+docker compose -f ./docker-compose-deps.yml up --detach
+```
+</Step>
+
+<Step title="Verify deployment">
+Check that all containers are running:
+```bash
+docker ps
+```
+</Step>
+
+<Step title="Stop and clean up old database">
+⚠️ **CAUTION** This will cause Speckle to stop working until restored. Notify users before proceeding.
+
+Stop and remove the old Postgres container:
+```bash
+docker stop speckle-server-postgres-1
+docker rm speckle-server-postgres-1
+```
+
+Find and delete the database volume:
+```bash
+docker volume ls --filter name='postgres'
+docker volume rm speckle-server_postgres-data
+```
+</Step>
+</Steps>
+
+## Restore
+
+<Steps>
+<Step title="Transfer and restore backup">
+If needed, transfer your backup file to the host machine, then copy it to the pgAdmin container:
+```bash
+docker cp BACKUP_FILE_NAME speckle-server-pgadmin-1:'/var/lib/pgadmin/storage/admin_localhost.com/'
+```
+
+Connect to pgAdmin, create a new `speckle` database, then right-click it and select `restore` to load your backup.
+</Step>
+
+<Step title="Verify restoration">
+Deploy Speckle server if not already running and verify the data is correct.
+</Step>
+</Steps>
+
+Your database has been successfully backed up, upgraded, and restored. Regular backups are recommended as part of your maintenance routine, regardless of whether you're performing upgrades. 
