@@ -1,0 +1,313 @@
+---
+title: NodeRenderView
+description: The render view is the core data structure that the viewer uses to render geometry.
+---
+
+
+## Constructors
+
+### constructor
+
+```typescript
+constructor(data: NodeRenderData)
+```
+
+Populates/constructs this node render view.
+
+**Parameters**
+
+- **data**: [_NodeRenderData_](/developers/viewer/render-view-api#noderenderdata)
+
+## Accessors
+
+### aabb
+
+```typescript
+get aabb(): Box3
+```
+
+Gets the axis aligned box of this render view's geometry.
+
+<Warning>
+The bounds returned do not take any user transformations into account, nor the instance transformations.
+</Warning>
+
+**Returns**: [_Box3_](https://threejs.org/docs/index.html?q=box3#api/en/math/Box3)
+
+### batchCount
+
+```typescript
+get batchCount(): number
+```
+
+Gets the total number of indices inside it's batch.
+
+**Returns**: number
+
+### batchEnd
+
+```typescript
+get batchEnd(): number
+```
+
+Gets the end index inside the batch's index buffer. Equals to `batchStart + batchCount`.
+
+**Returns**: number
+
+### batchId
+
+```typescript
+get batchId(): string
+```
+
+Gets the id of the batch this render view belongs to.
+
+**Returns**: string
+
+### batchStart
+
+```typescript
+get batchStart(): number
+```
+
+Gets the start index inside the batch's index buffer.
+
+**Returns**: string
+
+### geometryType
+
+```typescript
+get geometryType(): GeometryType
+```
+
+Gets this render view's [_GeometryType_](/developers/viewer/render-view-api#geometrytypeenum).
+
+**Returns**: [_GeometryType_](/developers/viewer/render-view-api#geometrytypeenum)
+
+### guid
+
+```typescript
+get guid(): string
+```
+
+Gets a unique id by concatenating the node's id and the subtree id it's part of.
+
+**Returns**: string
+
+### hasGeometry
+
+```typescript
+get hasGeometry(): boolean
+```
+
+Returns true if this render view has geometry, false otherwise.
+
+**Returns**: boolean
+
+### hasMetadata
+
+```typescript
+get hasMetadata(): boolean
+```
+
+Returns true if this render view has metadata, false otherwise. Metadata is any data that is used to create geometry in a deffered way.
+
+**Returns**: boolean
+
+### renderData
+
+```typescript
+get renderData(): NodeRenderData
+```
+
+Gets the render view's associated [_NodeRenderData_](/developers/viewer/render-view-api#noderenderdata).
+
+**Returns**: [_NodeRenderData_](/developers/viewer/render-view-api#noderenderdata)
+
+### renderMaterialHash
+
+```typescript
+get renderMaterialHash(): number
+```
+
+Gets the render view's computed material hash.
+
+**Returns**: number
+
+### speckleType
+
+```typescript
+get speckleType(): SpeckleType
+```
+
+Gets the render view's render data [_SpeckleType_](/developers/viewer/geometry-converter-api#speckletype).
+
+**Returns**: [_SpeckleType_](/developers/viewer/geometry-converter-api#speckletype)
+
+### transparent
+
+```typescript
+get transparent(): boolean
+```
+
+Gets whether the render view has a transparent default material.
+
+**Returns**: boolean
+
+### validGeometry
+
+```typescript
+get validGeometry(): boolean
+```
+
+Returns true if the existing geometry is valid. Input data can be invalid, so this checks for that.
+
+**Returns**: boolean
+
+### vertEnd
+
+```typescript
+get vertEnd(): number
+```
+
+Gets the ending index of this render view's vertex position attribute array inside it's batch.
+
+**Returns**: number
+
+### vertStart
+
+```typescript
+get vertStart(): number
+```
+
+Gets the starting index of this render view's vertex position attribute array inside it's batch.
+
+**Returns**: number
+
+## Methods
+
+### setBatchData
+
+```typescript
+setBatchData(
+    id: string,
+    start: number,
+    count: number,
+    vertStart?: number,
+    vertEnd?: number
+  )
+```
+
+Sets the batch related data to the render view. All render view geometry is contained inside a batch, and the offset + length is being stored at render view level for both indices and position attribute.
+<Warning>
+By default, `batchStart` and `batchCount` are dynamic, so _they can change_ at runtime. `vertStart` and `vertEnd` are not dynamic by default.
+</Warning>
+<Warning>
+_Normally_, you have no need overwritting the render view's batch data. It's handled internally by the viewer-core.
+</Warning>
+
+**Parameters**
+
+- **id**: The id of the batch
+- **start**: Start index of the render view's index array inside the batch's index array
+- **count**: Start length of the render view's index array
+- _optional_ **vertStart**: Start index of the render view's position array inside the batch's position array
+- _optional_ **vertEnd**: End index of the render view's index array inside the batch's index array
+
+**Returns**: void
+
+### computeAABB
+
+```typescript
+computeAABB(): void
+```
+
+Computes this render view's axis aligned bounding box.
+<Warning>
+The render view's aabb can be read by using [_aabb_](/developers/viewer/render-view-api#aabb), but do note that it does not take user transformations nor instance transformations into account.
+</Warning>
+
+**Returns**: void
+
+### disposeGeometry
+
+```typescript
+disposeGeometry(): void
+```
+
+Disposes of the individual geometry of this render view. After batching, the individual geometry of render views becomes redundant, so we can dispose of it to reduce memory footprint.
+
+**Returns**: void
+
+## Typedefs
+
+### NodeRenderData
+
+```typescript
+interface NodeRenderData {
+  id: string;
+  subtreeId: number;
+  speckleType: SpeckleType;
+  geometry: GeometryData;
+  renderMaterial: RenderMaterial;
+  displayStyle: DisplayStyle;
+}
+```
+
+This is the bare bones data representation of anything renderable in the viewer. The [_NodeRenderView_](/developers/viewer/render-view-api#constructor) is more or less a wrapper around this data that adds some shorthands and
+
+- **id**: The id of the object. For speckle data, this would be the speckle id
+- **subtreeId**: The id of the subtree of the host node
+- **speckleType**: [_SpeckleType_](/developers/viewer/geometry-converter-api#speckletype)
+- **geometry**: Raw geometry information stored as [_GeometryData_](/developers/viewer/render-view-api#geometrydata)
+- **renderMaterial**: Raw material information stored as [_RenderMaterial_](/developers/viewer/speckle-material-api#rendermaterial)
+- **DisplayStyle**: Raw line material information stored as [_DisplayStyle_](/developers/viewer/speckle-material-api#displaystyle)
+
+### GeometryData
+
+```typescript
+interface GeometryData {
+  attributes: Partial<Record<GeometryAttributes, number[]>>;
+  bakeTransform: Matrix4;
+  transform: Matrix4;
+  metaData?: Record<string, any>;
+  instanced?: boolean;
+}
+```
+
+Raw geometry information, explicit and/or implicit.
+
+- **attributes**: [_GeometryAttributes_](/developers/viewer/render-view-api#geometryattributes) Vertex attribute arrays
+- **bakeTransform**: [_Matrix4_](https://threejs.org/docs/index.html?q=matri#api/en/math/Matrix4) transformation that will get baked into the geometry
+- **transform**: [_Matrix4_](https://threejs.org/docs/index.html?q=matri#api/en/math/Matrix4) the object's transformation. As per the default implementation, instances use this as the per instance transform attribute. Non-instances have it baked in their geometries
+- **metaData**: Implicit geometry data which the viewer uses at runtime to create geometry. Text is a good example of implicit geometry
+- **instanced**: Whether this geometry data is instanced or not
+
+### GeometryAttributes
+
+```typescript
+enum GeometryAttributes {
+  POSITION = "POSITION",
+  COLOR = "COLOR",
+  NORMAL = "NORMAL",
+  UV = "UV",
+  TANGENT = "TANGENT",
+  INDEX = "INDEX",
+}
+```
+
+Defined attributes that the viewer supports.
+
+### GeometryType enum
+
+```typescript
+enum GeometryType {
+  MESH,
+  LINE,
+  POINT,
+  POINT_CLOUD,
+  TEXT,
+}
+```
+
+The formalized geometry types the viewer supports and recognizes.

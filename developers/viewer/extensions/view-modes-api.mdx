@@ -1,0 +1,110 @@
+---
+title: ViewModes
+description: This extension simplifies working with stock [rendering pipelines](/developers/viewer/rendering-pipeline-api/pipeline-api)
+---
+
+<Warning>
+  For correct behavior of SHADED view mode, a FilteringExtension is required to
+  be present when adding this extension
+</Warning>
+
+## Accessors
+
+### viewMode
+
+```typescript
+get viewMode(): ViewMode
+```
+
+Gets the current view mode.
+
+**Returns**: [_ViewMode_](/developers/viewer/extensions/view-modes-api#viewmode)
+
+### viewModeOptions
+
+```typescript
+get viewModeOptions(): ViewModeOptions
+```
+
+Gets the current view mode options.
+
+**Returns**: [_ViewModeOptions_](/developers/viewer/extensions/view-modes-api#viewmodeoptions)
+
+## Methods
+
+### on
+
+```typescript
+on<T extends ViewModeEvent>(
+    eventType: T,
+    listener: (arg: ViewModeEventPayload[T]) => void
+): void
+```
+
+Method for subscribing to view mode events.
+
+**Parameters**
+
+- **eventType**: [_ViewModeEvent_](/developers/viewer/extensions/view-modes-api#viewmodeevent)
+- **listener**: The handler for the events with [_ViewModeEventPayload_](/developers/viewer/extensions/view-modes-api#viewmodeeventpayload) arguments
+
+**Returns**: void
+
+### setViewMode
+
+```typescript
+setViewMode(viewMode: ViewMode, options?: ViewModeOptions): void
+```
+
+Sets the provided [ViewMode](/developers/viewer/extensions/view-modes-api#viewmode) along with the options.
+
+**Parameters**
+
+- **viewMode**: [_ViewMode_](/developers/viewer/extensions/view-modes-api#viewmode)
+- _optional_ **options**: [_ViewModeOptions_](/developers/viewer/extensions/view-modes-api#viewmodeoptions)
+
+**Returns**: void
+
+## Typedefs
+
+### ViewMode
+
+```typescript
+enum ViewMode {
+  DEFAULT,
+  SOLID,
+  PEN,
+  ARCTIC,
+  SHADED,
+}
+```
+
+Defines the supported view modes.
+
+### ViewModeEvent
+
+```typescript
+enum ViewModeEvent {
+  Changed = 'view-mode-changed',
+}
+```
+
+Defines the supported view modes events.
+
+### ViewModeOptions
+
+```typescript
+type ViewModeOptions = PipelineOptions & EdgesPipelineOptions;
+```
+
+A union of available [rendering pipeline options](/developers/viewer/rendering-pipeline-api/pipeline-api#pipelineoptions).
+
+### ViewModeEventPayload
+
+```typescript
+interface ViewModeEventPayload {
+  [ViewModeEvent.Changed]: ViewMode;
+}
+```
+
+Defines the supported view modes events payloads.
