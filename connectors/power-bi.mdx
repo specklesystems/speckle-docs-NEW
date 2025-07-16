@@ -141,3 +141,146 @@ Speckle's connection to Power BI consists of two parts.
     </Accordion>
 
 </AccordionGroup>
+
+## Helper Functions
+
+We’ve added a series of helper functions to the `Speckle` namespace to make working with Speckle data in Power BI more efficient and user-friendly.
+
+---
+
+**`Speckle.Objects.Properties`**<br/>
+
+Working with properties can be tricky—they're often deeply nested and inconsistently structured. This helper function simplifies the process.
+
+```powerquery
+Speckle.Objects.Properties(inputRecord as record, optional filterKeys as list)
+```
+
+**Description:**<br/>
+Returns a record containing properties and their values from the given `inputRecord`. Optionally, you can provide `filterKeys` to extract only specific properties.
+
+<Expandable title="Example">
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-function_1.jpg" alt="Power BI helper function" />
+</Frame>
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-function_2.jpg" alt="Power BI helper function" />
+</Frame>
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-function_3.jpg" alt="Power BI helper function" />
+</Frame>
+</Expandable>
+---
+
+**`Speckle.Objects.CompositeStructure`**
+
+Use this function to extract the composite structure of an object, such as a Wall, Floor, or Roof. This is especially useful for understanding layered compositions in your models.
+
+> **Note:** Currently only supported for Revit and Archicad models.
+
+```powerquery
+Speckle.Objects.CompositeStructure(inputRecord as record, optional outputAsList as nullable logical)
+```
+
+**Description:**  
+Takes an object record as input and returns its composite structure.  
+- By default, returns a record.  
+- Set `outputAsList` to `true` to return the composite structure as a list—useful for expanding each layer into its own row.
+
+<Expandable title="Example">
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-comp-struct_1.jpg" alt="Power BI helper function" />
+</Frame>
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-comp-struct_2.jpg" alt="Power BI helper function" />
+</Frame>
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-comp-struct_3.jpg" alt="Power BI helper function" />
+</Frame>
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-comp-struct_4.jpg" alt="Power BI helper function" />
+</Frame>
+</Expandable>
+
+---
+
+**`Speckle.Objects.MaterialQuantities`**
+
+Quickly access material quantities of an object—ideal for use in Power BI's "Add Column" transformation flow, as it operates on individual records.
+
+```powerquery
+Speckle.Objects.MaterialQuantities(inputRecord as record, optional outputAsList as logical)
+```
+
+**Description:**  
+Takes an object record and returns a record containing its material quantities.  
+- Set `outputAsList` to `true` to return quantities as a list, which is helpful for row expansion.
+
+<Expandable title="Example">
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-materials_1.jpg" alt="Power BI helper function" />
+</Frame>
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-materials_2.jpg" alt="Power BI helper function" />
+</Frame>
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-materials_3.jpg" alt="Power BI helper function" />
+</Frame>
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-materials_4.jpg" alt="Power BI helper function" />
+</Frame>
+</Expandable>
+
+---
+
+**`Speckle.Models.Federate`**
+
+Previously, you could federate models by supplying a federated model URL. Now, you can manually federate already-loaded models in Power BI using this function.
+
+> **Tip:** This function allows you to federate models from different Speckle projects.
+
+```powerquery
+Speckle.Models.Federate(tables as list, optional excludeData as logical)
+```
+
+**Description:**  
+Accepts a list of tables (each representing a model) and returns a federated table.  
+- Use `excludeData = true` to federate only the metadata necessary for 3D visuals (e.g., Version Object ID, Object IDs) without pulling in all the data.
+
+<Expandable title="Example">
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-fed_1.jpg" alt="Power BI helper function" />
+</Frame>
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-fed_2.jpg" alt="Power BI helper function" />
+</Frame>
+</Expandable>
+
+---
+
+**`Speckle.Utils.ExpandRecord`**
+
+This function expands a record column into separate columns for each field. It's especially useful in combination with the `Properties` helper.
+
+```powerquery
+Speckle.Utils.ExpandRecord(table as table, columnName as text, optional FieldNames as list, optional UseCombinedNames as logical)
+```
+
+**Description:**  
+Expands the fields of a record column (`columnName`) into individual columns in the table.  
+- Use `FieldNames` to limit the expanded fields.  
+- Use `UseCombinedNames = true` to prefix column names with the record column name (e.g., `Properties.Length`).
+
+<Expandable title="Example">
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-expand_1.jpg" alt="Power BI helper function" />
+</Frame>
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-expand_2.jpg" alt="Power BI helper function" />
+</Frame>
+<Frame>
+    <img src="/images/connectors/pbi_images/pbi-helper-functions-expand_3.jpg" alt="Power BI helper function" />
+</Frame>
+</Expandable>
+
+
