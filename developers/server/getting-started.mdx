@@ -49,6 +49,8 @@ services:
     image: 'minio/minio'
     command: server /data --console-address ":9001"
     restart: always
+    ports:
+      - '127.0.0.1:9000:9000'
     volumes:
       - ./minio-data:/data
 
@@ -56,7 +58,7 @@ services:
     image: speckle/speckle-docker-compose-ingress:2
     restart: always
     ports:
-      - '0.0.0.0:80:8080'
+      - '127.0.0.1:80:8080'
 
   speckle-frontend-2:
     image: speckle/speckle-frontend-2:2
@@ -85,6 +87,7 @@ services:
       POSTGRES_DB: 'speckle'
       REDIS_URL: 'redis://redis'
       S3_ENDPOINT: 'http://minio:9000'
+      S3_PUBLIC_ENDPOINT: 'http://127.0.0.1:9000'
       S3_ACCESS_KEY: 'minioadmin'
       S3_SECRET_KEY: 'minioadmin'
       S3_BUCKET: 'speckle-server'
@@ -96,7 +99,7 @@ services:
     depends_on:
       - speckle-server
     environment:
-      PG_CONNECTION_STRING: 'postgres://speckle:speckle@postgres/speckle'
+      REDIS_URL: 'redis://redis'
 
   webhook-service:
     image: speckle/speckle-webhook-service:2
@@ -114,10 +117,6 @@ services:
     environment:
       SPECKLE_SERVER_URL: 'http://speckle-server:3000'
       PG_CONNECTION_STRING: 'postgres://speckle:speckle@postgres/speckle'
-      S3_ENDPOINT: 'http://minio:9000'
-      S3_ACCESS_KEY: 'minioadmin'
-      S3_SECRET_KEY: 'minioadmin'
-      S3_BUCKET: 'speckle-server'
 ```
 
 </Step>
