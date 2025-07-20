@@ -1,0 +1,630 @@
+---
+title: API Reference
+description: Complete API reference for Speckle Automate functions and interfaces
+---
+
+# Speckle Automate API Reference
+
+This reference documents the essential APIs and interfaces for developing functions in Speckle Automate. All APIs are available in both Python and C# SDKs.
+
+<Tip>
+Start with the [Quickstart Guide](/developers/automate/quickstart) to understand the basic concepts before using this API reference.
+</Tip>
+
+## Function Inputs
+
+Function inputs define what users can configure when running your automation. They automatically generate forms in the web interface.
+
+### Supported Types
+
+| Type | Python | C# | Use Case |
+|------|--------|----|----------|
+| **Text** | `str` | `string` | Names, descriptions, IDs |
+| **Number** | `float` | `double` | Measurements, thresholds |
+| **Integer** | `int` | `int` | Counts, indices |
+| **Boolean** | `bool` | `bool` | Toggle options |
+| **Selection** | `Enum` | `enum` | Choose from options |
+| **Secret** | `SecretStr` | `[Secret]` | API keys, passwords |
+
+### Validation Attributes
+
+| Validation | Python | C# | Description |
+|------------|--------|----|-------------|
+| **Required** | `Field(...)` | `[Required]` | Field must be provided |
+| **Length** | `min_length=1, max_length=100` | `[MinLength(1)]`, `[MaxLength(100)]` | String length limits |
+| **Range** | `gt=0, lt=100` | `[Range(0, 100)]` | Number value limits |
+| **Pattern** | `pattern=r"^[A-Z]+$"` | `[RegularExpression("^[A-Z]+$")]` | Regex validation |
+
+### Example: Simple Inputs
+
+<CodeGroup dropdown>
+
+```python simple_inputs.py
+from speckle_automate import AutomateBase
+from pydantic import Field
+
+class FunctionInputs(AutomateBase):
+    project_name: str = Field(
+        title="Project Name",
+        description="Enter the project identifier"
+    )
+    
+    max_length: float = Field(
+        default=10.0,
+        title="Maximum Length",
+        description="Maximum allowed length in meters"
+    )
+    
+    include_analysis: bool = Field(
+        default=True,
+        title="Include Analysis",
+        description="Whether to perform detailed analysis"
+    )
+```
+
+```csharp SimpleInputs.cs
+using Speckle.Automate.Sdk.Schema;
+
+public class FunctionInputs
+{
+    [DisplayName("Project Name")]
+    [Description("Enter the project identifier")]
+    public string ProjectName { get; set; }
+
+    [DisplayName("Maximum Length")]
+    [Description("Maximum allowed length in meters")]
+    public double MaxLength { get; set; } = 10.0;
+
+    [DisplayName("Include Analysis")]
+    [Description("Whether to perform detailed analysis")]
+    public bool IncludeAnalysis { get; set; } = true;
+}
+```
+
+</CodeGroup>
+
+### Example: Dropdown Selections
+
+<CodeGroup dropdown>
+
+```python dropdown_selections.py
+from enum import Enum
+
+class AnalysisType(str, Enum):
+    STRUCTURAL = "structural"
+    THERMAL = "thermal"
+    COST = "cost"
+
+class FunctionInputs(AutomateBase):
+    analysis_type: AnalysisType = Field(
+        default=AnalysisType.STRUCTURAL,
+        title="Analysis Type",
+        description="Select the type of analysis to perform"
+    )
+```
+
+```csharp DropdownSelections.cs
+public enum AnalysisType
+{
+    [Description("Structural Analysis")]
+    Structural,
+    [Description("Thermal Analysis")]
+    Thermal,
+    [Description("Cost Analysis")]
+    Cost
+}
+
+public class FunctionInputs
+{
+    [DisplayName("Analysis Type")]
+    [Description("Select the type of analysis to perform")]
+    public AnalysisType Type { get; set; } = AnalysisType.Structural;
+}
+```
+
+</CodeGroup>
+
+### Example: Secure Inputs
+
+<CodeGroup dropdown>
+
+```python secure_inputs.py
+from pydantic import SecretStr
+
+class FunctionInputs(AutomateBase):
+    api_key: SecretStr = Field(
+        title="API Key",
+        description="Your external service API key"
+    )
+```
+
+```csharp SecureInputs.cs
+public class FunctionInputs
+{
+    [Secret]
+    [DisplayName("API Key")]
+    [Description("Your external service API key")]
+    public string ApiKey { get; set; }
+}
+```
+
+</CodeGroup>
+
+
+
+## Automation Context
+
+The `AutomationContext` is your function's interface to Speckle. It provides access to data, authentication, and methods for reporting results.
+
+### Properties
+
+<ResponseField name="automation_run_data" type="AutomationRunData" >
+Metadata about the current automation run, including run ID, trigger information, and execution context
+</ResponseField>
+
+<ResponseField name="speckle_client" type="SpeckleClient" >
+Pre-configured, authenticated client for Speckle API calls. Provides full access to the Speckle SDK functionality.
+</ResponseField>
+
+<ResponseField name="function_inputs" type="FunctionInputs" >
+User-provided configuration values that were specified when the automation was triggered
+</ResponseField>
+
+<Info>
+🔧 **Full SDK Access**: The `speckle_client` property provides access to the complete Speckle SDK functionality. You can use all features from [SpecklePy](/developers/specklepy) (Python) or [SpeckleSharp](/developers/speckle-sharp) (C#) within your Automate functions.
+</Info>
+
+### Methods
+
+<ResponseField name="receive_version()" type="Base" >
+Get the model that triggered this automation. Returns the complete Speckle data structure.
+</ResponseField>
+
+<ResponseField name="mark_run_success(message)" type="void" >
+Report successful completion of the automation. Call this when your function completes successfully.
+</ResponseField>
+
+<ResponseField name="mark_run_failed(message)" type="void" >
+Report business logic failure. Use this when validation fails or business rules are violated.
+</ResponseField>
+
+<ResponseField name="mark_run_exception(message)" type="void" >
+Report unexpected error. Use this when an exception occurs that wasn't part of normal business logic.
+</ResponseField>
+
+<ResponseField name="attach_error_to_objects(category, object_ids, message, metadata?)" type="void" >
+Mark specific objects with errors. Useful for validation failures or processing errors on individual elements.
+</ResponseField>
+
+<ResponseField name="attach_warning_to_objects(category, object_ids, message, metadata?)" type="void" >
+Add warnings to specific objects. Use for performance issues, recommendations, or non-critical problems.
+</ResponseField>
+
+<ResponseField name="attach_success_to_objects(category, object_ids, message, metadata?)" type="void" >
+Mark objects as successfully processed. Useful for tracking which elements were processed correctly.
+</ResponseField>
+
+<ResponseField name="create_new_version_in_project(project_id, data, message)" type="string" >
+Create a new model version with modified data. Returns the ID of the newly created version.
+</ResponseField>
+
+<ResponseField name="store_file_result(file_path, file_name)" type="string" >
+Save a file as an artifact. Useful for reports, exports, or analysis results. Returns the artifact ID.
+</ResponseField>
+
+
+
+### Getting Model Data
+
+<CodeGroup dropdown>
+
+```python getting_model_data.py
+await automate_context.receive_version() -> Base
+```
+
+#### Response
+
+<ResponseField name="model_data" type="Base" required>
+The Speckle model that triggered this automation
+</ResponseField>
+
+```csharp GettingModelData.cs
+await context.ReceiveVersion() -> Base
+```
+
+#### Response
+
+<ResponseField name="modelData" type="Base" required>
+The Speckle model that triggered this automation
+</ResponseField>
+
+</CodeGroup>
+
+### Status Reporting
+
+Your function must report its final status using one of these methods:
+
+<CodeGroup dropdown>
+
+```python status_reporting.py
+automate_context.mark_run_success(message: str)
+automate_context.mark_run_failed(message: str)
+automate_context.mark_run_exception(message: str)
+```
+
+#### Parameters
+
+<ParamField name="message" type="str" required>
+A descriptive message explaining the status. For failures, include actionable information.
+</ParamField>
+
+```csharp StatusReporting.cs
+context.MarkRunSuccess(string message)
+context.MarkRunFailed(string message)
+context.MarkRunException(string message)
+```
+
+#### Parameters
+
+<ParamField name="message" type="string" required>
+A descriptive message explaining the status. For failures, include actionable information.
+</ParamField>
+
+</CodeGroup>
+
+### Annotating Objects
+
+Add status information to specific objects in the model:
+
+<CodeGroup dropdown>
+
+```python annotating_objects.py
+automate_context.attach_error_to_objects(category, object_ids, message, metadata=None)
+automate_context.attach_warning_to_objects(category, object_ids, message, metadata=None)
+automate_context.attach_success_to_objects(category, object_ids, message, metadata=None)
+```
+
+#### Parameters
+
+<ParamField name="category" type="str" required>
+A category name to group related annotations (e.g., "Validation Errors", "Performance Issues")
+</ParamField>
+
+<ParamField name="object_ids" type="List[str]" required>
+List of object IDs to annotate with the status
+</ParamField>
+
+<ParamField name="message" type="str" required>
+A descriptive message explaining the status for these objects
+</ParamField>
+
+<ParamField name="metadata" type="Optional[Dict]" required={false}>
+Additional data to include with the annotation (e.g., error codes, thresholds)
+</ParamField>
+
+```csharp AnnotatingObjects.cs
+context.AttachErrorToObjects(category, objectIds, message, metadata = null)
+context.AttachWarningToObjects(category, objectIds, message, metadata = null)
+context.AttachSuccessToObjects(category, objectIds, message, metadata = null)
+```
+
+#### Parameters
+
+<ParamField name="category" type="string" required>
+A category name to group related annotations (e.g., "Validation Errors", "Performance Issues")
+</ParamField>
+
+<ParamField name="objectIds" type="string[]" required>
+Array of object IDs to annotate with the status
+</ParamField>
+
+<ParamField name="message" type="string" required>
+A descriptive message explaining the status for these objects
+</ParamField>
+
+<ParamField name="metadata" type="Dictionary<string, object>" required={false}>
+Additional data to include with the annotation (e.g., error codes, thresholds)
+</ParamField>
+
+</CodeGroup>
+
+### Creating New Model Versions
+
+<CodeGroup dropdown>
+
+```python creating_versions.py
+await automate_context.create_new_version_in_project(project_id, data, message) -> str
+```
+
+#### Parameters
+
+<ParamField name="project_id" type="str" required>
+The ID of the project where the new version will be created
+</ParamField>
+
+<ParamField name="data" type="Base" required>
+The modified Speckle data to save as a new version
+</ParamField>
+
+<ParamField name="message" type="str" required>
+A commit message describing the changes in this version
+</ParamField>
+
+#### Response
+
+<ResponseField name="version_id" type="str" required>
+The ID of the newly created version
+</ResponseField>
+
+```csharp CreatingVersions.cs
+await context.CreateNewVersionInProject(projectId, data, message) -> string
+```
+
+#### Parameters
+
+<ParamField name="projectId" type="string" required>
+The ID of the project where the new version will be created
+</ParamField>
+
+<ParamField name="data" type="Base" required>
+The modified Speckle data to save as a new version
+</ParamField>
+
+<ParamField name="message" type="string" required>
+A commit message describing the changes in this version
+</ParamField>
+
+#### Response
+
+<ResponseField name="versionId" type="string" required>
+The ID of the newly created version
+</ResponseField>
+
+</CodeGroup>
+
+### Saving Files
+
+<CodeGroup dropdown>
+
+```python saving_files.py
+await automate_context.store_file_result(file_path, file_name) -> str
+```
+
+#### Parameters
+
+<ParamField name="file_path" type="str" required>
+The local path to the file you want to save as an artifact
+</ParamField>
+
+<ParamField name="file_name" type="str" required>
+The name that will be displayed for the file in the Speckle interface
+</ParamField>
+
+#### Response
+
+<ResponseField name="artifact_id" type="str" required>
+The ID of the saved artifact file
+</ResponseField>
+
+```csharp SavingFiles.cs
+await context.StoreFileResult(filePath, fileName) -> string
+```
+
+#### Parameters
+
+<ParamField name="filePath" type="string" required>
+The local path to the file you want to save as an artifact
+</ParamField>
+
+<ParamField name="fileName" type="string" required>
+The name that will be displayed for the file in the Speckle interface
+</ParamField>
+
+#### Response
+
+<ResponseField name="artifactId" type="string" required>
+The ID of the saved artifact file
+</ResponseField>
+
+</CodeGroup>
+
+## Working with Speckle Data
+
+### Data Structure
+
+Speckle models are **directed acyclic graphs (DAGs)**:
+
+- Objects can reference other objects
+- Properties can be primitive values or object references
+- References are one-way (parent → child)
+- Common properties: `elements`, `parameters`, `units`, `applicationId`
+
+
+
+## Complete Function Example
+
+Here's a complete example that demonstrates all the key concepts:
+
+<CodeGroup dropdown>
+
+```python complete_example.py
+from speckle_automate import AutomateBase, execute_automate_function
+from pydantic import Field
+from enum import Enum
+
+class AnalysisType(str, Enum):
+    STRUCTURAL = "structural"
+    THERMAL = "thermal"
+
+class FunctionInputs(AutomateBase):
+    analysis_type: AnalysisType = Field(
+        default=AnalysisType.STRUCTURAL,
+        title="Analysis Type",
+        description="Type of analysis to perform"
+    )
+    
+    max_stress: float = Field(
+        default=250.0,
+        title="Maximum Stress (MPa)",
+        description="Maximum allowable stress",
+        gt=0
+    )
+
+async def automate_function(automate_context, function_inputs):
+    try:
+        # Get the model data
+        model_data = await automate_context.receive_version()
+        
+        # Find structural elements
+        beams = model_data.query(lambda obj: 
+            obj.speckle_type == "Objects.BuiltElements.Beam"
+        )
+        
+        if not beams:
+            automate_context.mark_run_failed("No beams found in model")
+            return
+        
+        # Perform analysis
+        failed_beams = []
+        for beam in beams:
+            stress = calculate_stress(beam)
+            beam.parameters["calculated_stress"] = stress
+            
+            if stress > function_inputs.max_stress:
+                failed_beams.append(beam.id)
+        
+        # Report results
+        if failed_beams:
+            automate_context.attach_error_to_objects(
+                category="Stress Exceeded",
+                object_ids=failed_beams,
+                message=f"Stress exceeds maximum of {function_inputs.max_stress} MPa"
+            )
+            automate_context.mark_run_failed(f"{len(failed_beams)} beams exceed stress limit")
+        else:
+            automate_context.attach_success_to_objects(
+                category="Analysis Complete",
+                object_ids=[beam.id for beam in beams],
+                message="All beams within stress limits"
+            )
+            automate_context.mark_run_success("Structural analysis completed successfully")
+        
+        # Create new version with results
+        await automate_context.create_new_version_in_project(
+            project_id=automate_context.automation_run_data.project_id,
+            data=model_data,
+            message=f"{function_inputs.analysis_type.title()} analysis results"
+        )
+        
+    except Exception as e:
+        automate_context.mark_run_exception(f"Analysis failed: {str(e)}")
+
+def calculate_stress(beam):
+    # Simplified stress calculation
+    return getattr(beam, "length", 0) * 10.0
+
+if __name__ == "__main__":
+    execute_automate_function(automate_function, FunctionInputs)
+```
+
+```csharp CompleteExample.cs
+using Speckle.Automate.Sdk;
+using Speckle.Automate.Sdk.Schema;
+using System.ComponentModel.DataAnnotations;
+
+public enum AnalysisType
+{
+    [Description("Structural Analysis")]
+    Structural,
+    [Description("Thermal Analysis")]
+    Thermal
+}
+
+public class FunctionInputs
+{
+    [DisplayName("Analysis Type")]
+    [Description("Type of analysis to perform")]
+    public AnalysisType Type { get; set; } = AnalysisType.Structural;
+
+    [Range(0, double.MaxValue)]
+    [DisplayName("Maximum Stress (MPa)")]
+    [Description("Maximum allowable stress")]
+    public double MaxStress { get; set; } = 250.0;
+}
+
+public class AutomateFunction
+{
+    public static async Task Run(AutomateContext context, FunctionInputs inputs)
+    {
+        try
+        {
+            // Get the model data
+            var modelData = await context.ReceiveVersion();
+            
+            // Find structural elements
+            var beams = modelData.Traverse<Beam>();
+            
+            if (!beams.Any())
+            {
+                context.MarkRunFailed("No beams found in model");
+                return;
+            }
+            
+            // Perform analysis
+            var failedBeams = new List<string>();
+            foreach (var beam in beams)
+            {
+                var stress = CalculateStress(beam);
+                beam.Parameters["calculated_stress"] = stress;
+                beam.Parameters["safety_factor"] = 1.2;
+            }
+            
+            // Report results
+            if (failedBeams.Any())
+            {
+                context.AttachErrorToObjects(
+                    category: "Stress Exceeded",
+                    objectIds: failedBeams.ToArray(),
+                    message: $"Stress exceeds maximum of {inputs.MaxStress} MPa"
+                );
+                context.MarkRunFailed($"{failedBeams.Count} beams exceed stress limit");
+            }
+            else
+            {
+                context.AttachSuccessToObjects(
+                    category: "Analysis Complete",
+                    objectIds: beams.Select(b => b.id).ToArray(),
+                    message: "All beams within stress limits"
+                );
+                context.MarkRunSuccess("Structural analysis completed successfully");
+            }
+            
+            // Create new version with results
+            await context.CreateNewVersionInProject(
+                projectId: context.AutomationRunData.ProjectId,
+                data: modelData,
+                message: $"{inputs.Type} analysis results"
+            );
+        }
+        catch (Exception e)
+        {
+            context.MarkRunException($"Analysis failed: {e.Message}");
+        }
+    }
+
+    private static double CalculateStress(Beam beam)
+    {
+        // Simplified stress calculation
+        return beam.length * 10.0;
+    }
+}
+```
+
+</CodeGroup>
+
+## Next Steps
+
+- [Function Inputs](/developers/automate/function-inputs) - Detailed input configuration
+- [Working with Data](/developers/automate/function-data) - Advanced data processing patterns
+- [Function Testing](/developers/automate/function-testing) - Testing your functions
+- [Creating Automations](/developers/automate/create-automation) - Setting up automation workflows 

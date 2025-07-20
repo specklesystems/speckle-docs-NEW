@@ -1,0 +1,200 @@
+---
+title: Handling Data in Functions
+description: Learn how to work with Speckle data in your functions
+---
+
+
+
+## Core Concepts
+
+Once you've called `receive_version()`, you're now working with standard Speckle data structures. No special Speckle Automate handling is required—everything behaves just like it would in any Speckle-enabled workflow.
+
+Speckle represents building data as a **directed acyclic graph (DAG)**:
+
+- **Objects reference other objects** but never themselves.
+- **Properties can be primitive** (strings, numbers) or references to other objects.
+- **References are one-way** (parent → child).
+- **Common structures** include `elements`, `parameters`, `units`, `applicationId`, and legacy `@` prefixed properties.
+
+[→ Deep dive into Speckle's data model](/dev/decomposition.md)
+
+
+## Strategy Selection
+
+When working with Speckle data, selecting the right strategy for data handling is crucial. Depending on your specific needs, you may choose from various strategies such as filtering and collection, hierarchical analysis, or model augmentation.
+
+### Flattening: When You Just Need Everything in One List
+
+Sometimes, all you need is every single object in a model—no hierarchy, no context, just a flat list of elements to work with. This is especially useful when:
+
+#### When to use?
+
+- You need to apply a bulk operation across all objects (e.g., tagging, filtering).
+- You're exporting data and don't care about parent-child relationships.
+- You want to run quick queries without navigating complex nested structures.
+
+Unlike filtering and collection, which extracts only relevant objects, and hierarchical analysis, which considers relationships, flattening is a brute-force but effective strategy when structure doesn't matter.
+
+```python
+def flatten(base):
+    """Recursively flattens all objects in a Speckle model into a list."""
+    flattened = []
+
+    def traverse(obj):
+        if obj is None:
+            return
+        flattened.append(obj)
+        for key, value in obj.__dict__.items():
+            if isinstance(value, list):
+                for item in value:
+                    traverse(item)
+            elif hasattr(value, "__dict__"):  # Check if it's a nested object
+                traverse(value)
+
+    traverse(base)
+    return flattened
+```
+
+Usage example:
+
+```python
+all_objects = flatten(my_speckle_model)
+print(f"Flattened model contains {len(all_objects)} elements.")
+```
+
+```csharp
+using System.Collections.Generic;
+using Speckle.Core.Models;
+
+public static class SpeckleUtils
+{
+    public static List<Base> Flatten(Base baseObject)
+    {
+        var flattened = new List<Base>();
+
+        void Traverse(Base obj)
+        {
+            if (obj == null) return;
+            flattened.Add(obj);
+
+            foreach (var prop in obj.GetDynamicMembers())
+            {
+                var value = obj[prop];
+
+                if (value is List<Base> list)
+                {
+                    foreach (var item in list)
+                        Traverse(item);
+                }
+                else if (value is Base nestedObj)
+                {
+                    Traverse(nestedObj);
+                }
+            }
+        }
+
+        Traverse(baseObject);
+        return flattened;
+    }
+}
+```
+
+Usage Example:
+
+```csharp
+List<Base> allObjects = SpeckleUtils.Flatten(mySpeckleModel);
+Console.WriteLine($"Flattened model contains {allObjects.Count} elements.");
+```
+
+<Tip>
+💡 **Hacker Tip**: You can be a lot simpler in crafting a flatten function for Speckle data, essentially you define the logic to finding children and then recursively call the function on each child, dumping what you find into a list.
+
+- **Simple & Universal** – Works on any Speckle model, regardless of complexity.
+- **Fast Querying** – Once flattened, any filtering or analysis can be done without recursion.
+- **Great for Bulk Operations** – Need to tag, validate, or extract properties? Just loop over the list.
+
+Think of this as your "data dump" function—it won't give you structure, but it will give you everything. and probably the best way to get started.
+</Tip>
+
+### Filtering and Collection: Extracting Meaningful Data
+
+Sometimes, you don't care about the full model structure—you just need specific objects based on criteria. This is where **filtering and collection** strategies come in handy.
+
+#### When to use?
+
+- You need a quick inventory of elements (e.g., all beams over 10m long).
+- You want to run rule-based validation (e.g., missing materials in structural elements).
+
+```python
+def collect_elements(base):
+    # Define reusable conditions
+    is_beam = lambda obj: obj.speckle_type == "Objects.BuiltElements.Beam"
+    is_long = lambda obj: getattr(obj, "length", 0) > 10.0
+    has_material = lambda obj: "material" in obj.parameters
+    
+    # Combine for complex queries
+    return base.query(lambda obj: 
+        is_beam(obj) and is_long(obj) and has_material(obj)
+    )
+```
+
+```csharp
+public IEnumerable<Base> CollectElements(Base baseObject)
+{
+    return baseObject.Traverse<Beam>()
+        .Where(b => b.length > 10.0)
+        .Where(b => b.Parameters.ContainsKey("material"));
+}
+```
+
+<Tip>
+💡 **Hacker Tip**:
+- This method is blazing fast because it avoids unnecessary traversal.
+- Combine multiple filters at once to cut down processing time.
+</Tip>
+
+### Hierarchical Analysis: Understanding Model Relationships
+
+Not all elements exist in isolation—especially in structural, MEP, or nested families workflows. Sometimes, relationships are the critical factor.
+
+#### When to use?
+
+- Structural stability checks (e.g., "Does every floor have enough supporting columns?").
+- MEP system validation (e.g., "Are ducts properly supported?").
+- Logical grouping validation (e.g., "Are walls properly associated with rooms?").
+
+```python
+def analyze_structure(base):
+    # Define context-specific rules
+    def has_sufficient_support(floor, columns):
+        return len(columns) >= 4
+    
+    for floor in base.query(lambda o: o.speckle_type == "Objects.BuiltElements.Floor"):
+        beams = floor.query(lambda o: o.speckle_type == "Objects.BuiltElements.Beam")
+        columns = floor.query(lambda o: o.speckle_type == "Objects.BuiltElements.Column")
+        
+        if not has_sufficient_support(floor, columns):
+            floor.parameters["structural_review"] = "insufficient_support"
+```
+
+<Tip>
+💡 **Hacker Tip**:
+- Instead of querying the whole model (slow!), query only relevant objects.
+- Add metadata ("structural_review": "insufficient_support") so later steps can flag these floors.
+</Tip>
+
+### Model Augmentation: Adding Intelligence to Models
+
+Adding custom insights to a model can be a game-changer—whether for validation, compliance, or optimization.
+
+#### When to use?
+
+- You want to tag elements for review based on logic.
+- You need to enrich models with additional properties for later use.
+
+```python
+async def analyze_and_tag(base, automate_context):
+    # Define reusable tagging function
+    def tag_element(elem, result):
+        elem.parameters["analysis_status"] = result
+``` 
