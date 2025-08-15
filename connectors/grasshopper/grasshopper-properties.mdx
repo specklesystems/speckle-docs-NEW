@@ -1,0 +1,146 @@
+---
+title: Properties
+description: 'Working with Speckle Object Properties in Grasshopper.'
+---
+
+<Note>
+In Rhino and Grasshopper, **Speckle Properties** correspond to **user text** on Rhino objects.
+</Note>
+
+All Speckle Objects may contain Properties used for data-based workflows such as analysis, business intelligence, and computation. The particular grouping of Properties depend on the source application - for example, Speckle Revit model objects contain properties like parameters and material quantities. In Grasshopper, you can customize your Object Properties into meaningful groups, so that they can be easily navigated when inspecting your Speckle Model Object online or when consuming them in other applications.
+
+Speckle Properties can have a single value, a list of values, or another Speckle Properties as the value. The supported value types for Speckle Properties are:
+- strings
+- numbers
+- booleans
+- vectors and planes
+
+## Creating and Modifying Properties
+
+If you are working with Rhino model objects, you can easily create Speckle Properties from the model object user text via casting. To create or modify custom Speckle Properties, there are two options depending on the complexity and size of your property sets.
+
+**Option 1: Using the Create Properties node for creating small sets of properties**
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_createproperties.jpg" />
+</Frame>
+
+**Inputs**
+1. Add a default **Property** input of the value of that property (see supported types above).
+    `Right-click` to change the name of the default Property input to your desired Property key.
+    `Right-click > select **List access**` if the value of the input is a list instead of a single item.
+    
+2. An **additional input param** is created whenever you populate the previous input.
+    Click on the `+` icon below the input param to add multiple new inputs.
+    Empty input params will not be included in the output Properties.
+    
+<Tip>
+If your Grasshopper params are named, you can hold down `TAB` when piping your param into a Property input to automatically use the input param's nickname as the name of the Property (inherit name).
+</Tip>
+
+**Outputs**
+1. The **Properties** output contains a Properties set which has a key value Property for every non-empty input.
+
+`Right-click` the node for additional settings:
+- Set your node to **automatically inherit all names** when you pipe in input params.
+- Set your node to **create empty properties** if you want to completely remove an existing set of properties from your Speckle object
+
+If your team has a standard for property sets on objects, you can create a [reusable node](/grasshopper/grasshopper-recommendations#create-reusable-project-components-with-grasshopper-user-objects) with your Create Properties nodes that define a specific property set for your project model.
+
+**Option 2: Using the Speckle Properties passthrough node for key value creation and modification of properties**
+<Note>
+This option is recommended for larger sets of properties where you may want to store property keys in their own list, or if you would like to modify the entries of an existing set of properties.
+</Note>
+
+The **Speckle Properties** passthrough node lets you create, inspect, and modify properties. The passthrough node has three modes, which can be changed by **right-clicking** the node and selecting your desired mode:
+- (default) **Merge** mode: any keyvalue inputs will be added to the input Properties
+- **Remove** mode: any matching input keys will be removed from the input Properties
+- **Replace** mode: any keyvalue inputs will completely replace the input Properties
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_properties.jpg" />
+</Frame>
+
+**Inputs**
+1. Add a **Properties** input only if you would like to modify or inspect an existing Speckle Properties set.
+2. Add a **Keys** input list of strings to use for your property keys
+3. Add a **Values** input list of values that correspond to each key (not needed for **Remove** mode)
+
+**Outputs**
+1. The **Properties** output contains the resulting set of Speckle Properties
+2. The **Keys** output contains a list of all keys in (1)
+3. The **Values** output contains a list of all values in (1)
+
+## Getting Property values on Speckle Objects
+
+Since Properties can be nested, there are two ways to retrieve your property values depending on how you would like to traverse the properties hierarchy.
+
+**Option 1: Using the Speckle Properties passthrough node for single-level access**
+
+<Note>
+This option is recommended for simply-structured properties that do not contain deeply nested properties.
+</Note>
+
+The **Speckle Properties** passthrough node lets you quickly retrieve the keys and values of a set of properties. Keep in mind that property values may contain other Speckle Properties if they are nested.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_properties.jpg" />
+</Frame>
+
+**Inputs**
+1. Add a **Properties** input of the Speckle Properties you want to inspect.
+
+**Outputs**
+1. The **Properties** output contains the **Properties** input.
+2. The **Keys** output contains a list of all direct keys in (1)
+3. The **Values** output contains a list of all direct values in (1)
+
+**Option 2: Using the Query Properties and Property Selector nodes for deeply nested properties**
+
+<Note>
+This option is recommended for data-based workflows using Speckle Models from Revit, IFC, Navisworks, Civil 3D, Archicad, Tekla, and Etabs, which often contain highly-structured properties.
+</Note>
+
+The **Properties Selector** node lets you visually inspect all of the property keys that correspond to non-Speckle Property values inside your Speckle Properties, including the concatenated keys of any nested Speckle properties.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_propertiesselector.jpg" />
+</Frame>
+
+**Inputs**
+1. Add a **Properties** input to see all concatenated keys of all nested properties inside that properties set.
+    Use the **search bar with regex search** to filter the displayed keys if needed.
+2. Click to select any keys, or shift + click to select multiple keys
+
+```cs title="regex tip"
+// add a "?" in front of your search query to limit displayed items
+foobar  // sorts all items to show matches first
+?foobar // only shows items that contain "foobar"
+```
+
+**Outputs**
+1. The list of strings that are selected.
+
+The **Query Properties** node will retrieve the values of properties from specific keys.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_queryproperties.jpg" />
+</Frame>
+
+**Inputs**
+1. Add a **Properties** input of the Speckle Properties you are retrieving values from
+2. Add a **Keys** input list of keys to retrieve values of.
+    This can be the output of the **Property Selector** node, or specific key strings of known properties.
+    
+**Outputs**
+1. The **Values** output contains all values inside the Properties input that match the given keys
+
+<Tip>
+If you frequently access the same property keys across multiple objects or models, you can create a [reusable node](/grasshopper/grasshopper-recommendations#create-reusable-project-components-with-grasshopper-user-objects) with your Property Selector and Query Properties nodes to retrieve specific properties.
+</Tip>
+
+## Casting Speckle Properties
+
+The **Speckle Properties param** enables casting from other native Grasshopper types, allowing you to use them interchangeably:
+- (Rhino 8+) **Rhino model objects**. Casting from model objects creates a set of Speckle Properties from the user text.
+- (Rhino 8+) **Rhino user content**. Casting from use content creates a set of Speckle Properties from the user text.
