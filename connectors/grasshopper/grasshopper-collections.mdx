@@ -2,3 +2,132 @@
 title: 'Collections'
 description: 'Working with Speckle Collections in Grasshopper.'
 ---
+
+<Note>
+In Rhino and Grasshopper, a **Speckle Collection** corresponds to a **Rhino layer**.
+</Note>
+
+All Speckle Models are organized by Collections, which can contain [Speckle Objects](grasshopper-objects.mdx) or other Collections. 
+This organization is typically fixed based on the source application - for example, Speckle Revit models are structured by `Level > Category > Type`. 
+In Grasshopper, you can customize your Model Collection structure into meaningful groups of objects, so that they can be easily navigated when viewing your Speckle Model online or when loading them into other applications.
+
+## Creating Collections
+
+Use the **Create Collection** node to place your Grasshopper objects into collections before publishing your model. 
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_createcollection.jpg" />
+</Frame>
+
+**Inputs**
+1. Add a default **sub-Collection** input of an item or list of **Data Objects**, **Geometry**, or **Collections**. Right-click to change the name of the default sub-Collection input to your desired Collection name.
+2. An **additional input** param is created whenever you populate the previous input. Click on the `+` icon below the input param to add multiple new inputs. Empty input params will not be included in the output Collection.
+
+<Tip>
+If your Grasshopper params are named, you can hold down `TAB` when piping your param into a sub-Collection input to automatically use the input param's nickname as the name of the sub-Collection (inherit name).
+</Tip>
+
+**Outputs**
+1. The **Collection** output contains a Collection which has a sub-Collection for every non-empty input.
+
+Right-click the node for additional settings:
+- Set your node to automatically **inherit all names** when you pipe in input params.
+
+If your team has a standard for model or layer organization, you can create a reusable node [link to best practices] with your Create Collection nodes that define sub-Collection structure for your project model.
+
+## Getting Model Objects from Collections
+
+After loading a Speckle model, there are a few options for retrieving the objects inside the model collections depending on your workflow and the incoming Speckle model structure.
+
+**Option 1: Using the Query Objects node for geometry-based workflows**
+
+<Note>
+This option is recommended for geometry-based workflows using Speckle Models from Grasshopper, Rhino, and AutoCAD, which primarily contain Geometry Objects.
+</Note>
+
+The **Query Objects** node lets you quickly retrieve a flattened list of all objects inside a Collection, including objects inside any sub-Collections.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_queryobjects.jpg" />
+</Frame>
+
+**Inputs**
+1. Add a **Collection** input to retrieve a flat list of all objects inside that Collection.
+
+**Outputs**
+1. The **Objects** output contains all objects inside the input Collection, including objects inside sub-Collections.
+2. Zoom in and click on the `+` below (1) to add **additional outputs** that filter (1) by geometry type: Block Instances, extrusions, curves, points, and more.
+
+**Option 2: Using the Query Objects and Collection Selector nodes for BIM, civil, and structural workflows**
+
+<Note>
+This option is recommended for data-based workflows using Speckle Models from Revit, IFC, Navisworks, Civil 3D, Archicad, Tekla, and Etabs, which are highly-structured by Collections and contain Data Objects.
+</Note>
+
+The **Collection Selector** node lets you visually inspect all of the Collections inside your Speckle Model by listing the full paths of all sub-Collections.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_collectionselector.jpg" />
+</Frame>
+
+**Inputs**
+1. Add a **Collection** input to see all paths of all sub-Collections inside that collection. Use the **search bar with regex search** to filter the displayed sub-Collections if needed.
+2. Click to select any path, or `SHIFT` + click to select multiple paths
+
+```cs title="regex tip"
+// add a "?" in front of your search query to only display items that contain your query
+foobar  // sorts all items to show matches first
+?foobar // only shows items that contain "foobar"
+```
+
+**Outputs**
+1. The list of strings that are selected.
+
+Then use the **Query Objects** node to retrieve the objects inside the Collection from specific paths.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_queryobjects.jpg" />
+</Frame>
+
+**Inputs**
+1. Add a **Collection** input of the Speckle Collection you are retrieving objects from
+2. Add a **Paths** input list of path strings to retrieve objects from. This is usually the output of the Collection Selector node.
+
+**Outputs**
+1. The **Objects** output contains all Speckle Objects inside the Collection input that are located at the specified sub-Collection paths.
+
+If you frequently access the same sub-Collections across multiple models, you can create a [reusable node](grasshopper-best-practices.mdx) with your Collection Selector and Query Objects nodes to retrieve specific objects.
+
+**Option 3: Using the Expand Collection node for sequentially getting sub-collections and objects**
+
+If you want to traverse your Collection one level at a time, use the **Expand Collection** node.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_expandcollection.jpg" />
+</Frame>
+
+**Inputs**
+1. Add a **Collection** input of the Collection you want to expand.
+
+**Outputs**
+1. An output will be generated for each direct sub-Collection in the input Collection that contains any elements. Output values will be the elements inside each sub-Collection - either Objects or Collections. If the input Collection contains both Objects and sub-Collections, the Objects will be output in the `_objects` parameter
+
+## Baking and Casting Collections
+
+The **Collection** param enables baking and casting to other native Grasshopper types. Baking and casting can be done from both the param node or the output param on another component. 
+
+### Baking Collections
+
+On any Collection param, `right-click > select Bake` to bake Collections into the current Rhino doc as layers, with:
+
+- full path (parent Collections will be baked as parent layers)
+- name
+- color
+- material (if any)
+- contained elements, including Objects and sub-Collections (if any)
+
+### Casting Collections 
+
+Collections can be piped into or from any of the following params, allowing you to use them interchangeably:
+
+- (Rhino 8+) Rhino **model layers**. Casting preserves name, color, material, and guid.
