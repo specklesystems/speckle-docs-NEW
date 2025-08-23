@@ -11,7 +11,6 @@ started guide first**, then use these proven, low-risk options to improve your s
 
 ## Why These Configurations Matter
 
-- **Redis memory limits** - Prevent out-of-memory crashes on smaller servers
 - **Domain settings** - Required for production use with custom domains
 - **File import limits** - Handle larger files and longer processing times
 - **Preview settings** - Optimize performance for image generation
@@ -38,29 +37,7 @@ Make sure you have:
 
 ## Essential Security Improvements
 
-**Note**: For security configuration, refer to the official Speckle server documentation
-for supported environment variables.
-
-## Reliable Redis Configuration
-
-Add basic memory management to your existing Redis service:
-
-<Warning>
-  **256MB is conservative**. Increase to 512MB or 1GB if you have sufficient RAM
-  and experience memory issues.
-</Warning>
-
-```yaml
-redis:
-  # ... existing config from getting started ...
-  command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-
-  health_check:
-    test: ['CMD', 'redis-cli', 'ping']
-    interval: 30s
-    timeout: 10s
-    retries: 3
-```
+**Note**: For security configuration, refer to the official Speckle server documentation for supported environment variables.
 
 ## Frontend Configuration
 
@@ -140,11 +117,6 @@ fileimport-service:
     MAX_OBJECT_SIZE_MB: '10'
 ```
 
-## Production Domain Configuration
-
-**Note**: For domain configuration, refer to the official Speckle server documentation
-for supported environment variables.
-
 ## Improved Service Dependencies
 
 Enhance service startup reliability (requires Docker Compose v2.1+):
@@ -172,16 +144,6 @@ speckle-server:
     - redis
     - minio
 ```
-
-## Conservative Performance Tuning
-
-**Note**: For performance tuning, refer to the official Speckle server documentation
-for supported environment variables.
-
-## Environment Variables Summary
-
-**Important**: This guide only covers Docker Compose syntax improvements. For environment
-variables and server configuration, always refer to the official Speckle server documentation.
 
 ## Testing Your Changes
 
