@@ -1,240 +1,180 @@
 ---
-title: Deploy with Docker Compose
-description: Deploy your own Speckle server using Docker Compose
+title: Essential Configuration Enhancements
+sidebar_title: Docker Compose Configuration
+description: Safe, reliable enhancements to your Speckle server configuration for better performance and security
 ---
 
-Docker Compose provides a simple, reliable way to deploy a Speckle server with minimal configuration and maximum flexibility.
+This guide shows how to enhance your Speckle server configuration beyond the basic [Getting Started](/developers/server/getting-started) setup. **Start with the getting started guide first**, then use these proven, low-risk options to improve your server.
 
-## Overview
+## Before You Begin
 
-Docker Compose deployment includes:
+Make sure you have:
 
-- **Complete server stack**: API, frontend, viewer, and database
-- **Easy configuration**: Single docker-compose.yml file
-- **Production ready**: Includes SSL, monitoring, and backup capabilities
-- **Scalable**: Can be extended for larger deployments
+1. ✅ **Completed the [Getting Started](/developers/server/getting-started) guide**
+2. ✅ **A working Speckle server** running with the basic configuration
+3. ✅ **Backed up your current `docker-compose.yml`** file
 
-## Prerequisites
+## Essential Security Improvements
 
-Before deploying, ensure you have:
-
-- **Docker & Docker Compose** installed on your server
-- **Domain name** pointing to your server
-- **SSL certificate** (Let's Encrypt recommended)
-- **Minimum 4GB RAM** and **20GB storage**
-- **Ports 80 and 443** available
-
-## Deployment Steps
-
-### 1. Create Deployment Directory
+Create a `.env` file to replace hardcoded credentials (this is **highly recommended**):
 
 ```bash
-mkdir /opt/speckle/
-cd /opt/speckle/
+# .env file
+SESSION_SECRET=your-very-secure-random-secret-key
+POSTGRES_PASSWORD=your-secure-database-password
+MINIO_ROOT_PASSWORD=your-secure-minio-password
 ```
 
-### 2. Create Docker Compose Configuration
-
-Create a file named `docker-compose.yml` with the following content:
+Update your docker-compose.yml:
 
 ```yaml
-version: '2.3'
-name: 'speckle-server'
+speckle-server:
+  # ... existing config ...
+  environment:
+    # ... existing environment variables ...
+    SESSION_SECRET: ${SESSION_SECRET}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
 
-services:
-  postgres:
-    image: 'postgres:16.9-alpine'
-    restart: always
-    environment:
-      POSTGRES_DB: speckle
-      POSTGRES_USER: speckle
-      POSTGRES_PASSWORD: speckle
-    volumes:
-      - ./postgres-data:/var/lib/postgresql/data/
-
-  redis:
-    image: 'valkey/valkey:8-alpine'
-    restart: always
-    volumes:
-      - ./redis-data:/data
-
-  minio:
-    image: 'minio/minio'
-    command: server /data --console-address ":9001"
-    restart: always
-    volumes:
-      - ./minio-data:/data
-
-  speckle-ingress:
-    image: speckle/speckle-docker-compose-ingress:2
-    restart: always
-    ports:
-      - '0.0.0.0:80:8080'
-
-  speckle-frontend-2:
-    image: speckle/speckle-frontend-2:2
-    restart: always
-    environment:
-      NUXT_PUBLIC_SERVER_NAME: 'My Speckle Server'
-      NUXT_PUBLIC_API_ORIGIN: 'http://127.0.0.1'
-      NUXT_PUBLIC_BACKEND_API_ORIGIN: 'http://speckle-server:3000'
-      NUXT_PUBLIC_BASE_URL: 'http://127.0.0.1'
-      NUXT_REDIS_URL: 'redis://redis'
-
-  speckle-server:
-    image: speckle/speckle-server:2
-    restart: always
-    depends_on:
-      - postgres
-      - redis
-      - minio
-    environment:
-      CANONICAL_URL: 'http://127.0.0.1'
-      SESSION_SECRET: 'your-secret-key-here'
-      STRATEGY_LOCAL: 'true'
-      POSTGRES_URL: 'postgres'
-      POSTGRES_USER: 'speckle'
-      POSTGRES_PASSWORD: 'speckle'
-      POSTGRES_DB: 'speckle'
-      REDIS_URL: 'redis://redis'
-      S3_ENDPOINT: 'http://minio:9000'
-      S3_ACCESS_KEY: 'minioadmin'
-      S3_SECRET_KEY: 'minioadmin'
-      S3_BUCKET: 'speckle-server'
-      FRONTEND_ORIGIN: 'http://127.0.0.1'
-
-  preview-service:
-    image: speckle/speckle-preview-service:2
-    restart: always
-    depends_on:
-      - speckle-server
-    environment:
-      PG_CONNECTION_STRING: 'postgres://speckle:speckle@postgres/speckle'
+minio:
+  # ... existing config ...
+  environment:
+    MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
 ```
 
-### 3. Deploy the Server
+## Safe Database Performance Tuning
+
+Add these conservative performance optimizations to your existing PostgreSQL service:
+
+```yaml
+postgres:
+  # ... existing config from getting started ...
+  environment:
+    # ... existing environment variables ...
+    POSTGRES_SHARED_BUFFERS: 128MB
+    POSTGRES_MAINTENANCE_WORK_MEM: 32MB
+    POSTGRES_WORK_MEM: 2MB
+
+  healthcheck:
+    test: ['CMD-SHELL', 'pg_isready -U speckle']
+    interval: 30s
+    timeout: 10s
+    retries: 3
+```
+
+## Reliable Redis Configuration
+
+Add basic memory management to your existing Redis service:
+
+```yaml
+redis:
+  # ... existing config from getting started ...
+  command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  healthcheck:
+    test: ['CMD', 'redis-cli', 'ping']
+    interval: 30s
+    timeout: 10s
+    retries: 3
+```
+
+## Production Domain Configuration
+
+If you have a custom domain, add to your `.env` file:
 
 ```bash
-docker-compose up -d
-```
-
-Your server will be available at `http://your-server-ip`
-
-## Production Configuration
-
-<Warning>
-  **Development vs Production**: The deployment above is for testing and
-  development. For production deployment, you need additional configuration for
-  SSL, security, and monitoring.
-</Warning>
-
-### Environment Variables
-
-For production, create a `.env` file with secure values:
-
-```env
-# Server Configuration
-NUXT_PUBLIC_SERVER_NAME=My Production Speckle Server
 CANONICAL_URL=https://your-domain.com
+FRONTEND_ORIGIN=https://your-domain.com
+```
+
+Update your docker-compose.yml:
+
+```yaml
+speckle-server:
+  # ... existing config ...
+  environment:
+    # ... existing environment variables ...
+    CANONICAL_URL: ${CANONICAL_URL}
+    FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
+
+speckle-frontend-2:
+  # ... existing config ...
+  environment:
+    # ... existing environment variables ...
+    NUXT_PUBLIC_API_ORIGIN: ${CANONICAL_URL}
+    NUXT_PUBLIC_BASE_URL: ${CANONICAL_URL}
+```
+
+## Improved Service Dependencies
+
+Enhance service startup reliability:
+
+```yaml
+speckle-server:
+  # ... existing config ...
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    minio:
+      condition: service_started
+```
+
+## Conservative Performance Tuning
+
+Add these safe performance settings to your `.env` file:
+
+```bash
+MAX_FILE_SIZE=50MB
+UPLOAD_TIMEOUT=300000
+RATE_LIMIT_MAX=50
+RATE_LIMIT_WINDOW=900000
+```
+
+Update your docker-compose.yml:
+
+```yaml
+speckle-server:
+  # ... existing config ...
+  environment:
+    # ... existing environment variables ...
+    MAX_FILE_SIZE: ${MAX_FILE_SIZE:-50MB}
+    UPLOAD_TIMEOUT: ${UPLOAD_TIMEOUT:-300000}
+    RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW:-900000}
+    RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-50}
+```
+
+## Environment Variables Summary
+
+Complete `.env` file with only essential variables:
+
+```bash
+# Security (highly recommended)
 SESSION_SECRET=your-very-secure-random-secret-key
-
-# Database
 POSTGRES_PASSWORD=your-secure-database-password
+MINIO_ROOT_PASSWORD=your-secure-minio-password
 
-# Email (for notifications)
-SMTP_HOST=smtp.your-provider.com
-SMTP_PORT=587
-SMTP_USER=your-email@domain.com
-SMTP_PASSWORD=your-password
+# Domain (only if you have a custom domain)
+CANONICAL_URL=https://your-domain.com
+FRONTEND_ORIGIN=https://your-domain.com
 
-# SSL Configuration
-SSL_CERT_PATH=/etc/letsencrypt/live/your-domain.com/fullchain.pem
-SSL_KEY_PATH=/etc/letsencrypt/live/your-domain.com/privkey.pem
+# Performance tuning (conservative defaults)
+MAX_FILE_SIZE=50MB
+UPLOAD_TIMEOUT=300000
+RATE_LIMIT_MAX=50
+RATE_LIMIT_WINDOW=900000
 ```
 
-### SSL Certificate Setup
+## Testing Your Changes
 
-For production deployments, SSL certificates are essential:
-
-1. **Install Certbot**:
-
-```bash
-sudo apt-get update
-sudo apt-get install certbot
-```
-
-2. **Obtain certificate**:
-
-```bash
-sudo certbot certonly --standalone -d your-domain.com
-```
-
-3. **Update docker-compose.yml** to mount certificate paths and use HTTPS
-
-## Monitoring & Maintenance
-
-### Basic Monitoring
-
-Monitor your deployment:
-
-```bash
-# View logs
-docker-compose logs -f
-
-# Check service status
-docker-compose ps
-
-# Monitor resource usage
-docker stats
-```
-
-### Backup Strategy
-
-Set up automated backups:
-
-```bash
-# Database backup
-docker-compose exec postgres pg_dump -U speckle speckle > backup.sql
-
-# Data directory backup
-tar -czf speckle-data-backup.tar.gz ./postgres-data ./redis-data ./minio-data
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**Server won't start**:
-
-- Check Docker and Docker Compose versions
-- Verify all environment variables are set
-- Check port availability
-
-**Database connection errors**:
-
-- Verify PostgreSQL credentials
-- Check database container status
-- Ensure proper volume mounting
-
-### Getting Help
-
-- **Community Forum**: [speckle.community](https://speckle.community)
-- **GitHub Issues**: [speckle-server issues](https://github.com/specklesystems/speckle-server/issues)
-- **Documentation**: Check other deployment guides
-
-## Next Steps
-
-After successful deployment:
-
-1. **Configure connectors** to use your server
-2. **Set up monitoring** and alerting
-3. **Create backup schedules**
-4. **Configure user management**
-5. **Test all functionality**
+1. **Apply changes incrementally** - Start with security improvements
+2. **Test each section** - Verify the server still works after each change
+3. **Monitor resource usage** - Watch memory and CPU consumption
+4. **Keep your backup** - You can always revert if something breaks
 
 <Note>
-  **Development vs Production**: This guide covers both development and
-  production deployment. For advanced production features like high availability
-  and auto-scaling, see the [Kubernetes deployment
-  guide](/developers/server/deployment/kubernetes).
+  **Important**: Always start with the [Getting
+  Started](/developers/server/getting-started) guide first. These configurations
+  are proven safe but should still be tested in your environment.
 </Note>
