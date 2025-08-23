@@ -1,10 +1,24 @@
 ---
 title: Docker Compose Configuration Options
-sidebarTitle: Docker Compose Configuration
+sidebar_title: Docker Compose Configuration
 description: Safe, reliable enhancements to your Speckle server configuration for better performance and security
 ---
 
 This guide shows how to enhance your Speckle server configuration beyond the basic [Getting Started](/developers/server/getting-started) setup. **Start with the getting started guide first**, then use these proven, low-risk options to improve your server.
+
+## Why These Configurations Matter
+
+- **Redis memory limits** - Prevent out-of-memory crashes on smaller servers
+- **Domain settings** - Required for production use with custom domains
+- **File import limits** - Handle larger files and longer processing times
+- **Preview settings** - Optimize performance for image generation
+- **Server security** - Essential for production deployments
+
+<Note>
+  **Development/Testing Only**: Docker Compose is not recommended for production
+  deployments. Use [Kubernetes](/developers/server/deployment/kubernetes) or
+  other production deployment methods instead.
+</Note>
 
 ## Before You Begin
 
@@ -14,100 +28,121 @@ Make sure you have:
 2. ✅ **A working Speckle server** running with the basic configuration
 3. ✅ **Backed up your current `docker-compose.yml`** file
 
+<Warning>
+  **Safety First**: These configurations can break your server if applied
+  incorrectly. Always test changes incrementally and keep your backup ready.
+</Warning>
+
 ## Essential Security Improvements
 
-Create a `.env` file to replace hardcoded credentials (this is **highly recommended**):
-
-```bash
-# .env file
-SESSION_SECRET=your-very-secure-random-secret-key
-POSTGRES_PASSWORD=your-secure-database-password
-MINIO_ROOT_PASSWORD=your-secure-minio-password
-```
-
-Update your docker-compose.yml:
-
-```yaml
-speckle-server:
-  # ... existing config ...
-  environment:
-    # ... existing environment variables ...
-    SESSION_SECRET: ${SESSION_SECRET}
-    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-
-minio:
-  # ... existing config ...
-  environment:
-    MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-```
-
-## Safe Database Performance Tuning
-
-Add these conservative performance optimizations to your existing PostgreSQL service:
-
-```yaml
-postgres:
-  # ... existing config from getting started ...
-  environment:
-    # ... existing environment variables ...
-    POSTGRES_SHARED_BUFFERS: 128MB
-    POSTGRES_MAINTENANCE_WORK_MEM: 32MB
-    POSTGRES_WORK_MEM: 2MB
-
-  healthcheck:
-    test: ['CMD-SHELL', 'pg_isready -U speckle']
-    interval: 30s
-    timeout: 10s
-    retries: 3
-```
+**Note**: For security configuration, refer to the official Speckle server documentation for supported environment variables.
 
 ## Reliable Redis Configuration
 
 Add basic memory management to your existing Redis service:
+
+<Warning>
+  **256MB is conservative**. Increase to 512MB or 1GB if you have sufficient RAM
+  and experience memory issues.
+</Warning>
 
 ```yaml
 redis:
   # ... existing config from getting started ...
   command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
 
-  healthcheck:
+  health_check:
     test: ['CMD', 'redis-cli', 'ping']
     interval: 30s
     timeout: 10s
     retries: 3
 ```
 
-## Production Domain Configuration
+## Frontend Configuration
 
-If you have a custom domain, add to your `.env` file:
+Common tweaks for the web interface:
 
-```bash
-CANONICAL_URL=https://your-domain.com
-FRONTEND_ORIGIN=https://your-domain.com
+<Warning>
+  **Ensure your domain is accessible** before changing these URLs. Incorrect
+  values will break the frontend.
+</Warning>
+
+```yaml
+speckle-frontend-2:
+  # ... existing config from getting started ...
+  environment:
+    # ... existing environment variables ...
+    NUXT_PUBLIC_SERVER_NAME: 'My Speckle Server'
+    NUXT_PUBLIC_API_ORIGIN: 'http://speckle-server:3000'
+    NUXT_PUBLIC_BASE_URL: 'http://your-domain.com'
+    NUXT_PUBLIC_LOG_LEVEL: 'info'
 ```
 
-Update your docker-compose.yml:
+## Server Configuration
+
+Common tweaks for the main server:
+
+<Warning>
+  **Critical settings**. Incorrect values can break authentication, email, and
+  domain access. Test thoroughly.
+</Warning>
 
 ```yaml
 speckle-server:
-  # ... existing config ...
+  # ... existing config from getting started ...
   environment:
     # ... existing environment variables ...
-    CANONICAL_URL: ${CANONICAL_URL}
-    FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
-
-speckle-frontend-2:
-  # ... existing config ...
-  environment:
-    # ... existing environment variables ...
-    NUXT_PUBLIC_API_ORIGIN: ${CANONICAL_URL}
-    NUXT_PUBLIC_BASE_URL: ${CANONICAL_URL}
+    PORT: '3000'
+    CANONICAL_URL: 'http://your-domain.com'
+    FRONTEND_ORIGIN: 'http://your-domain.com'
+    SESSION_SECRET: 'your-secure-random-secret'
+    EMAIL: 'true'
+    EMAIL_FROM: 'noreply@your-domain.com'
 ```
+
+## Preview Service Configuration
+
+Common tweaks for preview generation:
+
+<Warning>
+  **Port 3001 must be available** on your system. Change only if there's a
+  conflict.
+</Warning>
+
+```yaml
+preview-service:
+  # ... existing config from getting started ...
+  environment:
+    # ... existing environment variables ...
+    PREVIEWS_HEADED: 'false'
+    PORT: '3001'
+```
+
+## File Import Service Configuration
+
+Common tweaks for file processing:
+
+<Warning>
+  **Test file imports after changing these values**. Large files may fail if
+  limits are too low.
+</Warning>
+
+```yaml
+fileimport-service:
+  # ... existing config from getting started ...
+  environment:
+    # ... existing environment variables ...
+    FILE_IMPORT_TIME_LIMIT_MIN: '10'
+    MAX_OBJECT_SIZE_MB: '10'
+```
+
+## Production Domain Configuration
+
+**Note**: For domain configuration, refer to the official Speckle server documentation for supported environment variables.
 
 ## Improved Service Dependencies
 
-Enhance service startup reliability:
+Enhance service startup reliability (requires Docker Compose v2.1+):
 
 ```yaml
 speckle-server:
@@ -121,57 +156,54 @@ speckle-server:
       condition: service_started
 ```
 
-## Conservative Performance Tuning
-
-Add these safe performance settings to your `.env` file:
-
-```bash
-MAX_FILE_SIZE=50MB
-UPLOAD_TIMEOUT=300000
-RATE_LIMIT_MAX=50
-RATE_LIMIT_WINDOW=900000
-```
-
-Update your docker-compose.yml:
+**Note**: If you're using an older Docker Compose version, use this simpler format instead:
 
 ```yaml
 speckle-server:
   # ... existing config ...
-  environment:
-    # ... existing environment variables ...
-    MAX_FILE_SIZE: ${MAX_FILE_SIZE:-50MB}
-    UPLOAD_TIMEOUT: ${UPLOAD_TIMEOUT:-300000}
-    RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW:-900000}
-    RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-50}
+  depends_on:
+    - postgres
+    - redis
+    - minio
 ```
+
+## Conservative Performance Tuning
+
+**Note**: For performance tuning, refer to the official Speckle server documentation for supported environment variables.
 
 ## Environment Variables Summary
 
-Complete `.env` file with only essential variables:
+**Important**: This guide only covers Docker Compose syntax improvements. For environment variables and server configuration, always refer to the official Speckle server documentation.
 
-```bash
-# Security (highly recommended)
-SESSION_SECRET=your-very-secure-random-secret-key
-POSTGRES_PASSWORD=your-secure-database-password
-MINIO_ROOT_PASSWORD=your-secure-minio-password
+## What We Removed and Why
 
-# Domain (only if you have a custom domain)
-CANONICAL_URL=https://your-domain.com
-FRONTEND_ORIGIN=https://your-domain.com
-
-# Performance tuning (conservative defaults)
-MAX_FILE_SIZE=50MB
-UPLOAD_TIMEOUT=300000
-RATE_LIMIT_MAX=50
-RATE_LIMIT_WINDOW=900000
-```
+- **Environment variables**: These vary by Speckle server version and should be checked against official docs
+- **Complex Nginx setup**: High risk, requires additional configuration files
+- **Monitoring services**: Resource-intensive, can overwhelm smaller servers
+- **Aggressive database tuning**: Could cause issues on systems with limited RAM
+- **Large Redis memory limits**: Conservative 256MB is safer than 512MB
 
 ## Testing Your Changes
 
-1. **Apply changes incrementally** - Start with security improvements
+<Warning>
+  **Never apply all changes at once**. Test each section individually to isolate
+  any issues.
+</Warning>
+
+1. **Apply changes incrementally** - Start with one service configuration at a time
 2. **Test each section** - Verify the server still works after each change
 3. **Monitor resource usage** - Watch memory and CPU consumption
 4. **Keep your backup** - You can always revert if something breaks
+5. **Check logs** - Look for errors in `docker compose logs [service-name]`
+6. **Verify functionality** - Test the specific feature you're configuring
+
+**If something breaks:**
+
+- Stop the services: `docker compose down`
+- Restore your backup: `cp docker-compose.yml.backup docker-compose.yml`
+- Restart: `docker compose up -d`
+
+---
 
 <Note>
   **Important**: Always start with the [Getting
