@@ -46,7 +46,6 @@ Connector pages are naturally more detailed because they must cover multiple hos
 * Are FAQs current and accurate?
 * Are best practices and tips useful without being prescriptive?
 
----
 
 ## Note for Contributors
 
