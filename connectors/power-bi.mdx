@@ -170,152 +170,125 @@ Speckle's connection to Power BI consists of two parts.
 
 We’ve added a series of helper functions to the `Speckle` namespace to make working with Speckle data in Power BI more efficient and user-friendly.
 
----
-
-### Working with Properties
-
-When you load a model, the Speckle connector automatically adds a **properties** column to your table with all the object properties.
-
-Want to turn those properties into individual columns? Use the `Speckle.Utils.ExpandRecord` helper function.
-
-**Example scenario:** You've loaded a model with room elements where the **properties** column contains room data like names, numbers, areas, and other details.
-
-**Expand all properties:**
-```powerquery
-Speckle.Utils.ExpandRecord(Source, "properties")
-```
-- `Source` = your model table
-- `"properties"` = the column you want to expand
-
-Now each property gets its own column, making them easy to use in your Power BI reports.
-
-**Extract only what you need:**
-
-Keep things clean by extracting specific properties. To get just room names, numbers, and areas from your rooms table:
-
-```powerquery
-Speckle.Utils.ExpandRecord(Source, "properties", {"Name", "Number", "Area"})
-```
-
-This pulls out only the properties you specify, creating three new columns: **Name**, **Number**, and **Area**.
-
-### Extracting Material Quantities
-
-### Extracting Composite Structure
-
-### Expanding Records
-
-### Federating Models
-
 ### `Speckle.Objects.Properties`
-
-Working with properties can be tricky—they're often deeply nested and inconsistently structured. This helper function simplifies the process.
+Quickly access properties of an object without navigating through the nested structure. <br/>
 
 ```powerquery
 Speckle.Objects.Properties(inputRecord as record, optional filterKeys as list)
 ```
 
-**Description:**<br/>
-Returns a record containing properties and their values from the given `inputRecord`. Optionally, you can provide `filterKeys` to extract only specific properties.
+Returns a record containing properties and their values from the given `inputRecord`. 
+*Optionally*, you can provide `filterKeys` to extract only specific properties.
+
+**Usage:**<br/>
+- **Extracting all properties** -> `Speckle.Objects.Properties([data])` 
+- **Extracting specific properties:** -> `Speckle.Objects.Properties([data], {"Name", "Number", "Area"})` 
 
 <Expandable title="Example">
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-function_1.jpg" alt="Power BI helper function" />
-</Frame>
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-function_2.jpg" alt="Power BI helper function" />
-</Frame>
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-function_3.jpg" alt="Power BI helper function" />
-</Frame>
+This function works with individual records, and can be used when adding custom columns:
+
+1. Go to **Add Column** > **Custom Column**
+2. Give your new column a name (e.g., "**Object Properties**")
+3. Call the helper function: `Speckle.Objects.Properties([data])`
+4. A new column will be added with the properties from the record object
 </Expandable>
+
 ---
 
 ### `Speckle.Objects.CompositeStructure`
 
-Use this function to extract the composite structure of an object, such as a Wall, Floor, or Roof. This is especially useful for understanding layered compositions in your models.
+Extract the composite structure of objects such as Walls, Floors, Roofs or any elements with layered structure.
 
-> **Note:** Currently only supported for Revit and Archicad models.
+<Note>Currently only supported for **Revit** and **Archicad** models.</Note>
 
 ```powerquery
 Speckle.Objects.CompositeStructure(inputRecord as record, optional outputAsList as nullable logical)
 ```
 
-**Description:**  
-Takes an object record as input and returns its composite structure.  
-- By default, returns a record.  
-- Set `outputAsList` to `true` to return the composite structure as a list—useful for expanding each layer into its own row.
+*By default*, returns a record containing the composite structure.  
+*Optionally*, set `outputAsList` to `true` to return it as a list --> useful for expanding each layer into its own row.
+
+**Usage:**<br/>
+- **Extracting composite structure** -> `Speckle.Objects.CompositeStructure([data])`
+- **Extracting composite structure as a list** -> `Speckle.Objects.CompositeStructure([data], true)`
 
 <Expandable title="Example">
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-comp-struct_1.jpg" alt="Power BI helper function" />
-</Frame>
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-comp-struct_2.jpg" alt="Power BI helper function" />
-</Frame>
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-comp-struct_3.jpg" alt="Power BI helper function" />
-</Frame>
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-comp-struct_4.jpg" alt="Power BI helper function" />
-</Frame>
-</Expandable>
+This function works with individual records, and can be used when adding custom columns:
 
----
+1. Go to **Add Column** > **Custom Column**
+2. Give your new column a name (e.g., "**Composite Structure**")
+3. Call the helper function: `Speckle.Objects.CompositeStructure([data], true)`
+4. A new column will be added with the composite structure from the record object
+</Expandable>
 
 ### `Speckle.Objects.MaterialQuantities`
 
-Quickly access material quantities of an object—ideal for use in Power BI's "Add Column" transformation flow, as it operates on individual records.
+Access material quantities of an object.
 
 ```powerquery
 Speckle.Objects.MaterialQuantities(inputRecord as record, optional outputAsList as logical)
 ```
+*Returns* a record containing its material quantities.  
+*Optionally*, set `outputAsList` to `true` to return quantities as a list, which is helpful for row expansion.
 
-**Description:**  
-Takes an object record and returns a record containing its material quantities.  
-- Set `outputAsList` to `true` to return quantities as a list, which is helpful for row expansion.
+**Usage:**<br/>
+- **Extracting material quantities** -> `Speckle.Objects.MaterialQuantities([data])`
+- **Extracting material quantities as a list** -> `Speckle.Objects.MaterialQuantities([data], true)`
 
 <Expandable title="Example">
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-materials_1.jpg" alt="Power BI helper function" />
-</Frame>
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-materials_2.jpg" alt="Power BI helper function" />
-</Frame>
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-materials_3.jpg" alt="Power BI helper function" />
-</Frame>
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-materials_4.jpg" alt="Power BI helper function" />
-</Frame>
+This function works with individual records, and can be used when adding custom columns:
+
+1. Go to **Add Column** > **Custom Column**
+2. Give your new column a name (e.g., "**Material Quantities**")
+3. Call the helper function: `Speckle.Objects.MaterialQuantities([data], true)`
+4. A new column will be added with the material quantities from the record object
 </Expandable>
 
----
+### `Speckle.Models.MaterialQuantities`
+
+Takes a table and extracts material quantities for all objects, expanding them into separate columns. 
+
+```powerquery
+Speckle.Models.MaterialQuantities(inputTable as table, optional addPrefix as logical)
+```
+
+*Returns* a table with material quantities columns added. <br/>
+*Optionally*, set `addPrefix` to `true` to create prefixed columns like "MQ.materialName", "MQ.area"
+
+**Examples:**<br/>
+- **Basic usage:** `Speckle.Models.MaterialQuantities(Source)` - Creates columns like "materialName", "area"
+- **With prefixing:** `Speckle.Models.MaterialQuantities(Source, true)` - Creates "MQ.materialName", "MQ.area"
+
+<Expandable title="Example">
+This function works with tables and can be used in Power Query:
+
+1. Select fx icon in the formula bar
+2. In the formula bar, call the function: `= Speckle.Models.MaterialQuantities(Source)` (Replace `Source` with your actual table name)
+3. A new step will be added and new table will be created with the material quantities expanded into separate columns
+</Expandable>
 
 ### `Speckle.Models.Federate`
 
-Previously, you could federate models by supplying a federated model URL. Now, you can manually federate already-loaded models in Power BI using this function.
-
-> **Tip:** This function allows you to federate models from different Speckle projects.
+Manually federate loaded models in Power BI for use in 3D visual.
 
 ```powerquery
 Speckle.Models.Federate(tables as list, optional excludeData as logical)
 ```
+Accepts a list of tables (each representing a model loaded from Speckle) and *returns* a federated table for use in 3D visual.  
+*Optionally*, use `excludeData = true` to federate only the metadata necessary for 3D visual without pulling in all the data.
 
-**Description:**  
-Accepts a list of tables (each representing a model) and returns a federated table.  
-- Use `excludeData = true` to federate only the metadata necessary for 3D visuals (e.g., Version Object ID, Object IDs) without pulling in all the data.
+**Usage:**<br/>
+- **Federating multiple models** -> `Speckle.Models.Federate({Model1, Model2, Model3})`
+- **Federating with metadata only** -> `Speckle.Models.Federate({Model1, Model2, Model3}, true)`
 
 <Expandable title="Example">
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-fed_1.jpg" alt="Power BI helper function" />
-</Frame>
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-fed_2.jpg" alt="Power BI helper function" />
-</Frame>
-</Expandable>
+This function works with multiple tables and can be used in Power Query:
 
----
+1. Go to **Home** > **Get Data** > **Blank Query**
+2. In the formula bar, call the function: `= Speckle.Models.Federate({Model1, Model2})`
+3. Replace `Model1`, `Model2` with your actual model table names
+4. A new federated table will be created combining all specified models
+</Expandable>
 
 ### `Speckle.Utils.ExpandRecord`
 
@@ -325,21 +298,23 @@ This function expands a record column into separate columns for each field. It's
 Speckle.Utils.ExpandRecord(table as table, columnName as text, optional FieldNames as list, optional UseCombinedNames as logical)
 ```
 
-**Description:**  
-Expands the fields of a record column (`columnName`) into individual columns in the table.  
-- Use `FieldNames` to limit the expanded fields.  
-- Use `UseCombinedNames = true` to prefix column names with the record column name (e.g., `Properties.Length`).
+*Optionally*, use `FieldNames` to limit the expanded fields.  
+*Optionally*, use `UseCombinedNames = true` to prefix column names with the record column name (e.g., `Properties.Length`).
+
+**Usage:**<br/>
+- **Expand properties record column** <br/>
+`Speckle.Utils.ExpandRecord(Source, "properties")` -> All properties will be expanded into separate columns
+- **Expanding subset of fields** <br/>
+`Speckle.Utils.ExpandRecord(Source, "properties", {"Length", "Width"})` -> Only Length and Width fields will have separate columns
+- **Expanding record columns with combined names** <br/>
+`Speckle.Utils.ExpandRecord(Source, "properties", {"Length", "Width"}, true)` -> Length and Width fields will have separate columns with the record column name as a prefix (e.g., `Properties.Length`, `Properties.Width`)
 
 <Expandable title="Example">
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-expand_1.jpg" alt="Power BI helper function" />
-</Frame>
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-expand_2.jpg" alt="Power BI helper function" />
-</Frame>
-<Frame>
-    <img src="/images/connectors/pbi_images/pbi-helper-functions-expand_3.jpg" alt="Power BI helper function" />
-</Frame>
+This function works with tables and can be used in Power Query:
+
+1. Select fx icon in the formula bar
+2. In the formula bar, call the function: `= Speckle.Utils.ExpandRecord(Source, "properties")` (Replace `Source` with your actual table name)
+3. A new step will be added and new table will be created with the properties **record** expanded into separate columns
+
+<Note>This function works with any record column, not just properties.</Note>
 </Expandable>
-
-
