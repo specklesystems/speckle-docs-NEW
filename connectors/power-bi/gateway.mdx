@@ -1,0 +1,227 @@
+---
+title: Power BI Data Gateway
+sidebarTitle: Data Gateway
+description: 'Setting up data gateways for Power BI scheduled refresh'
+---
+
+import PowerBIVersionFetcher from '/snippets/components/PowerBIVersionFetcher.jsx';
+
+Data gateways enable scheduled refresh of your Power BI reports, ensuring your Speckle data stays up-to-date automatically. This is especially useful for production reports that need to reflect the latest model versions without manual intervention.
+
+## Choosing the Right Gateway Mode
+
+**Personal Mode** is ideal for individual users who need to:
+- Connect their own Power BI reports to on-premises data sources
+- Use scheduled refresh for data updates
+- Keep setup simple with minimal configuration
+
+**Standard Mode** is recommended for organizations that need to:
+- Share data sources across multiple users
+- Integrate with other Microsoft services (Power Apps, Power Automate, Azure Logic Apps)
+- Use advanced features like DirectQuery and Live Connection
+- Have centralized management and monitoring capabilities
+
+<Note>
+Microsoft recommends using Standard Mode for most organizational scenarios due to its enhanced capabilities and flexibility.
+</Note>
+
+## Personal Mode Gateway
+
+<Steps>
+    <Step title="Install Power BI connector and data gateway">
+        1. Download and install Power BI connector from https://app.speckle.systems/connectors .
+        
+        2. Download and install [**On-premises data gateway (personal mode)**](https://go.microsoft.com/fwlink/?LinkId=820925&clcid=0x409).
+        
+        3. Open the installed data gateway.
+
+        4. Select **Sign In** and sign in to your account.
+            <Frame>
+                <img src="/images/connectors/powerbi/personal dg sign in.png" alt="Personal gateway sign in" />
+            </Frame>
+            <Note>
+                Verify the gateway appears in Power BI service under **Settings** > **Manage connections and gateways** > **On-premises data gateways**. Select **On-premises data gateways (Personal mode)** from the gateway type menu.
+            </Note>
+
+        5. Select the **Connectors** tab and verify Speckle appears in the connectors list.
+            <Frame>
+                <img src="/images/connectors/powerbi/personal dg connectors.png" alt="Personal gateway connectors" />
+            </Frame>
+            <Note>
+                Check the path shown in the data gateway and make sure the **Speckle.pqx** file is there. If not, copy it from the installed location and paste it there.
+            </Note>
+
+        6. Publish your report.
+    </Step>
+
+    <Step title="Configure Power BI Service">
+        1. Open your published report in Power BI Service.
+
+        2. Select **More Options (…) > View semantic model** from the top bar.
+            <Frame>
+                <img src="/images/connectors/powerbi/dg view semantic model.png" alt="View semantic model" />
+            </Frame>
+
+        3. Select **Refresh > Schedule Refresh**. This opens settings for the semantic model.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/dg schedule refresh.png" alt="Schedule refresh" />
+            </Frame>
+            
+        4. Expand **Gateway and cloud connections** and check if your personal gateway is listed here.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/personal dg gateways list.png" alt="Personal gateway list" />
+            </Frame>
+            
+        5. After you confirm the personal gateway is listed, select **Data source credentials**, then select **Speckle** > **Edit credentials**.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/personal dg edit credentials.png" alt="Edit credentials" />
+            </Frame>
+            
+        6. Select **OAuth2** as your authentication method. Set the privacy level setting according to your needs.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/personal dg oauth.png" alt="OAuth setup" />
+            </Frame>
+            
+        7. Select **Sign in** and sign in to your Speckle account from the window that opens.
+
+        You can now configure scheduled refresh.
+    </Step>
+</Steps>
+
+## Standard Mode Gateway
+
+<Steps>
+    <Step title="Install data gateway and Power BI connector">
+        1. Download and install [On-premises data gateway](https://go.microsoft.com/fwlink/?LinkId=820925&clcid=0x409).
+        2. Open the data gateway.
+        3. Select **Sign In** and sign in to your account.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/on prem sign in.png" alt="Standard gateway sign in" />
+            </Frame>
+            
+            <Note>
+            Verify the gateway appears in Power BI service under **Settings** > **Manage connections and gateways** > **On-premises data gateways**.
+            </Note>
+            
+        4. Select the **Connectors** tab and copy the path to Custom Connectors folder
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/on prem copy path.png" alt="Copy connectors path" />
+            </Frame>
+            
+            <Note>
+            If you see a folder not found warning, go to the path and create the Power BI Desktop and Custom Connectors folders if they're missing.
+            </Note>
+            
+        5. Download Power BI connector zip:
+        
+        <PowerBIVersionFetcher />
+
+        6. Extract the zip file contents and copy the `Speckle.pqx` file.
+        7. Paste the file to the location shown in the Connectors tab. The default path is:
+        `C:\WINDOWS\ServiceProfiles\PBIEgwService\Documents\Power BI Desktop\Custom Connectors`
+        8. Verify Speckle appears under Custom Connectors tab.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/on prem connectors.png" alt="Standard gateway connectors" />
+            </Frame>
+    </Step>
+
+    <Step title="Configure Power BI Service">
+        1. Open your published report in Power BI Service.
+        2. From the top bar, select **More Options (…) > View semantic model**.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/dg view semantic model.png" alt="View semantic model" />
+            </Frame>
+            
+        3. Select **Refresh > Schedule Refresh** to open settings for the semantic model.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/dg schedule refresh.png" alt="Schedule refresh" />
+            </Frame>
+            
+        4. Expand **Gateway and cloud connections** and check if your gateway is listed.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/on prem gateway listed.png" alt="Gateway listed" />
+            </Frame>
+            
+        5. If you see "Not configured correctly" under status, select **View data sources (▶️)**.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/on prem view data source.png" alt="View data sources" />
+            </Frame>
+            
+        6. Select **Manually add to gateway** for the Speckle model you've loaded.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/on prem manually add.png" alt="Manually add to gateway" />
+            </Frame>
+            
+        7. Create a new connection.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/on prem create connection.png" alt="Create connection" />
+            </Frame>
+            
+            - Name your connection. You can use model URL as the name.
+            - Paste model URL in **Speckle Model URL** field.
+            - Select **Speckle Account** as the authentication method.
+            - Select **Edit credentials** and sign in to your Speckle account in the window that opens.
+            - Set the privacy level according to your organization settings.
+            - Select **Create** to create the connection.
+        8. Go back to the semantic model settings page.
+        9. Select the newly created collection name from the **Maps to** dropdown and select **Apply**.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/on prem maps to.png" alt="Maps to dropdown" />
+            </Frame>
+    </Step>
+</Steps>
+
+Your data gateway is now configured for scheduled refresh.
+
+## Troubleshooting
+
+<AccordionGroup>
+    <Accordion title="Error message: 'Query contains unknown function name: Speckle.GetByUrl'">
+        <Frame>
+            <img src="/images/connectors/powerbi/dg unknown function.png" alt="Unknown function error" />
+        </Frame>
+
+        **To troubleshoot this error:**
+
+        1. Verify the gateway appears in Power BI service under **Settings** > **Manage connections and gateways** > **On-premises data gateways**.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/dg verify gateway.png" alt="Verify gateway" />
+            </Frame>
+            
+        2. Verify Speckle appears in the Connectors tab in data gateway.
+            
+            <Frame>
+                <img src="/images/connectors/powerbi/on prem connectors.png" alt="Verify connectors" />
+            </Frame>
+            
+        3. If both are true, publish a new dataset with default connectors (CSV, Excel, etc.) from Power BI Desktop and set data source credentials for it in Power BI service
+        4. Go back to the report that throws the error and try again
+
+        The report should now work properly.
+
+        **Why this works**
+        
+        Custom connectors require a dataset with verified connectors to be published first. After you publish a dataset with standard connectors, custom connectors will work with the data gateway. You only need to do this once per data gateway.
+    </Accordion>
+</AccordionGroup>
+
+## Learn more
+
+- [On-premises data gateway (personal mode)](https://learn.microsoft.com/en-us/power-bi/connect-data/service-gateway-personal-mode) (external)
+- [On-premises data gateway (standard mode)](https://learn.microsoft.com/en-us/power-bi/connect-data/service-gateway-onprem-indepth) (external)
+- [Configure scheduled refresh](https://learn.microsoft.com/en-us/power-bi/connect-data/refresh-scheduled-refresh) (external)
