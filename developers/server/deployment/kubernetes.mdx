@@ -5,7 +5,7 @@ description: Deploy Speckle server to Kubernetes for enterprise and production e
 
 # Deploying a Server - Kubernetes
 
-To ease new deployments, we are maintaining [a Kubernetes Helm chart](https://specklesystems.github.io/helm/).
+To ease new deployments, we are maintaining [a Kubernetes Helm chart](https://hub.docker.com/r/speckle/speckle-server-chart).
 
 <Note>
 This setup is not recommended for use as-is in production for a few reasons, namely:
@@ -467,7 +467,7 @@ We can ignore the instructions printed out by the NGINX Helm chart as the requir
 
 ## Configure your Deployment
 
-[Download the `values.yaml` file from the Helm chart repository](https://raw.githubusercontent.com/specklesystems/helm/main/charts/speckle-server/values.yaml) and save it as `values.yaml` to the current directory on your local machine. We will be editing and using this file in the following steps.
+[Download the `values.yaml` file from the Speckle server GitHub repository](https://raw.githubusercontent.com/specklesystems/speckle-server/refs/heads/main/utils/helm/speckle-server/values.yaml) and save it as `values.yaml` to the current directory on your local machine. We will be editing and using this file in the following steps.
 
 </Step>
 <Step>
@@ -498,37 +498,10 @@ The remaining values can be left as their defaults.
 
 ## Deploy Speckle to Kubernetes
 
-Run the following command to let your Helm know about the Speckle Helm repository
-
-```shell
-helm repo add speckle https://specklesystems.github.io/helm
-```
-
-You should see something like this:
-<Frame>
-  <img src="/images/developers/server/kubernetes/27_add_speckle_helm_repo.png" />
-</Frame>
-
-</Step>
-<Step>
-
-Then update Helm so it knows what the newly added repository contains:
-
-```shell
-helm repo update
-```
-
-<Frame>
-  <img src="/images/developers/server/kubernetes/28_helm_repo_update.png" />
-</Frame>
-
-</Step>
-<Step>
-
 Run the following command to deploy the Helm chart to your Kubernetes cluster configured with the values you configured in the [prior step](#step-4-configure-your-deployment). Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.
 
 ```shell
-helm upgrade my-speckle-server speckle/speckle-server \
+helm upgrade my-speckle-server oci://registry-1.docker.io/speckle/speckle-server \
  --values values.yaml \
  --namespace speckle \
  --install --create-namespace \
