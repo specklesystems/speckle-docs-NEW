@@ -61,18 +61,9 @@ Connector pages are naturally more detailed because they must cover multiple hos
 
 ### Development
 
-Ensure you have node 19 or above.
-Install the [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview the documentation changes locally:
-
-```bash
-npm i -g mintlify
-```
-
-Run the following command at the root of your documentation (where `docs.json` is):
-
-```bash
-mintlify dev
-```
+* Ensure you have node 19 or above.
+* `npm i` to install dependencies
+* `npm run dev` to start the local dev server
 
 ### Publishing Changes
 
