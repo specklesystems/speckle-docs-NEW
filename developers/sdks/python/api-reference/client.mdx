@@ -1,0 +1,593 @@
+---
+title: "SpeckleClient"
+description: "Complete API reference for the SpeckleClient class"
+---
+
+## Overview
+
+The `SpeckleClient` is your main entry point for interacting with Speckle Server. It provides access to projects, models, versions, and user operations through a simple Python API.
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+
+# Create a client
+client = SpeckleClient(host="app.speckle.systems")
+
+# Authenticate
+client.authenticate_with_token("your_token_here")
+
+# Now you can use all the client resources
+project = client.project.get("project_id")
+```
+
+## Constructor
+
+### SpeckleClient()
+
+```python lines icon="python"
+SpeckleClient(
+    host: str = "app.speckle.systems",
+    use_ssl: bool = True,
+    verify_certificate: bool = True
+)
+```
+
+Creates a new Speckle client instance.
+
+**Parameters:**
+
+- `host` (str, optional) - The Speckle server host. Defaults to `"app.speckle.systems"`
+- `use_ssl` (bool, optional) - Whether to use SSL/TLS. Defaults to `True`
+- `verify_certificate` (bool, optional) - Whether to verify SSL certificates. Defaults to `True`
+
+**Examples:**
+
+<Tabs>
+  <Tab title="Public Server">
+    ```python
+    from specklepy.api.client import SpeckleClient
+
+    # Connect to public Speckle server
+    client = SpeckleClient(host="app.speckle.systems")
+    ```
+  </Tab>
+  
+  <Tab title="Custom Server">
+    ```python
+    from specklepy.api.client import SpeckleClient
+
+    # Connect to your own server
+    client = SpeckleClient(host="speckle.yourcompany.com")
+    ```
+  </Tab>
+  
+  <Tab title="Local Development">
+    ```python
+    from specklepy.api.client import SpeckleClient
+
+    # Connect to local development server
+    client = SpeckleClient(
+        host="localhost:3000",
+        use_ssl=False
+    )
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+Only set `verify_certificate=False` for local development or testing. Always verify certificates in production!
+</Warning>
+
+## Authentication
+
+### authenticate_with_token()
+
+```python lines icon="python"
+client.authenticate_with_token(token: str) -> None
+```
+
+Authenticate using a personal access token.
+
+**Parameters:**
+
+- `token` (str) - Personal access token from your Speckle profile
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="app.speckle.systems")
+token = "your_personal_access_token"
+client.authenticate_with_token(token)
+
+# Verify authentication
+print(f"Authenticated as: {client.account.userInfo.name}")
+```
+
+<Info>
+Get your personal access token from: **Avatar → Profile → Personal Access Tokens** in the Speckle web app.
+</Info>
+
+### authenticate_with_account()
+
+```python lines icon="python"
+client.authenticate_with_account(account: Account) -> None
+```
+
+Authenticate using an Account object (from local Speckle Manager/Connector).
+
+**Parameters:**
+
+- `account` (Account) - Account object from `get_default_account()` or `get_local_accounts()`
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+from specklepy.api.credentials import get_default_account
+
+# Get account stored by Speckle Manager/Connector
+account = get_default_account()
+
+client = SpeckleClient(host="app.speckle.systems")
+client.authenticate_with_account(account)
+
+print(f"Authenticated as: {client.account.userInfo.name}")
+```
+
+<Note>
+This method requires that you've previously logged in via Speckle Manager or a Speckle Connector (Rhino, Revit, etc.).
+</Note>
+
+## Properties
+
+### account
+
+```python lines icon="python"
+client.account: Account
+```
+
+The currently authenticated account. Contains user information after authentication.
+
+**Example:**
+
+```python lines icon="python"
+client.authenticate_with_token(token)
+
+# Access user info
+print(f"User: {client.account.userInfo.name}")
+print(f"Email: {client.account.userInfo.email}")
+print(f"User ID: {client.account.userInfo.id}")
+```
+
+## Resource Properties
+
+The client provides access to various resource APIs through these properties:
+
+### project
+
+```python lines icon="python"
+client.project: ProjectResource
+```
+
+Access project operations (create, get, update, delete, list).
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+
+# Create a project
+project = client.project.create(ProjectCreateInput(
+    name="My Project",
+    description="A new project"
+))
+
+# Get a project
+project = client.project.get(project.id)
+```
+
+See [ProjectResource](/api-reference/resources/project) for full API.
+
+### model
+
+```python lines icon="python"
+client.model: ModelResource
+```
+
+Access model operations (create, get, update, delete, list).
+
+**Example:**
+
+```python lines icon="python"
+# Create a model in a project
+model_id = client.model.create(
+    project_id="project_id_here",
+    name="Main Model",
+    description="The primary model"
+)
+
+# Get a model
+model = client.model.get(project_id, model_id)
+```
+
+See [ModelResource](/api-reference/resources/model) for full API.
+
+### version
+
+```python lines icon="python"
+client.version: VersionResource
+```
+
+Access version operations (create, get, list).
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+
+# Create a version
+version_input = CreateVersionInput(
+    project_id="project_id",
+    model_id="model_id",
+    object_id="object_id",
+    message="Initial design"
+)
+version = client.version.create(version_input)
+
+# Get a version
+version = client.version.get(project_id, version.id)
+```
+
+See [VersionResource](/api-reference/resources/version) for full API.
+
+### active_user
+
+```python lines icon="python"
+client.active_user: ActiveUserResource
+```
+
+Operations on the currently authenticated user.
+
+**Example:**
+
+```python lines icon="python"
+# Get your own info
+user = client.active_user.get()
+print(f"Name: {user.name}")
+print(f"Projects: {len(user.projects.items)}")
+
+# Update user profile
+from specklepy.core.api.inputs.user_inputs import UserUpdateInput
+
+client.active_user.update(UserUpdateInput(
+    name="New Name",
+    bio="Updated bio"
+))
+```
+
+See [ActiveUserResource](/api-reference/resources/active-user) for full API.
+
+### other_user
+
+```python lines icon="python"
+client.other_user: OtherUserResource
+```
+
+Operations for looking up other users.
+
+**Example:**
+
+```python lines icon="python"
+# Get another user by ID
+user = client.other_user.get(user_id="other_user_id")
+print(f"User: {user.name}")
+
+# Search for users
+results = client.other_user.search(query="john")
+```
+
+See [OtherUserResource](/api-reference/resources/other-user) for full API.
+
+### server
+
+```python lines icon="python"
+client.server: ServerResource
+```
+
+Server information and metadata.
+
+**Example:**
+
+```python lines icon="python"
+# Get server version
+version = client.server.version()
+print(f"Server version: {version}")
+
+# Get server info
+info = client.server.get()
+print(f"Server name: {info.name}")
+```
+
+See [ServerResource](/api-reference/resources/server) for full API.
+
+## Common Workflows
+
+### Complete Authentication and Setup
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+
+# Create and authenticate
+client = SpeckleClient(host="app.speckle.systems")
+client.authenticate_with_token("your_token")
+
+# Verify authentication
+print(f"✓ Connected as {client.account.userInfo.name}")
+print(f"✓ Server version: {client.server.version()}")
+```
+
+### Create Project → Model → Version
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+from specklepy.objects.geometry import Point
+
+client = SpeckleClient(host="app.speckle.systems")
+client.authenticate_with_token(token)
+
+# 1. Create project
+from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+from specklepy.core.api.inputs.model_inputs import CreateModelInput
+
+project = client.project.create(ProjectCreateInput(
+    name="Site Survey",
+    description="Survey data collection"
+))
+
+# 2. Create model
+model = client.model.create(CreateModelInput(
+    project_id=project.id,
+    name="Survey Points"
+))
+
+# 3. Send data
+from specklepy.api import operations
+
+# 3. Send object
+point = Point(x=10.5, y=20.3, z=5.1)
+transport = ServerTransport(stream_id=project.id, client=client)
+object_id = operations.send(point, [transport])
+
+# 4. Create version
+version_input = CreateVersionInput(
+    project_id=project.id,
+    model_id=model.id,
+    object_id=object_id,
+    message="Initial survey data"
+)
+version = client.version.create(version_input)
+
+print(f"✓ Created version: {version.id}")
+```
+
+### List User's Projects
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="app.speckle.systems")
+client.authenticate_with_token(token)
+
+# Get user's projects
+user = client.active_user.get()
+
+print(f"Projects for {user.name}:")
+for project in user.projects.items:
+    print(f"  - {project.name} (ID: {project.id})")
+    print(f"    Models: {len(project.models.items)}")
+```
+
+### Work with Multiple Servers
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+
+# Public server
+public_client = SpeckleClient(host="app.speckle.systems")
+public_client.authenticate_with_token(public_token)
+
+# Company server
+company_client = SpeckleClient(host="speckle.company.com")
+company_client.authenticate_with_token(company_token)
+
+# Use both independently
+public_projects = public_client.active_user.get().projects.items
+company_projects = company_client.active_user.get().projects.items
+```
+
+## Error Handling
+
+### Connection Errors
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+
+try:
+    client = SpeckleClient(host="invalid-host.example")
+    client.authenticate_with_token(token)
+except Exception as e:
+    print(f"Connection failed: {e}")
+```
+
+### Authentication Errors
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="app.speckle.systems")
+
+try:
+    client.authenticate_with_token("invalid_token")
+except Exception as e:
+    print(f"Authentication failed: {e}")
+```
+
+### Resource Not Found
+
+```python lines icon="python"
+try:
+    project = client.project.get("nonexistent_id")
+except Exception as e:
+    print(f"Project not found: {e}")
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Store credentials securely">
+    Never hardcode tokens in your source code:
+    
+    ```python
+    import os
+    from specklepy.api.client import SpeckleClient
+
+    # Good - use environment variables
+    token = os.environ.get("SPECKLE_TOKEN")
+    if not token:
+        raise ValueError("SPECKLE_TOKEN environment variable not set")
+    
+    client = SpeckleClient(host="app.speckle.systems")
+    client.authenticate_with_token(token)
+    ```
+  </Accordion>
+  
+  <Accordion title="Reuse client instances">
+    Create one client per server and reuse it:
+    
+    ```python
+    # Good - create once
+    client = SpeckleClient(host="app.speckle.systems")
+    client.authenticate_with_token(token)
+    
+    # Use multiple times
+    project1 = client.project.get(id1)
+    project2 = client.project.get(id2)
+    
+    # Bad - creating multiple clients
+    for project_id in project_ids:
+        client = SpeckleClient(host="app.speckle.systems")  # Don't do this
+        client.authenticate_with_token(token)
+        project = client.project.get(project_id)
+    ```
+  </Accordion>
+  
+  <Accordion title="Verify authentication">
+    Always verify authentication succeeded:
+    
+    ```python
+    from specklepy.api.client import SpeckleClient
+
+    client = SpeckleClient(host="app.speckle.systems")
+    
+    try:
+        client.authenticate_with_token(token)
+        user_name = client.account.userInfo.name
+        print(f"✓ Authenticated as {user_name}")
+    except Exception as e:
+        print(f"✗ Authentication failed: {e}")
+        exit(1)
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle server version differences">
+    Different servers may have different features. Check the major version number to adapt behavior:
+    
+    ```python lines icon="python"
+    from specklepy.api.client import SpeckleClient
+
+    client = SpeckleClient(host="app.speckle.systems")
+    client.authenticate_with_token(token)
+    
+    # Get version as tuple: (major, minor, patch)
+    version_tuple = client.server.version()
+    major_version = version_tuple[0] if version_tuple else None
+    
+    print(f"Server version: {version_tuple}")
+    
+    if major_version and major_version >= 3:
+        # v3+ server - use modern features
+        # Objects have properties dictionary, LevelProxy, etc.
+        print("Using v3+ features")
+    elif major_version == 2:
+        # v2 server - legacy features
+        print("Using v2 features")
+    else:
+        # Pre-v2 or unknown
+        print("Unknown version")
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Environment Variables
+
+Recommended environment variables for your application:
+
+```bash
+# Required
+SPECKLE_TOKEN=your_personal_access_token
+
+# Optional
+SPECKLE_HOST=app.speckle.systems
+SPECKLE_USE_SSL=true
+```
+
+**Usage:**
+
+```python lines icon="python"
+import os
+from specklepy.api.client import SpeckleClient
+
+# Read from environment
+host = os.environ.get("SPECKLE_HOST", "app.speckle.systems")
+token = os.environ.get("SPECKLE_TOKEN")
+use_ssl = os.environ.get("SPECKLE_USE_SSL", "true").lower() == "true"
+
+if not token:
+    raise ValueError("SPECKLE_TOKEN not set")
+
+# Create client
+client = SpeckleClient(host=host, use_ssl=use_ssl)
+client.authenticate_with_token(token)
+```
+
+## Summary
+
+The `SpeckleClient` is your gateway to Speckle:
+
+- ✅ **Simple initialization** - Just provide host and authenticate
+- ✅ **Resource access** - Projects, models, versions, users via properties
+- ✅ **Flexible authentication** - Token or local account
+- ✅ **Multi-server support** - Work with multiple servers simultaneously
+- ✅ **Error handling** - Clear exceptions for common issues
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Operations" icon="arrows-rotate" href="/api-reference/operations">
+    Learn about send and receive operations
+  </Card>
+  
+  <Card title="Project Resource" icon="folder" href="/api-reference/resources/project">
+    Full API reference for project operations
+  </Card>
+  
+  <Card title="Authentication Guide" icon="key" href="/getting-started/authentication">
+    Detailed authentication setup guide
+  </Card>
+  
+  <Card title="Quickstart" icon="rocket" href="/getting-started/quickstart">
+    Complete tutorial using the client
+  </Card>
+</CardGroup>
