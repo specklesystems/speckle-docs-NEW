@@ -1,0 +1,691 @@
+---
+title: "Simple Data Patterns"
+description: "Working with custom data and simple model data in Speckle"
+---
+
+## Overview
+
+This guide covers patterns for working with **Type 1 (Custom Data)** and **Type 2 (Simple Model Data)** - the simpler data structures you'll encounter or create in Speckle.
+
+```python lines icon="python"
+from specklepy.api import operations
+from specklepy.objects import Base
+from specklepy.objects.geometry import Point, Mesh
+
+# Custom data - you create everything
+custom = Base()
+custom.name = "My Data"
+custom.values = [1, 2, 3]
+
+# Simple model data - geometry with properties
+mesh = Mesh(vertices=[...], faces=[...])
+mesh.properties = {"Material": "Steel", "Thickness": 10}
+```
+
+## Custom Data Patterns
+
+### Creating Custom Data
+
+When you control the entire data structure:
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Point
+
+# Create a custom survey data structure
+survey = Base()
+survey.name = "Site Survey 2024-01"
+survey.date = "2024-01-15"
+survey.surveyor = "Jane Smith"
+survey.location = Point(x=500000, y=4000000, z=0)
+survey.location.units = "m"
+
+# Add measurements
+survey.measurements = []
+for i in range(10):
+    measurement = Base()
+    measurement.id = f"SP-{i:03d}"
+    measurement.position = Point(x=i * 10, y=i * 5, z=2.5)
+    measurement.elevation = 100 + i * 0.5
+    measurement.accuracy = 0.01
+    survey.measurements.append(measurement)
+
+survey.count = len(survey.measurements)
+```
+
+### Nested Custom Structures
+
+Build hierarchies for complex data:
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+# Create a project structure
+project = Base()
+project.name = "Building A"
+project.phases = []
+
+# Phase 1
+phase1 = Base()
+phase1.name = "Foundation"
+phase1.startDate = "2024-01-01"
+phase1.endDate = "2024-03-01"
+phase1.tasks = []
+
+# Add tasks
+for i, task_name in enumerate(["Excavation", "Formwork", "Concrete Pour"]):
+    task = Base()
+    task.id = f"T{i+1}"
+    task.name = task_name
+    task.duration = 10 + i * 5
+    task.status = "planned"
+    phase1.tasks.append(task)
+
+project.phases.append(phase1)
+```
+
+### Custom Data with Geometry
+
+Combine your structure with geometry:
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Point, Line
+
+# Custom road analysis data
+road = Base()
+road.name = "Highway 101"
+road.length = 1500  # meters
+road.lanes = 4
+
+# Add geometry
+road.centerline = []
+for i in range(0, 1600, 100):
+    point = Point(x=i, y=0, z=0)
+    road.centerline.append(point)
+
+# Add analysis results
+road.analysis = Base()
+road.analysis.maxSlope = 0.08
+road.analysis.minRadius = 300
+road.analysis.averageWidth = 14.5
+
+# Add sections
+road.sections = []
+for i in range(15):
+    section = Base()
+    section.station = i * 100
+    section.width = 14.0 + (i % 3) * 0.5
+    section.elevation = 100 + i * 0.3
+    road.sections.append(section)
+```
+
+## Simple Model Data Patterns
+
+### Pattern 1: Properties Dictionary
+
+The most common pattern for simple model data:
+
+```python lines icon="python"
+from specklepy.objects.geometry import Mesh
+
+# Create mesh with properties
+mesh = Mesh(
+    vertices=[0, 0, 0, 10, 0, 0, 10, 10, 0, 0, 10, 0],
+    faces=[4, 0, 1, 2, 3]
+)
+mesh.units = "m"
+
+# Properties as dictionary
+mesh.properties = {
+    "Material": "Concrete",
+    "Thickness": 200,
+    "LoadBearing": True,
+    "FireRating": "2 hour",
+    "Cost": 1500.00
+}
+
+# Access properties
+material = mesh.properties.get("Material")
+thickness = mesh.properties.get("Thickness", 0)  # With default
+```
+
+<Warning>
+Properties can be any type (string, number, bool, list). Always use `.get()` with defaults for safety.
+</Warning>
+
+### Pattern 2: Multiple Objects with Properties
+
+Collections of geometry with metadata:
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Mesh
+
+def create_wall_panel(x, y, width, height, material):
+    """Create a wall panel with properties."""
+    mesh = Mesh(
+        vertices=[
+            x, y, 0,
+            x + width, y, 0,
+            x + width, y, height,
+            x, y, height
+        ],
+        faces=[4, 0, 1, 2, 3]
+    )
+    mesh.units = "m"
+    mesh.properties = {
+        "Type": "Wall Panel",
+        "Material": material,
+        "Width": width,
+        "Height": height,
+        "Area": width * height
+    }
+    return mesh
+
+# Create a collection
+building = Base()
+building.name = "Prefab Building"
+building.panels = []
+
+# Add panels
+for i in range(10):
+    panel = create_wall_panel(
+        x=i * 3,
+        y=0,
+        width=3.0,
+        height=2.7,
+        material="Concrete" if i % 2 == 0 else "Steel"
+    )
+    building.panels.append(panel)
+```
+
+### Pattern 3: Material References
+
+Simple material system:
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Mesh
+
+# Define materials
+materials = Base()
+materials.concrete = Base()
+materials.concrete.name = "Concrete C30/37"
+materials.concrete.color = 0xFF808080
+materials.concrete.density = 2400  # kg/m³
+
+materials.steel = Base()
+materials.steel.name = "Steel S355"
+materials.steel.color = 0xFFC0C0C0
+materials.steel.density = 7850  # kg/m³
+
+# Use material references
+building = Base()
+building.materials = materials
+building.elements = []
+
+# Element with material reference
+slab = Mesh(vertices=[...], faces=[...])
+slab.units = "m"
+slab.materialId = "concrete"  # Reference by ID
+slab.properties = {
+    "Type": "Slab",
+    "Thickness": 0.2
+}
+
+building.elements.append(slab)
+
+# Later, resolve material
+def get_material(element, materials_dict):
+    """Get material object for an element."""
+    material_id = getattr(element, "materialId", None)
+    if material_id:
+        return getattr(materials_dict, material_id, None)
+    return None
+
+mat = get_material(slab, building.materials)
+if mat:
+    print(f"Material: {mat.name}, Density: {mat.density}")
+```
+
+### Pattern 4: Layer Organization
+
+Organize objects by layers:
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Line, Point
+
+# Create layered structure
+model = Base()
+model.name = "Floor Plan - Level 1"
+
+# Define layers
+layers = ["Walls", "Doors", "Windows", "Furniture"]
+for layer_name in layers:
+    layer = Base()
+    layer.name = layer_name
+    layer.visible = True
+    layer.locked = False
+    layer.color = 0xFF000000
+    layer.objects = []
+    setattr(model, layer_name.lower(), layer)
+
+# Add objects to layers
+wall_line = Line(
+    start=Point(x=0, y=0, z=0),
+    end=Point(x=10, y=0, z=0)
+)
+wall_line.layer = "Walls"
+model.walls.objects.append(wall_line)
+
+# Query by layer
+def get_objects_by_layer(model, layer_name):
+    """Get all objects on a specific layer."""
+    layer = getattr(model, layer_name.lower(), None)
+    if layer and hasattr(layer, "objects"):
+        return layer.objects
+    return []
+
+walls = get_objects_by_layer(model, "Walls")
+print(f"Found {len(walls)} wall objects")
+```
+
+### Pattern 5: DisplayValue for Visualization
+
+Add display geometry to custom objects:
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Mesh
+
+# Parametric object (your domain logic)
+column = Base()
+column.speckle_type = "MyApp.Column"
+column.height = 3.0
+column.width = 0.3
+column.depth = 0.3
+column.profile = "Rectangular"
+
+# Add display geometry for viewers
+column.displayValue = Mesh(
+    vertices=[
+        0, 0, 0,
+        0.3, 0, 0,
+        0.3, 0.3, 0,
+        0, 0.3, 0,
+        0, 0, 3,
+        0.3, 0, 3,
+        0.3, 0.3, 3,
+        0, 0.3, 3,
+    ],
+    faces=[
+        4, 0, 1, 2, 3,  # Bottom
+        4, 4, 5, 6, 7,  # Top
+        4, 0, 1, 5, 4,  # Side 1
+        4, 1, 2, 6, 5,  # Side 2
+        4, 2, 3, 7, 6,  # Side 3
+        4, 3, 0, 4, 7,  # Side 4
+    ]
+)
+column.displayValue.units = "m"
+```
+
+<Info>
+Always provide `displayValue` for custom objects so they're visible in Speckle viewers, even without native support.
+</Info>
+
+## Working with Received Simple Data
+
+### Extracting Properties
+
+```python lines icon="python"
+from specklepy.api import operations
+
+obj = operations.receive(object_id, remote_transport=transport)
+
+# Check for properties dictionary
+if hasattr(obj, "properties") and isinstance(obj.properties, dict):
+    # Extract specific properties
+    material = obj.properties.get("Material", "Unknown")
+    thickness = obj.properties.get("Thickness", 0)
+    
+    print(f"Material: {material}")
+    print(f"Thickness: {thickness}mm")
+    
+    # List all properties
+    for key, value in obj.properties.items():
+        print(f"{key}: {value}")
+```
+
+### Finding Objects by Property
+
+```python lines icon="python"
+def filter_by_property(root, property_name, property_value):
+    """Find all objects with a specific property value."""
+    results = []
+    
+    def traverse(obj):
+        if isinstance(obj, Base):
+            # Check properties dictionary
+            if hasattr(obj, "properties") and isinstance(obj.properties, dict):
+                if obj.properties.get(property_name) == property_value:
+                    results.append(obj)
+            
+            # Traverse children
+            for name in obj.get_member_names():
+                if not name.startswith("_"):
+                    value = getattr(obj, name, None)
+                    traverse(value)
+        
+        elif isinstance(obj, list):
+            for item in obj:
+                traverse(item)
+    
+    traverse(root)
+    return results
+
+# Use it
+from specklepy.objects import Base
+
+steel_elements = filter_by_property(obj, "Material", "Steel")
+print(f"Found {len(steel_elements)} steel elements")
+```
+
+### Extracting Display Geometry
+
+```python lines icon="python"
+def get_displayable_geometry(obj):
+    """Extract all displayValue meshes for visualization."""
+    meshes = []
+    
+    def traverse(current):
+        if isinstance(current, Base):
+            # Check for displayValue
+            if hasattr(current, "displayValue"):
+                display = current.displayValue
+                if isinstance(display, list):
+                    meshes.extend(display)
+                else:
+                    meshes.append(display)
+            
+            # Traverse children
+            for name in current.get_member_names():
+                if not name.startswith("_"):
+                    value = getattr(current, name, None)
+                    traverse(value)
+        
+        elif isinstance(current, list):
+            for item in current:
+                traverse(item)
+    
+    traverse(obj)
+    return meshes
+
+# Use it
+display_meshes = get_displayable_geometry(obj)
+print(f"Found {len(display_meshes)} display meshes")
+
+# Calculate total vertices
+total_vertices = sum(m.vertices_count for m in display_meshes if hasattr(m, 'vertices_count'))
+print(f"Total vertices: {total_vertices}")
+```
+
+## Converting to Common Formats
+
+### To Pandas DataFrame
+
+```python lines icon="python"
+import pandas as pd
+from specklepy.objects import Base
+
+def properties_to_dataframe(objects):
+    """Convert objects with properties to DataFrame."""
+    rows = []
+    
+    for obj in objects:
+        if hasattr(obj, "properties") and isinstance(obj.properties, dict):
+            row = {
+                "id": obj.id,
+                "type": obj.speckle_type,
+                **obj.properties  # Unpack properties
+            }
+            rows.append(row)
+    
+    return pd.DataFrame(rows)
+
+# Use it
+elements = [...]  # Your objects
+df = properties_to_dataframe(elements)
+print(df.head())
+
+# Filter and analyze
+steel_elements = df[df["Material"] == "Steel"]
+print(f"Steel elements: {len(steel_elements)}")
+print(f"Average thickness: {steel_elements['Thickness'].mean()}")
+```
+
+### To GeoJSON
+
+```python lines icon="python"
+import json
+from specklepy.objects.geometry import Point
+
+def points_to_geojson(points, properties_func=None):
+    """Convert Speckle points to GeoJSON."""
+    features = []
+    
+    for point in points:
+        if not isinstance(point, Point):
+            continue
+        
+        feature = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [point.x, point.y, point.z]
+            },
+            "properties": {}
+        }
+        
+        # Add properties if function provided
+        if properties_func:
+            feature["properties"] = properties_func(point)
+        elif hasattr(point, "properties"):
+            feature["properties"] = point.properties
+        
+        features.append(feature)
+    
+    geojson = {
+        "type": "FeatureCollection",
+        "features": features
+    }
+    
+    return json.dumps(geojson, indent=2)
+
+# Use it
+survey_points = [...]  # Your points
+geojson = points_to_geojson(
+    survey_points,
+    properties_func=lambda p: {"elevation": p.z, "label": getattr(p, "label", "")}
+)
+
+# Save to file
+with open("survey.geojson", "w") as f:
+    f.write(geojson)
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always provide properties dictionary">
+    Make data queryable by using consistent property names:
+    
+    ```python
+    # Good - consistent properties
+    mesh.properties = {
+        "Material": "Steel",
+        "Thickness": 10,
+        "Type": "Wall"
+    }
+    
+    # Bad - inconsistent
+    mesh.material = "Steel"  # Direct attribute
+    mesh.properties = {"thick": 10}  # Different key
+    ```
+  </Accordion>
+  
+  <Accordion title="Use standard property names">
+    Follow conventions for common properties:
+    
+    ```python
+    # Standard names (easier to query)
+    properties = {
+        "Material": "Concrete",  # Not "material" or "mat"
+        "Type": "Slab",          # Not "ElementType" or "type"
+        "Area": 100.0,           # Not "area" or "SurfaceArea"
+        "Volume": 20.0,          # Not "vol"
+        "Cost": 5000.0           # Not "price"
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Include units in property names when needed">
+    Make units explicit for measurements:
+    
+    ```python
+    # Good - units clear
+    properties = {
+        "Thickness_mm": 200,
+        "Weight_kg": 150,
+        "Temperature_C": 22
+    }
+    
+    # Or use nested structure
+    properties = {
+        "Thickness": {"value": 200, "units": "mm"},
+        "Weight": {"value": 150, "units": "kg"}
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Provide displayValue for custom types">
+    Always include visualization geometry:
+    
+    ```python
+    # Create custom object
+    custom = Base()
+    custom.speckle_type = "MyApp.CustomElement"
+    custom.parameter1 = 10
+    custom.parameter2 = "value"
+    
+    # Add displayValue
+    custom.displayValue = create_mesh_representation(custom)
+    
+    # Now it's visible in all Speckle viewers
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Complete Example: Survey Data Pipeline
+
+```python lines icon="python"
+from specklepy.api import operations
+from specklepy.api.client import SpeckleClient
+from specklepy.transports.server import ServerTransport
+from specklepy.objects import Base
+from specklepy.objects.geometry import Point
+
+# 1. Create custom survey data
+survey = Base()
+survey.name = "Construction Site Survey"
+survey.date = "2024-01-15"
+survey.coordinate_system = "UTM Zone 32N"
+
+survey.points = []
+survey_data = [
+    {"id": "SP001", "x": 500100, "y": 4000100, "z": 125.5, "type": "Control"},
+    {"id": "SP002", "x": 500120, "y": 4000110, "z": 125.8, "type": "Control"},
+    {"id": "SP003", "x": 500150, "y": 4000150, "z": 126.2, "type": "Detail"},
+]
+
+for data in survey_data:
+    point = Point(x=data["x"], y=data["y"], z=data["z"])
+    point.units = "m"
+    point.properties = {
+        "ID": data["id"],
+        "Type": data["type"],
+        "Accuracy": 0.01,
+        "Method": "Total Station"
+    }
+    survey.points.append(point)
+
+# 2. Send to Speckle
+client = SpeckleClient(host="app.speckle.systems")
+client.authenticate_with_token(token)
+
+transport = ServerTransport(stream_id=project_id, client=client)
+object_id = operations.send(survey, [transport])
+
+# 3. Create version
+from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+
+version_input = CreateVersionInput(
+    project_id=project_id,
+    model_id=model_id,
+    object_id=object_id,
+    message="Initial site survey data"
+)
+version = client.version.create(version_input)
+
+print(f"✓ Survey data sent: {version.id}")
+
+# 4. Later... receive and analyze
+received = operations.receive(object_id, remote_transport=transport)
+
+control_points = [
+    p for p in received.points
+    if p.properties.get("Type") == "Control"
+]
+
+print(f"Control points: {len(control_points)}")
+for point in control_points:
+    print(f"  {point.properties['ID']}: ({point.x}, {point.y}, {point.z})")
+```
+
+## Summary
+
+Simple data patterns are:
+
+- ✅ **Easy to create** - Direct property access
+- ✅ **Easy to query** - Properties dictionary
+- ✅ **Self-documenting** - Clear structure
+- ✅ **Portable** - No application dependencies
+- ✅ **Flexible** - Add any properties needed
+
+Use them for:
+- Custom analysis pipelines
+- Simple geometry exports
+- Data you control end-to-end
+- When you don't need BIM complexity
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="BIM Data Patterns" icon="building" href="/guides/bim-data-patterns">
+    Work with complex BIM and connector data
+  </Card>
+  
+  <Card title="Traversing Objects" icon="diagram-project" href="/guides/traversing-objects">
+    Learn traversal techniques for any structure
+  </Card>
+  
+  <Card title="Data Types" icon="table" href="/concepts/data-types">
+    Understand the three types of data
+  </Card>
+  
+  <Card title="Working with Geometry" icon="cube" href="/guides/working-with-geometry">
+    Complete geometry guide
+  </Card>
+</CardGroup>
