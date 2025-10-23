@@ -1,0 +1,803 @@
+---
+title: "Proxification"
+description: "Understanding proxy references and resolution strategies in Speckle data"
+---
+
+## Overview
+
+**Proxification** is a data organization technique that enables objects to be referenced by **multiple overlapping hierarchical systems** simultaneously - groups, layers, levels, blocks, instances, materials - without duplicating the objects themselves. This allows rich organizational metadata while keeping payloads efficient.
+
+Instead of forcing a single parent-child hierarchy, proxification lets a single wall be:
+- On "Level 1" (level hierarchy)
+- In "Exterior Walls" group (functional grouping)
+- On "A-WALL" layer (layer organization)
+- Using "Concrete" material (material assignment)
+
+All without duplicating the wall object or creating conflicting nested structures.
+
+<Note>
+**For SDK Consumers:** Proxification is primarily important when **consuming** data from Speckle (e.g., from connectors like Revit, Rhino, ArchiCAD). When **publishing** custom data with specklepy, you typically don't need to use proxification yourself - the SDK handles it automatically where needed.
+</Note>
+
+## Why Proxification Exists (Beyond Detachment)
+
+### Detachment Alone Isn't Enough
+
+**Detachment** solves the problem of large individual objects (like meshes with millions of vertices). The SDK automatically detaches these and stores them separately.
+
+But detachment doesn't solve the problem of **multiple overlapping organizational hierarchies**.
+
+### The Problem: Single Hierarchy Limitations
+
+Imagine a building model where you need to organize objects by:
+- **Building Level** - Level 1, Level 2, Roof
+- **Functional Group** - Exterior Walls, Interior Partitions, Structure
+- **Drawing Layer** - A-WALL, A-DOOR, S-COLS
+- **Material** - Concrete, Steel, Glass
+- **Instance Type** - Standard Door, Window Type A
+
+A single wall might belong to:
+- Level: "Level 1"
+- Group: "Exterior Walls"
+- Layer: "A-WALL"
+- Material: "Concrete"
+
+**Without proxification - you must choose ONE hierarchy:**
+```python
+# Option A: Nest by level (lose group info)
+level_1 = {
+    "walls": [wall_1, wall_2, ...],
+    "columns": [...]
+}
+
+# Option B: Nest by group (lose level info)
+exterior_walls = {
+    "elements": [wall_1, wall_2, ...]
+}
+
+# Option C: Duplicate references (data explosion)
+# OR just lose the organizational structure entirely
+```
+
+**Problems:**
+- Can only have ONE primary hierarchy (level OR group OR layer)
+- Querying "exterior walls on Level 1" requires complex traversal
+- Can't represent that objects belong to multiple organizational systems
+- Organizational metadata is either lost or duplicated
+
+### The Solution With Proxification
+
+**With proxification - MULTIPLE overlapping hierarchies:**
+```python
+root = {
+    # Objects stored once in flat/hierarchical elements
+    "elements": [
+        {"name": "Wall-001", "applicationId": "wall-1-guid"},
+        {"name": "Wall-002", "applicationId": "wall-2-guid"},
+        {"name": "Column-001", "applicationId": "col-1-guid"}
+    ],
+
+    # Multiple organizational views of the SAME objects
+    "levelProxies": [
+        {"value": {"name": "Level 1"}, "objects": ["wall-1-guid", "col-1-guid"]},
+        {"value": {"name": "Level 2"}, "objects": ["wall-2-guid"]}
+    ],
+    "groupProxies": [
+        {"name": "Exterior Walls", "objects": ["wall-1-guid", "wall-2-guid"]},
+        {"name": "Structure", "objects": ["col-1-guid"]}
+    ],
+    "colorProxies": [
+        {"name": "A-WALL", "value": 0xFF0000, "objects": ["wall-1-guid", "wall-2-guid"]}
+    ],
+    "renderMaterialProxies": [
+        {"value": {concrete_material}, "objects": ["wall-1-guid", "col-1-guid"]}
+    ]
+}
+```
+
+**Benefits:**
+- Objects stored once, referenced by multiple organizational systems
+- Can query "exterior walls on Level 1" efficiently (intersection of two proxy lists)
+- Supports overlapping hierarchies (groups + layers + levels + materials)
+- Models real-world CAD/BIM organization (blocks, layers, groups all coexist)
+- Organizational structure explicit and queryable at root level
+
+### Detachment vs Proxification: What's the Difference?
+
+Both optimize data transfer, but solve different problems:
+
+| Aspect | Detachment | Proxification |
+|--------|-----------|---------------|
+| **Purpose** | Handle large individual objects | Enable multiple overlapping organizational hierarchies |
+| **Problem Solved** | Object too big for JSON | Need groups + layers + levels + materials simultaneously |
+| **Scope** | Per-object optimization | Cross-object organization |
+| **Example** | Mesh with 1M vertices | Wall belongs to Level 1 + Exterior Group + A-WALL layer |
+| **In JSON** | `"@displayValue": "hash123..."` | `"levelProxies": [...]` at root |
+| **When** | Automatic (SDK detaches large properties) | Manual (connectors create proxies) |
+| **Resolution** | Automatic on receive | Manual (build index + resolve) |
+
+**Detachment:** "This single object is too big, store it separately"
+```python
+# Before detachment
+{"name": "Wall", "displayValue": {huge mesh object}}
+
+# After detachment (automatic)
+{"name": "Wall", "displayValue": "hash-ref"}
+# Actual mesh stored in transport
+```
+
+**Proxification:** "This object belongs to multiple organizational systems simultaneously"
+```python
+# Without proxification - forced to choose ONE hierarchy
+{"level_1": {"walls": [wall_1]}}  # Lose group/layer info
+
+# With proxification - ALL hierarchies coexist
+{
+    "elements": [wall_1],
+    "levelProxies": [{"value": "Level 1", "objects": ["wall-1-guid"]}],
+    "groupProxies": [{"name": "Exterior", "objects": ["wall-1-guid"]}],
+    "colorProxies": [{"name": "A-WALL", "objects": ["wall-1-guid"]}]
+}
+# Query any combination: "exterior walls on Level 1 on layer A-WALL"
+```
+
+**Together they provide:** Efficient storage + multiple organizational views + fast queries
+
+## Types of Proxification
+
+### 1. Organizational Proxies
+
+Create overlapping organizational hierarchies - objects can belong to multiple groups, layers, and levels simultaneously.
+
+#### LevelProxy
+Organizes objects by building level/storey (architectural hierarchy):
+
+```python
+from specklepy.objects.proxies import LevelProxy
+
+level_proxy = LevelProxy(
+    value=level_data_object,      # Level metadata (stored once)
+    objects=["guid-1", "guid-2"],  # Objects on this level
+    applicationId="level-guid"     # Level's own ID
+)
+
+# Accessed at root
+level_proxies = getattr(root, "levelProxies", [])
+```
+
+#### GroupProxy
+Organizes objects by functional or user-defined groups (can overlap with other hierarchies):
+
+```python
+from specklepy.objects.proxies import GroupProxy
+
+group_proxy = GroupProxy(
+    name="Exterior Walls",
+    objects=["wall-guid-1", "wall-guid-2", ...]
+)
+
+# Accessed at root
+group_proxies = getattr(root, "groupProxies", [])
+```
+
+#### ColorProxy
+Organizes objects by color/layer (CAD hierarchy, can overlap with levels and groups):
+
+```python
+from specklepy.objects.proxies import ColorProxy
+
+color_proxy = ColorProxy(
+    value=0xFF0000,  # RGB color value
+    name="Red",
+    objects=["obj-guid-1", "obj-guid-2", ...]
+)
+
+# Accessed at root
+color_proxies = getattr(root, "colorProxies", [])
+```
+
+### 2. Material Proxies
+
+Assign render materials to multiple objects without duplication.
+
+#### RenderMaterialProxy
+
+```python
+from specklepy.objects.proxies import RenderMaterialProxy
+
+material_proxy = RenderMaterialProxy(
+    value=render_material_object,  # Material definition (stored once)
+    objects=["obj-guid-1", ...]    # Objects using this material
+)
+
+# Accessed at root
+material_proxies = getattr(root, "renderMaterialProxies", [])
+```
+
+### 3. Geometry Proxies
+
+Reference geometry stored elsewhere in the graph.
+
+#### DisplayValue Proxies
+
+Some objects store display geometry as references rather than nested objects:
+
+```python
+# Object with display value proxy (rare case)
+obj = {
+    "name": "Complex Wall",
+    "displayValue": ["mesh-guid-1", "mesh-guid-2"]  # References as strings, not objects!
+}
+
+# The actual meshes are stored in the elements hierarchy
+# Resolution required to get actual geometry
+```
+
+<Warning>
+**Display Value Proxies:** When `displayValue` contains strings (applicationIds) instead of Mesh objects, you must resolve these references by finding the corresponding objects in the elements hierarchy. This is less common than direct `displayValue` lists but can occur in large models.
+</Warning>
+
+### 4. Instance Proxies
+
+Optimize repeated geometry through instancing:
+
+```python
+from specklepy.objects.proxies import InstanceProxy, InstanceDefinitionProxy
+
+# Definition stored once
+definition_proxy = InstanceDefinitionProxy(
+    name="Standard Door",
+    objects=["door-geometry-guid"],  # Geometry definition
+    max_depth=3
+)
+
+# Each instance references the definition
+instance_proxy = InstanceProxy(
+    definition_id="definition-guid",  # Reference to definition
+    transform=[...],                  # Transform matrix
+    max_depth=3
+)
+```
+
+## The Resolution Process
+
+Proxification requires a **two-step resolution process**:
+
+### Step 1: Build an applicationId Index
+
+Create a mapping from applicationId to actual objects:
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+def build_applicationid_index(root):
+    """
+    Traverse the object graph and index all objects by applicationId.
+    This is the foundation for resolving any proxy references.
+    """
+    index = {}
+
+    def traverse(obj):
+        # Index objects with applicationId
+        if isinstance(obj, Base) and hasattr(obj, "applicationId"):
+            if obj.applicationId:
+                index[obj.applicationId] = obj
+
+        # Traverse elements hierarchy
+        if hasattr(obj, "elements") and isinstance(obj.elements, list):
+            for element in obj.elements:
+                traverse(element)
+
+        # Traverse other properties
+        if isinstance(obj, Base):
+            for name in obj.get_member_names():
+                if not name.startswith("_") and name != "elements":
+                    value = getattr(obj, name, None)
+                    if value is not None:
+                        traverse(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                traverse(item)
+
+    traverse(root)
+    return index
+
+# Build once, use many times
+app_id_index = build_applicationid_index(root)
+print(f"Indexed {len(app_id_index)} objects")
+```
+
+### Step 2: Resolve Proxy References
+
+Use the index to resolve applicationId strings to actual objects:
+
+```python lines icon="python"
+def resolve_level_proxies(root, app_id_index):
+    """
+    Resolve level proxies to get level -> objects mapping.
+    """
+    from specklepy.objects.proxies import LevelProxy
+
+    levels = {}
+
+    # Get level proxies from root
+    if hasattr(root, "levelProxies"):
+        level_proxies = getattr(root, "levelProxies")
+
+        for proxy in level_proxies:
+            if not isinstance(proxy, LevelProxy):
+                continue
+
+            level_name = proxy.value.name
+            levels[level_name] = []
+
+            # Resolve each applicationId
+            for app_id in proxy.objects:
+                if app_id in app_id_index:
+                    obj = app_id_index[app_id]
+                    levels[level_name].append(obj)
+
+    return levels
+
+# Use it
+levels = resolve_level_proxies(root, app_id_index)
+
+for level_name, objects in levels.items():
+    print(f"{level_name}: {len(objects)} objects")
+```
+
+## General Proxy Resolution Pattern
+
+This pattern works for **all proxy types**:
+
+```python lines icon="python"
+from specklepy.objects.proxies import (
+    LevelProxy,
+    ColorProxy,
+    GroupProxy,
+    RenderMaterialProxy
+)
+
+def resolve_proxies(root):
+    """
+    General proxy resolution for all proxy types.
+    Returns a dictionary of resolved proxy collections.
+    """
+    # Step 1: Build applicationId index
+    app_id_index = build_applicationid_index(root)
+
+    # Step 2: Resolve each proxy type
+    resolved = {
+        "levels": {},
+        "colors": {},
+        "groups": {},
+        "materials": {}
+    }
+
+    # Resolve level proxies
+    if hasattr(root, "levelProxies"):
+        for proxy in getattr(root, "levelProxies", []):
+            if isinstance(proxy, LevelProxy):
+                level_name = proxy.value.name
+                resolved["levels"][level_name] = [
+                    app_id_index[app_id]
+                    for app_id in proxy.objects
+                    if app_id in app_id_index
+                ]
+
+    # Resolve color proxies
+    if hasattr(root, "colorProxies"):
+        for proxy in getattr(root, "colorProxies", []):
+            if isinstance(proxy, ColorProxy):
+                color_name = proxy.name or f"Color_{proxy.value}"
+                resolved["colors"][color_name] = [
+                    app_id_index[app_id]
+                    for app_id in proxy.objects
+                    if app_id in app_id_index
+                ]
+
+    # Resolve group proxies
+    if hasattr(root, "groupProxies"):
+        for proxy in getattr(root, "groupProxies", []):
+            if isinstance(proxy, GroupProxy):
+                resolved["groups"][proxy.name] = [
+                    app_id_index[app_id]
+                    for app_id in proxy.objects
+                    if app_id in app_id_index
+                ]
+
+    # Resolve render material proxies
+    if hasattr(root, "renderMaterialProxies"):
+        for proxy in getattr(root, "renderMaterialProxies", []):
+            if isinstance(proxy, RenderMaterialProxy):
+                mat_name = proxy.value.name if hasattr(proxy.value, "name") else "Unknown"
+                resolved["materials"][mat_name] = [
+                    app_id_index[app_id]
+                    for app_id in proxy.objects
+                    if app_id in app_id_index
+                ]
+
+    return resolved
+
+# Resolve all proxies at once
+# Use it
+all_proxies = resolve_proxies(root)
+
+print(f"Resolved {len(all_proxies['levels'])} levels")
+print(f"Resolved {len(all_proxies['colors'])} colors")
+print(f"Resolved {len(all_proxies['groups'])} groups")
+print(f"Resolved {len(all_proxies['materials'])} materials")
+```
+
+## Querying Multiple Hierarchies: Intersection Queries
+
+The real power of proxification is querying across multiple organizational systems:
+
+```python lines icon="python"
+from collections import defaultdict
+
+def query_by_multiple_criteria(root, level=None, group=None, layer=None, material=None):
+    """
+    Find objects that match multiple organizational criteria simultaneously.
+    Example: "exterior walls on Level 1 using concrete"
+    """
+    # Build applicationId index
+    app_id_index = build_applicationid_index(root)
+
+    # Get all proxy collections
+    level_proxies = getattr(root, "levelProxies", [])
+    group_proxies = getattr(root, "groupProxies", [])
+    color_proxies = getattr(root, "colorProxies", [])
+    material_proxies = getattr(root, "renderMaterialProxies", [])
+
+    # Build sets of applicationIds for each criteria
+    matching_sets = []
+
+    # Level criteria
+    if level:
+        for proxy in level_proxies:
+            if proxy.value.name == level:
+                matching_sets.append(set(proxy.objects))
+                break
+
+    # Group criteria
+    if group:
+        for proxy in group_proxies:
+            if proxy.name == group:
+                matching_sets.append(set(proxy.objects))
+                break
+
+    # Layer/color criteria
+    if layer:
+        for proxy in color_proxies:
+            if proxy.name == layer:
+                matching_sets.append(set(proxy.objects))
+                break
+
+    # Material criteria
+    if material:
+        for proxy in material_proxies:
+            mat_name = proxy.value.name if hasattr(proxy.value, "name") else ""
+            if mat_name == material:
+                matching_sets.append(set(proxy.objects))
+                break
+
+    # Find intersection of all criteria
+    if not matching_sets:
+        return []
+
+    # Intersection = objects that match ALL criteria
+    matching_app_ids = matching_sets[0]
+    for app_id_set in matching_sets[1:]:
+        matching_app_ids = matching_app_ids.intersection(app_id_set)
+
+    # Resolve to actual objects
+    results = [
+        app_id_index[app_id]
+        for app_id in matching_app_ids
+        if app_id in app_id_index
+    ]
+
+    return results
+
+# Use it - complex queries across multiple hierarchies
+exterior_walls_level_1 = query_by_multiple_criteria(
+    root,
+    level="Level 1",
+    group="Exterior Walls"
+)
+print(f"Found {len(exterior_walls_level_1)} exterior walls on Level 1")
+
+# Even more specific
+concrete_exterior_walls_level_1 = query_by_multiple_criteria(
+    root,
+    level="Level 1",
+    group="Exterior Walls",
+    material="Concrete"
+)
+print(f"Found {len(concrete_exterior_walls_level_1)} concrete exterior walls on Level 1")
+
+# Layer + Group intersection
+walls_on_a_wall_layer_in_group = query_by_multiple_criteria(
+    root,
+    layer="A-WALL",
+    group="Exterior Walls"
+)
+```
+
+## Reverse Lookup: Finding an Object's Proxy
+
+To find which proxy collection an object belongs to:
+
+```python lines icon="python"
+def find_object_in_proxies(root, target_obj):
+    """
+    Find which proxy collections reference a given object.
+    Returns dictionary of proxy types and names.
+    """
+    target_app_id = getattr(target_obj, "applicationId", None)
+    if not target_app_id:
+        return {}
+
+    memberships = {
+        "level": None,
+        "colors": [],
+        "groups": [],
+        "materials": []
+    }
+
+    # Check level proxies
+    if hasattr(root, "levelProxies"):
+        for proxy in getattr(root, "levelProxies", []):
+            if target_app_id in proxy.objects:
+                memberships["level"] = proxy.value.name
+                break
+
+    # Check color proxies
+    if hasattr(root, "colorProxies"):
+        for proxy in getattr(root, "colorProxies", []):
+            if target_app_id in proxy.objects:
+                memberships["colors"].append(proxy.name or f"Color_{proxy.value}")
+
+    # Check group proxies
+    if hasattr(root, "groupProxies"):
+        for proxy in getattr(root, "groupProxies", []):
+            if target_app_id in proxy.objects:
+                memberships["groups"].append(proxy.name)
+
+    # Check material proxies
+    if hasattr(root, "renderMaterialProxies"):
+        for proxy in getattr(root, "renderMaterialProxies", []):
+            if target_app_id in proxy.objects:
+                mat_name = proxy.value.name if hasattr(proxy.value, "name") else "Unknown"
+                memberships["materials"].append(mat_name)
+
+    return memberships
+
+# Use it
+wall = walls[0]
+memberships = find_object_in_proxies(root, wall)
+
+print(f"Wall is on level: {memberships['level']}")
+print(f"Wall is in colors: {memberships['colors']}")
+print(f"Wall is in groups: {memberships['groups']}")
+print(f"Wall has materials: {memberships['materials']}")
+```
+
+## DisplayValue Proxy Resolution
+
+Display geometry can also be proxified in large models:
+
+```python lines icon="python"
+def resolve_display_value(obj, app_id_index):
+    """
+    Resolve display value if it contains proxy references.
+    Returns list of actual geometry objects.
+    """
+    display_geometry = []
+
+    # Check if displayValue exists
+    if not hasattr(obj, "displayValue"):
+        return display_geometry
+
+    display_value = obj.displayValue
+
+    # Case 1: displayValue is a list of objects (normal case)
+    if isinstance(display_value, list):
+        for item in display_value:
+            # If item is a string, it's a proxy reference
+            if isinstance(item, str):
+                if item in app_id_index:
+                    display_geometry.append(app_id_index[item])
+            else:
+                # Direct object (normal case)
+                display_geometry.append(item)
+
+    # Case 2: displayValue is a single object
+    elif isinstance(display_value, str):
+        # String means proxy reference
+        if display_value in app_id_index:
+            display_geometry.append(app_id_index[display_value])
+    else:
+        # Direct object
+        display_geometry.append(display_value)
+
+    return display_geometry
+
+# Use it
+app_id_index = build_applicationid_index(root)
+
+for wall in walls:
+    geometry = resolve_display_value(wall, app_id_index)
+    print(f"{wall.name}: {len(geometry)} display meshes")
+```
+
+## When Proxification Matters
+
+### As a Data Consumer (Reading from Connectors)
+
+**You WILL encounter proxification when:**
+- Reading BIM/CAD data from Revit, Rhino, ArchiCAD, AutoCAD connectors
+- Working with organized models (levels, layers, groups, blocks)
+- Need to query by multiple criteria (e.g., "exterior walls on Level 1")
+- Analyzing material assignments across objects
+- Understanding instance/definition relationships
+
+**Resolution is required for:**
+- Finding objects by level, group, layer, or material
+- Querying intersections ("walls that are both exterior AND on Level 1")
+- Understanding which organizational systems an object belongs to
+- Accessing objects that use specific instances or materials
+
+### As a Data Producer (Publishing with specklepy)
+
+**You typically DON'T need to create proxies when:**
+- Publishing custom data with specklepy
+- Creating simple models
+- Working with small datasets
+
+**The SDK handles proxification automatically when:**
+- Sending large objects via `operations.send()`
+- Detachable properties are detected
+- Objects exceed chunking thresholds
+
+<Info>
+**Recommendation:** Focus on understanding proxy resolution as a consumer. Let the SDK handle proxification automatically when publishing data.
+</Info>
+
+## Reference Implementation: speckle-blender
+
+The Blender connector (`bpy_speckle`) implements proxy resolution helpers you can reference:
+
+```python
+# Example from bpy_speckle (reference implementation)
+# Location: bpy_speckle/converter/from_speckle.py
+
+def resolve_proxies(root):
+    """
+    Blender connector's proxy resolution implementation.
+    Shows practical patterns for handling all proxy types.
+    """
+    # Build applicationId index
+    app_id_map = {}
+
+    def traverse_for_ids(obj):
+        if hasattr(obj, "applicationId") and obj.applicationId:
+            app_id_map[obj.applicationId] = obj
+        # ... traverse children
+
+    # Resolve level proxies
+    level_proxies = getattr(root, "@levelProxies", [])
+    for proxy in level_proxies:
+        level_objects = [
+            app_id_map.get(app_id)
+            for app_id in proxy.objects
+            if app_id in app_id_map
+        ]
+        # ... organize by level
+
+    # Similar for other proxy types
+```
+
+**See Also:**
+- `speckle-blender` repository for working implementations
+- Connector source code for practical proxy handling patterns
+
+## Best Practices
+
+### 1. Build Index Once
+
+```python
+# Good - build once at start
+app_id_index = build_applicationid_index(root)
+
+# Then use many times
+levels = resolve_level_proxies(root, app_id_index)
+groups = resolve_group_proxies(root, app_id_index)
+materials = resolve_material_proxies(root, app_id_index)
+```
+
+### 2. Cache Resolved Proxies
+
+```python
+# Resolve once
+resolved_proxies = resolve_proxies(root)
+
+# Use throughout your application
+levels = resolved_proxies["levels"]
+groups = resolved_proxies["groups"]
+```
+
+### 3. Handle Missing References Gracefully
+
+```python
+# Always check if resolution succeeds
+resolved_objects = [
+    app_id_index[app_id]
+    for app_id in proxy.objects
+    if app_id in app_id_index  # Check before accessing!
+]
+
+# Log missing references if needed
+missing = [
+    app_id for app_id in proxy.objects
+    if app_id not in app_id_index
+]
+if missing:
+    print(f"Warning: {len(missing)} objects not found")
+```
+
+### 4. Use Sets for Fast Lookup
+
+```python
+# When checking membership frequently
+level_app_ids = set(level_proxy.objects)
+
+# Fast membership test
+for wall in walls:
+    if wall.applicationId in level_app_ids:
+        print(f"{wall.name} is on this level")
+```
+
+## Summary
+
+**Key Concepts:**
+
+- **Proxification** = Storing objects separately and referencing by ID
+- **Proxy collections** live at root level with `@` prefix
+- **Resolution** requires two steps: build index, then resolve references
+- **All proxy types** follow the same resolution pattern
+
+**When to worry about proxification:**
+
+- ✅ Reading BIM data from connectors (common)
+- ✅ Analyzing model organization (levels, groups, materials)
+- ✅ Working with large models
+- ❌ Publishing simple custom data (SDK handles it)
+
+**The Resolution Pattern:**
+
+1. Build applicationId index
+2. Get proxy collections from root
+3. Resolve applicationId strings to objects
+4. Use resolved objects for analysis
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="BIM Data Patterns" icon="building" href="/developers/sdks/python/guides/bim-data-patterns">
+    See proxification in action with Pattern 7
+  </Card>
+
+  <Card title="Traversing Objects" icon="diagram-project" href="/developers/sdks/python/guides/traversing-objects">
+    Learn to navigate object graphs effectively
+  </Card>
+
+  <Card title="Objects & Base" icon="cube" href="/developers/sdks/python/concepts/objects">
+    Understand applicationId and object identity
+  </Card>
+
+  <Card title="Operations" icon="code" href="/developers/sdks/python/api-reference/operations">
+    How send() and receive() handle proxification
+  </Card>
+</CardGroup>

@@ -1,0 +1,559 @@
+---
+title: "Objects & Base Class"
+description: "Deep dive into Speckle's object system and the Base class"
+---
+
+## The Base Class
+
+Every Speckle object inherits from `Base`. This is the foundation of Speckle's object model - it provides identity, serialization, type checking, and dynamic properties.
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Point, Line
+
+# Every geometry object is a Base
+point = Point(x=1.0, y=2.0, z=3.0)
+print(isinstance(point, Base))  # True
+
+# You can create plain Base objects
+obj = Base()
+obj.name = "My Object"
+obj.value = 42
+```
+
+## Core Concepts
+
+### 1. Static vs Dynamic Properties
+
+Base objects support both **typed properties** (defined in the class) and **dynamic properties** (added at runtime):
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point
+
+point = Point(x=1.0, y=2.0, z=3.0)
+
+# Static (typed) properties - defined in Point class
+print(point.x)  # 1.0
+print(point.y)  # 2.0
+print(point.z)  # 3.0
+
+# Dynamic properties - added at runtime
+point.color = "red"
+point.timestamp = "2024-01-15"
+point.metadata = {"source": "sensor", "accuracy": 0.01}
+
+# Get all property names
+print(point.get_member_names())
+# ['x', 'y', 'z', 'color', 'timestamp', 'metadata', ...]
+
+# Get only typed properties
+print(point.get_typed_member_names())
+# ['x', 'y', 'z', 'units', ...]
+
+# Get only dynamic properties
+print(point.get_dynamic_member_names())
+# ['color', 'timestamp', 'metadata']
+```
+
+<Info>
+**Why dynamic properties?** They let connectors attach application-specific data without defining custom classes. Revit can add `parameters`, Rhino can add `userData`, etc.
+</Info>
+
+### 2. Type Checking
+
+Base performs runtime type checking on typed properties:
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point
+
+point = Point(x=1.0, y=2.0, z=3.0)
+
+# This works - correct type
+point.x = 5.0
+
+# This works - int converts to float
+point.x = 5
+
+# This fails - type checking prevents invalid types
+try:
+    point.x = "not a number"
+except Exception as e:
+    print(f"Error: {e}")
+    # Error: Cannot set 'Point.x': it expects type 'float', 
+    # but received type 'str'
+```
+
+<Note>
+Type checking only validates the top-level type. For `List[Point]`, it checks if it's a list but doesn't validate each item's type (for performance).
+</Note>
+
+### 3. Identity & Hashing
+
+Every Base object has an `id` - a unique hash of its content:
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point
+
+point1 = Point(x=1.0, y=2.0, z=3.0)
+point2 = Point(x=1.0, y=2.0, z=3.0)
+point3 = Point(x=1.0, y=2.0, z=4.0)
+
+# Same content = same id
+print(point1.get_id() == point2.get_id())  # True
+
+# Different content = different id
+print(point1.get_id() == point3.get_id())  # False
+```
+
+<Warning>
+`get_id()` serializes the entire object - expensive for large objects! The `id` property is set during send/receive operations, so use that when available.
+</Warning>
+
+### 4. The speckle_type
+
+Every object has a `speckle_type` that identifies its class across platforms:
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point, Line
+from specklepy.objects import Base
+
+print(Point().speckle_type)  # "Objects.Geometry.Point"
+print(Line().speckle_type)   # "Objects.Geometry.Line"
+print(Base().speckle_type)   # "Base"
+
+# speckle_type is protected - you can't change it
+point = Point()
+point.speckle_type = "Something"  # Silently ignored (by design)
+print(point.speckle_type)  # Still "Objects.Geometry.Point"
+```
+
+<Info>
+The `speckle_type` ensures objects are correctly reconstructed when received in other platforms (C#, TypeScript, etc.).
+</Info>
+
+## Working with Properties
+
+### Setting Properties
+
+Three ways to set properties:
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+# 1. Attribute assignment (most common)
+obj = Base()
+obj.name = "Widget"
+obj.count = 5
+
+# 2. Dictionary-style access
+obj["description"] = "A useful widget"
+obj["tags"] = ["important", "new"]
+
+# 3. During initialization (typed properties only)
+from specklepy.objects.geometry import Point
+point = Point(x=1.0, y=2.0, z=3.0)
+```
+
+### Getting Properties
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+obj = Base()
+obj.name = "Widget"
+obj.tags = ["a", "b"]
+
+# Attribute access
+print(obj.name)  # "Widget"
+
+# Dictionary-style access
+print(obj["tags"])  # ["a", "b"]
+
+# Safe access with hasattr
+if hasattr(obj, "description"):
+    print(obj.description)
+
+# Get with default
+description = obj.__dict__.get("description", "No description")
+```
+
+### Validating Property Names
+
+Some property names are invalid:
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+obj = Base()
+
+# These fail
+try:
+    obj[""] = "value"  # Empty string
+except ValueError as e:
+    print(e)  # "Invalid Name: Base member names cannot be empty strings"
+
+try:
+    obj["@@invalid"] = "value"  # Multiple @
+except ValueError as e:
+    print(e)  # "Invalid Name: Base member names cannot start with more than one '@'"
+
+try:
+    obj["has.dot"] = "value"  # Contains dot
+except ValueError as e:
+    print(e)  # "Invalid Name: Base member names cannot contain characters '.' or '/'"
+```
+
+<Info>
+Properties starting with `@` (single) are valid and used for detached references like `@displayValue`.
+</Info>
+
+## Nested Objects
+
+Base objects can contain other Base objects:
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Point, Line
+
+# Create a container object
+building = Base()
+building.name = "Office Building"
+building.location = Point(x=0, y=0, z=0)
+
+# Nest objects in lists
+building.columns = [
+    Line(start=Point(x=0, y=0, z=0), end=Point(x=0, y=0, z=3)),
+    Line(start=Point(x=5, y=0, z=0), end=Point(x=5, y=0, z=3)),
+    Line(start=Point(x=10, y=0, z=0), end=Point(x=10, y=0, z=3)),
+]
+
+# Nest objects in dicts
+building.metadata = {
+    "origin": Point(x=0, y=0, z=0),
+    "designer": Base(name="Jane Smith", company="Acme Corp")
+}
+
+# Count all nested objects
+print(building.get_children_count())  # Counts all Base objects in the tree
+```
+
+### Traversing Nested Objects
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+def traverse_object(obj, depth=0):
+    """Recursively traverse a Base object tree."""
+    indent = "  " * depth
+    
+    if isinstance(obj, Base):
+        print(f"{indent}{obj.speckle_type}")
+        
+        # Traverse all properties
+        for name in obj.get_member_names():
+            if name.startswith("_"):
+                continue
+            value = getattr(obj, name, None)
+            print(f"{indent}  {name}:")
+            traverse_object(value, depth + 2)
+    
+    elif isinstance(obj, list):
+        print(f"{indent}[List with {len(obj)} items]")
+        for item in obj[:3]:  # Show first 3
+            traverse_object(item, depth + 1)
+    
+    elif isinstance(obj, dict):
+        print(f"{indent}{{Dict with {len(obj)} keys}}")
+        for key, value in list(obj.items())[:3]:  # Show first 3
+            print(f"{indent}  {key}:")
+            traverse_object(value, depth + 2)
+    
+    else:
+        # Primitive value
+        print(f"{indent}{repr(obj)}")
+
+# Use it
+from specklepy.objects.geometry import Line, Point
+
+line = Line(
+    start=Point(x=0, y=0, z=0),
+    end=Point(x=10, y=10, z=10)
+)
+line.color = "red"
+line.thickness = 2.5
+
+traverse_object(line)
+```
+
+## Creating Custom Objects
+
+You can create custom Base subclasses:
+
+```python lines icon="python"
+from specklepy.objects import Base
+from typing import List, Optional
+
+class Wall(Base, speckle_type="MyApp.Wall"):
+    """Custom wall object with typed properties."""
+    
+    # Typed properties
+    height: float
+    width: float
+    thickness: float
+    material: Optional[str] = None
+    layers: Optional[List[Base]] = None
+    
+    def __init__(self, height: float, width: float, thickness: float, **kwargs):
+        super().__init__(**kwargs)
+        self.height = height
+        self.width = width
+        self.thickness = thickness
+
+# Use it
+wall = Wall(height=3.0, width=5.0, thickness=0.2)
+wall.material = "Concrete"
+wall.fireRating = "2 hour"  # Dynamic property
+
+print(wall.speckle_type)  # "MyApp.Wall"
+print(wall.get_typed_member_names())  # ['height', 'width', 'thickness', 'material', 'layers']
+print(wall.get_dynamic_member_names())  # ['fireRating']
+```
+
+<Warning>
+Custom types must have unique `speckle_type` names. Use a namespace prefix like `"MyApp.Wall"` to avoid conflicts.
+</Warning>
+
+## Advanced Features
+
+### Chunkable Properties
+
+Large arrays can be chunked for efficient serialization:
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+obj = Base()
+obj.vertices = list(range(100000))  # Large list
+
+# Mark vertices as chunkable with chunk size 10000
+obj.add_chunkable_attrs(vertices=10000)
+
+# When sent, vertices will be split into 10 chunks
+```
+
+### Detachable Properties
+
+Large nested objects can be detached and stored separately:
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Mesh
+
+obj = Base()
+obj.displayValue = Mesh(...)  # Large mesh
+
+# Mark displayValue as detachable
+obj.add_detachable_attrs({"displayValue"})
+
+# When sent, displayValue is stored separately and referenced by id
+```
+
+<Info>
+Connectors use detachment for `displayValue` meshes - keeps the main object lightweight while allowing on-demand mesh loading.
+</Info>
+
+### The applicationId
+
+Link objects across sends with `applicationId`:
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point
+
+# First send
+point = Point(x=1, y=2, z=3)
+point.applicationId = "wall-column-base-001"
+# ... send to Speckle ...
+
+# Later update - same applicationId
+point = Point(x=1.5, y=2, z=3)  # Moved slightly
+point.applicationId = "wall-column-base-001"  # Same ID
+# ... send again ...
+
+# Receiving applications can track that this is an update to the same object
+```
+
+<Info>
+Connectors use `applicationId` to map Speckle objects back to their native application objects (like Revit element IDs).
+</Info>
+
+## Common Patterns
+
+### Building Collections
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Point
+
+# Create a collection
+collection = Base()
+collection.name = "Survey Points"
+collection.points = []
+
+# Add items
+for i in range(10):
+    point = Point(x=i, y=i*2, z=0)
+    point.label = f"Point {i}"
+    collection.points.append(point)
+
+collection.count = len(collection.points)
+```
+
+### Filtering by Type
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Point, Line
+
+def get_objects_by_type(obj: Base, target_type: str) -> list:
+    """Recursively find all objects of a specific speckle_type."""
+    results = []
+    
+    if isinstance(obj, Base):
+        if obj.speckle_type == target_type:
+            results.append(obj)
+        
+        # Search in all properties
+        for name in obj.get_member_names():
+            if name.startswith("_"):
+                continue
+            value = getattr(obj, name, None)
+            results.extend(get_objects_by_type(value, target_type))
+    
+    elif isinstance(obj, (list, tuple)):
+        for item in obj:
+            results.extend(get_objects_by_type(item, target_type))
+    
+    elif isinstance(obj, dict):
+        for value in obj.values():
+            results.extend(get_objects_by_type(value, target_type))
+    
+    return results
+
+# Use it
+collection = Base()
+collection.items = [
+    Point(x=1, y=2, z=3),
+    Line(start=Point(x=0, y=0, z=0), end=Point(x=1, y=1, z=1)),
+    Point(x=4, y=5, z=6),
+]
+
+points = get_objects_by_type(collection, "Objects.Geometry.Point")
+print(f"Found {len(points)} points")  # Found 4 points (including nested in Line)
+```
+
+### Copying Objects
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point
+
+# Shallow copy - shares nested objects
+point1 = Point(x=1, y=2, z=3)
+point2 = Point(**point1.__dict__)
+
+# Deep copy - duplicates nested objects
+import copy
+point3 = copy.deepcopy(point1)
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use typed properties when possible">
+    Define class properties with types for validation and documentation:
+    
+    ```python
+    # Good - typed property
+    class Wall(Base):
+        height: float
+    
+    # Less good - dynamic property
+    wall = Base()
+    wall.height = 3.0  # No type checking
+    ```
+  </Accordion>
+  
+  <Accordion title="Avoid expensive operations in loops">
+    Don't call `get_id()` repeatedly:
+    
+    ```python
+    # Bad - serializes every time
+    for obj in objects:
+        if obj.get_id() in seen:
+            continue
+    
+    # Good - use id property or track differently
+    for obj in objects:
+        if obj.id in seen:  # Set during send/receive
+            continue
+    ```
+  </Accordion>
+  
+  <Accordion title="Use applicationId for tracking">
+    Always set `applicationId` when creating objects from your application:
+    
+    ```python
+    from specklepy.objects.geometry import Point
+    
+    # Link to your app's native object
+    point = Point(x=1, y=2, z=3)
+    point.applicationId = f"myapp-{native_object.id}"
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle unknown types gracefully">
+    When traversing received objects, expect unknown types:
+    
+    ```python
+    def process_object(obj):
+        if isinstance(obj, Base):
+            # Check speckle_type string instead of isinstance
+            if obj.speckle_type.startswith("Objects.Geometry"):
+                process_geometry(obj)
+            elif hasattr(obj, "displayValue"):
+                process_display_value(obj.displayValue)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Summary
+
+The `Base` class is powerful because it:
+
+- ✅ **Provides identity** - Every object has a unique hash
+- ✅ **Supports dynamic properties** - Attach any data without custom classes
+- ✅ **Type checks typed properties** - Catch errors early
+- ✅ **Works cross-platform** - `speckle_type` ensures interoperability
+- ✅ **Handles nested objects** - Build complex hierarchies naturally
+- ✅ **Optimizes serialization** - Chunking and detachment for large data
+
+Understanding `Base` is fundamental to working effectively with specklepy!
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Working with Data" icon="diagram-project" href="/concepts/working-with-data">
+    Learn how to traverse and extract data from received objects
+  </Card>
+  
+  <Card title="Geometry Objects" icon="cube" href="/guides/working-with-geometry">
+    Explore Points, Lines, Meshes, and other geometry types
+  </Card>
+  
+  <Card title="Custom Objects" icon="wrench" href="/guides/custom-objects">
+    Create your own Base subclasses for domain-specific data
+  </Card>
+  
+  <Card title="Serialization" icon="code" href="/concepts/serialization">
+    Understand how objects are converted to/from JSON
+  </Card>
+</CardGroup>

@@ -1,0 +1,886 @@
+---
+title: "Display Values"
+description: "The foundation of 3D viewer interoperability - how any connector makes objects visible"
+---
+
+## Overview
+
+**Display Values** are the foundation of Speckle's lowest-level interoperability. They allow any connector from any authoring tool to publish data that's immediately visible in the Speckle 3D viewer, regardless of the source application's native geometry format.
+
+<Warning>
+**Common Beginner Mistake:** Sending geometry primitives (Mesh, Point, Line) directly will NOT make them visible in the viewer! You must wrap them in a container object with a `displayValue` property. See the examples below.
+</Warning>
+
+<Info>
+**Universal Visualization:** Display values are what make a Revit wall, a Rhino NURBS surface, and a Grasshopper custom object all visible in the same 3D viewer, even though they come from completely different systems with different geometry representations.
+</Info>
+
+## The Core Concept
+
+### The Problem: Different Geometry Systems
+
+Every authoring tool has its own geometry representation:
+- **Revit** - Solid geometry, parametric families
+- **Rhino** - NURBS surfaces, boundary representations
+- **Grasshopper** - Procedural geometry definitions
+- **AutoCAD** - 2D primitives, 3D solids
+- **Blender** - Polygon meshes, modifiers
+- **Custom apps** - Anything imaginable
+
+Without display values, viewing geometry from different sources would require understanding every system's native format.
+
+### The Solution: Display Values
+
+**Display Value** = A simplified, viewer-ready geometric representation attached to any object.
+
+```python
+from specklepy.objects.data_objects import DataObject
+from specklepy.objects.geometry import Mesh
+
+# ❌ WRONG - Mesh alone won't show in viewer
+mesh = Mesh(vertices=[...], faces=[...])
+operations.send(mesh, [transport])  # Invisible in viewer!
+
+# ✅ CORRECT - Wrap in object with displayValue
+wall = DataObject(
+    name="Parametric Wall",
+    properties={"height": 3.0, "width": 0.2},
+    displayValue=[mesh]  # NOW visible in viewer!
+)
+operations.send(wall, [transport])  # Visible and selectable!
+```
+
+**Key principles:**
+- Display values are **meshes** (triangulated geometry)
+- They're **viewer-ready** (no computation needed)
+- **Geometry primitives alone are NOT visible** (must be in displayValue)
+- They enable **universal visualization** (any app → 3D viewer)
+
+## How Display Values Work
+
+### 1. Connectors Generate Display Values
+
+When a connector sends data, it generates display values:
+
+```python
+# Connector publishes from authoring tool
+revit_wall = DataObject(
+    name="Basic Wall",
+    properties={
+        "family": "Basic Wall",
+        "type": "200mm",
+        "volume": 15.5
+    },
+    displayValue=[
+        Mesh(vertices=[...], faces=[...])  # Tessellated from Revit solid
+    ]
+)
+```
+
+**What happens:**
+- Connector reads native geometry (Revit solid, Rhino NURBS, etc.)
+- Converts to triangulated mesh(es)
+- Attaches as `displayValue` property
+- Sends both the object data AND display geometry
+
+### 2. Viewer Receives and Renders
+
+The Speckle 3D viewer:
+- Reads the `displayValue` property
+- Renders the meshes immediately
+- Allows selection, inspection, querying
+- No knowledge of source application required
+
+```python
+# Receiver gets viewer-ready geometry
+wall = operations.receive(object_id, remote_transport=transport)
+
+if hasattr(wall, "displayValue"):
+    # Display geometry is ready to render
+    for mesh in wall.displayValue:
+        render_in_viewer(mesh)
+```
+
+### 3. Interoperability Achieved
+
+**Different sources, same viewer:**
+
+```python
+# From Revit
+revit_wall.displayValue = [mesh_from_revit_solid]
+
+# From Rhino
+rhino_surface.displayValue = [mesh_from_nurbs]
+
+# From Grasshopper
+custom_object.displayValue = [mesh_from_procedural_geometry]
+
+# All visible in the same viewer!
+```
+
+## Display Value Structure
+
+### Single vs Multiple Meshes
+
+Display values can be a single mesh or a list:
+
+```python
+# Single mesh
+simple_object = DataObject(
+    name="Simple Box",
+    displayValue=Mesh(vertices=[...], faces=[...])
+)
+
+# Multiple meshes (common for complex objects)
+complex_object = DataObject(
+    name="Multi-material Wall",
+    displayValue=[
+        mesh_concrete,  # Concrete structure
+        mesh_insulation,  # Insulation layer
+        mesh_cladding    # Exterior cladding
+    ]
+)
+```
+
+**Why multiple meshes:**
+- Different materials per layer
+- Performance optimization (LOD levels)
+- Separate components for complex objects
+- Per-material rendering in viewer
+
+### Mesh Properties
+
+Display value meshes support rich visualization:
+
+```python
+from specklepy.objects.geometry import Mesh
+
+display_mesh = Mesh(
+    vertices=[x, y, z, x, y, z, ...],  # Vertex coordinates (flat list)
+    faces=[3, v1, v2, v3, 4, v1, v2, v3, v4, ...],  # Face definitions
+    colors=[0xFF0000, 0x00FF00, ...],  # Per-vertex colors (optional)
+    textureCoordinates=[u, v, u, v, ...],  # UV mapping (optional)
+    units="m"  # Unit specification
+)
+```
+
+**Mesh capabilities:**
+- Triangulated or quad faces
+- Vertex colors for material visualization
+- Texture coordinates for mapped materials
+- Units for proper scaling
+
+## Display Values vs Native Geometry
+
+### The Dual Representation
+
+Many objects carry BOTH display values AND native geometry:
+
+```python
+rhino_brep = Base()
+rhino_brep.speckle_type = "Objects.Geometry.Brep"
+rhino_brep.encodedValue = brep_native_data  # Rhino-specific (lossless)
+rhino_brep.displayValue = [mesh]  # Universal (viewer-ready)
+```
+
+**Why both:**
+- **Display value** - Universal visualization (all viewers)
+- **Native geometry** - Lossless round-trip (same app)
+
+### When to Use Each
+
+| Use Case | Display Value | Native Geometry |
+|----------|---------------|-----------------|
+| **3D Viewer** | ✅ Always used | ❌ Not used |
+| **Cross-application** | ✅ Works everywhere | ❌ App-specific |
+| **Round-trip** | ⚠️ Lossy (tessellated) | ✅ Lossless |
+| **Required** | ✅ For visibility | ❌ Optional |
+
+## Display Values for Interoperability
+
+### Atomic Viewer Objects
+
+Objects with `displayValue` are **atomic** in the viewer - they can be clicked, selected, and queried:
+
+```python
+# Checking if object is viewer-selectable
+def is_viewer_selectable(obj):
+    """Objects with displayValue appear as selectable items in viewer."""
+    return hasattr(obj, "displayValue") and obj.displayValue is not None
+
+# Finding all viewer-selectable objects
+selectable = [obj for obj in all_objects if is_viewer_selectable(obj)]
+print(f"Found {len(selectable)} objects visible in viewer")
+```
+
+**Viewer interaction:**
+- Click to select → queries object with `displayValue`
+- Hover for info → shows object name and properties
+- Filter/isolate → based on objects with `displayValue`
+
+### Container vs Renderable Objects
+
+Not all objects need display values:
+
+```python
+# Container object (organizational only)
+level = DataObject(
+    name="Level 1",
+    properties={"elevation": 0.0}
+    # No displayValue - not rendered, just organizes
+)
+
+# Renderable object (has geometry)
+wall = DataObject(
+    name="Wall-001",
+    properties={"volume": 15.5},
+    displayValue=[mesh]  # Has displayValue - rendered and selectable
+)
+```
+
+**Pattern:**
+- **Containers** (levels, groups, collections) → No `displayValue`
+- **Elements** (walls, columns, furniture) → Has `displayValue`
+
+### Architectural Principle: Leaf Nodes Have Display Values
+
+<Info>
+**Key Principle:** Objects with `displayValue` typically don't have child elements that also have `displayValue`. Display values mark **leaf nodes** in the object graph - the atomic, indivisible elements that appear in the viewer.
+</Info>
+
+**Why this matters:**
+
+```python
+# Typical structure - displayValue at leaves only
+building = Base(
+    name="Building",
+    # No displayValue - container
+    elements=[
+        level_1,  # No displayValue - container
+        level_2   # No displayValue - container
+    ]
+)
+
+level_1 = Base(
+    name="Level 1",
+    # No displayValue - container
+    elements=[
+        wall_1,  # HAS displayValue - leaf/atomic
+        wall_2,  # HAS displayValue - leaf/atomic
+        column_1  # HAS displayValue - leaf/atomic
+    ]
+)
+
+# Walls have displayValue but no children with displayValue
+wall_1 = DataObject(
+    name="Wall-001",
+    displayValue=[mesh],  # Leaf node - atomic in viewer
+    # No elements array - this is the end of the hierarchy
+)
+```
+
+**Exceptions are rare:**
+
+```python
+# Unusual but possible - nested displayValues
+assembly = DataObject(
+    name="Window Assembly",
+    displayValue=[overall_mesh],  # Overview representation
+    elements=[
+        DataObject(name="Frame", displayValue=[frame_mesh]),
+        DataObject(name="Glass", displayValue=[glass_mesh]),
+        DataObject(name="Hardware", displayValue=[hardware_mesh])
+    ]
+)
+# This creates multiple selection levels in viewer (uncommon)
+```
+
+**Design implications:**
+- **Query optimization** - Find all viewer objects by looking for `displayValue`, stop traversing deeper
+- **Viewer selection** - Click selects the object with `displayValue`, not its parent
+- **Performance** - Limits recursion depth when rendering
+- **Clarity** - Clear distinction between containers and atomic elements
+
+## Working with Display Values
+
+### Extracting Display Meshes
+
+```python
+from specklepy.objects.geometry import Mesh
+from specklepy.objects import Base
+
+def extract_all_display_meshes(obj):
+    """
+    Recursively extract all display meshes from an object graph.
+    Returns flat list of all Mesh objects used for visualization.
+    """
+    meshes = []
+    
+    def traverse(current):
+        if isinstance(current, Mesh):
+            meshes.append(current)
+        elif isinstance(current, Base):
+            # Check for displayValue property
+            if hasattr(current, "displayValue"):
+                display = current.displayValue
+                
+                # Handle list or single mesh
+                if isinstance(display, list):
+                    for item in display:
+                        traverse(item)
+                elif display is not None:
+                    traverse(display)
+            
+            # Traverse other properties
+            for name in current.get_member_names():
+                if not name.startswith("_") and name != "displayValue":
+                    value = getattr(current, name, None)
+                    if value is not None:
+                        traverse(value)
+        elif isinstance(current, list):
+            for item in current:
+                traverse(item)
+    
+    traverse(obj)
+    return meshes
+
+# Use it
+all_meshes = extract_all_display_meshes(building)
+total_vertices = sum(len(m.vertices) // 3 for m in all_meshes)
+print(f"Total display geometry: {len(all_meshes)} meshes, {total_vertices:,} vertices")
+```
+
+### Finding Viewer-Selectable Objects
+
+```python
+from specklepy.objects.data_objects import DataObject
+
+def find_viewer_objects(root):
+    """
+    Find all objects that appear as selectable items in the viewer.
+    These are objects with displayValue property.
+    """
+    viewer_objects = []
+    
+    def traverse(obj):
+        if isinstance(obj, Base):
+            # Object with displayValue is viewer-selectable
+            if hasattr(obj, "displayValue") and obj.displayValue is not None:
+                viewer_objects.append(obj)
+            
+            # Continue traversing
+            if hasattr(obj, "elements") and isinstance(obj.elements, list):
+                for element in obj.elements:
+                    traverse(element)
+            
+            for name in obj.get_member_names():
+                if not name.startswith("_") and name != "displayValue":
+                    value = getattr(obj, name, None)
+                    traverse(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                traverse(item)
+    
+    traverse(root)
+    return viewer_objects
+
+# Find all viewer-interactive objects
+visible_objects = find_viewer_objects(building)
+print(f"Viewer shows {len(visible_objects)} selectable objects")
+
+# Categorize by type
+from collections import defaultdict
+by_category = defaultdict(int)
+for obj in visible_objects:
+    if isinstance(obj, DataObject):
+        category = obj.properties.get("category", "Other")
+        by_category[category] += 1
+
+print("\nVisible objects by category:")
+for category, count in sorted(by_category.items()):
+    print(f"  {category}: {count}")
+```
+
+### Creating Display Values
+
+When publishing custom data:
+
+```python
+from specklepy.objects.data_objects import DataObject
+from specklepy.objects.geometry import Mesh
+
+def create_box_with_display(x, y, z, width, height, depth):
+    """
+    Create a box object with display value for viewer visibility.
+    """
+    # Create display mesh (simplified - actual would calculate vertices/faces)
+    display_mesh = Mesh(
+        vertices=[
+            x, y, z,
+            x + width, y, z,
+            x + width, y + height, z,
+            x, y + height, z,
+            x, y, z + depth,
+            x + width, y, z + depth,
+            x + width, y + height, z + depth,
+            x, y + height, z + depth
+        ],
+        faces=[
+            4, 0, 1, 2, 3,  # Front face
+            4, 4, 5, 6, 7,  # Back face
+            4, 0, 1, 5, 4,  # Bottom face
+            4, 2, 3, 7, 6,  # Top face
+            4, 0, 3, 7, 4,  # Left face
+            4, 1, 2, 6, 5   # Right face
+        ],
+        units="m"
+    )
+    
+    # Create data object with display value
+    box = DataObject(
+        name=f"Box at ({x}, {y}, {z})",
+        properties={
+            "width": width,
+            "height": height,
+            "depth": depth,
+            "volume": width * height * depth
+        },
+        displayValue=[display_mesh]  # Ensures visibility in viewer
+    )
+    
+    return box
+
+# Create and send
+box = create_box_with_display(0, 0, 0, 10, 5, 3)
+object_id = operations.send(box, [transport])
+# Box is now visible and selectable in the viewer
+```
+
+## Display Value Detachment
+
+For large models, display values are automatically detached:
+
+```python
+from specklepy.objects.data_objects import DataObject
+from specklepy.objects.geometry import Mesh
+
+# Large mesh (millions of vertices)
+large_mesh = Mesh(
+    vertices=[...],  # Huge array
+    faces=[...],     # Huge array
+    units="m"
+)
+
+wall = DataObject(
+    name="Complex Wall",
+    displayValue=[large_mesh]
+)
+
+# When sent, displayValue is automatically detached
+transport = ServerTransport(stream_id=project_id, client=client)
+object_id = operations.send(wall, [transport])
+
+# JSON contains reference, mesh stored separately
+# {"name": "Complex Wall", "displayValue": "hash-ref"}
+```
+
+**Automatic optimization:**
+- SDK detects large `displayValue` meshes
+- Stores them separately in transport
+- Main object stays lightweight
+- Viewer loads meshes on-demand
+
+## Best Practices
+
+### 1. Always Wrap Geometry in Objects with Display Values
+
+<Warning>
+**Critical:** Raw geometry primitives (Mesh, Point, Line) are **NOT visible in the viewer** by themselves. They must be attached as `displayValue` on a container object.
+</Warning>
+
+```python
+from specklepy.objects.data_objects import DataObject
+from specklepy.objects.geometry import Mesh
+
+# ❌ WRONG - Won't show in viewer
+mesh = Mesh(vertices=[...], faces=[...])
+operations.send(mesh, [transport])  # Soul-crushing: invisible!
+
+# ✅ CORRECT - Visible in viewer
+obj = DataObject(
+    name="My Object",
+    displayValue=[mesh]  # Wrap mesh in displayValue
+)
+operations.send(obj, [transport])  # Success: visible and selectable!
+
+# ❌ ALSO WRONG - Has properties but no displayValue
+wall = DataObject(
+    name="Wall",
+    properties={"volume": 15.5}
+    # Missing displayValue - won't appear in viewer
+)
+
+# ✅ CORRECT - Has both properties AND displayValue
+wall = DataObject(
+    name="Wall",
+    properties={"volume": 15.5},
+    displayValue=[mesh]  # Now visible!
+)
+```
+
+### 2. Use Lists for Multiple Meshes
+
+```python
+# Good - clear intent, works with single or multiple
+obj.displayValue = [mesh]  # List, even for single mesh
+
+# Also good - multiple meshes
+obj.displayValue = [mesh1, mesh2, mesh3]
+
+# Avoid - inconsistent (though SDK handles it)
+obj.displayValue = mesh  # Single mesh, not in list
+```
+
+### 3. Tessellate to Appropriate Detail
+
+```python
+# Balance between quality and performance
+def tessellate_for_viewer(nurbs_surface, tolerance=0.01):
+    """
+    Convert NURBS to mesh with appropriate detail for viewer.
+    Too fine = slow viewer, too coarse = ugly visualization
+    """
+    mesh = nurbs_surface.to_mesh(tolerance)
+    return mesh
+
+# Use reasonable tolerance
+display_mesh = tessellate_for_viewer(surface, tolerance=0.01)  # 1cm
+```
+
+### 4. Preserve Material Information
+
+```python
+# Include material info in display mesh colors
+mesh = Mesh(
+    vertices=[...],
+    faces=[...],
+    colors=[0xFF0000, 0xFF0000, ...],  # Red vertices for "Brick" material
+    units="m"
+)
+
+# Or use multiple meshes per material
+concrete_mesh = Mesh(vertices=[...], faces=[...], colors=[0x808080, ...])
+steel_mesh = Mesh(vertices=[...], faces=[...], colors=[0xC0C0C0, ...])
+
+wall.displayValue = [concrete_mesh, steel_mesh]
+```
+
+## Common Patterns
+
+### Checking for Display Values
+
+```python
+def has_display_value(obj):
+    """Check if object has viewer-ready geometry."""
+    return (
+        hasattr(obj, "displayValue") and 
+        obj.displayValue is not None and
+        (
+            isinstance(obj.displayValue, list) and len(obj.displayValue) > 0
+            or obj.displayValue
+        )
+    )
+
+def is_leaf_node(obj):
+    """
+    Check if object is a leaf node (atomic viewer element).
+    Leaf nodes have displayValue and typically no children with displayValue.
+    """
+    has_display = has_display_value(obj)
+    has_elements = hasattr(obj, "elements") and obj.elements
+    
+    # Typical leaf: has displayValue, no elements
+    if has_display and not has_elements:
+        return True
+    
+    # Edge case: has displayValue AND elements (rare)
+    # Still considered a leaf for viewer purposes
+    if has_display:
+        return True
+    
+    return False
+```
+
+### Computing Display Bounds
+
+```python
+def compute_display_bounds(obj):
+    """Compute bounding box from display values."""
+    meshes = extract_all_display_meshes(obj)
+    
+    if not meshes:
+        return None
+    
+    # Get all vertices from all meshes
+    all_vertices = []
+    for mesh in meshes:
+        # Vertices are flat list [x,y,z, x,y,z, ...]
+        for i in range(0, len(mesh.vertices), 3):
+            all_vertices.append((
+                mesh.vertices[i],
+                mesh.vertices[i + 1],
+                mesh.vertices[i + 2]
+            ))
+    
+    # Compute bounds
+    xs = [v[0] for v in all_vertices]
+    ys = [v[1] for v in all_vertices]
+    zs = [v[2] for v in all_vertices]
+    
+    return {
+        "min": (min(xs), min(ys), min(zs)),
+        "max": (max(xs), max(ys), max(zs)),
+        "center": (
+            (min(xs) + max(xs)) / 2,
+            (min(ys) + max(ys)) / 2,
+            (min(zs) + max(zs)) / 2
+        )
+    }
+```
+
+### Filtering by Visibility
+
+```python
+# Get only objects that will appear in viewer
+visible = [obj for obj in all_objects if has_display_value(obj)]
+
+# Separate containers from renderables
+containers = [obj for obj in all_objects if not has_display_value(obj)]
+renderables = [obj for obj in all_objects if has_display_value(obj)]
+
+print(f"Organizational: {len(containers)}")
+print(f"Visible: {len(renderables)}")
+
+# Optimized traversal - stop at leaf nodes
+def find_leaf_nodes(root):
+    """
+    Find all leaf nodes (objects with displayValue).
+    Optimization: stop traversing when displayValue is found.
+    """
+    leaves = []
+    
+    def traverse(obj):
+        if isinstance(obj, Base):
+            # Found a leaf node - add it and STOP traversing deeper
+            if has_display_value(obj):
+                leaves.append(obj)
+                return  # Don't traverse children (they rarely have displayValue)
+            
+            # Container node - continue traversing
+            if hasattr(obj, "elements") and isinstance(obj.elements, list):
+                for element in obj.elements:
+                    traverse(element)
+        elif isinstance(obj, list):
+            for item in obj:
+                traverse(item)
+    
+    traverse(root)
+    return leaves
+
+# More efficient than full traversal
+leaf_objects = find_leaf_nodes(building)
+print(f"Found {len(leaf_objects)} atomic viewer objects")
+```
+
+## Troubleshooting: "Why isn't my geometry visible?"
+
+<Warning>
+**The Soul-Crushing Experience:** You send geometry to Speckle, it uploads successfully, but nothing appears in the 3D viewer. This is the most common mistake for new developers.
+</Warning>
+
+### Problem: Geometry Primitives Alone Are Invisible
+
+```python lines icon="python"
+from specklepy.objects.geometry import Mesh, Point, Line
+
+# ❌ THIS WON'T WORK - Invisible in viewer!
+mesh = Mesh(vertices=[...], faces=[...])
+operations.send(mesh, [transport])
+
+point = Point(x=1, y=2, z=3)
+operations.send(point, [transport])
+
+line = Line(start=point1, end=point2)
+operations.send(line, [transport])
+
+# Upload succeeds ✓
+# Object ID returned ✓
+# But... nothing shows in the viewer! ✗
+```
+
+**Why:** The viewer looks for objects with a `displayValue` property. Raw geometry primitives don't have this - they ARE the display geometry, but they need to be attached TO something.
+
+### Solution: Always Wrap in Container with displayValue
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.data_objects import DataObject
+from specklepy.objects.geometry import Mesh, Point, Line
+
+# ✅ SOLUTION 1: Use Base container
+container = Base()
+container.mesh = mesh
+container.point = point
+container.line = line
+operations.send(container, [transport])  # Now visible!
+
+# ✅ SOLUTION 2: Use DataObject with displayValue
+obj = DataObject(
+    name="My Geometry",
+    properties={"description": "Some geometry"},
+    displayValue=[mesh]  # Mesh is now displayValue
+)
+operations.send(obj, [transport])  # Visible and selectable!
+
+# ✅ SOLUTION 3: Add displayValue to Base
+container = Base()
+container.name = "My Object"
+container.displayValue = [mesh]  # Explicit displayValue
+operations.send(container, [transport])  # Works!
+```
+
+### Quick Checklist: Is My Object Visible?
+
+Use this checklist to debug visibility issues:
+
+```python lines icon="python"
+def will_be_visible(obj):
+    """Check if object will be visible in the viewer."""
+    checks = {
+        "has_displayValue": hasattr(obj, "displayValue"),
+        "displayValue_not_none": getattr(obj, "displayValue", None) is not None,
+        "displayValue_not_empty": False,
+        "contains_geometry": False
+    }
+    
+    if checks["has_displayValue"]:
+        dv = obj.displayValue
+        if isinstance(dv, list):
+            checks["displayValue_not_empty"] = len(dv) > 0
+            checks["contains_geometry"] = any(
+                hasattr(item, "vertices") or hasattr(item, "value")
+                for item in dv
+            )
+        else:
+            checks["displayValue_not_empty"] = True
+            checks["contains_geometry"] = (
+                hasattr(dv, "vertices") or hasattr(dv, "value")
+            )
+    
+    is_visible = all(checks.values())
+    
+    print(f"Visibility Check for '{getattr(obj, 'name', 'unnamed')}':")
+    for check, passed in checks.items():
+        status = "✓" if passed else "✗"
+        print(f"  {status} {check}")
+    print(f"Result: {'VISIBLE ✓' if is_visible else 'INVISIBLE ✗'}")
+    
+    return is_visible
+
+# Use it before sending
+will_be_visible(my_object)
+```
+
+### Common Patterns That Work
+
+```python lines icon="python"
+# Pattern 1: DataObject with displayValue (recommended for BIM)
+wall = DataObject(
+    name="Wall",
+    properties={"height": 3.0, "material": "Concrete"},
+    displayValue=[mesh]
+)
+
+# Pattern 2: Base with attached geometry properties
+container = Base()
+container.name = "My Collection"
+container.geometry = [mesh1, mesh2, mesh3]
+# Geometry objects nested in properties are visible
+
+# Pattern 3: Base with explicit displayValue
+obj = Base()
+obj.name = "Custom Object"
+obj.data = {"some": "metadata"}
+obj.displayValue = [mesh]
+
+# Pattern 4: Collection of objects
+collection = Base()
+collection.elements = [
+    DataObject(name="Element 1", displayValue=[mesh1]),
+    DataObject(name="Element 2", displayValue=[mesh2]),
+    DataObject(name="Element 3", displayValue=[mesh3])
+]
+# Each element is visible because each has displayValue
+```
+
+### What the Viewer Actually Looks For
+
+The viewer traverses the object graph looking for:
+1. Objects with a `displayValue` property
+2. That property contains Mesh, Point, Line, or other geometry
+3. Each object with `displayValue` becomes a selectable item
+
+If you send a Mesh directly, it has no `displayValue` property on itself, so the viewer doesn't know it's meant to be displayed.
+
+**Think of it this way:**
+- **Mesh/Point/Line** = The paint/canvas (the geometry data)
+- **Object with displayValue** = The picture frame (makes it displayable)
+- **Viewer** = The art gallery (only hangs framed pictures)
+
+## Summary
+
+**Display Values are the key to universal 3D interoperability:**
+
+- ✅ **Any connector can publish visible data** - Just attach tessellated meshes as displayValue
+- ✅ **Any viewer can render** - No knowledge of source application needed
+- ✅ **Objects are selectable and queryable** - Objects with `displayValue` are atomic viewer elements
+- ✅ **Automatic optimization** - Large meshes detached automatically
+- ✅ **Coexists with native geometry** - Lossless round-trip where needed
+
+<Warning>
+**Remember:** Geometry primitives (Mesh, Point, Line) are **NOT visible** when sent directly! Always wrap them in a DataObject or Base with a `displayValue` property. This is the most common mistake for new Speckle developers.
+</Warning>
+
+**Key Points:**
+
+1. Display values are **tessellated meshes** attached to objects
+2. They enable **universal visualization** across all connectors
+3. Objects with `displayValue` are **selectable in the viewer**
+4. They're **automatically detached** for large geometries
+5. **Geometry primitives alone are invisible** - must be wrapped in displayValue
+6. They're **required** for visibility, **optional** for containers
+7. Objects with `displayValue` are typically **leaf nodes** - they don't have children with displayValues
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Understanding Speckle Mesh" icon="shapes" href="/developers/sdks/python/guides/understanding-speckle-mesh">
+    Deep dive into mesh structure, faces, vertices, and materials
+  </Card>
+
+  <Card title="Data Types" icon="table" href="/developers/sdks/python/concepts/data-types">
+    See how display values fit into the three data types
+  </Card>
+  
+  <Card title="Objects & Base" icon="cube" href="/developers/sdks/python/concepts/objects">
+    Learn about detachment and object properties
+  </Card>
+  
+  <Card title="BIM Data Patterns" icon="building" href="/developers/sdks/python/guides/bim-data-patterns">
+    Pattern 3: Working with display value proxies
+  </Card>
+  
+  <Card title="Traversing Objects" icon="diagram-project" href="/developers/sdks/python/guides/traversing-objects">
+    Pattern 3b: Finding atomic/displayable objects
+  </Card>
+</CardGroup>

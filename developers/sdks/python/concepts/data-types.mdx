@@ -1,0 +1,327 @@
+---
+title: "Data Types in Speckle"
+description: "Understanding the three types of data you'll encounter in Speckle"
+---
+
+## Overview
+
+When receiving data from Speckle, you'll encounter three distinct types of data structures. Understanding which type you're working with helps you choose the right approach.
+
+```python lines icon="python"
+from specklepy.api import operations
+from specklepy.transports.server import ServerTransport
+
+# Receive data from Speckle
+transport = ServerTransport(stream_id="project_id", client=client)
+obj = operations.receive(object_id, remote_transport=transport)
+
+# What type of data is this?
+print(f"Type: {obj.speckle_type}")
+print(f"Properties: {obj.get_member_names()}")
+```
+
+## The Three Types
+
+### Type 1: Custom Data
+
+**What it is:** Data you create from scratch with your own structure.
+
+**Characteristics:**
+- Simple Base objects with custom properties
+- No connector-specific structure
+- Direct property access
+- Full control over schema
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Point
+
+# You create this structure
+survey = Base()
+survey.name = "Site Survey 2024"
+survey.date = "2024-01-15"
+survey.points = [
+    Point(x=0, y=0, z=10.5),
+    Point(x=100, y=50, z=12.3),
+]
+survey.notes = "Initial survey"
+```
+
+**When you see it:**
+- Python-to-Python workflows
+- Custom data pipelines
+- Analysis results you're sending
+- Data you control end-to-end
+
+### Type 2: Simple Model Data
+
+**What it is:** Geometry with attached properties, typically from simple exports or scripts.
+
+**Characteristics:**
+- Geometry objects (Point, Line, Mesh)
+- Properties as dictionaries or direct attributes
+- Optional `displayValue` for visualization
+- Material and layer information
+- Moderate nesting (1-2 levels)
+
+**Example:**
+
+```json
+{
+    "speckle_type": "Objects.Geometry.Mesh",
+    "vertices": [...],
+    "faces": [...],
+    "properties": {
+        "Material": "Concrete",
+        "Thickness": 200,
+        "LoadBearing": true
+    },
+    "layer": "Walls",
+    "color": "0xFF808080"
+}
+```
+
+**When you see it:**
+- Grasshopper exports
+- Rhino script outputs
+- Simple geometry with metadata
+- Blender basic exports
+- CAD-like data
+
+### Type 3: Complex BIM Data
+
+**What it is:** Rich application data from BIM tools with complex nested structures.
+
+**Characteristics:**
+- Deep nesting (3+ levels)
+- Rich property collections
+- Display value proxies
+- Encoded native data
+- Instance/definition patterns
+- Data chunk references
+
+**Example:**
+
+```json
+{
+    "speckle_type": "Objects.Data.DataObject",
+    "name": "Wall Instance",
+    "properties": {
+        "Material": "Concrete",
+        "Thickness": 200,
+        "Width": 0.2,
+        "Function": "Exterior",
+        "Volume": 15.5,
+        "Area": 45.0,
+        "LoadBearing": true
+    },
+    "displayValue": [
+        {
+            "speckle_type": "Objects.Geometry.Mesh",
+            "vertices": [],
+            "faces": []
+        }
+    ]
+}
+```
+
+**When you see it:**
+- Connector exports from any BIM authoring tool
+- Rhino exports with complex objects
+- ArchiCAD, Revit, Tekla exports
+- Any application with rich metadata
+
+## Quick Decision Tree
+
+```python lines icon="python"
+from specklepy.api import operations
+
+obj = operations.receive(object_id, remote_transport=transport)
+
+# What type is this?
+if obj.speckle_type == "Base":
+    print("Type 1: Custom Data - direct property access")
+    print(f"Name: {obj.name}")
+
+elif obj.speckle_type.startswith("Objects.Geometry"):
+    print("Type 2: Simple Model Data - check for properties dict")
+    if hasattr(obj, "properties"):
+        print(f"Properties: {obj.properties}")
+
+elif obj.speckle_type.startswith("Objects.Data"):
+    print("Type 3: Complex BIM Data - need defensive traversal")
+    if hasattr(obj, "properties"):
+        print("Has properties dict")
+    if hasattr(obj, "displayValue"):
+        print("Display value available")
+```
+
+## Key Differences
+
+<Tabs>
+  <Tab title="Structure">
+    **Custom Data:**
+    ```python lines icon="python"
+    obj.myProperty  # Direct access
+    obj.myList[0]   # Simple nesting
+    ```
+
+    **Simple Model Data:**
+    ```python lines icon="python"
+    obj.properties["Material"]  # Properties dict
+    obj.displayValue.vertices   # Geometry access
+    ```
+
+    **Complex BIM Data:**
+    ```python lines icon="python"
+    obj.properties["Volume"]  # Properties dict access
+    obj.displayValue  # List of geometry representations
+    ```
+  </Tab>
+  
+  <Tab title="Access Pattern">
+    **Custom Data:**
+    ```python lines icon="python"
+    # You know the structure
+    name = obj.name
+    value = obj.measurements[0].value
+    ```
+
+    **Simple Model Data:**
+    ```python lines icon="python"
+    # Check for common properties
+    if hasattr(obj, "properties"):
+        material = obj.properties.get("Material")
+    ```
+
+    **Complex BIM Data:**
+    ```python lines icon="python"
+    # Defensive traversal required
+    properties = getattr(obj, "properties", {})
+    volume = properties.get("Volume", 0)
+    material = properties.get("Material", "Unknown")
+    ```
+  </Tab>
+  
+  <Tab title="Traversal">
+    **Custom Data:**
+    ```python lines icon="python"
+    # Simple iteration
+    for item in obj.items:
+        process(item)
+    ```
+
+    **Simple Model Data:**
+    ```python lines icon="python"
+    # Check a few known properties
+    if hasattr(obj, "displayValue"):
+        mesh = obj.displayValue
+    ```
+
+    **Complex BIM Data:**
+    ```python lines icon="python"
+    # Recursive traversal needed
+    def traverse(obj):
+        if isinstance(obj, Base):
+            for name in obj.get_member_names():
+                value = getattr(obj, name)
+                traverse(value)
+    ```
+  </Tab>
+</Tabs>
+
+## Practical Implications
+
+### Custom Data
+✅ **Pros:** Simple, predictable, fast  
+❌ **Cons:** No standard structure, manual schema
+
+**Best for:** Analysis results, custom pipelines, Python-to-Python
+
+### Simple Model Data
+✅ **Pros:** Geometry-focused, moderate complexity  
+❌ **Cons:** Limited metadata, manual property inspection
+
+**Best for:** Visualization, simple exports, geometry processing
+
+### Complex BIM Data
+✅ **Pros:** Rich information, application semantics  
+❌ **Cons:** Complex structure, defensive code needed, larger data
+
+**Best for:** BIM workflows, detailed analysis, cross-application exchange
+
+## Mixing Types
+
+Real-world data often mixes types:
+
+```python lines icon="python"
+# A collection might contain all three types
+from specklepy.api import operations
+
+obj = operations.receive(object_id, remote_transport=transport)
+
+# Root might be custom
+print(f"Project: {obj.name}")  # Custom property
+
+# Some children are simple geometry
+for geom in obj.geometry:
+    print(f"Simple: {geom.speckle_type}")
+
+# Others are complex BIM data objects
+for element in obj.elements:
+    if hasattr(element, "properties"):
+        print(f"BIM: {element.name}")
+```
+
+## Summary
+
+<CardGroup cols={3}>
+  <Card title="Custom Data" icon="code">
+    **You create it**
+    - Direct access
+    - Simple structure
+    - Full control
+  </Card>
+  
+  <Card title="Simple Model" icon="cube">
+    **Geometry + Props**
+    - Properties dict
+    - DisplayValue
+    - Moderate nesting
+  </Card>
+  
+  <Card title="Complex BIM" icon="building">
+    **Rich BIM Data**
+    - Deep nesting
+    - Properties dict
+    - Defensive code
+  </Card>
+</CardGroup>
+
+Choose your approach based on the data type:
+
+- **Custom** → Direct property access
+- **Simple** → Check common properties
+- **Complex** → Defensive traversal
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Simple Data Patterns" icon="shapes" href="/guides/simple-data-patterns">
+    Work with custom and simple model data
+  </Card>
+  
+  <Card title="BIM Data Patterns" icon="building" href="/guides/bim-data-patterns">
+    Handle complex BIM and connector data
+  </Card>
+  
+  <Card title="Traversing Objects" icon="diagram-project" href="/guides/traversing-objects">
+    Learn traversal techniques for any structure
+  </Card>
+  
+  <Card title="Objects & Base" icon="cube" href="/concepts/objects">
+    Understand the Base class
+  </Card>
+</CardGroup>
