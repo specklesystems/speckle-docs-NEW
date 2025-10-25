@@ -32,11 +32,29 @@ ServerTransport(
 
 **Parameters:**
 
-- `stream_id` (str, required) - Project ID
-- `client` (SpeckleClient, optional) - Authenticated client
-- `account` (Account, optional) - Account object
-- `token` + `url` (str, optional) - Token and server URL pair
-- `name` (str, optional) - Transport identifier
+<ResponseField name="stream_id" type="str" required>
+  Project ID
+</ResponseField>
+
+<ResponseField name="client" type="SpeckleClient" default="None">
+  Authenticated client
+</ResponseField>
+
+<ResponseField name="account" type="Account" default="None">
+  Account object
+</ResponseField>
+
+<ResponseField name="token" type="str" default="None">
+  Token (use with `url` parameter)
+</ResponseField>
+
+<ResponseField name="url" type="str" default="None">
+  Server URL (use with `token` parameter)
+</ResponseField>
+
+<ResponseField name="name" type="str" default='"RemoteTransport"'>
+  Transport identifier
+</ResponseField>
 
 <Note>
 Provide **one** authentication method: `client`, `account`, or `token` + `url`.
@@ -81,9 +99,6 @@ from specklepy.api.credentials import get_default_account
 account = get_default_account()
 transport = ServerTransport(stream_id="project_id", account=account)
 ```
-
----
-
 ## MemoryTransport
 
 Stores objects in memory. Useful for testing and temporary operations.
@@ -101,9 +116,6 @@ transport = MemoryTransport()
 <Warning>
 Data is lost when the application exits. Not suitable for production.
 </Warning>
-
----
-
 ## SQLiteTransport
 
 Stores objects in a local SQLite database for persistent local storage.
@@ -118,10 +130,22 @@ transport = SQLiteTransport(
 ```
 
 **Parameters:**
-- `base_path` (str, optional) - Custom directory for database
-- `app_name` (str, optional) - Application name. Default: `"Speckle"`
-- `scope` (str, optional) - Database scope/purpose. Default: `"Objects"`
-- `max_batch_size_mb` (float, optional) - Batch size in MB. Default: `10.0`
+
+<ResponseField name="base_path" type="str" default="None">
+  Custom directory for database
+</ResponseField>
+
+<ResponseField name="app_name" type="str" default='"Speckle"'>
+  Application name
+</ResponseField>
+
+<ResponseField name="scope" type="str" default='"Objects"'>
+  Database scope/purpose
+</ResponseField>
+
+<ResponseField name="max_batch_size_mb" type="float" default="10.0">
+  Batch size in MB
+</ResponseField>
 
 **Database location:**
 - Windows: `%APPDATA%\{app_name}\{scope}.db`
@@ -132,9 +156,6 @@ transport = SQLiteTransport(
 - Local caching of server data
 - Offline workflows
 - Persistent local storage
-
----
-
 ## Multiple Transports
 
 Send to multiple locations simultaneously:
@@ -156,9 +177,6 @@ obj = operations.receive(
     local_transport=local
 )
 ```
-
----
-
 ## Custom Transports
 
 Create custom transports by extending `AbstractTransport`:
@@ -170,16 +188,13 @@ class CustomTransport(AbstractTransport):
     def save_object(self, id: str, serialized_object: str) -> None:
         # Implement storage logic
         pass
-    
+
     def get_object(self, id: str) -> Optional[str]:
         # Implement retrieval logic
         pass
-    
+
     # Implement other required methods...
 ```
-
----
-
 ## Comparison
 
 | Transport | Persistence | Network | Primary Use |
@@ -187,10 +202,15 @@ class CustomTransport(AbstractTransport):
 | ServerTransport | Server | Required | Production |
 | MemoryTransport | None | No | Testing |
 | SQLiteTransport | Local disk | No | Caching, offline |
-
----
-
 ## Related
 
-- [Operations](/developers/sdks/python/api-reference/operations) - Send and receive operations
-- [SpeckleClient](/developers/sdks/python/api-reference/client) - Client setup
+<CardGroup cols={2}>
+  <Card title="Operations" icon="plug" href="/developers/sdks/python/api-reference/operations">
+    Send and receive operations
+  </Card>
+
+
+  <Card title="SpeckleClient" icon="user" href="/developers/sdks/python/api-reference/client">
+    Client setup
+  </Card>
+</CardGroup>
