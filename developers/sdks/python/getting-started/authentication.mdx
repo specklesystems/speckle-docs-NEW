@@ -17,25 +17,25 @@ Tokens are managed through your Speckle Server profile and can be scoped to limi
   <Step title="Log into Speckle">
     Go to your Speckle Server (e.g., [app.speckle.systems](https://app.speckle.systems))
   </Step>
-  
+
   <Step title="Access Your Profile">
-    Click your avatar → Profile → Personal Access Tokens
+    Click your avatar → Settings → Profile → Developer → Access Tokens
   </Step>
-  
+
   <Step title="Create Token">
     Click "New Token", give it a name and select the required scopes, then copy the token.
   </Step>
 </Steps>
 
 <Warning>
-Store your token securely! Never commit tokens to version control.
+Store your token securely! **Treat them like a password**: do not post them anywhere where they could be accessed by others (e.g., public repos).
 </Warning>
 
 ## Token-Based Authentication
 
 The primary way to authenticate:
 
-```python lines icon="python" focus={8}
+```python lines icon="python" focus={6-8}
 from specklepy.api.client import SpeckleClient
 
 # Create client
@@ -52,7 +52,7 @@ print(f"✓ Authenticated as: {client.account.userInfo.name}")
 
 Best practice for all environments:
 
-```python lines icon="python" focus={5-6}
+```python lines icon="python" focus={4-6}
 import os
 from specklepy.api.client import SpeckleClient
 
@@ -71,58 +71,59 @@ client.authenticate_with_token(token)
 Set the environment variable:
 
 <Tabs>
+  <Tab title="Python (.env file)">
+    Using `python-dotenv`:
+
+    ```bash
+    pip install python-dotenv
+    ```
+
+    Create `.env` file:
+    ```
+    SPECKLE_TOKEN=your_token_here
+    SPECKLE_SERVER=https://app.speckle.systems
+    ```
+
+    Load in your script:
+    ```python lines icon="python"
+    from dotenv import load_dotenv
+    import os
+
+    load_dotenv()
+    token = os.getenv("SPECKLE_TOKEN")
+    ```
+  </Tab>
   <Tab title="Linux/macOS">
     ```bash
     export SPECKLE_TOKEN="your_token_here"
-    export SPECKLE_SERVER="app.speckle.systems"
+    export SPECKLE_SERVER="https://app.speckle.systems"
     ```
-    
+
     Or add to `~/.bashrc` or `~/.zshrc` for persistence.
   </Tab>
-  
+
   <Tab title="Windows (PowerShell)">
     ```powershell
     $env:SPECKLE_TOKEN="your_token_here"
-    $env:SPECKLE_SERVER="app.speckle.systems"
+    $env:SPECKLE_SERVER="https://app.speckle.systems"
     ```
-    
+
     Or set System Environment Variables for persistence.
   </Tab>
-  
+
   <Tab title="Windows (Command Prompt)">
     ```cmd
     set SPECKLE_TOKEN=your_token_here
-    set SPECKLE_SERVER=app.speckle.systems
+    set SPECKLE_SERVER=https://app.speckle.systems
     ```
-    
+
     Or use `setx` for persistence:
     ```cmd
     setx SPECKLE_TOKEN "your_token_here"
     ```
   </Tab>
-  
-  <Tab title="Python (.env file)">
-    Using `python-dotenv`:
-    
-    ```bash
-    pip install python-dotenv
-    ```
-    
-    Create `.env` file:
-    ```
-    SPECKLE_TOKEN=your_token_here
-    SPECKLE_SERVER=app.speckle.systems
-    ```
-    
-    Load in your script:
-    ```python lines icon="python"
-    from dotenv import load_dotenv
-    import os
-    
-    load_dotenv()
-    token = os.getenv("SPECKLE_TOKEN")
-    ```
-  </Tab>
+
+
 </Tabs>
 
 ## Local Account Files (Optional)
@@ -151,7 +152,7 @@ Local accounts are created by signing in and authenticating with any Speckle des
 
 Account files are stored in:
 - **Windows**: `%APPDATA%\Speckle\Accounts`
-- **macOS**: `~/.config/Speckle/Accounts`  
+- **macOS**: `~/.config/Speckle/Accounts`
 - **Linux**: `~/.local/share/Speckle/Accounts`
 </Note>
 
@@ -165,7 +166,7 @@ account.serverInfo.url          # "https://app.speckle.systems"
 account.serverInfo.name         # "Speckle"
 account.serverInfo.company      # "Speckle Systems"
 
-# User information  
+# User information
 account.userInfo.id             # User ID
 account.userInfo.name           # "John Doe"
 account.userInfo.email          # "john@example.com"
@@ -183,10 +184,10 @@ account.isDefault               # True/False
 from specklepy.api.client import SpeckleClient
 
 # Public Speckle server
-client = SpeckleClient(host="app.speckle.systems")
+client = SpeckleClient(host="https://app.speckle.systems")
 
 # Custom self-hosted server
-client = SpeckleClient(host="speckle.mycompany.com")
+client = SpeckleClient(host="https://speckle.mycompany.com")
 
 # Local development server (no SSL)
 client = SpeckleClient(host="localhost:3000", use_ssl=False)
@@ -198,7 +199,7 @@ For self-hosted servers with self-signed certificates:
 
 ```python lines icon="python" focus={3}
 client = SpeckleClient(
-    host="speckle.mycompany.com",
+    host="http://speckle.mycompany.com",
     verify_certificate=False  # Disable SSL verification
 )
 ```
@@ -212,9 +213,9 @@ Only disable certificate verification for trusted internal servers.
 <CardGroup cols={2}>
   <Card title="Development" icon="laptop-code">
     **Use environment variables or local accounts**
-    
+
     Store tokens in `.env` files (not committed to git) or use local account files.
-    
+
     ```python lines icon="python"
     # .env file approach
     load_dotenv()
@@ -222,35 +223,35 @@ Only disable certificate verification for trusted internal servers.
     client.authenticate_with_token(token)
     ```
   </Card>
-  
+
   <Card title="Production" icon="server">
     **Use environment variables**
-    
+
     Store tokens in environment variables or secret managers (AWS Secrets Manager, Azure Key Vault, etc.).
-    
+
     ```python lines icon="python"
     token = os.environ["SPECKLE_TOKEN"]
     client.authenticate_with_token(token)
     ```
   </Card>
-  
+
   <Card title="CI/CD" icon="gears">
     **Use secrets management**
-    
+
     Use GitHub Secrets, GitLab CI/CD variables, or similar.
-    
+
     ```yaml
     # .github/workflows/example.yml
     env:
       SPECKLE_TOKEN: ${{ secrets.SPECKLE_TOKEN }}
     ```
   </Card>
-  
+
   <Card title="Multi-User Apps" icon="users">
     **Implement OAuth 2.0 flow**
-    
+
     For web apps where users authenticate themselves.
-    
+
     Each user gets their own token via OAuth.
   </Card>
 </CardGroup>
@@ -263,7 +264,7 @@ Verify your client is authenticated:
 # Check if authenticated
 if client.account.token:
     print("✓ Authenticated")
-    
+
     # Get current user info
     user = client.active_user.get()
     print(f"Logged in as: {user.name}")
@@ -294,37 +295,37 @@ Follow the principle of least privilege - only grant the scopes your application
 <AccordionGroup>
   <Accordion title="Invalid Token">
     **Error:** `403 Forbidden` or `Invalid token`
-    
-    **Solution:** 
+
+    **Solution:**
     - Verify the token is correct (no extra spaces)
     - Check the token hasn't been revoked
     - Ensure the token has the required scopes
     - Generate a new token if needed
   </Accordion>
-  
+
   <Accordion title="Connection Refused">
     **Error:** `Connection refused` or `Failed to connect`
-    
+
     **Solution:**
     - Verify the server URL is correct
     - Check your internet connection
     - For local servers, ensure the server is running
     - Check firewall settings
   </Accordion>
-  
+
   <Accordion title="SSL Certificate Error">
     **Error:** `SSL: CERTIFICATE_VERIFY_FAILED`
-    
+
     **Solution:**
     - For self-signed certificates, use `verify_certificate=False`
     - Install the certificate in your system's trust store
     - For production, use properly signed certificates
   </Accordion>
-  
+
   <Accordion title="No Local Accounts Found">
     **Error:** `No default account found`
-    
-    **Solution:** 
+
+    **Solution:**
     - Use token authentication instead:
     ```python lines icon="python"
     token = os.environ.get("SPECKLE_TOKEN")

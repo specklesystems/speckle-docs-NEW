@@ -45,26 +45,23 @@ specklepy v3 requires **Python 3.10+** and supports Windows, macOS, and Linux.
 
 Forget about files. Speckle uses **objects** as the fundamental unit of data exchange.
 
-```python lines icon="python" focus={4-6}
-from specklepy.objects.geometry import Point, Line
-
+```python lines icon="python"
 # Create geometry objects
 start = Point(x=0, y=0, z=0)
 end = Point(x=10, y=10, z=0)
 line = Line(start=start, end=end)
 ```
+<Note>
+Instead of files, Speckle stores sets of objects in Models. Models are contained
+within Projects. Projects are contained within Workspaces. Learn more about
+organising your data in Speckle in the [User Guide](https://docs.speckle.dev/workspaces/projects).
+</Note>
 
 ### Version Control for AEC Data
 
 Every change creates a new **version** (commit), giving you full history and traceability.
 
-```python lines icon="python" focus={8-14}
-from specklepy.api.client import SpeckleClient
-from specklepy.core.api.inputs.version_inputs import CreateVersionInput
-
-client = SpeckleClient(host="app.speckle.systems")
-# ... authenticate
-
+```python lines icon="python"
 # Create a version with your data
 version_input = CreateVersionInput(
     project_id=project_id,
@@ -74,6 +71,14 @@ version_input = CreateVersionInput(
 )
 version = client.version.create(version_input)
 ```
+
+<Note>
+  The `object_id` here is of a **Speckle object** that has already been sent to the Speckle server. Sending will register it in the database, but visibility of it is within the scope of a **version**.
+</Note>
+
+<Note>
+  Objects not associated with a **Model** **Version** are considered as "Zombie objects" or "Orphans" other than keeping a record of `object_ids' they will be irretrievable.
+</Note>
 
 ### Real-Time Collaboration
 
@@ -87,25 +92,26 @@ client.subscribe.project_versions_updated(
 )
 ```
 
+<Warning>
+  Subscriptions may not make sense if the script is not running continuously. Consider using a webhook or a scheduled task instead.
+</Warning>
+
 ## Common Use Cases
 
-<AccordionGroup>
-  <Accordion title="Data Exchange Between Applications">
-    Extract data from one application (e.g., Revit) and load it into another (e.g., Rhino, Blender, or custom tools).
-  </Accordion>
-
-  <Accordion title="Automated Workflows">
-    Build automation pipelines that process AEC data, run analyses, or generate reports.
-  </Accordion>
-
-  <Accordion title="Custom Integrations">
-    Connect Speckle to your internal tools, databases, or third-party services.
-  </Accordion>
-
-  <Accordion title="Structural Analysis">
+<CardGroup cols={2}>
+  <Card title="Custom Python backed web applications" icon="globe">
+    Extract data from one application (e.g., Revit) and load it into another that may have a python scripting interface and no Speckle Connector.
+  </Card>
+  <Card title="Automated Workflows" icon="gears">
+    Within Speckle Automation or your own automation pipelines that process AEC data, run analyses, or generate reports.
+  </Card>
+  <Card title="Custom Integrations" icon="plug">
+    Connect Speckle to your internal tools, databases, applications with a python scripting environment, or third-party services.
+  </Card>
+  <Card title="Structural Analysis" icon="bridge">
     Work with FEA/FEM models using the built-in structural object types.
-  </Accordion>
-</AccordionGroup>
+  </Card>
+</CardGroup>
 
 ## Installation
 
@@ -132,7 +138,7 @@ from specklepy.transports.server import ServerTransport
 from specklepy.core.api.inputs.version_inputs import CreateVersionInput
 
 # Authenticate
-client = SpeckleClient(host="app.speckle.systems")
+client = SpeckleClient(host="https://app.speckle.systems")
 account = get_default_account()
 client.authenticate_with_account(account)
 
@@ -144,8 +150,8 @@ transport = ServerTransport(stream_id="your_project_id", client=client)
 object_id = operations.send(base=point, transports=[transport])
 
 # Get the main model
-models = client.model.list("your_project_id")
-model_id = models[0].id
+models = client.model.get_models("your_project_id")
+model_id = models.items[0].id
 
 # Create a version
 version_input = CreateVersionInput(
@@ -179,13 +185,10 @@ print(f"Created version: {version.id}")
 ## Getting Help
 
 <CardGroup cols={3}>
-  <Card title="Community Forum" icon="comments" href="https://speckle.community">
+  <Card title="Community Forum" icon="comments" href="https://speckle.community/c/help/developers">
     Ask questions and share knowledge
   </Card>
   <Card title="GitHub Issues" icon="github" href="https://github.com/specklesystems/specklepy/issues">
     Report bugs and request features
-  </Card>
-  <Card title="Main Documentation" icon="book-open" href="https://speckle.guide">
-    Explore the complete Speckle docs
   </Card>
 </CardGroup>
