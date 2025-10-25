@@ -1,0 +1,196 @@
+---
+title: "Transports"
+description: "Storage backends for sending and receiving Speckle objects"
+---
+
+## Overview
+
+Transports define where Speckle objects are stored and retrieved from. They provide a consistent interface for `operations.send()` and `operations.receive()`.
+
+```python
+from specklepy.transports.server import ServerTransport
+
+transport = ServerTransport(stream_id="project_id", client=client)
+```
+
+## ServerTransport
+
+Sends and receives objects from a Speckle server. **This is the primary transport for production use.**
+
+### Constructor
+
+```python
+ServerTransport(
+    stream_id: str,
+    client: Optional[SpeckleClient] = None,
+    account: Optional[Account] = None,
+    token: Optional[str] = None,
+    url: Optional[str] = None,
+    name: str = "RemoteTransport"
+)
+```
+
+**Parameters:**
+
+- `stream_id` (str, required) - Project ID
+- `client` (SpeckleClient, optional) - Authenticated client
+- `account` (Account, optional) - Account object
+- `token` + `url` (str, optional) - Token and server URL pair
+- `name` (str, optional) - Transport identifier
+
+<Note>
+Provide **one** authentication method: `client`, `account`, or `token` + `url`.
+</Note>
+
+### Usage
+
+```python
+from specklepy.api import operations
+from specklepy.transports.server import ServerTransport
+
+# Create transport
+transport = ServerTransport(stream_id="project_id", client=client)
+
+# Send
+object_id = operations.send(my_object, transports=[transport])
+
+# Receive
+obj = operations.receive(object_id, remote_transport=transport)
+```
+
+### Authentication Options
+
+**Using Client (Recommended):**
+```python
+transport = ServerTransport(stream_id="project_id", client=client)
+```
+
+**Using Token:**
+```python
+transport = ServerTransport(
+    stream_id="project_id",
+    token="your_token",
+    url="https://app.speckle.systems"
+)
+```
+
+**Using Account:**
+```python
+from specklepy.api.credentials import get_default_account
+
+account = get_default_account()
+transport = ServerTransport(stream_id="project_id", account=account)
+```
+
+---
+
+## MemoryTransport
+
+Stores objects in memory. Useful for testing and temporary operations.
+
+```python
+from specklepy.transports.memory import MemoryTransport
+
+transport = MemoryTransport()
+```
+
+**Properties:**
+- `objects` (Dict[str, str]) - Dictionary of stored objects
+- `saved_object_count` (int) - Number of objects saved
+
+<Warning>
+Data is lost when the application exits. Not suitable for production.
+</Warning>
+
+---
+
+## SQLiteTransport
+
+Stores objects in a local SQLite database for persistent local storage.
+
+```python
+from specklepy.transports.sqlite import SQLiteTransport
+
+transport = SQLiteTransport(
+    app_name="MyApp",
+    scope="ProjectData"
+)
+```
+
+**Parameters:**
+- `base_path` (str, optional) - Custom directory for database
+- `app_name` (str, optional) - Application name. Default: `"Speckle"`
+- `scope` (str, optional) - Database scope/purpose. Default: `"Objects"`
+- `max_batch_size_mb` (float, optional) - Batch size in MB. Default: `10.0`
+
+**Database location:**
+- Windows: `%APPDATA%\{app_name}\{scope}.db`
+- macOS: `~/Library/Application Support/{app_name}/{scope}.db`
+- Linux: `~/.config/{app_name}/{scope}.db`
+
+**Use cases:**
+- Local caching of server data
+- Offline workflows
+- Persistent local storage
+
+---
+
+## Multiple Transports
+
+Send to multiple locations simultaneously:
+
+```python
+from specklepy.transports.server import ServerTransport
+from specklepy.transports.sqlite import SQLiteTransport
+
+server = ServerTransport(stream_id="project_id", client=client)
+local = SQLiteTransport(app_name="MyApp")
+
+# Send to both server and local cache
+object_id = operations.send(my_object, transports=[server, local])
+
+# Receive with local cache (checks local first)
+obj = operations.receive(
+    object_id,
+    remote_transport=server,
+    local_transport=local
+)
+```
+
+---
+
+## Custom Transports
+
+Create custom transports by extending `AbstractTransport`:
+
+```python
+from specklepy.transports.abstract_transport import AbstractTransport
+
+class CustomTransport(AbstractTransport):
+    def save_object(self, id: str, serialized_object: str) -> None:
+        # Implement storage logic
+        pass
+    
+    def get_object(self, id: str) -> Optional[str]:
+        # Implement retrieval logic
+        pass
+    
+    # Implement other required methods...
+```
+
+---
+
+## Comparison
+
+| Transport | Persistence | Network | Primary Use |
+|-----------|-------------|---------|-------------|
+| ServerTransport | Server | Required | Production |
+| MemoryTransport | None | No | Testing |
+| SQLiteTransport | Local disk | No | Caching, offline |
+
+---
+
+## Related
+
+- [Operations](/developers/sdks/python/api-reference/operations) - Send and receive operations
+- [SpeckleClient](/developers/sdks/python/api-reference/client) - Client setup
