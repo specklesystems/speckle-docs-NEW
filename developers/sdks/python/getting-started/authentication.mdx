@@ -210,21 +210,26 @@ Only disable certificate verification for trusted internal servers.
 
 ## Authentication Best Practices
 
-<CardGroup cols={2}>
-  <Card title="Development" icon="laptop-code">
+Choose the authentication method that best fits your use case:
+
+<Tabs>
+  <Tab title="Development">
     **Use environment variables or local accounts**
 
     Store tokens in `.env` files (not committed to git) or use local account files.
 
     ```python lines icon="python"
+    from dotenv import load_dotenv
+    import os
+
     # .env file approach
     load_dotenv()
     token = os.getenv("SPECKLE_TOKEN")
     client.authenticate_with_token(token)
     ```
-  </Card>
+  </Tab>
 
-  <Card title="Production" icon="server">
+  <Tab title="Production">
     **Use environment variables**
 
     Store tokens in environment variables or secret managers (AWS Secrets Manager, Azure Key Vault, etc.).
@@ -233,9 +238,9 @@ Only disable certificate verification for trusted internal servers.
     token = os.environ["SPECKLE_TOKEN"]
     client.authenticate_with_token(token)
     ```
-  </Card>
+  </Tab>
 
-  <Card title="CI/CD" icon="gears">
+  <Tab title="CI/CD">
     **Use secrets management**
 
     Use GitHub Secrets, GitLab CI/CD variables, or similar.
@@ -245,16 +250,14 @@ Only disable certificate verification for trusted internal servers.
     env:
       SPECKLE_TOKEN: ${{ secrets.SPECKLE_TOKEN }}
     ```
-  </Card>
+  </Tab>
 
-  <Card title="Multi-User Apps" icon="users">
+  <Tab title="Multi-User Apps">
     **Implement OAuth 2.0 flow**
 
-    For web apps where users authenticate themselves.
-
-    Each user gets their own token via OAuth.
-  </Card>
-</CardGroup>
+    For web apps where users authenticate themselves. Each user gets their own token via OAuth.
+  </Tab>
+</Tabs>
 
 ## Checking Authentication Status
 
@@ -282,13 +285,21 @@ When creating a token, you can limit its permissions:
 | `streams:read` | Read project data |
 | `streams:write` | Create and modify projects |
 | `profile:read` | Read user profile |
-| `profile:email` | Access user email |
-| `users:read` | Read other users' public profiles |
-| `users:invite` | Invite users to projects |
+| `Profile:read` | Read user profile |
+| `Profile:email` | Access user email |
+
+Scopes will be documented later but for now you can view all those available in the Access Token creation step:
+
+<Frame>
+<img src="/images/developers/sdks/scopes.png" alt="Token Scopes" />
+</Frame>
 
 <Tip>
 Follow the principle of least privilege - only grant the scopes your application needs.
 </Tip>
+<Note>
+  Scopes retain the nomenclature of v2 Speckle where `project` is `stream`
+</Note>
 
 ## Common Authentication Errors
 
