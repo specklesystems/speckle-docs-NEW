@@ -1,0 +1,539 @@
+---
+title: "VersionResource"
+description: "Complete API reference for version operations in SpecklePy"
+---
+
+## Overview
+
+The `VersionResource` provides methods for managing versions within Speckle models. Access it via `client.version` after authenticating your `SpeckleClient`.
+
+Versions represent specific states or iterations of your data within a model. Each version references a committed object and includes metadata like author, timestamp, and a descriptive message.
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token(token)
+
+# Access version operations
+version = client.version.get("version_id", "project_id")
+```
+
+## Methods
+
+### get()
+
+Get a single version by ID.
+
+```python lines icon="python"
+client.version.get(version_id: str, project_id: str) -> Version
+```
+
+**Parameters:**
+
+<ResponseField name="version_id" type="str" required>
+  The ID of the version to retrieve
+</ResponseField>
+
+<ResponseField name="project_id" type="str" required>
+  The ID of the project containing the version
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="version" type="Version">
+  The version object
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+version = client.version.get("version_abc123", "project_xyz789")
+
+print(f"Message: {version.message}")
+print(f"Object ID: {version.referencedObject}")
+print(f"Created: {version.createdAt}")
+print(f"Author: {version.authorUser.name}")
+print(f"Source App: {version.sourceApplication}")
+print(f"Preview: {version.previewUrl}")
+```
+
+See [Version](#version) for property details.
+### get_versions()
+
+Get all versions in a model with pagination support.
+
+```python lines icon="python"
+client.version.get_versions(
+    model_id: str,
+    project_id: str,
+    *,
+    limit: int = 25,
+    cursor: Optional[str] = None,
+    filter: Optional[ModelVersionsFilter] = None
+) -> ResourceCollection[Version]
+```
+
+**Parameters:**
+
+<ResponseField name="model_id" type="str" required>
+  The ID of the model
+</ResponseField>
+
+<ResponseField name="project_id" type="str" required>
+  The ID of the project
+</ResponseField>
+
+<ResponseField name="limit" type="int" default="25">
+  Maximum number of versions to return
+</ResponseField>
+
+<ResponseField name="cursor" type="str" default="None">
+  Cursor for pagination
+</ResponseField>
+
+<ResponseField name="filter" type="ModelVersionsFilter" default="None">
+  Filter criteria
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="versions" type="ResourceCollection[Version]">
+  Collection with `items`, `totalCount`, and `cursor`
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+# Get latest 25 versions
+versions = client.version.get_versions("model_id", "project_id")
+
+print(f"Total versions: {versions.totalCount}")
+for version in versions.items:
+    print(f"  - {version.message} by {version.authorUser.name}")
+    print(f"    Created: {version.createdAt}")
+```
+
+**With Pagination:**
+
+```python lines icon="python"
+# Get all versions (paginated)
+all_versions = []
+cursor = None
+
+while True:
+    versions = client.version.get_versions(
+        "model_id",
+        "project_id",
+        limit=100,
+        cursor=cursor
+    )
+
+    all_versions.extend(versions.items)
+
+    if not versions.cursor:
+        break
+    cursor = versions.cursor
+
+print(f"Retrieved {len(all_versions)} versions total")
+```
+
+**With Filtering:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.model_inputs import ModelVersionsFilter
+
+# Filter by source application
+filter = ModelVersionsFilter(sourceApplication="Rhino")
+versions = client.version.get_versions(
+    "model_id",
+    "project_id",
+    filter=filter
+)
+
+print(f"Found {versions.totalCount} versions from Rhino")
+```
+
+<Info>
+The `ResourceCollection` object includes:
+- `items` - List of Version objects
+- `totalCount` - Total number of versions (across all pages)
+- `cursor` - Pagination cursor for next page (or `None` if no more pages)
+</Info>
+### create()
+
+Create a new version in a model.
+
+```python lines icon="python"
+client.version.create(input: CreateVersionInput) -> Version
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="CreateVersionInput" required>
+  Version creation parameters. See [CreateVersionInput](#createversioninput)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="version" type="Version">
+  The newly created version
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+
+# Create a version
+version = client.version.create(CreateVersionInput(
+    project_id="project_id",
+    model_id="model_id",
+    object_id="object_id_from_send",
+    message="Updated design with client feedback",
+    source_application="Rhino 7"
+))
+
+print(f"Created version: {version.id}")
+print(f"Message: {version.message}")
+```
+
+**CreateVersionInput Fields:**
+
+- `project_id` (str, required) - The project ID
+- `model_id` (str, required) - The model ID
+- `object_id` (str, required) - The ID of the object to reference (from `operations.send()`)
+- `message` (str, optional) - Commit message describing this version
+- `source_application` (str, optional) - Name of the source application
+
+**Complete Workflow Example:**
+
+```python lines icon="python"
+from specklepy.api import operations
+from specklepy.transports.server import ServerTransport
+from specklepy.objects.geometry import Point
+from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+
+# 1. Create your data
+point = Point(x=10.5, y=20.3, z=5.1)
+
+# 2. Send to server
+transport = ServerTransport(stream_id=project_id, client=client)
+object_id = operations.send(point, [transport])
+
+# 3. Create version
+version = client.version.create(CreateVersionInput(
+    project_id=project_id,
+    model_id=model_id,
+    object_id=object_id,
+    message="Added survey point",
+    source_application="Python Script"
+))
+
+print(f"✓ Created version: {version.id}")
+```
+### update()
+
+Update an existing version's properties.
+
+```python lines icon="python"
+client.version.update(input: UpdateVersionInput) -> Version
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="UpdateVersionInput" required>
+  Version update parameters. See [UpdateVersionInput](#updateversioninput)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="version" type="Version">
+  The updated version
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.version_inputs import UpdateVersionInput
+
+# Update version message
+updated_version = client.version.update(UpdateVersionInput(
+    project_id="project_id",
+    version_id="version_id",
+    message="Updated: Design revision after meeting"
+))
+
+print(f"Updated message: {updated_version.message}")
+```
+
+See [UpdateVersionInput](#updateversioninput) for all available fields.
+
+<Note>
+You can only update the message of a version. The referenced object cannot be changed after creation.
+</Note>
+### move_to_model()
+
+Move versions from one model to another within the same project.
+
+```python lines icon="python"
+client.version.move_to_model(input: MoveVersionsInput) -> str
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="MoveVersionsInput" required>
+  Move parameters. See [MoveVersionsInput](#moveversionsinput)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="model_id" type="str">
+  The target model ID
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.version_inputs import MoveVersionsInput
+
+# Move versions to a different model
+target_model_id = client.version.move_to_model(MoveVersionsInput(
+    project_id="project_id",
+    version_ids=["version_1", "version_2", "version_3"],
+    target_model_id="new_model_id"
+))
+
+print(f"✓ Moved 3 versions to model: {target_model_id}")
+```
+
+**MoveVersionsInput Fields:**
+
+- `project_id` (str, required) - The project ID
+- `version_ids` (List[str], required) - List of version IDs to move
+- `target_model_id` (str, required) - The destination model ID
+
+<Warning>
+Both the source and target models must be in the same project. This operation cannot be undone.
+</Warning>
+### delete()
+
+Delete one or more versions permanently.
+
+```python lines icon="python"
+client.version.delete(input: DeleteVersionsInput) -> bool
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="DeleteVersionsInput" required>
+  Deletion parameters. See [DeleteVersionsInput](#deleteversionsinput)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="success" type="bool">
+  `True` if deletion was successful
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.version_inputs import DeleteVersionsInput
+
+# Delete multiple versions
+success = client.version.delete(DeleteVersionsInput(
+    project_id="project_id",
+    version_ids=["version_1", "version_2"]
+))
+
+if success:
+    print("✓ Versions deleted successfully")
+else:
+    print("✗ Failed to delete versions")
+```
+
+**DeleteVersionsInput Fields:**
+
+- `project_id` (str, required) - The project ID
+- `version_ids` (List[str], required) - List of version IDs to delete
+
+<Warning>
+This operation is irreversible! The versions will be permanently deleted, though the referenced objects may still exist in the project.
+</Warning>
+### received()
+
+Mark a version as received (useful for tracking which versions have been processed).
+
+```python lines icon="python"
+client.version.received(input: MarkReceivedVersionInput) -> bool
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="MarkReceivedVersionInput" required>
+  Mark received parameters
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="success" type="bool">
+  `True` if successfully marked
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.version_inputs import MarkReceivedVersionInput
+from specklepy.api import operations
+from specklepy.transports.server import ServerTransport
+
+# Receive a version
+transport = ServerTransport(stream_id=project_id, client=client)
+obj = operations.receive(version.referencedObject, transport)
+
+# Mark as received
+success = client.version.received(MarkReceivedVersionInput(
+    project_id=project_id,
+    version_id=version.id,
+    source_application="Python Processor"
+))
+
+if success:
+    print("✓ Marked version as received")
+```
+
+**MarkReceivedVersionInput Fields:**
+
+- `project_id` (str, required) - The project ID
+- `version_id` (str, required) - The version ID to mark
+- `message` (str, optional) - Optional message
+- `source_application` (str, optional) - Application that received the version
+
+<Info>
+This method is useful for automation workflows where you want to track which versions have been processed by your scripts or applications.
+</Info>
+## Types
+
+### Version
+
+Represents a version within a Speckle model.
+
+<ResponseField name="id" type="str">
+  Version ID
+</ResponseField>
+
+<ResponseField name="message" type="str">
+  Commit message describing this version
+</ResponseField>
+
+<ResponseField name="referencedObject" type="str">
+  The ID of the committed object
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime">
+  Creation timestamp
+</ResponseField>
+
+<ResponseField name="authorUser" type="LimitedUser">
+  User who created the version. See [LimitedUser](/developers/sdks/python/api-reference/resources/other-user#limiteduser)
+</ResponseField>
+
+<ResponseField name="sourceApplication" type="str">
+  Application used to create the version
+</ResponseField>
+
+<ResponseField name="previewUrl" type="str">
+  URL to preview image
+</ResponseField>
+## Input Types
+
+### CreateVersionInput
+
+```python
+CreateVersionInput(
+    object_id: str,
+    model_id: str,
+    project_id: str,
+    message: Optional[str] = None,
+    source_application: Optional[str] = "py",
+    total_children_count: Optional[int] = None,
+    parents: Optional[Sequence[str]] = None
+)
+```
+
+Used with [`create()`](#create).
+
+**Fields:**
+- `object_id` (str) - ID of the object (from `operations.send()`)
+- `model_id` (str) - Model ID
+- `project_id` (str) - Project ID
+- `message` (str, optional) - Version message/description
+- `source_application` (str, optional) - Source application name. Default: `"py"`
+- `total_children_count` (int, optional) - Total number of child objects
+- `parents` (List[str], optional) - Parent version IDs
+### UpdateVersionInput
+
+```python
+UpdateVersionInput(
+    version_id: str,
+    project_id: str,
+    message: Optional[str]
+)
+```
+
+Used with [`update()`](#update).
+
+**Fields:**
+- `version_id` (str) - Version ID
+- `project_id` (str) - Project ID
+- `message` (str, optional) - New version message
+### DeleteVersionsInput
+
+```python
+DeleteVersionsInput(
+    version_ids: Sequence[str],
+    project_id: str
+)
+```
+
+Used with [`delete()`](#delete).
+
+**Fields:**
+- `version_ids` (List[str]) - List of version IDs to delete
+- `project_id` (str) - Project ID
+### MoveVersionsInput
+
+```python
+MoveVersionsInput(
+    target_model_name: str,
+    version_ids: Sequence[str],
+    project_id: str
+)
+```
+
+Move versions to a different model.
+
+**Fields:**
+- `target_model_name` (str) - Name of the target model
+- `version_ids` (List[str]) - Version IDs to move
+- `project_id` (str) - Project ID
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Operations" icon="arrows-rotate" href="/developers/sdks/python/api-reference/operations">
+    Send and receive objects for versions
+  </Card>
+
+  <Card title="ModelResource" icon="cube" href="/developers/sdks/python/api-reference/resources/model">
+    Manage models that contain versions
+  </Card>
+
+  <Card title="ServerTransport" icon="server" href="/developers/sdks/python/api-reference/transports/server">
+    Transport for sending/receiving data
+  </Card>
+
+  <Card title="SpeckleClient" icon="plug" href="/developers/sdks/python/api-reference/client">
+    Main client documentation
+  </Card>
+</CardGroup>
