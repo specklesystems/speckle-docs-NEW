@@ -22,8 +22,6 @@ Before starting this guide, you should:
 This guide focuses on **performance optimization** and **complex patterns** for working with large BIM datasets. These patterns are most useful when dealing with projects from connectors like Revit, Rhino, or ArchiCAD.
 </Info>
 
----
-
 ## How do I make searching faster with indexes?
 
 Repeatedly traversing large object trees is slow. If you need to search for multiple categories or properties, traversing the entire tree each time becomes a performance bottleneck.
@@ -48,10 +46,10 @@ def build_category_index(root):
     """Build index of objects by category (traverse once)."""
     traversal = GraphTraversal([])
     index = {}
-    
+
     for context in traversal.traverse(root):
         obj = context.current
-        
+
         # Get category
         if hasattr(obj, "properties") and obj.properties:
             category = obj.properties.get("category")
@@ -60,7 +58,7 @@ def build_category_index(root):
                 if category not in index:
                     index[category] = []
                 index[category].append(obj)
-    
+
     return index
 
 # ✅ Fast: traverse once, lookup many times
@@ -98,33 +96,33 @@ from specklepy.objects.graph_traversal.traversal import GraphTraversal
 
 def build_multi_index(root, *properties):
     """Build index on multiple property values.
-    
+
     Example:
         index = build_multi_index(root, "category", "level")
         level_2_walls = index.get(("Walls", "Level 2"), [])
     """
     traversal = GraphTraversal([])
     index = {}
-    
+
     def create_key(obj):
         """Create tuple key from property values."""
         if not hasattr(obj, "properties"):
             return None
-        
+
         values = tuple(obj.properties.get(prop) for prop in properties)
-        
+
         # Only create key if all properties exist
         return values if all(v is not None for v in values) else None
-    
+
     for context in traversal.traverse(root):
         obj = context.current
         key = create_key(obj)
-        
+
         if key:
             if key not in index:
                 index[key] = []
             index[key].append(obj)
-    
+
     return index
 
 # Build multi-property index
@@ -149,28 +147,28 @@ from specklepy.objects.graph_traversal.traversal import GraphTraversal
 def build_id_index(root):
     """Build index by object ID for fast lookups."""
     traversal = GraphTraversal([])
-    
+
     by_id = {}
     by_name = {}
     by_app_id = {}
-    
+
     for context in traversal.traverse(root):
         obj = context.current
-        
+
         # Index by Speckle ID (if set)
         if hasattr(obj, "id") and obj.id:
             by_id[obj.id] = obj
-        
+
         # Index by name
         if hasattr(obj, "name") and obj.name:
             if obj.name not in by_name:
                 by_name[obj.name] = []
             by_name[obj.name].append(obj)
-        
+
         # Index by applicationId (common in BIM)
         if hasattr(obj, "applicationId") and obj.applicationId:
             by_app_id[obj.applicationId] = obj
-    
+
     return {
         "by_id": by_id,
         "by_name": by_name,
@@ -207,8 +205,6 @@ columns = index.get("Columns", [])
 ```
 </Warning>
 
----
-
 ## When should I use indexes vs. direct traversal?
 
 You need to decide whether to traverse directly or build an index first. The wrong choice can hurt performance.
@@ -224,7 +220,7 @@ You need to decide whether to traverse directly or build an index first. The wro
 def find_specific_wall(root, wall_name):
     """Find one specific wall - no need for index."""
     for obj in traverse_all(root):
-        if (hasattr(obj, "properties") 
+        if (hasattr(obj, "properties")
             and obj.properties.get("category") == "Walls"
             and getattr(obj, "name", None) == wall_name):
             return obj
@@ -244,10 +240,10 @@ wall = find_specific_wall(root, "W-101")
 # Good use of indexing
 def analyze_by_category(root):
     """Multiple category queries - use index."""
-    
+
     # Build index once
     index = build_category_index(root)
-    
+
     # Many lookups (all O(1))
     walls = index.get("Walls", [])
     floors = index.get("Floors", [])
@@ -255,7 +251,7 @@ def analyze_by_category(root):
     beams = index.get("Beams", [])
     doors = index.get("Doors", [])
     windows = index.get("Windows", [])
-    
+
     # Process results
     return {
         "walls": len(walls),
@@ -295,8 +291,6 @@ print(f"With index: {indexed_time:.3f}s")
 print(f"Speedup: {direct_time / indexed_time:.1f}x faster")
 ```
 
----
-
 ## How do I handle detached objects?
 
 Some objects in Speckle are "detached" - stored separately and referenced by ID. You see properties like `@displayValue` instead of the actual object.
@@ -316,7 +310,7 @@ if is_detached(obj, "displayValue"):
     # This is a reference ID (hash string)
     ref_id = getattr(obj, "@displayValue")
     print(f"displayValue is detached: {ref_id}")
-    
+
     # The actual object is still accessible normally
     # (resolved during receive())
     if hasattr(obj, "displayValue"):
@@ -351,7 +345,7 @@ if hasattr(obj, "displayValue"):
 def find_detached_properties(obj):
     """Find all detached properties on an object."""
     detached = []
-    
+
     for name in dir(obj):
         if name.startswith("@") and not name.startswith("__"):
             # This is a detached reference
@@ -362,7 +356,7 @@ def find_detached_properties(obj):
                 "reference": ref_id,
                 "resolved": hasattr(obj, property_name)
             })
-    
+
     return detached
 
 # Check object
@@ -388,8 +382,6 @@ if hasattr(obj, "displayValue") and obj.displayValue:
 ```
 </Warning>
 
----
-
 ## How do I access Revit parameters efficiently?
 
 Revit objects have complex nested parameter structures organized by category. Accessing them efficiently requires understanding this structure.
@@ -401,24 +393,24 @@ def get_parameter_value(obj, param_name):
     """Get Revit parameter value by name."""
     if not hasattr(obj, "properties"):
         return None
-    
+
     # Parameters are in properties["Parameters"]
     params = obj.properties.get("Parameters")
     if not params:
         return None
-    
+
     # Parameters are organized by category
     # Search all categories for the parameter
     for category_name, category_params in params.items():
         if isinstance(category_params, dict) and param_name in category_params:
             param = category_params[param_name]
-            
+
             # Parameter might be a dict with "value" key or direct value
             if isinstance(param, dict):
                 return param.get("value")
             else:
                 return param
-    
+
     return None
 
 # Use it
@@ -461,9 +453,9 @@ def get_all_parameters(obj):
     """Extract all parameters as flat dictionary."""
     if not hasattr(obj, "properties"):
         return {}
-    
+
     params = obj.properties.get("Parameters", {})
-    
+
     all_params = {}
     for category_name, category_params in params.items():
         if isinstance(category_params, dict):
@@ -483,7 +475,7 @@ def get_all_parameters(obj):
                         "units": None,
                         "category": category_name
                     }
-    
+
     return all_params
 
 # Get all parameters
@@ -504,31 +496,31 @@ def build_parameter_index(root):
     """Build index of all parameter values across all objects."""
     traversal = GraphTraversal([])
     index = {}
-    
+
     for context in traversal.traverse(root):
         obj = context.current
-        
+
         # Get object info
         obj_name = getattr(obj, "name", None)
         obj_id = getattr(obj, "id", None)
-        
+
         # Extract parameters
         if hasattr(obj, "properties"):
             params = obj.properties.get("Parameters", {})
-            
+
             for category_name, category_params in params.items():
                 if isinstance(category_params, dict):
                     for param_name, param_data in category_params.items():
                         # Create index entry
                         if param_name not in index:
                             index[param_name] = []
-                        
+
                         # Extract value
                         if isinstance(param_data, dict):
                             value = param_data.get("value")
                         else:
                             value = param_data
-                        
+
                         # Add to index
                         index[param_name].append({
                             "object": obj,
@@ -536,7 +528,7 @@ def build_parameter_index(root):
                             "object_id": obj_id,
                             "value": value
                         })
-    
+
     return index
 
 # Build index
@@ -557,8 +549,6 @@ print(f"Fire rated elements: {len(fire_rated_objects)}")
 print(f"Load bearing elements: {len(load_bearing_objects)}")
 ```
 
----
-
 ## Practical Examples
 
 ### Example 1: Complete Analysis Pipeline
@@ -568,15 +558,15 @@ from collections import defaultdict
 
 def analyze_project(root):
     """Complete project analysis with indexes."""
-    
+
     print("Building indexes...")
-    
+
     # Build multiple indexes
     category_index = build_category_index(root)
     param_index = build_parameter_index(root)
-    
+
     print("Analyzing by category...")
-    
+
     # Category analysis
     report = {
         "summary": {},
@@ -584,24 +574,24 @@ def analyze_project(root):
         "fire_rated": [],
         "structural": []
     }
-    
+
     # Count by category
     for category, objects in category_index.items():
         report["summary"][category] = len(objects)
-    
+
     # Analyze by level
     level_category_index = build_multi_index(root, "level", "category")
     for (level, category), objects in level_category_index.items():
         report["by_level"][level][category] = len(objects)
-    
+
     # Fire rated elements
     fire_ratings = param_index.get("Fire Rating", [])
     report["fire_rated"] = [
-        item["object_name"] 
-        for item in fire_ratings 
+        item["object_name"]
+        for item in fire_ratings
         if item["value"]
     ]
-    
+
     # Structural elements
     structural = param_index.get("Structural", [])
     report["structural"] = [
@@ -609,7 +599,7 @@ def analyze_project(root):
         for item in structural
         if item["value"] is True
     ]
-    
+
     return report
 
 # Run analysis
@@ -636,21 +626,21 @@ print(f"=== STRUCTURAL: {len(report['structural'])} elements ===")
 def export_to_dataframe(root):
     """Export objects to pandas DataFrame for analysis."""
     import pandas as pd
-    
+
     # Build comprehensive index
     data = []
-    
+
     def collect_data(obj):
         if not isinstance(obj, Base):
             return
-        
+
         # Basic info
         row = {
             "name": getattr(obj, "name", None),
             "id": getattr(obj, "id", None),
             "speckle_type": getattr(obj, "speckle_type", None)
         }
-        
+
         # Properties
         if hasattr(obj, "properties") and obj.properties:
             row["category"] = obj.properties.get("category")
@@ -658,7 +648,7 @@ def export_to_dataframe(root):
             row["material"] = obj.properties.get("material")
             row["area"] = obj.properties.get("area")
             row["volume"] = obj.properties.get("volume")
-        
+
         # Key parameters
         if hasattr(obj, "properties"):
             params = obj.properties.get("Parameters", {})
@@ -666,25 +656,25 @@ def export_to_dataframe(root):
                 if isinstance(category_params, dict):
                     row["fire_rating"] = category_params.get("Fire Rating", {}).get("value")
                     row["structural"] = category_params.get("Structural", {}).get("value")
-        
+
         # Has geometry?
         row["has_geometry"] = hasattr(obj, "displayValue") and obj.displayValue is not None
-        
+
         data.append(row)
-        
+
         # Recurse
         for name in obj.get_member_names():
             value = getattr(obj, name, None)
-            
+
             if isinstance(value, Base):
                 collect_data(value)
             elif isinstance(value, list):
                 for item in value:
                     if isinstance(item, Base):
                         collect_data(item)
-    
+
     collect_data(root)
-    
+
     # Create DataFrame
     df = pd.DataFrame(data)
     return df
@@ -697,8 +687,6 @@ print(df.groupby("category").size())
 print(df.groupby(["level", "category"]).size())
 print(df[df["structural"] == True].groupby("category").size())
 ```
-
----
 
 ## Learn More
 
@@ -713,8 +701,6 @@ print(df[df["structural"] == True].groupby("category").size())
 **API Reference:**
 - [Operations](/developers/sdks/python/api-reference/operations) - Send/receive operations
 - [Transports](/developers/sdks/python/api-reference/transports) - Data transport layer
-
----
 
 ## Summary
 

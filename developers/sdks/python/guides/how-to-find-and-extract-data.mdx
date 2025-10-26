@@ -22,8 +22,6 @@ Before starting this guide, you should:
 This guide builds on traversal fundamentals from the Core Concepts. We focus on **practical patterns** for finding and extracting data from real-world Speckle projects.
 </Info>
 
----
-
 ## How do I traverse nested Speckle data?
 
 Speckle data is often deeply nested - buildings contain levels, levels contain rooms, rooms contain elements. You need to visit every object in the tree to process or analyze them.
@@ -41,15 +39,15 @@ def traverse(obj):
     """Visit every object in the tree."""
     if not isinstance(obj, Base):
         return
-    
+
     # Process current object
     name = getattr(obj, "name", "unnamed")
     print(f"Visiting: {name}")
-    
+
     # Recurse through all properties
     for prop_name in obj.get_member_names():
         value = getattr(obj, prop_name, None)
-        
+
         if isinstance(value, Base):
             # Single nested object
             traverse(value)
@@ -89,7 +87,7 @@ The SDK provides three key components for traversal:
 ```python lines icon="python"
 from specklepy.objects.graph_traversal.traversal import GraphTraversal
 
-# GraphTraversal: Create traversal engine with 
+# GraphTraversal: Create traversal engine with
 # default rules (traverse everything)
 traversal = GraphTraversal([])
 
@@ -106,7 +104,7 @@ for context in traversal.traverse(root):
 
 ```python lines icon="python"
 # Visual Flow:
-# 
+#
 #   GraphTraversal([])  ←  You create the engine
 #          ↓
 #   .traverse(root)     ←  Call traverse on root object
@@ -132,8 +130,8 @@ for context in traversal.traverse(root):
 2. **Process:** Do something with the current object
 3. **Recurse:** Visit all child objects via `get_member_names()`
 
-**Why `get_member_names()`?** It returns all property names on the 
-object, already filters out private members (`_`) and methods, and 
+**Why `get_member_names()`?** It returns all property names on the
+object, already filters out private members (`_`) and methods, and
 works with both typed and dynamic properties.
 
 ```python lines icon="python"
@@ -145,8 +143,8 @@ for name in obj.get_member_names():
 
 **Collecting objects during traversal using GraphTraversal:**
 
-Instead of just visiting objects, you often want to collect them 
-into a list. Here are two approaches - collecting all at once or 
+Instead of just visiting objects, you often want to collect them
+into a list. Here are two approaches - collecting all at once or
 processing as you go:
 
 ```python lines icon="python"
@@ -156,7 +154,7 @@ traversal = GraphTraversal([])
 
 # Collect all objects
 all_objects = [
-    context.current 
+    context.current
     for context in traversal.traverse(root)
 ]
 print(f"Found {len(all_objects)} objects")
@@ -173,8 +171,8 @@ for context in traversal.traverse(root):
 
 **Understanding TraversalContext:**
 
-Each context provides information about where you are in the 
-object tree - the current object, what property it came from, 
+Each context provides information about where you are in the
+object tree - the current object, what property it came from,
 and its parent:
 
 ```python lines icon="python"
@@ -187,7 +185,7 @@ for context in traversal.traverse(root):
     obj = context.current           # Current object
     prop_name = context.member_name # Property name
     parent_context = context.parent # Parent context
-    
+
     if parent_context:
         parent_obj = parent_context.current
         print(f"{obj.name} is in {parent_obj.name}.{prop_name}")
@@ -195,8 +193,8 @@ for context in traversal.traverse(root):
 
 **Using TraversalRule to control traversal:**
 
-Rules give you fine-grained control over what gets traversed 
-and returned. They're useful when you want to skip certain 
+Rules give you fine-grained control over what gets traversed
+and returned. They're useful when you want to skip certain
 properties or limit results during traversal:
 
 ```python lines icon="python" expandable
@@ -208,7 +206,7 @@ from specklepy.objects.graph_traversal.traversal import (
 # Define function to skip displayValue property
 def get_members_without_display(obj):
     return [
-        name for name in obj.get_member_names() 
+        name for name in obj.get_member_names()
         if name != "displayValue"
     ]
 
@@ -233,7 +231,7 @@ for context in traversal.traverse(root):
 
 **Simpler approach - filter after traversal:**
 
-If you just need to skip certain objects, filtering after 
+If you just need to skip certain objects, filtering after
 traversal is often clearer than writing a custom rule:
 
 ```python lines icon="python"
@@ -242,11 +240,11 @@ traversal = GraphTraversal([])
 
 for context in traversal.traverse(root):
     obj = context.current
-    
+
     # Skip if this came from displayValue property
     if context.member_name == "displayValue":
         continue
-    
+
     print(f"Visiting: {getattr(obj, 'name', 'unnamed')}")
 ```
 
@@ -263,12 +261,12 @@ from specklepy.objects.graph_traversal.traversal import (
 def get_non_geometry_members(obj):
     """Skip geometry properties to focus on structure."""
     skip_props = [
-        "displayValue", 
-        "renderMaterial", 
+        "displayValue",
+        "renderMaterial",
         "@displayValue"
     ]
     return [
-        name for name in obj.get_member_names() 
+        name for name in obj.get_member_names()
         if name not in skip_props
     ]
 
@@ -285,15 +283,15 @@ traversal = GraphTraversal([structure_only_rule])
 results = []
 for context in traversal.traverse(root):
     obj = context.current
-    
+
     # Get parent information
     parent_name = "root"
     if context.parent:
         parent_obj = context.parent.current
         parent_name = getattr(parent_obj, "name", "unnamed")
-    
+
     came_from = context.member_name or "root"
-    
+
     results.append({
         "object": obj,
         "name": getattr(obj, "name", "unnamed"),
@@ -317,8 +315,8 @@ Wall-001 (from Room 101.elements)
 ```
 
 <Warning>
-**Don't process the same property twice!** When handling 
-`elements` arrays specifically, make sure you don't also 
+**Don't process the same property twice!** When handling
+`elements` arrays specifically, make sure you don't also
 process them in the general `get_member_names()` loop:
 
 ```python
@@ -328,7 +326,7 @@ def traverse(obj):
     if hasattr(obj, "elements"):
         for element in obj.elements:
             traverse(element)
-    
+
     # Second time: get_member_names includes "elements"!
     for name in obj.get_member_names():
         value = getattr(obj, name)
@@ -347,8 +345,6 @@ def traverse(obj):
 ```
 </Warning>
 
----
-
 ## How do I find specific objects?
 
 You need to find all objects matching certain criteria - for example, all walls, all objects on a specific level, or all elements with a particular property value.
@@ -362,17 +358,17 @@ def find_by_category(obj, category_name):
     """Find all objects with matching category."""
     traversal = GraphTraversal([])
     results = []
-    
+
     for context in traversal.traverse(obj):
         current = context.current
-        
-        has_props = (hasattr(current, "properties") 
+
+        has_props = (hasattr(current, "properties")
                      and current.properties)
         if has_props:
             cat = current.properties.get("category")
             if cat == category_name:
                 results.append(current)
-    
+
     return results
 
 # Find all walls
@@ -381,19 +377,19 @@ print(f"Found {len(walls)} walls")
 ```
 
 <Note>
-**About "category" property:** When we reference 
-`properties["category"]` in examples, this demonstrates the 
-pattern. Real BIM data may organize categories differently - 
-Revit data, for instance, uses both `properties["category"]` 
-on individual objects AND category-based proxy collections. 
-See [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) 
+**About "category" property:** When we reference
+`properties["category"]` in examples, this demonstrates the
+pattern. Real BIM data may organize categories differently -
+Revit data, for instance, uses both `properties["category"]`
+on individual objects AND category-based proxy collections.
+See [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns)
 for production patterns.
 </Note>
 
 **Multiple filter criteria:**
 
-When you need to match objects on several properties at once 
-(e.g., walls that are also concrete), pass multiple key-value 
+When you need to match objects on several properties at once
+(e.g., walls that are also concrete), pass multiple key-value
 pairs to check all conditions:
 
 ```python lines icon="python" expandable
@@ -401,22 +397,22 @@ from specklepy.objects.graph_traversal.traversal import GraphTraversal
 
 def find_by_properties(obj, **criteria):
     """Find objects matching multiple property criteria.
-    
+
     Example:
         find_by_properties(
-            root, 
-            category="Walls", 
+            root,
+            category="Walls",
             material="Concrete"
         )
     """
     traversal = GraphTraversal([])
     results = []
-    
+
     for context in traversal.traverse(obj):
         current = context.current
-        
+
         # Check if all criteria match
-        has_props = (hasattr(current, "properties") 
+        has_props = (hasattr(current, "properties")
                      and current.properties)
         if has_props:
             matches = all(
@@ -425,7 +421,7 @@ def find_by_properties(obj, **criteria):
             )
             if matches:
                 results.append(current)
-    
+
     return results
 
 # Find concrete walls
@@ -438,8 +434,8 @@ concrete_walls = find_by_properties(
 
 **Using custom filter functions:**
 
-For complex filtering logic (numeric comparisons, nested 
-properties, combined conditions), pass a custom function 
+For complex filtering logic (numeric comparisons, nested
+properties, combined conditions), pass a custom function
 that returns `True` for objects you want to keep:
 
 ```python lines icon="python" expandable
@@ -447,20 +443,20 @@ from specklepy.objects.graph_traversal.traversal import GraphTraversal
 
 def find_by_filter(obj, filter_func):
     """Find objects matching custom filter function.
-    
+
     Args:
         obj: Root object to search
-        filter_func: Function that takes an object 
+        filter_func: Function that takes an object
                      and returns True/False
     """
     traversal = GraphTraversal([])
-    
+
     results = [
-        context.current 
+        context.current
         for context in traversal.traverse(obj)
         if filter_func(context.current)
     ]
-    
+
     return results
 
 # Find large walls (area > 10 m²)
@@ -484,8 +480,6 @@ load_bearing = find_by_filter(root, is_load_bearing)
 
 The filtering pattern: (1) **Traverse** the entire tree recursively, (2) **Check** each object against your criteria, (3) **Collect** matching objects in a results list, (4) **Return** the accumulated results. This pattern works for any filtering criteria - category, property values, object types, etc.
 
----
-
 ## How do I extract geometry from BIM objects?
 
 BIM objects from connectors (Revit, Rhino, etc.) contain geometry in the `displayValue` property. You need to extract these meshes for visualization or analysis.
@@ -500,21 +494,21 @@ def extract_display_meshes(obj):
     """Extract all displayValue meshes from object tree."""
     traversal = GraphTraversal([])
     meshes = []
-    
+
     for context in traversal.traverse(obj):
         current = context.current
-        
+
         # Check for displayValue
         if hasattr(current, "displayValue"):
             display = current.displayValue
-            
+
             # displayValue can be a single mesh or a list
             if isinstance(display, Mesh):
                 meshes.append(display)
             elif isinstance(display, list):
                 # Filter list for Mesh objects
                 meshes.extend([d for d in display if isinstance(d, Mesh)])
-    
+
     return meshes
 
 # Extract all meshes
@@ -524,8 +518,8 @@ print(f"Found {len(meshes)} meshes")
 
 **Extracting geometry with metadata:**
 
-Often you need to know which object each mesh came from. 
-Use TraversalContext to track source objects and their 
+Often you need to know which object each mesh came from.
+Use TraversalContext to track source objects and their
 properties:
 
 ```python lines icon="python" expandable
@@ -536,23 +530,23 @@ def extract_meshes_with_metadata(obj):
     """Extract meshes with source object metadata."""
     traversal = GraphTraversal([])
     results = []
-    
+
     for context in traversal.traverse(obj):
         current = context.current
-        
+
         # Extract displayValue
         if hasattr(current, "displayValue"):
             display = current.displayValue
-            
+
             meshes = []
             if isinstance(display, Mesh):
                 meshes = [display]
             elif isinstance(display, list):
                 meshes = [
-                    d for d in display 
+                    d for d in display
                     if isinstance(d, Mesh)
                 ]
-            
+
             # Add metadata for each mesh
             for mesh in meshes:
                 results.append({
@@ -561,18 +555,18 @@ def extract_meshes_with_metadata(obj):
                         current, "name", "unnamed"
                     ),
                     "category": (
-                        current.properties.get("category") 
-                        if hasattr(current, "properties") 
+                        current.properties.get("category")
+                        if hasattr(current, "properties")
                         else None
                     ),
                     "properties": (
-                        current.properties 
-                        if hasattr(current, "properties") 
+                        current.properties
+                        if hasattr(current, "properties")
                         else {}
                     ),
                     "parent": context.parent.current if context.parent else None
                 })
-    
+
     return results
 
 # Extract with context
@@ -587,8 +581,8 @@ for item in mesh_data:
 
 **Handling different geometry types:**
 
-Not all geometry is meshes - you might also encounter 
-points, lines, and polylines. Check for all geometry types 
+Not all geometry is meshes - you might also encounter
+points, lines, and polylines. Check for all geometry types
 you're interested in:
 
 ```python lines icon="python" expandable
@@ -599,14 +593,14 @@ from specklepy.objects.geometry import (
 def extract_all_geometry(obj):
     """Extract all geometry types from displayValue."""
     geometry = []
-    
+
     if not isinstance(obj, Base):
         return geometry
-    
+
     # Check for displayValue
     if hasattr(obj, "displayValue"):
         display = obj.displayValue
-        
+
         # Handle single object
         geom_types = (Mesh, Point, Line, Polyline)
         if isinstance(display, geom_types):
@@ -614,26 +608,26 @@ def extract_all_geometry(obj):
         # Handle list
         elif isinstance(display, list):
             geometry.extend([
-                d for d in display 
+                d for d in display
                 if isinstance(d, geom_types)
             ])
-    
+
     # Check if object itself is geometry
     if isinstance(obj, geom_types):
         geometry.append(obj)
-    
+
     # Recurse
     for name in obj.get_member_names():
         if name != "displayValue":
             value = getattr(obj, name, None)
-            
+
             if isinstance(value, Base):
                 geometry.extend(extract_all_geometry(value))
             elif isinstance(value, list):
                 for item in value:
                     if isinstance(item, Base):
                         geometry.extend(extract_all_geometry(item))
-    
+
     return geometry
 ```
 
@@ -655,18 +649,16 @@ if name != "displayValue":
 ```
 </Warning>
 
----
-
 ## How do I work with hierarchical collections?
 
 BIM data often has hierarchical structures: Building → Levels → Rooms → Elements. You need to process these hierarchies while maintaining context about where each object came from.
 
 <Warning>
-**Real BIM structures use proxies!** When working with 
-actual connector data (Revit, Rhino, ArchiCAD), "Levels" 
-aren't nested hierarchies - they're represented as 
-`LevelProxy` collections that reference objects by ID. 
-The examples here show *conceptual* hierarchies for 
+**Real BIM structures use proxies!** When working with
+actual connector data (Revit, Rhino, ArchiCAD), "Levels"
+aren't nested hierarchies - they're represented as
+`LevelProxy` collections that reference objects by ID.
+The examples here show *conceptual* hierarchies for
 learning. For production code with real BIM data, see:
 - [Proxification guide](/developers/sdks/python/concepts/proxification) - Understanding proxy structures
 - [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) - Working with real connector data
@@ -680,21 +672,21 @@ from specklepy.objects.graph_traversal.traversal import GraphTraversal
 def process_hierarchy(obj):
     """Process hierarchical structure with context information."""
     traversal = GraphTraversal([])
-    
+
     for context in traversal.traverse(obj):
         current = context.current
-        
+
         # Calculate depth from parent chain
         depth = 0
         parent_ctx = context.parent
         while parent_ctx:
             depth += 1
             parent_ctx = parent_ctx.parent
-        
+
         indent = "  " * depth
         name = getattr(current, "name", "unnamed")
         category = current.properties.get("category", "") if hasattr(current, "properties") else ""
-        
+
         # Print with indentation showing hierarchy
         print(f"{indent}{name} ({category})")
 
@@ -715,35 +707,35 @@ Building A (Buildings)
 
 **Collecting objects by level:**
 
-To analyze your data by depth in the tree (e.g., root 
-objects vs. deeply nested objects), organize objects by 
+To analyze your data by depth in the tree (e.g., root
+objects vs. deeply nested objects), organize objects by
 their hierarchy level:
 
 ```python lines icon="python" expandable
 def collect_by_hierarchy_level(obj):
     """Collect objects organized by hierarchy level."""
     levels = {}
-    
+
     def traverse(current_obj, level=0):
         if not isinstance(current_obj, Base):
             return
-        
+
         # Add to level dictionary
         if level not in levels:
             levels[level] = []
         levels[level].append(current_obj)
-        
+
         # Recurse
         for name in current_obj.get_member_names():
             value = getattr(current_obj, name, None)
-            
+
             if isinstance(value, Base):
                 traverse(value, level + 1)
             elif isinstance(value, list):
                 for item in value:
                     if isinstance(item, Base):
                         traverse(item, level + 1)
-    
+
     traverse(obj)
     return levels
 
@@ -756,9 +748,9 @@ for level, objects in sorted(by_level.items()):
 
 **Flattening vs. preserving hierarchy:**
 
-Choose between flattening (all objects in one list) or 
-preserving structure (nested dictionaries). Flatten when 
-you just need to process objects; preserve when hierarchy 
+Choose between flattening (all objects in one list) or
+preserving structure (nested dictionaries). Flatten when
+you just need to process objects; preserve when hierarchy
 matters:
 
 ```python lines icon="python" expandable
@@ -766,23 +758,23 @@ matters:
 def flatten_hierarchy(obj):
     """Flatten entire hierarchy to a single list."""
     results = []
-    
+
     def collect(current_obj):
         if not isinstance(current_obj, Base):
             return
-        
+
         results.append(current_obj)
-        
+
         for name in current_obj.get_member_names():
             value = getattr(current_obj, name, None)
-            
+
             if isinstance(value, Base):
                 collect(value)
             elif isinstance(value, list):
                 for item in value:
                     if isinstance(item, Base):
                         collect(item)
-    
+
     collect(obj)
     return results
 
@@ -794,13 +786,13 @@ def preserve_hierarchy(obj):
     """Convert to nested dictionary preserving hierarchy."""
     if not isinstance(obj, Base):
         return None
-    
+
     result = {
         "name": getattr(obj, "name", "unnamed"),
         "properties": obj.properties if hasattr(obj, "properties") else {},
         "children": []
     }
-    
+
     # Collect children
     if hasattr(obj, "elements"):
         for element in obj.elements:
@@ -808,14 +800,12 @@ def preserve_hierarchy(obj):
                 child = preserve_hierarchy(element)
                 if child:
                     result["children"].append(child)
-    
+
     return result
 
 # Get hierarchical structure
 hierarchy = preserve_hierarchy(root)
 ```
-
----
 
 ## Practical Examples
 
@@ -826,46 +816,46 @@ def find_walls_on_level(root, level_name):
     """Find all walls on a specific level."""
     walls = []
     current_level = None
-    
+
     def traverse(obj):
         nonlocal current_level
-        
+
         if not isinstance(obj, Base):
             return
-        
+
         # Track when we enter/exit levels
         has_props = hasattr(obj, "properties")
-        is_level = (has_props and 
+        is_level = (has_props and
                    obj.properties.get("category") == "Levels")
-        
+
         if is_level:
             obj_name = getattr(obj, "name", "")
             if obj_name == level_name:
                 current_level = obj_name
-        
+
         # Collect walls when in target level
         if current_level == level_name:
             has_props = hasattr(obj, "properties")
-            is_wall = (has_props and 
+            is_wall = (has_props and
                       obj.properties.get("category") == "Walls")
             if is_wall:
                 walls.append(obj)
-        
+
         # Recurse
         for name in obj.get_member_names():
             value = getattr(obj, name, None)
-            
+
             if isinstance(value, Base):
                 traverse(value)
             elif isinstance(value, list):
                 for item in value:
                     if isinstance(item, Base):
                         traverse(item)
-        
+
         # Reset level when exiting
         if is_level and obj_name == level_name:
             current_level = None
-    
+
     traverse(root)
     return walls
 
@@ -882,46 +872,46 @@ from specklepy.objects.geometry import Mesh
 def extract_geometry_by_category(root, category):
     """Extract all meshes for objects in a category."""
     results = []
-    
+
     def traverse(obj):
         if not isinstance(obj, Base):
             return
-        
+
         # Check if object is in target category
         has_props = hasattr(obj, "properties")
-        is_match = (has_props and 
+        is_match = (has_props and
                    obj.properties.get("category") == category)
-        
+
         # Extract geometry if category matches
         if is_match and hasattr(obj, "displayValue"):
             display = obj.displayValue
             obj_name = getattr(obj, "name", "unnamed")
-            
+
             meshes = []
             if isinstance(display, Mesh):
                 meshes = [display]
             elif isinstance(display, list):
                 meshes = [d for d in display if isinstance(d, Mesh)]
-            
+
             for mesh in meshes:
                 results.append({
                     "name": obj_name,
                     "mesh": mesh,
                     "properties": obj.properties
                 })
-        
+
         # Recurse (skip displayValue)
         for name in obj.get_member_names():
             if name != "displayValue":
                 value = getattr(obj, name, None)
-                
+
                 if isinstance(value, Base):
                     traverse(value)
                 elif isinstance(value, list):
                     for item in value:
                         if isinstance(item, Base):
                             traverse(item)
-    
+
     traverse(root)
     return results
 
@@ -942,7 +932,7 @@ from specklepy.objects.geometry import Mesh
 
 def generate_category_report(root):
     """Generate detailed report by category."""
-    
+
     # Collect data by category
     by_category = defaultdict(lambda: {
         "count": 0,
@@ -950,27 +940,27 @@ def generate_category_report(root):
         "total_area": 0.0,
         "mesh_count": 0
     })
-    
+
     def traverse(obj):
         if not isinstance(obj, Base):
             return
-        
+
         # Get category
         category = "Unknown"
-        has_props = (hasattr(obj, "properties") 
+        has_props = (hasattr(obj, "properties")
                      and obj.properties)
         if has_props:
             category = obj.properties.get("category", "Unknown")
-        
+
         # Update statistics
         by_category[category]["count"] += 1
         by_category[category]["objects"].append(obj)
-        
+
         # Add area if present
         if hasattr(obj, "properties"):
             area = obj.properties.get("area", 0.0)
             by_category[category]["total_area"] += area
-        
+
         # Count meshes
         if hasattr(obj, "displayValue"):
             display = obj.displayValue
@@ -978,29 +968,29 @@ def generate_category_report(root):
                 by_category[category]["mesh_count"] += 1
             elif isinstance(display, list):
                 mesh_count = sum(
-                    1 for d in display 
+                    1 for d in display
                     if isinstance(d, Mesh)
                 )
                 by_category[category]["mesh_count"] += mesh_count
-        
+
         # Recurse
         for name in obj.get_member_names():
             value = getattr(obj, name, None)
-            
+
             if isinstance(value, Base):
                 traverse(value)
             elif isinstance(value, list):
                 for item in value:
                     if isinstance(item, Base):
                         traverse(item)
-    
+
     traverse(root)
-    
+
     # Generate report
     print("=" * 60)
     print("CATEGORY SUMMARY REPORT")
     print("=" * 60)
-    
+
     for category in sorted(by_category.keys()):
         data = by_category[category]
         print(f"\n{category}:")
@@ -1008,14 +998,12 @@ def generate_category_report(root):
         print(f"  Meshes: {data['mesh_count']}")
         if data['total_area'] > 0:
             print(f"  Total Area: {data['total_area']:.2f} m²")
-    
+
     return dict(by_category)
 
 # Generate report
 report = generate_category_report(root)
 ```
-
----
 
 ## Learn More
 
@@ -1030,8 +1018,6 @@ report = generate_category_report(root)
 
 **Next Steps:**
 - [Advanced: Performance and Complex Patterns](/developers/sdks/python/guides/how-to-optimize-and-handle-complexity) - Learn optimization techniques
-
----
 
 ## Next Steps
 

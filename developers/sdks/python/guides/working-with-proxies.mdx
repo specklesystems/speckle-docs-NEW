@@ -21,7 +21,7 @@ For a comprehensive explanation of proxies and why Speckle uses them, see [BIM D
 
 ## The Challenge with Display Values
 
-After receiving a commit with `operations.receive()`, objects have a `displayValue` property containing visualization geometry. This can be:
+After receiving a model version with `operations.receive()`, objects have a `displayValue` property containing visualization geometry. This can be:
 1. **Direct meshes** - The geometry is right there
 2. **Instance references** - References to InstanceDefinition objects by `applicationId`
 
@@ -57,11 +57,11 @@ from specklepy.api.client import SpeckleClient
 from specklepy.api.credentials import get_default_account
 from specklepy.objects.graph_traversal.traversal import GraphTraversal
 
-# Receive commit
+# Receive model version
 client = SpeckleClient(host="https://app.speckle.systems")
 client.authenticate_with_account(get_default_account())
-transport = ServerTransport("stream_id", client)
-commit = operations.receive("commit_id", transport)
+transport = ServerTransport("project_id", client)
+version = operations.receive("version_id", transport)
 
 def find_displayable_objects(root):
     """Find all objects with displayValue property."""
@@ -75,7 +75,7 @@ def find_displayable_objects(root):
 
     return displayable
 
-objects_with_display = find_displayable_objects(commit)
+objects_with_display = find_displayable_objects(version)
 print(f"Found {len(objects_with_display)} displayable objects")
 ```
 
@@ -147,7 +147,7 @@ def build_applicationid_index(root):
     return index
 
 # Build the index once
-app_id_index = build_applicationid_index(commit)
+app_id_index = build_applicationid_index(version)
 print(f"Indexed {len(app_id_index)} objects")
 
 # Now you can quickly look up any object
@@ -166,7 +166,7 @@ Instance definitions enable geometry reuse. The definition contains references t
 
 ```python /dev/null/instance-structure.py#L1-20
 # Root has instanceDefinitionProxies
-commit.instanceDefinitionProxies = [
+version.instanceDefinitionProxies = [
     {
         "id": "door_def_123",
         "name": "Door Type A",
@@ -192,13 +192,13 @@ obj.displayValue = [
 
 Extract instance definitions and resolve their geometry references:
 
-```python /dev/null/extract-instances.py#L1-40
+```python
 def extract_instance_definitions(root, app_id_index):
     """
     Extract instance definitions and resolve their geometry.
 
     Args:
-        root: Commit object
+        root: Model version object
         app_id_index: applicationId index from build_applicationid_index()
 
     Returns:
@@ -231,26 +231,24 @@ def extract_instance_definitions(root, app_id_index):
     return definitions
 
 # Usage
-definitions = extract_instance_definitions(commit, app_id_index)
+definitions = extract_instance_definitions(version_root_object, app_id_index)
 for def_app_id, def_info in definitions.items():
     print(f"{def_info['name']}: {len(def_info['geometry'])} objects")
-</text>
 
-<old_text line=251>
-    Args:
-        root: Commit object
-        app_id_index: applicationId index
-        definitions: Instance definitions from extract_instance_definitions()
+# Args:
+#     root: Version object
+#     app_id_index: applicationId index
+#     definitions: Instance definitions from extract_instance_definitions()
 
-    Returns:
-        List of dictionaries with mesh and metadata
+# Returns:
+#     List of dictionaries with mesh and metadata
 ```
 
 ### Resolving Instance References in Display Values
 
 Now you can resolve instance references when extracting display values:
 
-```python /dev/null/resolve-instances.py#L1-50
+```python
 from specklepy.objects.geometry import Mesh
 
 def extract_all_display_meshes(root, app_id_index, definitions):
@@ -258,7 +256,7 @@ def extract_all_display_meshes(root, app_id_index, definitions):
     Extract all meshes from display values, resolving instance references.
 
     Args:
-        root: Commit object
+        root: Version object
         app_id_index: applicationId index
         definitions: Instance definitions from extract_instance_definitions()
 
@@ -309,7 +307,7 @@ def extract_all_display_meshes(root, app_id_index, definitions):
 
 Instance references include transformation matrices that position, rotate, and scale the geometry:
 
-```python /dev/null/apply-transform.py#L1-45
+```python
 def get_transformed_instances(root, app_id_index):
     """
     Extract instance meshes with their transformations.
@@ -354,7 +352,7 @@ def get_transformed_instances(root, app_id_index):
     return instances
 
 # Usage
-instances = get_transformed_instances(commit, app_id_index)
+instances = get_transformed_instances(version, app_id_index)
 print(f"Found {len(instances)} instance uses")
 ```
 
@@ -364,7 +362,7 @@ print(f"Found {len(instances)} instance uses")
 
 Here's a complete workflow combining all concepts:
 
-```python /dev/null/complete-example.py#L1-80
+```python
 from specklepy.api import operations
 from specklepy.transports.server import ServerTransport
 from specklepy.api.client import SpeckleClient
@@ -372,23 +370,23 @@ from specklepy.api.credentials import get_default_account
 from specklepy.objects.graph_traversal.traversal import GraphTraversal
 from specklepy.objects.geometry import Mesh
 
-def analyze_display_geometry(stream_id, commit_id):
+def analyze_display_geometry(project_id, version_id):
     """Complete analysis of display geometry including instances."""
 
-    # 1. Receive commit
+    # 1. Receive version
     client = SpeckleClient(host="https://app.speckle.systems")
     client.authenticate_with_account(get_default_account())
-    transport = ServerTransport(stream_id, client)
-    commit = operations.receive(commit_id, transport)
+    transport = ServerTransport(project_id, client)
+    version = operations.receive(version_id, transport)
 
     # 2. Build applicationId index
     print("Building applicationId index...")
-    app_id_index = build_applicationid_index(commit)
+    app_id_index = build_applicationid_index(version)
     print(f"Indexed {len(app_id_index)} objects")
 
     # 3. Extract instance definitions
     print("\nExtracting instance definitions...")
-    definitions = extract_instance_definitions(commit, app_id_index)
+    definitions = extract_instance_definitions(version, app_id_index)
     print(f"Found {len(definitions)} instance definitions:")
     for def_id, def_info in definitions.items():
         print(f"  {def_info['name']}: {len(def_info['geometry'])} objects")
@@ -400,7 +398,7 @@ def analyze_display_geometry(stream_id, commit_id):
     direct_mesh_count = 0
     instance_mesh_count = 0
 
-    for context in traversal.traverse(commit):
+    for context in traversal.traverse(version):
         obj = context.current
 
         if not hasattr(obj, "displayValue"):
@@ -434,7 +432,7 @@ def analyze_display_geometry(stream_id, commit_id):
     print(f"  Total: {direct_mesh_count + instance_mesh_count}")
 
 # Run analysis
-analyze_display_geometry("your_stream_id", "your_commit_id")
+analyze_display_geometry("your_project_id", "version_id")
 ```
 
 ## Best Practices
@@ -445,8 +443,8 @@ Building an applicationId index traverses the entire object tree. Do this once a
 
 ```python /dev/null/best-practice-index.py#L1-10
 # ✅ Good: Build once, use many times
-app_id_index = build_applicationid_index(commit)
-definitions = extract_instance_definitions(commit, app_id_index)
+app_id_index = build_applicationid_index(version)
+definitions = extract_instance_definitions(version, app_id_index)
 
 # Then use the index for all lookups
 for app_id in some_list_of_ids:
@@ -472,14 +470,14 @@ if obj:
 
 ### Check for Proxy Collections
 
-Not all commits have instance definitions:
+Not all model versions have instance definitions:
 
 ```python /dev/null/check-proxies.py#L1-10
 # ✅ Always check first
-if hasattr(commit, "instanceDefinitionProxies"):
-    definitions = extract_instance_definitions(commit, app_id_index)
+if hasattr(version, "instanceDefinitionProxies"):
+    definitions = extract_instance_definitions(version, app_id_index)
 else:
-    print("No instance definitions in this commit")
+    print("No instance definitions in this version")
     definitions = {}
 
 # Then safely use the definitions dictionary
@@ -513,7 +511,7 @@ def debug_instance_definition(proxy, app_id_index):
             print(f"    ✗ {app_id}: NOT FOUND IN INDEX")
 
 # Use it to debug
-for proxy in commit.instanceDefinitionProxies:
+for proxy in version.instanceDefinitionProxies:
     debug_instance_definition(proxy, app_id_index)
 ```
 
@@ -557,9 +555,9 @@ def extract_mixed_display(obj, definitions):
 
 </Accordion>
 
-<Accordion title="Why are there no instance definitions in my commit?">
+<Accordion title="Why are there no instance definitions in my version?">
 
-**Problem:** `commit.instanceDefinitionProxies` doesn't exist or is empty.
+**Problem:** `version.instanceDefinitionProxies` doesn't exist or is empty.
 
 **Why this happens:** Not all models use instancing—depends on the source application
  and how the model was created.
@@ -568,9 +566,9 @@ def extract_mixed_display(obj, definitions):
 
 ```python /dev/null/check-instances.py#L1-15
 # Check if instances are used
-if hasattr(commit, "instanceDefinitionProxies") and commit.instanceDefinitionProxies:
-    print(f"Found {len(commit.instanceDefinitionProxies)} instance definitions")
-    definitions = extract_instance_definitions(commit, app_id_index)
+if hasattr(version, "instanceDefinitionProxies") and version.instanceDefinitionProxies:
+    print(f"Found {len(version.instanceDefinitionProxies)} instance definitions")
+    definitions = extract_instance_definitions(version, app_id_index)
 else:
     print("No instance definitions - all geometry is direct")
     definitions = {}

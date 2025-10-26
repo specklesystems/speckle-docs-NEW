@@ -22,8 +22,6 @@ Before starting this guide, you should:
 This guide focuses on **working with objects** - not sending/receiving them. For send/receive operations, see the [Quickstart](/developers/sdks/python/getting-started/quickstart).
 </Info>
 
----
-
 ## How do I create a Speckle object?
 
 You need to create custom data structures or add metadata to geometry for your Speckle project. Use the `Base` class - it's the foundation of all Speckle objects and supports dynamic properties:
@@ -64,8 +62,6 @@ obj.id = "custom-123"  # This sets the Speckle hash ID
 obj.elementId = "custom-123"
 ```
 </Warning>
-
----
 
 ## How do I add metadata: direct attributes vs. properties dictionary?
 
@@ -149,8 +145,6 @@ beam.properties = {
 }
 ```
 
----
-
 ## How do I access object properties?
 
 You have a Speckle object and need to read its properties, but you don't know what properties it has or how to access them safely.
@@ -229,10 +223,10 @@ for name in obj.get_member_names():
 ```python lines icon="python" expandable
 def safely_read_object(obj):
     """Read all properties from an object safely."""
-    
+
     # Read known direct attributes with defaults
     name = getattr(obj, "name", "Unnamed")
-    
+
     # Read properties dictionary safely
     properties = {}
     if hasattr(obj, "properties") and obj.properties:
@@ -242,7 +236,7 @@ def safely_read_object(obj):
             "category": category,
             "material": material
         }
-    
+
     return {
         "name": name,
         "properties": properties
@@ -266,8 +260,6 @@ category = obj.properties.get("category", "Unknown")
 name = getattr(obj, "name", "Unnamed")
 ```
 </Warning>
-
----
 
 ## How do I work with lists and collections?
 
@@ -300,7 +292,7 @@ for element in building.elements:
 ```python lines icon="python"
 # Filter with list comprehension
 walls = [
-    obj for obj in building.elements 
+    obj for obj in building.elements
     if obj.properties.get("category") == "Walls"
 ]
 
@@ -357,14 +349,14 @@ for level_num in range(3):
     level.name = f"Level {level_num}"
     level.properties = {"category": "Levels", "elevation": level_num * 3.5}
     level.elements = []  # Objects on this level
-    
+
     # Add rooms to this level
     for room_num in range(4):
         room = Base()
         room.name = f"Room {level_num}{room_num}"
         room.properties = {"category": "Rooms", "area": 25.0}
         level.elements.append(room)
-    
+
     building.elements.append(level)
 
 # Process hierarchy
@@ -418,8 +410,6 @@ for element in getattr(obj, "elements", []):
 ```
 </Warning>
 
----
-
 ## Practical Examples
 
 ### Example 1: Create a Survey Point Collection
@@ -446,14 +436,14 @@ coordinates = [
 for i, (x, y, z) in enumerate(coordinates):
     point = Point(x=x, y=y, z=z)
     point.units = "m"
-    
+
     # Add metadata as properties
     point.properties = {
         "pointId": f"SP-{i+1:03d}",
         "accuracy": 0.01,
         "method": "GPS"
     }
-    
+
     survey.points.append(point)
 
 print(f"Survey '{survey.name}' has {len(survey.points)} points")
@@ -473,22 +463,22 @@ def filter_by_property(objects, key, value):
 
 def summarize_objects(objects):
     """Create summary statistics for objects."""
-    
+
     if not objects:
         return "No objects to summarize"
-    
+
     # Count by category
     categories = Counter(
         obj.properties.get("category", "Unknown")
         for obj in objects
     )
-    
+
     # Calculate total area (if present)
     total_area = sum(
         obj.properties.get("area", 0.0)
         for obj in objects
     )
-    
+
     return {
         "count": len(objects),
         "categories": dict(categories),
@@ -512,18 +502,18 @@ from specklepy.objects import Base
 
 def create_project_hierarchy():
     """Create a multi-level project hierarchy."""
-    
+
     # Project root
     project = Base()
     project.name = "Office Building"
     project.elements = []
-    
+
     # Building
     building = Base()
     building.name = "Building A"
     building.properties = {"type": "Office", "floors": 3}
     building.elements = []
-    
+
     # Add levels
     for floor in range(3):
         level = Base()
@@ -534,7 +524,7 @@ def create_project_hierarchy():
             "area": 1000.0
         }
         level.elements = []
-        
+
         # Add spaces
         for space in range(5):
             room = Base()
@@ -545,9 +535,9 @@ def create_project_hierarchy():
                 "occupancy": 4
             }
             level.elements.append(room)
-        
+
         building.elements.append(level)
-    
+
     project.elements.append(building)
     return project
 
@@ -576,14 +566,12 @@ for level in building.elements:
 **API Reference:**
 - [Base class methods](/developers/sdks/python/api-reference/operations) - Complete Base API documentation
 
----
-
 ## Next Steps
 
 Now that you understand how to work with Speckle objects, you're ready to:
 
 1. **Learn traversal** - Navigate nested object structures recursively
-2. **Extract data** - Filter and find specific objects in complex hierarchies  
+2. **Extract data** - Filter and find specific objects in complex hierarchies
 3. **Work with geometry** - Extract and manipulate displayValue meshes from BIM objects
 
 Continue to [Intermediate: Finding and Extracting Data](/developers/sdks/python/guides/how-to-find-and-extract-data) →
