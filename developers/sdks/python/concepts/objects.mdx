@@ -414,28 +414,28 @@ collection.count = len(collection.points)
 from specklepy.objects import Base
 from specklepy.objects.geometry import Point, Line
 
-def get_objects_by_type(obj: Base, target_type: str) -> list:
-    """Recursively find all objects of a specific speckle_type."""
+def get_objects_by_class(obj, target_class):
+    """Recursively find all objects of a specific class (recommended approach)."""
     results = []
     
+    if isinstance(obj, target_class):
+        results.append(obj)
+    
     if isinstance(obj, Base):
-        if obj.speckle_type == target_type:
-            results.append(obj)
-        
         # Search in all properties
         for name in obj.get_member_names():
             if name.startswith("_"):
                 continue
             value = getattr(obj, name, None)
-            results.extend(get_objects_by_type(value, target_type))
+            results.extend(get_objects_by_class(value, target_class))
     
     elif isinstance(obj, (list, tuple)):
         for item in obj:
-            results.extend(get_objects_by_type(item, target_type))
+            results.extend(get_objects_by_class(item, target_class))
     
     elif isinstance(obj, dict):
         for value in obj.values():
-            results.extend(get_objects_by_type(value, target_type))
+            results.extend(get_objects_by_class(value, target_class))
     
     return results
 
@@ -447,9 +447,15 @@ collection.items = [
     Point(x=4, y=5, z=6),
 ]
 
-points = get_objects_by_type(collection, "Objects.Geometry.Point")
+# Recommended: Use isinstance checks
+points = get_objects_by_class(collection, Point)
+lines = get_objects_by_class(collection, Line)
 print(f"Found {len(points)} points")  # Found 4 points (including nested in Line)
 ```
+
+<Note>
+**For BIM Data:** In v3, most BIM objects are `DataObject` instances. To differentiate walls from columns, filter by properties (e.g., `properties.category == "Walls"`) rather than by type. See [Data Traversal](/developers/sdks/python/concepts/data-traversal) for property-based filtering patterns.
+</Note>
 
 ### Copying Objects
 
