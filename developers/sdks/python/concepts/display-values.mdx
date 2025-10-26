@@ -708,7 +708,7 @@ If your mesh has per-vertex colors, they will override any RenderMaterial or pro
 def has_display_value(obj):
     """Check if object has viewer-ready geometry."""
     return (
-        hasattr(obj, "displayValue") and 
+        hasattr(obj, "displayValue") and
         obj.displayValue is not None and
         (
             isinstance(obj.displayValue, list) and len(obj.displayValue) > 0
@@ -723,16 +723,16 @@ def is_leaf_node(obj):
     """
     has_display = has_display_value(obj)
     has_elements = hasattr(obj, "elements") and obj.elements
-    
+
     # Typical leaf: has displayValue, no elements
     if has_display and not has_elements:
         return True
-    
+
     # Edge case: has displayValue AND elements (rare)
     # Still considered a leaf for viewer purposes
     if has_display:
         return True
-    
+
     return False
 ```
 
@@ -742,10 +742,10 @@ def is_leaf_node(obj):
 def compute_display_bounds(obj):
     """Compute bounding box from display values."""
     meshes = extract_all_display_meshes(obj)
-    
+
     if not meshes:
         return None
-    
+
     # Get all vertices from all meshes
     all_vertices = []
     for mesh in meshes:
@@ -756,12 +756,12 @@ def compute_display_bounds(obj):
                 mesh.vertices[i + 1],
                 mesh.vertices[i + 2]
             ))
-    
+
     # Compute bounds
     xs = [v[0] for v in all_vertices]
     ys = [v[1] for v in all_vertices]
     zs = [v[2] for v in all_vertices]
-    
+
     return {
         "min": (min(xs), min(ys), min(zs)),
         "max": (max(xs), max(ys), max(zs)),
@@ -793,14 +793,14 @@ def find_leaf_nodes(root):
     Optimization: stop traversing when displayValue is found.
     """
     leaves = []
-    
+
     def traverse(obj):
         if isinstance(obj, Base):
             # Found a leaf node - add it and STOP traversing deeper
             if has_display_value(obj):
                 leaves.append(obj)
                 return  # Don't traverse children (they rarely have displayValue)
-            
+
             # Container node - continue traversing
             if hasattr(obj, "elements") and isinstance(obj.elements, list):
                 for element in obj.elements:
@@ -808,7 +808,7 @@ def find_leaf_nodes(root):
         elif isinstance(obj, list):
             for item in obj:
                 traverse(item)
-    
+
     traverse(root)
     return leaves
 
@@ -887,7 +887,7 @@ def will_be_visible(obj):
         "displayValue_not_empty": False,
         "contains_geometry": False
     }
-    
+
     if checks["has_displayValue"]:
         dv = obj.displayValue
         if isinstance(dv, list):
@@ -901,15 +901,15 @@ def will_be_visible(obj):
             checks["contains_geometry"] = (
                 hasattr(dv, "vertices") or hasattr(dv, "value")
             )
-    
+
     is_visible = all(checks.values())
-    
+
     print(f"Visibility Check for '{getattr(obj, 'name', 'unnamed')}':")
     for check, passed in checks.items():
         status = "✓" if passed else "✗"
         print(f"  {status} {check}")
     print(f"Result: {'VISIBLE ✓' if is_visible else 'INVISIBLE ✗'}")
-    
+
     return is_visible
 
 # Use it before sending
