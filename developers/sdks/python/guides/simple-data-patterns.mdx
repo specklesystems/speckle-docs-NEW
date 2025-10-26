@@ -257,7 +257,10 @@ def get_material(element, materials_dict):
     """Get material object for an element."""
     material_id = getattr(element, "materialId", None)
     if material_id:
-        return getattr(materials_dict, material_id, None)
+        if isinstance(materials_dict, dict):
+            return materials_dict.get(material_id)
+        else:
+            return getattr(materials_dict, material_id, None)
     return None
 
 mat = get_material(slab, building.materials)
