@@ -261,6 +261,10 @@ json_string = operations.serialize(my_object)
 reconstructed_object = operations.deserialize(json_string)
 ```
 
+<Info>
+Most developers won't need to know the serialization and deserialization functions directly. The `send()` and `receive()` operations handle serialization and deserialization implicitly. Use these functions only when you need custom workflows like saving objects to files or working with JSON representations directly.
+</Info>
+
 <Note>
 Serialization automatically handles:
 - Nested objects (converted to references)
@@ -269,45 +273,78 @@ Serialization automatically handles:
 - Units (tracked and converted)
 </Note>
 
+### 7. Orphaned Objects
+
+<Warning>
+
+Objects sent to the server but not referenced by any version are called "orphaned" or "zombie" objects. While they exist in the database and have object IDs, they are effectively **unreachable** and cannot be browsed or retrieved through the normal Speckle UI or workflows.
+</Warning>
+
+```python lines icon="python"
+# This object is sent but becomes orphaned
+object_id = operations.send(base=my_object, transports=[transport])
+# ⚠️ Without creating a version, this object is a "zombie"
+
+# Make it reachable by creating a version
+version = client.version.create(CreateVersionInput(
+    project_id=project_id,
+    model_id=model_id,
+    object_id=object_id,  # Now reachable via this version
+    message="My data"
+))
+```
+
+**Key Points:**
+- Orphaned objects remain in the database but are not discoverable
+- You can still retrieve them if you have the object ID: `operations.receive(obj_id=object_id)`
+- Always create a version after sending important data
+- The server may eventually clean up orphaned objects (implementation-dependent)
+
 ## The Object Lifecycle
 
 Here's how objects flow through a typical workflow:
 
+### Send Workflow
+
 ```mermaid
 graph LR
-    A[Create Objects] --> B[send]
-    B --> C[Serialize]
-    C --> D[Transport]
-    D --> E[Server]
-    E --> F[Create Version]
-    F --> G[receive]
-    G --> H[Deserialize]
-    H --> I[Use Objects]
+    A["Create Objects"] --> B["send<br/><i>(with serialization)</i>"]
+    B --> C["Get Object Id"]
+    C --> D["Create Version"]
+```
+
+### Receive Workflow
+
+```mermaid
+graph LR
+    A["Get Version"] --> B["receive<br/><i>(with deserialization)</i>"]
+    B --> C["Read Objects"]
+    C --> D["Use Objects"]
 ```
 
 <Steps>
   <Step title="Create">
     Create Python objects using specklepy classes
-    
+
     ```python lines icon="python"
     point = Point(x=1, y=2, z=3)
     ```
   </Step>
-  
+
   <Step title="Send">
     Send objects via a transport
-    
+
     ```python lines icon="python"
     object_id = operations.send(base=point, transports=[transport])
     ```
   </Step>
-  
+
   <Step title="Version">
     Create a version referencing the object
-    
+
     ```python lines icon="python"
     from specklepy.core.api.inputs.version_inputs import CreateVersionInput
-    
+
     version_input = CreateVersionInput(
         project_id=project_id,
         model_id=model_id,
@@ -317,10 +354,22 @@ graph LR
     version = client.version.create(version_input)
     ```
   </Step>
-  
+
+  <Step title="Get Version">
+    Retrieve a version to access its data
+
+    ```python lines icon="python"
+    # Get the version by ID
+    version = client.version.get(project_id=project_id, version_id=version.id)
+
+    # Access the referenced object ID
+    object_id = version.referencedObject
+    ```
+  </Step>
+
   <Step title="Receive">
     Receive objects by ID
-    
+
     ```python lines icon="python"
     received = operations.receive(obj_id=object_id, remote_transport=transport)
     ```
