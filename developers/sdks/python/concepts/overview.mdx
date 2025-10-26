@@ -397,45 +397,51 @@ received = operations.receive(...)  # Comes back as Point, not Base
 <AccordionGroup>
   <Accordion title="Geometry (Objects.Geometry.*)">
     - Point, Vector, Line, Polyline, Arc, Circle
-    - Curve, Polycurve, Mesh, Brep
-    - Plane, Box, Surface
-    
+    - Curve, Polycurve, Mesh, Surface
+    - Plane, Box, Region, Spiral
+    - Ellipse, PointCloud, ControlPoint
+
     ```python lines icon="python"
-    from specklepy.objects.geometry import Point, Line, Mesh
+    from specklepy.objects.geometry import Point, Line, Mesh, Plane
     ```
   </Accordion>
-  
-  <Accordion title="Structural (Objects.Structural.*)">
-    - Node, Element1D, Element2D, Element3D
-    - Property1D, Property2D, Property3D
-    - LoadCase, LoadBeam, LoadFace
-    - Material, Concrete, Steel
-    
+
+  <Accordion title="Data (Objects.Data.*)">
+    - DataObject - Generic data container with name, properties, and displayValue
+    - BlenderObject - Blender-specific data object
+    - QgisObject - QGIS-specific data object
+
     ```python lines icon="python"
-    from specklepy.objects.structural.geometry import Node, Element1D
-    from specklepy.objects.structural.materials import Concrete
+    from specklepy.objects.data_objects import DataObject, BlenderObject
     ```
   </Accordion>
-  
+
+  <Accordion title="Annotation (Objects.Annotation.*)">
+    - Text - Text annotations with alignment and positioning
+
+    ```python lines icon="python"
+    from specklepy.objects.annotation.text import Text
+    ```
+  </Accordion>
+
+  <Accordion title="Primitive (Objects.Primitive.*)">
+    - Interval - Numeric interval with start and end values
+
+    ```python lines icon="python"
+    from specklepy.objects.primitive import Interval
+    ```
+  </Accordion>
+
   <Accordion title="Other (Objects.Other.*)">
-    - Material, RenderMaterial
-    - Transform, BlockInstance
-    - Collection, View
-    
+    - RenderMaterial - Physically based material properties
+    - LevelProxy - Level reference proxy
+    - RenderMaterialProxy - Material reference proxy
+
     ```python lines icon="python"
-    from specklepy.objects.other import Material, Transform
+    from specklepy.objects.other import RenderMaterial
     ```
   </Accordion>
-  
-  <Accordion title="GIS (Objects.GIS.*)">
-    - GisPoint, GisLineElement
-    - VectorLayer, RasterLayer
-    - CRS (Coordinate Reference Systems)
-    
-    ```python lines icon="python"
-    from specklepy.objects.GIS.geometry import GisPoint
-    ```
-  </Accordion>
+
 </AccordionGroup>
 
 ### Custom Types
@@ -454,11 +460,38 @@ wall = Wall(height=3.0, thickness=0.2, material="Concrete")
 print(wall.speckle_type)  # "MyCompany.Wall"
 ```
 
+<Warning>
+**Connector Compatibility**
+
+Most Speckle connectors will **not recognize custom types** when receiving data into host applications. Your custom objects will likely be ignored during conversion to native application objects.
+
+**Best Practice:** Include a `displayValue` property with mesh geometry to ensure your custom objects are at least visible in the Speckle viewer and can be converted to generic native objects with geometry:
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Mesh
+
+class CustomStructure(Base, speckle_type="MyCompany.Structure"):
+    load_capacity: float
+    material: str
+    displayValue: list[Mesh]  # Makes it visible and convertible
+
+# Create with display value
+structure = CustomStructure(
+    load_capacity=5000.0,
+    material="Steel"
+)
+structure.displayValue = [mesh_representation]  # Add after creation
+```
+
+See [Display Values](/developers/sdks/python/concepts/display-values) for more details on making your objects visible and interoperable.
+</Warning>
+
 ## Local Cache
 
 specklepy maintains a local SQLite cache:
 
-- **Location**: 
+- **Location**:
   - Windows: `%APPDATA%\Speckle`
   - macOS: `~/.config/Speckle`
   - Linux: `~/.local/share/Speckle`
