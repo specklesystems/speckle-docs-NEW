@@ -154,6 +154,22 @@ thickness = mesh.properties.get("Thickness", 0)  # With default
 Properties can be any type (string, number, bool, list). Always use `.get()` with defaults for safety.
 </Warning>
 
+<Info>
+**Properties Dictionary vs. Direct Attributes:**
+
+Use the `properties` dictionary when:
+- Creating data that needs to be queryable by other applications
+- Working with metadata that follows BIM/connector conventions
+- You want a clear separation between data and structure
+
+Use direct attributes when:
+- Creating custom application-specific data structures
+- Building organizational hierarchies (e.g., `obj.phases`, `obj.elements`)
+- You need Python-level attribute access
+
+Both approaches work with Speckle - the `properties` dict is just a convention that makes data more portable and searchable.
+</Info>
+
 ### Pattern 2: Multiple Objects with Properties
 
 Collections of geometry with metadata:
@@ -362,33 +378,31 @@ if hasattr(obj, "properties") and isinstance(obj.properties, dict):
 ### Finding Objects by Property
 
 ```python lines icon="python"
+from specklepy.objects.graph_traversal.traversal import GraphTraversal, TraversalRule
+
 def filter_by_property(root, property_name, property_value):
-    """Find all objects with a specific property value."""
+    """Find all objects with a specific property value using SDK traversal."""
     results = []
     
-    def traverse(obj):
-        if isinstance(obj, Base):
-            # Check properties dictionary
-            if hasattr(obj, "properties") and isinstance(obj.properties, dict):
-                if obj.properties.get(property_name) == property_value:
-                    results.append(obj)
-            
-            # Traverse children
-            for name in obj.get_member_names():
-                if not name.startswith("_"):
-                    value = getattr(obj, name, None)
-                    traverse(value)
-        
-        elif isinstance(obj, list):
-            for item in obj:
-                traverse(item)
+    # Define a rule to traverse all members and return all objects
+    traverse_all_rule = TraversalRule(
+        conditions=[lambda _: True],
+        members_to_traverse=lambda obj: obj.get_member_names(),
+        should_return_to_output=True
+    )
     
-    traverse(root)
+    traversal = GraphTraversal([traverse_all_rule])
+    
+    # Traverse and filter
+    for context in traversal.traverse(root):
+        obj = context.current
+        if hasattr(obj, "properties") and isinstance(obj.properties, dict):
+            if obj.properties.get(property_name) == property_value:
+                results.append(obj)
+    
     return results
 
 # Use it
-from specklepy.objects import Base
-
 steel_elements = filter_by_property(obj, "Material", "Steel")
 print(f"Found {len(steel_elements)} steel elements")
 ```
@@ -396,31 +410,26 @@ print(f"Found {len(steel_elements)} steel elements")
 ### Extracting Display Geometry
 
 ```python lines icon="python"
+from specklepy.objects.graph_traversal.default_traversal import create_default_traversal_function
+
 def get_displayable_geometry(obj):
-    """Extract all displayValue meshes for visualization."""
+    """
+    Extract all displayValue meshes for visualization using SDK's default traversal.
+    The default traversal returns objects with displayValue (atomic/viewer-selectable objects).
+    """
     meshes = []
     
-    def traverse(current):
-        if isinstance(current, Base):
-            # Check for displayValue
-            if hasattr(current, "displayValue"):
-                display = current.displayValue
-                if isinstance(display, list):
-                    meshes.extend(display)
-                else:
-                    meshes.append(display)
-            
-            # Traverse children
-            for name in current.get_member_names():
-                if not name.startswith("_"):
-                    value = getattr(current, name, None)
-                    traverse(value)
-        
-        elif isinstance(current, list):
-            for item in current:
-                traverse(item)
+    traversal = create_default_traversal_function()
     
-    traverse(obj)
+    for context in traversal.traverse(obj):
+        current = context.current
+        if hasattr(current, "displayValue"):
+            display = current.displayValue
+            if isinstance(display, list):
+                meshes.extend(display)
+            else:
+                meshes.append(display)
+    
     return meshes
 
 # Use it
@@ -519,6 +528,43 @@ with open("survey.geojson", "w") as f:
 ## Best Practices
 
 <AccordionGroup>
+  <Accordion title="Use SDK traversal utilities">
+    The SDK provides built-in traversal utilities - use them instead of writing custom traversal:
+    
+    ```python
+    from specklepy.objects.graph_traversal.default_traversal import create_default_traversal_function
+    
+    # Good - use SDK traversal
+    traversal = create_default_traversal_function()
+    for context in traversal.traverse(root):
+        obj = context.current
+        # Process objects...
+    
+    # Avoid - custom traversal
+    def my_traverse(obj):  # Don't reinvent the wheel
+        # ...custom traversal code...
+    ```
+    
+    Benefits: handles edge cases, consistent with SDK patterns, tested and maintained.
+  </Accordion>
+
+  <Accordion title="Traversal: get_member_names() filters automatically">
+    `get_member_names()` already filters out private members (starting with `_`) and methods:
+    
+    ```python
+    # get_member_names() already excludes private members
+    for name in obj.get_member_names():
+        value = getattr(obj, name, None)  # No need to check startswith("_")
+    
+    # Only exclude specific properties you want to skip
+    for name in obj.get_member_names():
+        if name != "displayValue":  # Skip specific property
+            value = getattr(obj, name, None)
+    ```
+    
+    This makes traversal code cleaner and more efficient.
+  </Accordion>
+
   <Accordion title="Always provide properties dictionary">
     Make data queryable by using consistent property names:
     
@@ -677,7 +723,7 @@ Use them for:
     Work with complex BIM and connector data
   </Card>
   
-  <Card title="Traversing Objects" icon="diagram-project" href="/guides/traversing-objects">
+  <Card title="Data Traversal" icon="diagram-project" href="/developers/sdks/python/concepts/data-traversal">
     Learn traversal techniques for any structure
   </Card>
   
