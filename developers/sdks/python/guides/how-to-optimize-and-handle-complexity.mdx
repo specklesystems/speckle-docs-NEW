@@ -1,0 +1,728 @@
+---
+title: "Advanced: Performance and Complex Patterns"
+description: "Learn to optimize searches, build indexes, and handle complex BIM scenarios"
+---
+
+## What You'll Learn
+
+By the end of this guide, you'll understand:
+- ✅ How to build indexes for fast searching in large datasets
+- ✅ When to use indexes vs. direct traversal
+- ✅ How to recognize and handle detached objects
+- ✅ How to access nested Revit parameters efficiently
+
+## Prerequisites
+
+Before starting this guide, you should:
+- Understand [how to traverse and filter objects](/developers/sdks/python/guides/how-to-find-and-extract-data)
+- Be comfortable with Python data structures (dictionaries, sets)
+- Have worked with real-world Speckle projects (1000+ objects)
+
+<Info>
+This guide focuses on **performance optimization** and **complex patterns** for working with large BIM datasets. These patterns are most useful when dealing with projects from connectors like Revit, Rhino, or ArchiCAD.
+</Info>
+
+---
+
+## How do I make searching faster with indexes?
+
+Repeatedly traversing large object trees is slow. If you need to search for multiple categories or properties, traversing the entire tree each time becomes a performance bottleneck.
+
+<Note>
+**Terminology Note:** Examples use property names like "category", "level", etc. for illustration. Real BIM data from connectors may structure these differently - Revit uses both direct properties AND proxy collections (e.g., `LevelProxy`, `CategoryProxy`). See [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) for connector-specific structures.
+</Note>
+
+```python lines icon="python"
+# ❌ Slow: traverses tree 3 times
+walls = find_by_category(root, "Walls")      # Traverse 1
+floors = find_by_category(root, "Floors")    # Traverse 2
+columns = find_by_category(root, "Columns")  # Traverse 3
+```
+
+**Build an index once, then perform fast lookups using GraphTraversal:**
+
+```python lines icon="python" expandable
+from specklepy.objects.graph_traversal.traversal import GraphTraversal
+
+def build_category_index(root):
+    """Build index of objects by category (traverse once)."""
+    traversal = GraphTraversal([])
+    index = {}
+    
+    for context in traversal.traverse(root):
+        obj = context.current
+        
+        # Get category
+        if hasattr(obj, "properties") and obj.properties:
+            category = obj.properties.get("category")
+            if category:
+                # Add to index
+                if category not in index:
+                    index[category] = []
+                index[category].append(obj)
+    
+    return index
+
+# ✅ Fast: traverse once, lookup many times
+index = build_category_index(root)
+walls = index.get("Walls", [])
+floors = index.get("Floors", [])
+columns = index.get("Columns", [])
+
+print(f"Walls: {len(walls)}")
+print(f"Floors: {len(floors)}")
+print(f"Columns: {len(columns)}")
+```
+
+**Indexing pattern:** (1) **Traverse once** - Visit every object in the tree, (2) **Extract key** - Get the property value to index by (e.g., category), (3) **Store reference** - Add object to a dictionary by that key, (4) **Fast lookup** - Use dictionary access (O(1)) instead of tree traversal (O(n)).
+
+**Performance comparison:**
+
+```python lines icon="python"
+# Without index (repeated traversal)
+# Time: O(n * m) where n = objects, m = searches
+for category in ["Walls", "Floors", "Columns", "Beams", "Doors"]:
+    objects = find_by_category(root, category)  # Each search is O(n)
+
+# With index (single traversal)
+# Time: O(n) for indexing + O(1) for each lookup
+index = build_category_index(root)  # O(n) once
+for category in ["Walls", "Floors", "Columns", "Beams", "Doors"]:
+    objects = index.get(category, [])  # O(1) each time
+```
+
+**Multi-property index** - index by multiple properties for complex queries using GraphTraversal:
+
+```python lines icon="python" expandable
+from specklepy.objects.graph_traversal.traversal import GraphTraversal
+
+def build_multi_index(root, *properties):
+    """Build index on multiple property values.
+    
+    Example:
+        index = build_multi_index(root, "category", "level")
+        level_2_walls = index.get(("Walls", "Level 2"), [])
+    """
+    traversal = GraphTraversal([])
+    index = {}
+    
+    def create_key(obj):
+        """Create tuple key from property values."""
+        if not hasattr(obj, "properties"):
+            return None
+        
+        values = tuple(obj.properties.get(prop) for prop in properties)
+        
+        # Only create key if all properties exist
+        return values if all(v is not None for v in values) else None
+    
+    for context in traversal.traverse(root):
+        obj = context.current
+        key = create_key(obj)
+        
+        if key:
+            if key not in index:
+                index[key] = []
+            index[key].append(obj)
+    
+    return index
+
+# Build multi-property index
+index = build_multi_index(root, "category", "level")
+
+# Fast lookups by category AND level
+level_2_walls = index.get(("Walls", "Level 2"), [])
+level_3_floors = index.get(("Floors", "Level 3"), [])
+
+# See all combinations
+print("Available combinations:")
+for key in sorted(index.keys()):
+    count = len(index[key])
+    print(f"  {key}: {count} objects")
+```
+
+**ID-based index** - build indexes by object IDs for fast lookups using GraphTraversal:
+
+```python lines icon="python" expandable
+from specklepy.objects.graph_traversal.traversal import GraphTraversal
+
+def build_id_index(root):
+    """Build index by object ID for fast lookups."""
+    traversal = GraphTraversal([])
+    
+    by_id = {}
+    by_name = {}
+    by_app_id = {}
+    
+    for context in traversal.traverse(root):
+        obj = context.current
+        
+        # Index by Speckle ID (if set)
+        if hasattr(obj, "id") and obj.id:
+            by_id[obj.id] = obj
+        
+        # Index by name
+        if hasattr(obj, "name") and obj.name:
+            if obj.name not in by_name:
+                by_name[obj.name] = []
+            by_name[obj.name].append(obj)
+        
+        # Index by applicationId (common in BIM)
+        if hasattr(obj, "applicationId") and obj.applicationId:
+            by_app_id[obj.applicationId] = obj
+    
+    return {
+        "by_id": by_id,
+        "by_name": by_name,
+        "by_app_id": by_app_id
+    }
+
+# Build comprehensive index
+indexes = build_id_index(root)
+
+# Fast lookups
+obj_by_id = indexes["by_id"].get("abc123def456")
+obj_by_name = indexes["by_name"].get("Wall-101")
+obj_by_app_id = indexes["by_app_id"].get("revit-element-12345")
+```
+
+<Warning>
+**Don't rebuild indexes unnecessarily!** Building an index is expensive (O(n)). Cache the index and reuse it:
+
+```python
+# ❌ Bad - rebuilds index each time
+def get_walls(root):
+    index = build_category_index(root)  # Expensive!
+    return index.get("Walls", [])
+
+def get_floors(root):
+    index = build_category_index(root)  # Expensive again!
+    return index.get("Floors", [])
+
+# ✅ Good - build once, reuse many times
+index = build_category_index(root)  # Build once
+walls = index.get("Walls", [])
+floors = index.get("Floors", [])
+columns = index.get("Columns", [])
+```
+</Warning>
+
+---
+
+## When should I use indexes vs. direct traversal?
+
+You need to decide whether to traverse directly or build an index first. The wrong choice can hurt performance.
+
+**Use direct traversal when:**
+- ✅ Single search on a dataset
+- ✅ Small datasets (<100 objects)
+- ✅ One-time operation
+- ✅ Memory is very limited
+
+```python lines icon="python"
+# Good use of direct traversal
+def find_specific_wall(root, wall_name):
+    """Find one specific wall - no need for index."""
+    for obj in traverse_all(root):
+        if (hasattr(obj, "properties") 
+            and obj.properties.get("category") == "Walls"
+            and getattr(obj, "name", None) == wall_name):
+            return obj
+    return None
+
+# Single search - direct traversal is fine
+wall = find_specific_wall(root, "W-101")
+```
+
+**Use indexes when:**
+- ✅ Multiple searches on the same dataset
+- ✅ Large datasets (1000+ objects)
+- ✅ Repeated lookups by the same property
+- ✅ Performance is critical
+
+```python lines icon="python" expandable
+# Good use of indexing
+def analyze_by_category(root):
+    """Multiple category queries - use index."""
+    
+    # Build index once
+    index = build_category_index(root)
+    
+    # Many lookups (all O(1))
+    walls = index.get("Walls", [])
+    floors = index.get("Floors", [])
+    columns = index.get("Columns", [])
+    beams = index.get("Beams", [])
+    doors = index.get("Doors", [])
+    windows = index.get("Windows", [])
+    
+    # Process results
+    return {
+        "walls": len(walls),
+        "floors": len(floors),
+        "structural": len(columns) + len(beams),
+        "openings": len(doors) + len(windows)
+    }
+```
+
+**Performance example:**
+
+```python lines icon="python" expandable
+import time
+
+# Simulate large dataset
+root = create_large_model(5000)  # 5000 objects
+
+# Measure direct traversal (multiple searches)
+start = time.time()
+walls = find_by_category(root, "Walls")
+floors = find_by_category(root, "Floors")
+columns = find_by_category(root, "Columns")
+beams = find_by_category(root, "Beams")
+direct_time = time.time() - start
+print(f"Direct traversal: {direct_time:.3f}s")
+
+# Measure with index
+start = time.time()
+index = build_category_index(root)
+walls = index.get("Walls", [])
+floors = index.get("Floors", [])
+columns = index.get("Columns", [])
+beams = index.get("Beams", [])
+indexed_time = time.time() - start
+print(f"With index: {indexed_time:.3f}s")
+
+print(f"Speedup: {direct_time / indexed_time:.1f}x faster")
+```
+
+---
+
+## How do I handle detached objects?
+
+Some objects in Speckle are "detached" - stored separately and referenced by ID. You see properties like `@displayValue` instead of the actual object.
+
+**Understand when and why detachment happens:**
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+# Check if property is detached
+def is_detached(obj, property_name):
+    """Check if a property is a detached reference."""
+    return hasattr(obj, f"@{property_name}")
+
+# Example: displayValue might be detached
+if is_detached(obj, "displayValue"):
+    # This is a reference ID (hash string)
+    ref_id = getattr(obj, "@displayValue")
+    print(f"displayValue is detached: {ref_id}")
+    
+    # The actual object is still accessible normally
+    # (resolved during receive())
+    if hasattr(obj, "displayValue"):
+        print("But displayValue is available!")
+        print(f"Type: {type(obj.displayValue)}")
+```
+
+**Why detachment happens:** (1) **Performance** - Large objects (big meshes) are stored separately, (2) **Deduplication** - Same object can be referenced multiple times, (3) **Lazy loading** - Objects loaded only when needed.
+
+**How it's resolved:**
+
+```python lines icon="python"
+from specklepy.api import operations
+from specklepy.transports.server import ServerTransport
+
+# During receive(), references are automatically resolved
+transport = ServerTransport(stream_id=project_id, client=client)
+obj = operations.receive(object_id, remote_transport=transport)
+
+# By the time you access the object, references are resolved
+# You don't need to manually handle @properties in most cases
+
+if hasattr(obj, "displayValue"):
+    # This works - reference was auto-resolved
+    mesh = obj.displayValue
+    print(f"Vertices: {len(mesh.vertices)}")
+```
+
+**Checking for detached properties:**
+
+```python lines icon="python" expandable
+def find_detached_properties(obj):
+    """Find all detached properties on an object."""
+    detached = []
+    
+    for name in dir(obj):
+        if name.startswith("@") and not name.startswith("__"):
+            # This is a detached reference
+            property_name = name[1:]  # Remove @ prefix
+            ref_id = getattr(obj, name)
+            detached.append({
+                "property": property_name,
+                "reference": ref_id,
+                "resolved": hasattr(obj, property_name)
+            })
+    
+    return detached
+
+# Check object
+detached = find_detached_properties(obj)
+for item in detached:
+    print(f"{item['property']}: {item['reference'][:16]}...")
+    print(f"  Resolved: {item['resolved']}")
+```
+
+<Warning>
+**Don't assume all properties are resolved!** In rare cases with custom transports or partial receives, references might not be resolved:
+
+```python
+# ❌ Bad - assumes displayValue is always present
+mesh = obj.displayValue
+vertices = mesh.vertices
+
+# ✅ Good - check before accessing
+if hasattr(obj, "displayValue") and obj.displayValue:
+    mesh = obj.displayValue
+    if hasattr(mesh, "vertices"):
+        vertices = mesh.vertices
+```
+</Warning>
+
+---
+
+## How do I access Revit parameters efficiently?
+
+Revit objects have complex nested parameter structures organized by category. Accessing them efficiently requires understanding this structure.
+
+Access parameters via the properties dictionary:
+
+```python lines icon="python" expandable
+def get_parameter_value(obj, param_name):
+    """Get Revit parameter value by name."""
+    if not hasattr(obj, "properties"):
+        return None
+    
+    # Parameters are in properties["Parameters"]
+    params = obj.properties.get("Parameters")
+    if not params:
+        return None
+    
+    # Parameters are organized by category
+    # Search all categories for the parameter
+    for category_name, category_params in params.items():
+        if isinstance(category_params, dict) and param_name in category_params:
+            param = category_params[param_name]
+            
+            # Parameter might be a dict with "value" key or direct value
+            if isinstance(param, dict):
+                return param.get("value")
+            else:
+                return param
+    
+    return None
+
+# Use it
+wall = walls[0]
+fire_rating = get_parameter_value(wall, "Fire Rating")
+structural = get_parameter_value(wall, "Structural")
+comments = get_parameter_value(wall, "Comments")
+
+print(f"Fire Rating: {fire_rating}")
+print(f"Structural: {structural}")
+print(f"Comments: {comments}")
+```
+
+**Understanding Revit parameter structure:**
+
+```python lines icon="python"
+# Revit parameters are nested like this:
+obj.properties = {
+    "Parameters": {
+        "Constraints": {
+            "Base Constraint": {"value": "Level 1", "units": null},
+            "Top Constraint": {"value": "Level 2", "units": null}
+        },
+        "Dimensions": {
+            "Area": {"value": 25.5, "units": "m²"},
+            "Volume": {"value": 76.5, "units": "m³"}
+        },
+        "Identity Data": {
+            "Comments": {"value": "Load bearing wall", "units": null},
+            "Mark": {"value": "W-101", "units": null}
+        }
+    }
+}
+```
+
+**Extracting all parameters:**
+
+```python lines icon="python" expandable
+def get_all_parameters(obj):
+    """Extract all parameters as flat dictionary."""
+    if not hasattr(obj, "properties"):
+        return {}
+    
+    params = obj.properties.get("Parameters", {})
+    
+    all_params = {}
+    for category_name, category_params in params.items():
+        if isinstance(category_params, dict):
+            for param_name, param_data in category_params.items():
+                # Extract value
+                if isinstance(param_data, dict):
+                    value = param_data.get("value")
+                    units = param_data.get("units")
+                    all_params[param_name] = {
+                        "value": value,
+                        "units": units,
+                        "category": category_name
+                    }
+                else:
+                    all_params[param_name] = {
+                        "value": param_data,
+                        "units": None,
+                        "category": category_name
+                    }
+    
+    return all_params
+
+# Get all parameters
+params = get_all_parameters(wall)
+
+for name, data in params.items():
+    value = data["value"]
+    units = data["units"]
+    print(f"{name}: {value} {units or ''}")
+```
+
+**Building a parameter index using GraphTraversal:**
+
+```python lines icon="python" expandable
+from specklepy.objects.graph_traversal.traversal import GraphTraversal
+
+def build_parameter_index(root):
+    """Build index of all parameter values across all objects."""
+    traversal = GraphTraversal([])
+    index = {}
+    
+    for context in traversal.traverse(root):
+        obj = context.current
+        
+        # Get object info
+        obj_name = getattr(obj, "name", None)
+        obj_id = getattr(obj, "id", None)
+        
+        # Extract parameters
+        if hasattr(obj, "properties"):
+            params = obj.properties.get("Parameters", {})
+            
+            for category_name, category_params in params.items():
+                if isinstance(category_params, dict):
+                    for param_name, param_data in category_params.items():
+                        # Create index entry
+                        if param_name not in index:
+                            index[param_name] = []
+                        
+                        # Extract value
+                        if isinstance(param_data, dict):
+                            value = param_data.get("value")
+                        else:
+                            value = param_data
+                        
+                        # Add to index
+                        index[param_name].append({
+                            "object": obj,
+                            "object_name": obj_name,
+                            "object_id": obj_id,
+                            "value": value
+                        })
+    
+    return index
+
+# Build index
+param_index = build_parameter_index(root)
+
+# Fast queries
+fire_rated_objects = [
+    item for item in param_index.get("Fire Rating", [])
+    if item["value"] and "hour" in str(item["value"])
+]
+
+load_bearing_objects = [
+    item for item in param_index.get("Structural", [])
+    if item["value"] is True
+]
+
+print(f"Fire rated elements: {len(fire_rated_objects)}")
+print(f"Load bearing elements: {len(load_bearing_objects)}")
+```
+
+---
+
+## Practical Examples
+
+### Example 1: Complete Analysis Pipeline
+
+```python lines icon="python" expandable
+from collections import defaultdict
+
+def analyze_project(root):
+    """Complete project analysis with indexes."""
+    
+    print("Building indexes...")
+    
+    # Build multiple indexes
+    category_index = build_category_index(root)
+    param_index = build_parameter_index(root)
+    
+    print("Analyzing by category...")
+    
+    # Category analysis
+    report = {
+        "summary": {},
+        "by_level": defaultdict(lambda: defaultdict(int)),
+        "fire_rated": [],
+        "structural": []
+    }
+    
+    # Count by category
+    for category, objects in category_index.items():
+        report["summary"][category] = len(objects)
+    
+    # Analyze by level
+    level_category_index = build_multi_index(root, "level", "category")
+    for (level, category), objects in level_category_index.items():
+        report["by_level"][level][category] = len(objects)
+    
+    # Fire rated elements
+    fire_ratings = param_index.get("Fire Rating", [])
+    report["fire_rated"] = [
+        item["object_name"] 
+        for item in fire_ratings 
+        if item["value"]
+    ]
+    
+    # Structural elements
+    structural = param_index.get("Structural", [])
+    report["structural"] = [
+        item["object_name"]
+        for item in structural
+        if item["value"] is True
+    ]
+    
+    return report
+
+# Run analysis
+report = analyze_project(root)
+
+# Print results
+print("\n=== PROJECT SUMMARY ===")
+for category, count in sorted(report["summary"].items()):
+    print(f"{category}: {count}")
+
+print("\n=== BY LEVEL ===")
+for level in sorted(report["by_level"].keys()):
+    print(f"\n{level}:")
+    for category, count in report["by_level"][level].items():
+        print(f"  {category}: {count}")
+
+print(f"\n=== FIRE RATED: {len(report['fire_rated'])} elements ===")
+print(f"=== STRUCTURAL: {len(report['structural'])} elements ===")
+```
+
+### Example 2: Export to DataFrame
+
+```python lines icon="python" expandable
+def export_to_dataframe(root):
+    """Export objects to pandas DataFrame for analysis."""
+    import pandas as pd
+    
+    # Build comprehensive index
+    data = []
+    
+    def collect_data(obj):
+        if not isinstance(obj, Base):
+            return
+        
+        # Basic info
+        row = {
+            "name": getattr(obj, "name", None),
+            "id": getattr(obj, "id", None),
+            "speckle_type": getattr(obj, "speckle_type", None)
+        }
+        
+        # Properties
+        if hasattr(obj, "properties") and obj.properties:
+            row["category"] = obj.properties.get("category")
+            row["level"] = obj.properties.get("level")
+            row["material"] = obj.properties.get("material")
+            row["area"] = obj.properties.get("area")
+            row["volume"] = obj.properties.get("volume")
+        
+        # Key parameters
+        if hasattr(obj, "properties"):
+            params = obj.properties.get("Parameters", {})
+            for category_params in params.values():
+                if isinstance(category_params, dict):
+                    row["fire_rating"] = category_params.get("Fire Rating", {}).get("value")
+                    row["structural"] = category_params.get("Structural", {}).get("value")
+        
+        # Has geometry?
+        row["has_geometry"] = hasattr(obj, "displayValue") and obj.displayValue is not None
+        
+        data.append(row)
+        
+        # Recurse
+        for name in obj.get_member_names():
+            value = getattr(obj, name, None)
+            
+            if isinstance(value, Base):
+                collect_data(value)
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, Base):
+                        collect_data(item)
+    
+    collect_data(root)
+    
+    # Create DataFrame
+    df = pd.DataFrame(data)
+    return df
+
+# Export and analyze
+df = export_to_dataframe(root)
+
+# Pandas analysis
+print(df.groupby("category").size())
+print(df.groupby(["level", "category"]).size())
+print(df[df["structural"] == True].groupby("category").size())
+```
+
+---
+
+## Learn More
+
+**Core Concepts:**
+- [Data Traversal](/developers/sdks/python/concepts/data-traversal) - Traversal fundamentals
+- [Objects & Base Class](/developers/sdks/python/concepts/objects) - Deep dive into object system
+
+**Guides:**
+- [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) - Advanced BIM patterns
+- [Intermediate: Finding and Extracting Data](/developers/sdks/python/guides/how-to-find-and-extract-data) - Traversal and filtering
+
+**API Reference:**
+- [Operations](/developers/sdks/python/api-reference/operations) - Send/receive operations
+- [Transports](/developers/sdks/python/api-reference/transports) - Data transport layer
+
+---
+
+## Summary
+
+You've now learned:
+
+- ✅ **Build indexes** for O(1) lookups instead of O(n) traversals
+- ✅ **Choose wisely** between direct traversal and indexing
+- ✅ **Handle detached objects** and understand when they occur
+- ✅ **Access Revit parameters** efficiently through the properties structure
+
+These patterns will help you work efficiently with large, complex BIM datasets in SpecklePy.
