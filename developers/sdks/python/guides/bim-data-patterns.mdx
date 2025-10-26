@@ -35,7 +35,7 @@ print(obj.properties.keys())  # Properties dictionary with BIM metadata
 
 ## Characteristics of BIM Data
 
-### Deep Nesting
+**Deep Nesting**
 
 BIM data often has nested structures with properties and sub-objects:
 
@@ -46,7 +46,7 @@ obj.properties["materials"]["Steel"]["area"]  # Nested material data
 #   └─1st level──┘  └──2nd level──┘  └─3rd─┘
 ```
 
-### Understanding v3 Object Types
+**Understanding v3 Object Types**
 
 In v3, there are **no typed BIM classes** like `Wall` or `Column`. Everything is a generic container:
 
@@ -77,7 +77,7 @@ if "Wall" in obj.speckle_type:  # This won't match anything useful
     pass
 ```
 
-### Reference-Based Architecture
+**Reference-Based Architecture**
 
 Large nested objects are stored separately:
 
@@ -93,7 +93,7 @@ obj["@displayValue"]  # Returns: "hash123abc..."
 
 Revit objects have rich parameter collections organized by category.
 
-### Understanding Revit Parameter Structure
+**Understanding Revit Parameter Structure**
 
 ```python lines icon="python"
 # Typical Revit parameter structure
@@ -132,7 +132,7 @@ Revit objects have rich parameter collections organized by category.
 }
 ```
 
-### Extracting Revit Parameters
+**Extracting Revit Parameters**
 
 ```python lines icon="python"
 from specklepy.objects import Base
@@ -197,7 +197,7 @@ for key, data in params.items():
     print(f"{key}: {value} {units}")
 ```
 
-### Filtering by Parameter Value
+**Filtering by Parameter Value**
 
 ```python lines icon="python"
 def filter_by_parameter(objects, param_name, param_value):
@@ -220,7 +220,7 @@ exterior_walls = filter_by_parameter(walls, "Function", "Exterior")
 print(f"Found {len(exterior_walls)} exterior walls")
 ```
 
-### Converting Parameters to DataFrame
+**Converting Parameters to DataFrame**
 
 ```python lines icon="python"
 import pandas as pd
@@ -267,11 +267,19 @@ for mat_name, totals in material_summary.items():
     print(f"  Used in: {totals['count']} walls")
 ```
 
-## Pattern 3: DisplayValue Proxies
+## Pattern 2: DisplayValue Proxies
 
 Display geometry is often detached for performance.
 
-### Understanding Display Values
+<Note>
+**Deep Dive:** For a comprehensive understanding of display values, including how to create them, best practices, and cross-platform visualization strategies, see [Display Values](/developers/sdks/python/concepts/display-values).
+</Note>
+
+<Note>
+**Proxified Display Values:** In many BIM models, display values are stored as **instance references** that need to be resolved using applicationId lookups. When `displayValue` contains references instead of direct meshes, see [Extracting Display Values and Transform Instances](/developers/sdks/python/guides/working-with-proxies) for the complete workflow on building applicationId indexes and resolving these references.
+</Note>
+
+**Understanding Display Values**
 
 BIM objects (like `DataObject`) have a `displayValue` property containing visualization geometry as a list of `Mesh` objects or other geometry.
 
@@ -297,7 +305,7 @@ if hasattr(wall, "displayValue"):
             print(f"  - {mesh.vertices_count} vertices")
 ```
 
-### Extracting All Display Geometry
+**Extracting All Display Geometry**
 
 ```python lines icon="python"
 from specklepy.objects.geometry import Mesh
@@ -338,7 +346,7 @@ total_vertices = sum(m.vertices_count for m in all_meshes)
 print(f"Total display geometry: {len(all_meshes)} meshes, {total_vertices} vertices")
 ```
 
-### Finding Atomic Displayable Objects
+**Finding Atomic Displayable Objects**
 
 Extract all objects with `displayValue` - these are the atomic, viewer-selectable BIM elements:
 
@@ -398,7 +406,7 @@ for category, count in sorted(by_category.items()):
     print(f"  {category}: {count}")
 ```
 
-### Computing Bounding Box from Display
+**Computing Bounding Box from Display**
 
 ```python lines icon="python"
 from specklepy.objects.geometry import Point
@@ -448,7 +456,7 @@ print(f"Center: ({bbox['center'].x}, {bbox['center'].y}, {bbox['center'].z})")
 
 Rhino objects may include native binary data for Rhino-to-Rhino workflows.
 
-### Understanding EncodedValue
+**Understanding EncodedValue**
 
 ```python lines icon="python"
 # Rhino extrusion with encodedValue
@@ -459,7 +467,7 @@ Rhino objects may include native binary data for Rhino-to-Rhino workflows.
 }
 ```
 
-### Checking for EncodedValue
+**Checking for EncodedValue**
 
 ```python lines icon="python"
 def has_native_rhino_data(obj):
@@ -501,89 +509,69 @@ print(f"Found {len(encoded_objects)} objects with native Rhino data")
 `encodedValue` is primarily for Rhino-to-Rhino workflows. For other platforms, use `displayValue` instead.
 </Info>
 
-## Pattern 4: DataChunk References
+## Pattern 4: Instance and Definition
 
-Large arrays are automatically chunked for performance.
+Complex models use instance/definition patterns for efficiency (like Revit families or Rhino blocks).
 
-### Understanding DataChunks
+<Note>
+**Instance Definitions Location:** Instance definitions are stored in the `instanceDefinitionProxies` collection on the root object, not nested in the hierarchy. You need to build an applicationId index to resolve instance references, similar to how level proxies work (see Pattern 5).
+</Note>
 
-```python lines icon="python"
-# When you receive a mesh, chunks are automatically reassembled
-mesh = operations.receive(mesh_id, remote_transport=transport)
+**Understanding Instances**
 
-# You access the full array as normal
-print(f"Vertices: {len(mesh.vertices)}")  # All vertices available
-print(f"Faces: {len(mesh.faces)}")  # All faces available
-
-# Chunking happens transparently during send/receive
-```
-
-### Detecting Chunked Data
+Instance objects reference their definition by `applicationId`:
 
 ```python lines icon="python"
-def analyze_object_size(obj):
-    """Analyze object size and potential chunking."""
-    info = {
-        "type": obj.speckle_type,
-        "chunked_properties": []
+# Root object has instanceDefinitionProxies
+root.instanceDefinitionProxies = [
+    {
+        "value": {  # The actual definition with geometry
+            "applicationId": "block_def_123",
+            "speckle_type": "Objects.Geometry.Mesh",
+            # ... geometry data
+        }
     }
-    
-    if hasattr(obj, "vertices"):
-        info["vertices_count"] = len(obj.vertices)
-        if len(obj.vertices) > 30000:
-            info["chunked_properties"].append("vertices")
-    
-    if hasattr(obj, "faces"):
-        info["faces_count"] = len(obj.faces)
-        if len(obj.faces) > 60000:
-            info["chunked_properties"].append("faces")
-    
-    return info
+]
 
-# Use it
-mesh_info = analyze_object_size(large_mesh)
-if mesh_info["chunked_properties"]:
-    print(f"Likely chunked: {mesh_info['chunked_properties']}")
-```
-
-## Pattern 5: Instance and Definition
-
-Complex models use instance/definition patterns for efficiency.
-
-### Understanding Instances
-
-```python lines icon="python"
-# Instance pattern (like Revit families or Rhino blocks)
+# Instance objects reference the definition
 {
     "speckle_type": "Objects.Other.Instance",
-    "definition": {...},  # The shared geometry/data
-    "transform": [...],   # Position/rotation/scale matrix
+    "applicationId": "block_def_123",  # References the definition above
+    "transform": [...],  # Position/rotation/scale matrix
 }
 ```
 
-### Extracting Instances and Definitions
+**Extracting Instances and Definitions**
 
 ```python lines icon="python"
-def find_instances_and_definitions(root):
-    """Find all instances and their definitions."""
-    instances = []
+def extract_instance_definitions(root):
+    """Extract instance definitions from instanceDefinitionProxies."""
     definitions = {}
+    
+    # Get instanceDefinitionProxies from root
+    instance_def_proxies = getattr(root, "instanceDefinitionProxies", [])
+    
+    for proxy in instance_def_proxies:
+        if hasattr(proxy, "value"):
+            definition = proxy.value
+            app_id = getattr(definition, "applicationId", None)
+            if app_id:
+                definitions[app_id] = definition
+    
+    return definitions
+
+def find_instances(root):
+    """Find all instance objects in the hierarchy."""
+    instances = []
     
     def traverse(obj):
         if isinstance(obj, Base):
-            # Check if this is an instance
             if obj.speckle_type == "Objects.Other.Instance":
                 instances.append(obj)
-                
-                # Extract definition
-                if hasattr(obj, "definition") and obj.definition:
-                    def_id = getattr(obj.definition, "id", None)
-                    if def_id and def_id not in definitions:
-                        definitions[def_id] = obj.definition
             
             # Traverse children
             for name in obj.get_member_names():
-                if not name.startswith("_"):
+                if name not in ["instanceDefinitionProxies"]:  # Skip proxies
                     value = getattr(obj, name, None)
                     traverse(value)
         
@@ -592,22 +580,24 @@ def find_instances_and_definitions(root):
                 traverse(item)
     
     traverse(root)
-    return instances, definitions
+    return instances
 
 # Use it
-instances, definitions = find_instances_and_definitions(building)
-print(f"Found {len(instances)} instances")
-print(f"Found {len(definitions)} unique definitions")
+definitions = extract_instance_definitions(root)
+instances = find_instances(root)
 
-# Count instances per definition
-from collections import Counter
-def_types = [inst.definition.speckle_type for inst in instances if hasattr(inst, "definition")]
-type_counts = Counter(def_types)
-for def_type, count in type_counts.most_common():
-    print(f"  {def_type}: {count} instances")
+print(f"Found {len(definitions)} unique definitions")
+print(f"Found {len(instances)} instances")
+
+# Match instances to definitions
+for instance in instances[:5]:  # Show first 5
+    app_id = getattr(instance, "applicationId", None)
+    if app_id and app_id in definitions:
+        definition = definitions[app_id]
+        print(f"Instance {instance.id} uses definition: {definition.speckle_type}")
 ```
 
-## Pattern 7: Level and Location Data with Proxy Collections
+## Pattern 5: Level and Location Data with Proxy Collections
 
 BIM models use **proxy collections** at the root level to organize objects by levels, colors, groups, and materials. Understanding this pattern is essential for working with BIM hierarchies.
 
@@ -636,7 +626,7 @@ This models real-world CAD/BIM organization where groups, layers, levels, and bl
 This is a **two-step lookup process**, not direct nesting!
 </Info>
 
-### Understanding Proxy Collections
+**Understanding Proxy Collections**
 
 Proxy collections are stored as **properties at the root object level**:
 
@@ -648,7 +638,7 @@ Proxy collections are stored as **properties at the root object level**:
 
 **Key Concept:** These are **reference collections**, not nested hierarchies. They contain lists of `applicationId` strings that point to objects in the `elements[]` hierarchy.
 
-### LevelProxy Structure
+**LevelProxy Structure**
 
 ```python lines icon="python"
 from specklepy.objects.proxies import LevelProxy
@@ -672,7 +662,7 @@ for level_proxy in level_proxies:
     print(level_proxy.applicationId)  # "level-guid"
 ```
 
-### Finding LevelProxy Collections at Root
+**Finding LevelProxy Collections at Root**
 
 ```python lines icon="python"
 from specklepy.objects.proxies import LevelProxy
@@ -703,7 +693,7 @@ for level in level_proxies:
     print(f"{level_name}: {object_count} objects at {elevation}m")
 ```
 
-### Resolving Objects by applicationId
+**Resolving Objects by applicationId**
 
 The challenge: LevelProxy contains `applicationId` strings, but you need to find the actual objects in the `elements[]` hierarchy.
 
@@ -754,7 +744,7 @@ if app_id in app_id_index:
     print(f"Found: {obj.name}")
 ```
 
-### Grouping Objects by Level
+**Grouping Objects by Level**
 
 Combine proxy collections with applicationId index to organize objects:
 
@@ -804,7 +794,7 @@ for level_name, objects in levels.items():
         print(f"  {category}: {count}")
 ```
 
-### Complete Proxy Pattern Helper
+**Complete Proxy Pattern Helper**
 
 A comprehensive helper for working with all proxy types:
 
@@ -868,7 +858,7 @@ for level_proxy in proxies["levels"]:
     print(f"  {level_name}: {len(level_proxy.objects)} objects")
 ```
 
-### Finding an Object's Level
+**Finding an Object's Level**
 
 To find which level an object belongs to, you need to **reverse lookup** from the proxy collections:
 
@@ -897,6 +887,198 @@ def find_object_level(root, target_obj):
 wall = walls[0]  # Some wall object
 level_name = find_object_level(root, wall)
 print(f"Wall is on: {level_name}")
+```
+
+## Pattern 6: Material Quantities
+
+Revit objects can contain detailed material quantity takeoffs stored in `properties["Material Quantities"]`. These quantities exist **only on individual objects** - there is no pre-aggregated total at the model level. To get project-wide material totals, you need to traverse all objects and aggregate their material quantities.
+
+**Understanding Material Quantities**
+
+Each object with materials contains a `Material Quantities` dictionary with material breakdowns:
+
+```python lines icon="python"
+# Material Quantities structure in properties
+obj.properties["Material Quantities"] = {
+    "Cherry": {
+        "area": {
+            "name": "area",
+            "units": "Square metres",
+            "value": 2.68134846000001
+        },
+        "volume": {
+            "name": "volume",
+            "units": "Cubic metres",
+            "value": 0.04764924341099971
+        },
+        "density": {
+            "name": "density",
+            "units": "Kilograms per cubic metre",
+            "value": 544
+        },
+        "materialName": "Cherry",
+        "materialType": "Wood",
+        "materialClass": "Wood",
+        "structuralAsset": "Cherry",
+        "materialCategory": "Wood"
+    },
+    "Steel, Chrome Plated": {
+        # ... similar structure
+    }
+}
+```
+
+**Extracting Material Quantities from Individual Objects**
+
+```python lines icon="python"
+def extract_material_quantities(obj):
+    """Extract material quantities from a single object's properties."""
+    if not hasattr(obj, "properties") or not isinstance(obj.properties, dict):
+        return {}
+    
+    return obj.properties.get("Material Quantities", {})
+
+# Use it on a single object
+desk = objects[0]
+mat_quantities = extract_material_quantities(desk)
+
+print(f"Materials in {desk.name}:")
+for material_name, mat_data in mat_quantities.items():
+    volume = mat_data.get("volume", {}).get("value", 0)
+    units = mat_data.get("volume", {}).get("units", "m³")
+    print(f"  {material_name}: {volume} {units}")
+```
+
+**Aggregating Model-Wide Material Totals**
+
+To get total material quantities across the entire model version, traverse all objects and aggregate:
+
+```python lines icon="python"
+from specklepy.api import operations
+from specklepy.transports.server import ServerTransport
+from specklepy.objects.graph_traversal.default_traversal import create_default_traversal_function
+
+def collect_all_objects_with_materials(root):
+    """Traverse and collect all objects that have Material Quantities."""
+    objects_with_materials = []
+    traversal = create_default_traversal_function()
+    
+    for context in traversal.traverse(root):
+        obj = context.current
+        if hasattr(obj, "properties") and isinstance(obj.properties, dict):
+            if "Material Quantities" in obj.properties:
+                objects_with_materials.append(obj)
+    
+    return objects_with_materials
+
+# Receive the model version
+root = operations.receive(version_object_id, remote_transport=transport)
+
+# Collect all objects with materials
+objects_with_materials = collect_all_objects_with_materials(root)
+print(f"Found {len(objects_with_materials)} objects with material quantities")
+
+def aggregate_materials_by_type(objects):
+    """Aggregate material quantities across multiple objects."""
+    material_totals = {}
+    
+    for obj in objects:
+        mat_quantities = extract_material_quantities(obj)
+        
+        for material_name, mat_data in mat_quantities.items():
+            if material_name not in material_totals:
+                material_totals[material_name] = {
+                    "total_area": 0,
+                    "total_volume": 0,
+                    "count": 0,
+                    "type": mat_data.get("materialType", "Unknown"),
+                    "category": mat_data.get("materialCategory", "Unknown"),
+                    "density": mat_data.get("density", {}).get("value", 0)
+                }
+            
+            # Aggregate area
+            if "area" in mat_data and "value" in mat_data["area"]:
+                material_totals[material_name]["total_area"] += mat_data["area"]["value"]
+            
+            # Aggregate volume
+            if "volume" in mat_data and "value" in mat_data["volume"]:
+                material_totals[material_name]["total_volume"] += mat_data["volume"]["value"]
+            
+            material_totals[material_name]["count"] += 1
+    
+    return material_totals
+
+# Use it
+all_objects = []
+# ... collect objects from traversal
+
+materials = aggregate_materials_by_type(all_objects)
+
+print("Material Takeoff Summary:")
+for material, data in sorted(materials.items()):
+    print(f"
+{material} ({data['type']}):")
+    print(f"  Total Area: {data['total_area']:.2f} m²")
+    print(f"  Total Volume: {data['total_volume']:.4f} m³")
+    print(f"  Used in: {data['count']} elements")
+    if data['density'] > 0:
+        weight = data['total_volume'] * data['density']
+        print(f"  Estimated Weight: {weight:.2f} kg")
+```
+
+**Converting to DataFrame for Analysis**
+
+```python lines icon="python"
+import pandas as pd
+
+def materials_to_dataframe(objects):
+    """Convert material quantities to a detailed DataFrame."""
+    rows = []
+    
+    for obj in objects:
+        obj_name = getattr(obj, "name", "Unknown")
+        obj_id = getattr(obj, "id", "")
+        mat_quantities = extract_material_quantities(obj)
+        
+        for material_name, mat_data in mat_quantities.items():
+            row = {
+                "object_name": obj_name,
+                "object_id": obj_id,
+                "material_name": material_name,
+                "material_type": mat_data.get("materialType", ""),
+                "material_category": mat_data.get("materialCategory", ""),
+                "area_m2": mat_data.get("area", {}).get("value", 0),
+                "volume_m3": mat_data.get("volume", {}).get("value", 0),
+                "density_kg_m3": mat_data.get("density", {}).get("value", 0),
+            }
+            
+            # Calculate weight if density is available
+            if row["density_kg_m3"] > 0:
+                row["weight_kg"] = row["volume_m3"] * row["density_kg_m3"]
+            else:
+                row["weight_kg"] = 0
+            
+            rows.append(row)
+    
+    return pd.DataFrame(rows)
+
+# Use it
+df = materials_to_dataframe(all_objects)
+
+# Analyze by material type
+print("
+Material Summary by Type:")
+summary = df.groupby("material_type").agg({
+    "area_m2": "sum",
+    "volume_m3": "sum",
+    "weight_kg": "sum",
+    "object_id": "count"
+}).rename(columns={"object_id": "element_count"})
+
+print(summary)
+
+# Export for further analysis
+df.to_csv("material_quantities.csv", index=False)
 ```
 
 ## Complete Example: BIM Building Analysis
@@ -1157,19 +1339,19 @@ These patterns work across Revit, Rhino, ArchiCAD, and other BIM tools.
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Traversing Objects" icon="diagram-project" href="/guides/traversing-objects">
+  <Card title="Display Values" icon="eye" href="/developers/sdks/python/concepts/display-values">
+    Deep dive into display values and cross-platform visualization
+  </Card>
+
+  <Card title="Extracting Display Values" icon="cube" href="/developers/sdks/python/guides/working-with-proxies">
+    How to extract geometry from proxified display values and instances
+  </Card>
+
+  <Card title="Data Traversal" icon="diagram-project" href="/developers/sdks/python/concepts/data-traversal">
     Advanced traversal techniques for any structure
   </Card>
   
-  <Card title="Simple Data Patterns" icon="shapes" href="/guides/simple-data-patterns">
+  <Card title="Simple Data Patterns" icon="shapes" href="/developers/sdks/python/guides/simple-data-patterns">
     Working with simpler data structures
-  </Card>
-  
-  <Card title="Data Types" icon="table" href="/concepts/data-types">
-    Understanding the three types of data
-  </Card>
-  
-  <Card title="Objects & Base" icon="cube" href="/concepts/objects">
-    Deep dive into the Base class
   </Card>
 </CardGroup>
