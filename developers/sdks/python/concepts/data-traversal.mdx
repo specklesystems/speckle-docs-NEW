@@ -1,11 +1,22 @@
 ---
-title: "Traversing Objects"
-description: "Techniques for navigating and extracting data from Speckle object graphs"
+title: "Data Traversal"
+description: "Understanding how to navigate and extract data from Speckle's object graphs"
 ---
 
 ## Overview
 
-Speckle objects form hierarchical graphs - tree-like structures where objects contain other objects, arrays of objects, and references to objects stored elsewhere. Traversing these graphs effectively is essential for extracting data, finding specific objects, and building analysis pipelines.
+**Data traversal** is the systematic process of navigating Speckle's object graphs to extract data, find specific objects, and preserve hierarchical context. Understanding traversal is fundamental to working with Speckle data effectively.
+
+<Info>
+**Prerequisites:** This guide assumes familiarity with the [Base class](/developers/sdks/python/concepts/objects) and [data types](/developers/sdks/python/concepts/data-types). If you're new to Speckle objects, start with those concepts first.
+</Info>
+
+Speckle objects form hierarchical graphs - tree-like structures where objects contain other objects, arrays of objects, and references to objects stored elsewhere. Unlike simple flat lists, these graphs require strategic navigation to:
+
+- Extract all objects of a specific type (e.g., all walls, all meshes)
+- Preserve parent-child relationships and organizational context
+- Filter data based on properties or structure
+- Build analysis pipelines that understand object hierarchies
 
 **Key Concepts:**
 
@@ -99,7 +110,70 @@ Different data structures require different traversal strategies:
 
 ## Traversal Strategies Explained
 
-### Strategy 1: Full Recursive Traversal
+<Info>
+**For v3 Data:** The most effective strategies are **Property-Filtered**, **displayValue-Based**, and **elements[] Hierarchy** traversal. Type-filtered traversal using `speckle_type` is primarily useful for geometry primitives (Mesh, Point, Line) but not for BIM objects, which are now generic `DataObject` instances with semantics in their properties.
+</Info>
+
+### Strategy 1: Property-Filtered Traversal ⭐ Recommended for v3
+
+**When to use:** Working with BIM data from connectors (Revit, Rhino, ArchiCAD, etc.).
+
+**How it works:**
+- Traverse recursively
+- Check if object has a `properties` dictionary
+- Filter based on property values (e.g., `category == "Walls"`)
+- Collect matching objects
+
+**Best for:**
+- v3 BIM objects (DataObject)
+- Finding objects by category, family, type
+- Filtering by quantities or metadata
+- Most common pattern for modern Speckle data
+
+**Example use cases:**
+- "Find all walls" → filter by `properties.category == "Walls"`
+- "Get steel beams" → filter by `properties.category == "Structural Framing"` AND `properties.material == "Steel"`
+- "Objects on Level 1" → filter by `properties.level == "Level 1"`
+
+### Strategy 2: displayValue-Based Traversal ⭐ Recommended for v3
+
+**When to use:** You only want atomic, viewer-selectable objects.
+
+**How it works:**
+- Traverse recursively
+- Collect only objects with a `displayValue` property
+- These are the objects that appear as selectable items in the viewer
+
+**Best for:**
+- Getting viewer-clickable objects
+- Counting actual BIM elements (not containers/groups)
+- Extracting geometry for visualization
+- Distinguishing atomic objects from organizational containers
+
+**Key insight:** Objects without displayValue are typically containers, not atomic elements.
+
+### Strategy 3: elements[] Hierarchy Traversal
+
+**When to use:** Objects are organized in a logical hierarchy using `elements[]` arrays.
+
+<Info>
+The `elements` property is Speckle's standardized convention for organizing hierarchical data. See [The elements Convention](/developers/sdks/python/concepts/data-types#the-elements-convention) for a detailed explanation of this pattern.
+</Info>
+
+**How it works:**
+- Check if object has an `elements` property (list)
+- Recursively traverse only the elements array
+- Optionally filter during traversal
+- Ignores other properties
+
+**Best for:**
+- Collections and Groups
+- Organized BIM hierarchies (Level → Room → Elements)
+- When you only care about the logical organization, not nested geometry
+
+**Advantage:** Faster than full traversal, follows intentional structure
+
+### Strategy 4: Full Recursive Traversal
 
 **When to use:** You need to visit EVERY object in the graph, regardless of type or depth.
 
@@ -116,9 +190,9 @@ Different data structures require different traversal strategies:
 
 **Cost:** Slowest, visits everything
 
-### Strategy 2: Type-Filtered Traversal
+### Strategy 5: Type-Filtered Traversal (Limited Use in v3)
 
-**When to use:** You're looking for specific object types (e.g., all Mesh, all Point objects).
+**When to use:** Looking for geometry primitives (Mesh, Point, Line, etc.).
 
 **How it works:**
 - Traverse recursively
@@ -127,72 +201,35 @@ Different data structures require different traversal strategies:
 - Continue traversing to find all instances
 
 **Best for:**
-- Finding geometry objects (Mesh, Line, Point, etc.)
-- v2 objects with typed classes
-- Objects with unique speckle_type values
+- Finding geometry objects (Mesh, Line, Point, Arc, Circle, etc.)
+- Pure geometry workflows
+- Legacy v2 objects with typed BIM classes
 
-**Limitation:** In v3, most BIM objects are `DataObject` with the same speckle_type, so this doesn't help differentiate walls from columns.
-
-### Strategy 3: Property-Filtered Traversal
-
-**When to use:** You're looking for objects based on their properties (v3 BIM pattern).
-
-**How it works:**
-- Traverse recursively
-- Check if object has a `properties` dictionary
-- Filter based on property values (e.g., `category == "Walls"`)
-- Collect matching objects
-
-**Best for:**
-- v3 BIM objects (DataObject)
-- Finding objects by category, family, type
-- Filtering by quantities or metadata
-
-**Cost:** Must check properties on every object, slower than type filtering
-
-### Strategy 4: elements[] Hierarchy Traversal
-
-**When to use:** Objects are organized in a logical hierarchy using `elements[]` arrays.
-
-**How it works:**
-- Check if object has an `elements` property (list)
-- Recursively traverse only the elements array
-- Optionally filter during traversal
-- Ignores other properties
-
-**Best for:**
-- Collections and Groups
-- Organized BIM hierarchies (Level → Room → Elements)
-- When you only care about the logical organization, not nested geometry
-
-**Advantage:** Faster than full traversal, follows intentional structure
-
-### Strategy 5: displayValue-Based Traversal
-
-**When to use:** You only want atomic, viewer-selectable objects.
-
-**How it works:**
-- Traverse recursively
-- Collect only objects with a `displayValue` property
-- These are the objects that appear as selectable items in the viewer
-
-**Best for:**
-- Getting viewer-clickable objects
-- Counting actual BIM elements (not containers/groups)
-- Extracting geometry for visualization
-
-**Key insight:** Objects without displayValue are typically containers, not atomic elements.
+<Warning>
+**Limited Use in v3 BIM Data:** Most BIM objects from connectors are now `DataObject` instances with `speckle_type = "Objects.Data.DataObject"`. Filtering by this type returns ALL BIM objects without differentiation. For BIM data, use **Property-Filtered Traversal (Strategy 1)** instead to filter by category, family, type, etc.
+</Warning>
 
 ## Choosing the Right Pattern
 
-Use this decision tree:
+Use this decision tree for v3 data:
 
 ```
-Do you know the exact structure?
-├─ YES → Use direct property access (fastest)
+Working with BIM data from connectors?
+├─ YES → Use Property-Filtered Traversal (Strategy 1)
+│        Filter by: category, family, type, level, material, etc.
 └─ NO → Continue...
 
-Are you looking for geometry objects (Mesh, Point, Line)?
+Need only viewer-visible objects?
+├─ YES → Use displayValue-Based Traversal (Strategy 2)
+│        Gets atomic, selectable objects
+└─ NO → Continue...
+
+Following organizational hierarchy (Collections, Groups)?
+├─ YES → Use elements[] Hierarchy Traversal (Strategy 3)
+│        Faster, follows intentional structure
+└─ NO → Continue...
+
+Looking for geometry primitives (Mesh, Point, Line)?
 ├─ YES → Use type-filtered traversal (Pattern 1)
 └─ NO → Continue...
 
@@ -316,109 +353,21 @@ walls = find_all(obj, lambda x: isinstance(x, DataObject) and x.properties.get("
 print(f"Found {len(walls)} walls")
 ```
 
-## Pattern 1: Find by Type
+## Pattern 1: Find by Property ⭐ Primary Pattern for v3
 
-**Purpose:** Search for objects with a specific `speckle_type` string.
+**Purpose:** Search for objects based on their properties (the standard v3 pattern).
 
 **When to use:** 
-- Looking for geometry objects (Mesh, Point, Line, Arc, Circle, etc.)
-- Need to find all instances of a specific object class
-- Working with v2 data that has typed BIM classes
-
-**When NOT to use:**
-- v3 BIM objects (all are `DataObject` with the same speckle_type)
-- Need to differentiate walls from columns (use Pattern 2 instead)
-
-<Warning>
-In v3, most BIM objects are `DataObject` instances with `speckle_type = "Objects.Data.DataObject"`. Filtering by this type isn't useful - it returns ALL BIM objects. Instead, filter by **properties** (see Pattern 2) or use **isinstance** checks with category filtering.
-</Warning>
+- Working with BIM data from any connector (Revit, Rhino, ArchiCAD, etc.)
+- Need to find objects by category, family, type, level, material
+- Filtering by quantities, parameters, or metadata
+- **This is the primary pattern for modern Speckle data**
 
 **How it works:**
 1. Recursively traverse all objects
-2. Check `obj.speckle_type` against target type
-3. Collect matches
-4. Continue traversing to find all instances
-
-```python lines icon="python"
-from specklepy.objects import Base
-
-def find_by_type(root, target_type):
-    """Find all objects with a specific speckle_type."""
-    results = []
-    
-    def traverse(obj):
-        if isinstance(obj, Base):
-            if obj.speckle_type == target_type:
-                results.append(obj)
-            
-            for name in obj.get_member_names():
-                if not name.startswith("_"):
-                    value = getattr(obj, name, None)
-                    traverse(value)
-        
-        elif isinstance(obj, list):
-            for item in obj:
-                traverse(item)
-        
-        elif isinstance(obj, dict):
-            for value in obj.values():
-                traverse(value)
-    
-    traverse(root)
-    return results
-
-# Use it
-points = find_by_type(obj, "Objects.Geometry.Point")
-lines = find_by_type(obj, "Objects.Geometry.Line")
-meshes = find_by_type(obj, "Objects.Geometry.Mesh")
-
-print(f"Points: {len(points)}")
-print(f"Lines: {len(lines)}")
-print(f"Meshes: {len(meshes)}")
-
-# Note: For BIM objects (DataObject), use property filtering instead
-# This won't work in v3:
-# data_objects = find_by_type(obj, "Objects.Data.DataObject")  # Returns ALL BIM objects!
-```
-
-### Wildcard Type Matching
-
-Match type patterns (useful for Geometry types):
-
-```python lines icon="python"
-def find_by_type_pattern(root, pattern):
-    """Find objects with speckle_type containing pattern."""
-    results = []
-    
-    def traverse(obj):
-        if isinstance(obj, Base):
-            if pattern in obj.speckle_type:
-                results.append(obj)
-            
-            for name in obj.get_member_names():
-                if not name.startswith("_"):
-                    value = getattr(obj, name, None)
-                    traverse(value)
-        
-        elif isinstance(obj, list):
-            for item in obj:
-                traverse(item)
-    
-    traverse(root)
-    return results
-
-# Use it for geometry types
-all_geometry = find_by_type_pattern(obj, "Objects.Geometry")
-all_curves = find_by_type_pattern(obj, "Curve")  # Matches Arc, Circle, Curve, etc.
-
-# Note: This won't help with v3 BIM objects - they're all "Objects.Data.DataObject"
-# Use property-based filtering for BIM objects (see Pattern 2)
-
-print(f"Geometry objects: {len(all_geometry)}")
-print(f"Curve types: {len(all_curves)}")
-```
-
-## Pattern 2: Find by Property
+2. Check if object has `properties` dictionary
+3. Filter based on property values
+4. Collect matches
 
 **Purpose:** Find objects based on their properties dictionary values (v3 BIM pattern).
 
@@ -488,6 +437,65 @@ print(f"Exterior walls: {len(exterior_walls)}")
 print(f"Objects with volume: {len(all_with_volume)}")
 ```
 
+## Pattern 2: Find by Type (Geometry Only)
+
+**Purpose:** Search for geometry primitives by `speckle_type`.
+
+**When to use:** 
+- Looking for geometry objects (Mesh, Point, Line, Arc, Circle, etc.)
+- Pure geometry workflows without BIM semantics
+- Need to find all instances of a specific geometry class
+
+**When NOT to use:**
+- ❌ BIM data from connectors (use Pattern 1 - Find by Property instead)
+- ❌ Need to differentiate walls from columns (use properties)
+- ❌ Any data where semantics are in the properties dictionary
+
+<Warning>
+**Limited Use for BIM Data:** In v3, BIM objects are `DataObject` instances with `speckle_type = "Objects.Data.DataObject"`. All walls, columns, beams, etc. have the same type. To find specific BIM elements, use **Pattern 1 (Find by Property)** to filter by `category`, `family`, `type`, etc.
+</Warning>
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+def find_by_type(root, target_type):
+    """Find all objects with a specific speckle_type (for geometry objects)."""
+    results = []
+    
+    def traverse(obj):
+        if isinstance(obj, Base):
+            if obj.speckle_type == target_type:
+                results.append(obj)
+            
+            for name in obj.get_member_names():
+                if not name.startswith("_"):
+                    value = getattr(obj, name, None)
+                    traverse(value)
+        
+        elif isinstance(obj, list):
+            for item in obj:
+                traverse(item)
+        
+        elif isinstance(obj, dict):
+            for value in obj.values():
+                traverse(value)
+    
+    traverse(root)
+    return results
+
+# Good use cases - geometry primitives
+points = find_by_type(obj, "Objects.Geometry.Point")
+meshes = find_by_type(obj, "Objects.Geometry.Mesh")
+lines = find_by_type(obj, "Objects.Geometry.Line")
+
+print(f"Found {len(points)} points, {len(meshes)} meshes, {len(lines)} lines")
+
+# ❌ Won't work for BIM data:
+# data_objects = find_by_type(obj, "Objects.Data.DataObject")  
+# # Returns ALL BIM objects - walls, columns, beams, everything!
+# # Use Pattern 1 (find_by_property) instead
+```
+
 ## Pattern 3: Build Flat List
 
 **Purpose:** Convert hierarchical object graphs into flat lists for easier processing.
@@ -520,14 +528,16 @@ from specklepy.objects import Base
 from specklepy.objects.geometry import Mesh
 from specklepy.objects.data_objects import DataObject
 
-def flatten_by_type(root, target_type):
-    """Build a flat list of objects of specific type (for Geometry objects)."""
+def flatten_by_category(root, category_name):
+    """Build a flat list of BIM objects by category (v3 pattern)."""
     results = []
     
     def traverse(obj):
         if isinstance(obj, Base):
-            if obj.speckle_type == target_type:
-                results.append(obj)
+            # Check properties for category (v3 pattern)
+            if hasattr(obj, "properties") and isinstance(obj.properties, dict):
+                if obj.properties.get("category") == category_name:
+                    results.append(obj)
             
             # Continue traversing even after match
             for name in obj.get_member_names():
@@ -546,7 +556,36 @@ def flatten_by_type(root, target_type):
     traverse(root)
     return results
 
-def flatten_data_objects_by_category(root, category):
+# For geometry primitives, use isinstance checks
+def flatten_geometry(root, geometry_class):
+    """Build a flat list of geometry objects by class."""
+    results = []
+    
+    def traverse(obj):
+        if isinstance(obj, geometry_class):
+            results.append(obj)
+        elif isinstance(obj, Base):
+            for name in obj.get_member_names():
+                if not name.startswith("_"):
+                    value = getattr(obj, name, None)
+                    traverse(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                traverse(item)
+    
+    traverse(root)
+    return results
+
+# Use it
+from specklepy.objects.geometry import Mesh, Point
+meshes = flatten_geometry(obj, Mesh)
+points = flatten_geometry(obj, Point)
+```
+
+**Alternative: Property-based flattening (most flexible)**
+
+```python lines icon="python"
+def flatten_by_properties(root, **filters):
     """Build a flat list of DataObjects by category (for v3 BIM objects)."""
     results = []
     
@@ -1179,8 +1218,8 @@ print("\n=== Object Inventory ===")
 for obj_type, count in counts.most_common(10):
     print(f"{obj_type}: {count}")
 
-# 3. Find all walls
-walls = find_by_type_pattern(building, "Wall")
+# 3. Find all walls (v3 pattern - by property)
+walls = find_by_property(building, "category", "Walls")
 print(f"\n=== Walls ===")
 print(f"Total walls: {len(walls)}")
 
@@ -1256,12 +1295,12 @@ print("\n✓ Analysis exported to building_analysis.csv")
     Limit traversal scope when possible:
     
     ```python
-    # Good - focused search
-    walls = find_by_type_pattern(obj, "Wall")
+    # Good - focused property search (v3 pattern)
+    walls = find_by_property(obj, "category", "Walls")
     
-    # Less good - searches everything
+    # Less good - searches everything then filters
     all_objects = find_all(obj, lambda x: True)
-    walls = [o for o in all_objects if "Wall" in o.speckle_type]
+    walls = [o for o in all_objects if hasattr(o, "properties") and o.properties.get("category") == "Walls"]
     ```
   </Accordion>
 </AccordionGroup>
