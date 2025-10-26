@@ -259,27 +259,186 @@ else:
 
 **Best for:** BIM workflows, detailed analysis, cross-application exchange
 
-## Mixing Types
+## Collections and Hierarchy
 
-Real-world data often mixes types:
+### The `elements` Convention
+
+Speckle uses a standardized convention for organizing hierarchical data: the **`elements`** property. This property has a special meaning and is the predictable way to traverse object hierarchies.
+
+**Key Concepts:**
+
+- **Atomic Objects** - Objects that represent actual "things" (walls, beams, points, etc.)
+- **Property Objects** - Objects stored as properties for reference (materials, styles, etc.)
+- **Container Objects** - Objects that organize other objects via `elements`
 
 ```python lines icon="python"
-# A collection might contain all three types
+from specklepy.objects.models.collections import Collection
+from specklepy.objects.geometry import Point, Line
+
+# elements holds the hierarchy of atomic objects
+layer = Collection(name="Site Points")
+layer.elements = [
+    Point(x=0, y=0, z=0),
+    Point(x=10, y=0, z=0),
+    Point(x=10, y=10, z=0)
+]
+
+# Nested collections create hierarchy
+project = Collection(name="Project")
+project.elements = [
+    layer,  # Nested collection
+    Line(start=Point(x=0, y=0, z=0), end=Point(x=100, y=0, z=0))
+]
+```
+
+<Info>
+**Why `elements`?** 
+
+While *any* property can technically contain Speckle objects, `elements` is the internal convention for managing hierarchy in a predictable way. This allows traversal code, connectors, and the viewer to consistently understand object relationships.
+
+Some typed properties also expect arrays of objects (like `displayValue`), but these serve different purposes - `displayValue` is for visualization, while `elements` is for logical hierarchy.
+</Info>
+
+### Collections
+
+The `Collection` class formalizes this pattern:
+
+```python lines icon="python"
+from specklepy.objects.models.collections import Collection
+
+# Collections represent organizational units
+# Examples: Layers (Rhino/AutoCAD), Collections (Blender), Categories (Revit)
+structural = Collection(
+    name="Structural",
+    applicationId="unique-id-123"  # Unique identifier
+)
+
+# Add elements to the collection
+structural.elements = [
+    column1,
+    column2,
+    beam1,
+    beam2
+]
+
+# Nest collections for deeper hierarchy
+building = Collection(name="Building")
+building.elements = [
+    structural,  # Nested collection
+    architectural,  # Another nested collection
+    mep  # Another nested collection
+]
+```
+
+**Collection Properties:**
+
+- `name` - Human-readable name (not necessarily unique)
+- `elements` - List of contained objects (can include nested Collections)
+- `applicationId` - Unique identifier for the collection
+- `speckle_type` - `"Speckle.Core.Models.Collections.Collection"`
+
+<Note>
+Collections map to familiar organizational structures:
+- **Rhino/AutoCAD** - Layers
+- **Blender** - Collections
+- **Revit** - Categories or Worksets
+- **Custom** - Any logical grouping you define
+</Note>
+
+### Atomic vs Property Objects
+
+Understanding the difference helps you structure data correctly:
+
+**Atomic Objects** (stored in `elements`):
+- Represent actual entities in your model
+- Should be traversed when processing the model
+- Examples: walls, beams, points, meshes, equipment
+
+**Property Objects** (stored as typed properties):
+- Referenced by atomic objects
+- Provide metadata or configuration
+- Examples: materials, render properties, styles, definitions
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.other import RenderMaterial
+from specklepy.objects.geometry import Mesh
+
+# Material is a property object (not in elements)
+steel_material = RenderMaterial(
+    name="Steel",
+    diffuse=0xFF808080,
+    metalness=0.9
+)
+
+# Beam is an atomic object (goes in elements)
+beam = Base()
+beam.name = "Beam-001"
+beam.geometry = Mesh(...)
+beam.material = steel_material  # Reference as property
+
+# Collection holds atomic objects
+structure = Collection(name="Structure")
+structure.elements = [beam]  # Atomic object in elements
+# structure.elements does NOT contain steel_material
+```
+
+### Traversing with `elements`
+
+The `elements` convention enables predictable traversal:
+
+```python lines icon="python"
+def traverse_elements(obj, depth=0):
+    """Traverse object hierarchy using elements convention"""
+    indent = "  " * depth
+    print(f"{indent}{obj.speckle_type}: {getattr(obj, 'name', 'unnamed')}")
+    
+    # Check for elements property
+    if hasattr(obj, "elements"):
+        for element in obj.elements:
+            traverse_elements(element, depth + 1)
+
+# Works consistently across all data types
+project = operations.receive(object_id, remote_transport=transport)
+traverse_elements(project)
+```
+
+<Warning>
+**Not all objects use `elements`**
+
+Simple geometry objects (Point, Line, Mesh) typically don't have `elements` - they are leaf nodes. Always check `hasattr(obj, "elements")` before accessing it.
+</Warning>
+
+## Mixing Types
+
+Real-world data often mixes types, organized using the `elements` convention:
+
+```python lines icon="python"
 from specklepy.api import operations
+from specklepy.objects.models.collections import Collection
 
 obj = operations.receive(object_id, remote_transport=transport)
 
-# Root might be custom
-print(f"Project: {obj.name}")  # Custom property
+# Root might be a Collection
+print(f"Project: {obj.name}")
 
-# Some children are simple geometry
-for geom in obj.geometry:
-    print(f"Simple: {geom.speckle_type}")
-
-# Others are complex BIM data objects
+# Iterate through elements (the standard way)
 for element in obj.elements:
-    if hasattr(element, "properties"):
-        print(f"BIM: {element.name}")
+    print(f"Element: {element.speckle_type}")
+    
+    # Some might be simple geometry
+    if element.speckle_type.startswith("Objects.Geometry"):
+        print(f"  Simple geometry: {element}")
+    
+    # Some might be complex BIM objects
+    elif hasattr(element, "properties"):
+        print(f"  BIM object with properties")
+    
+    # Some might be nested Collections
+    elif isinstance(element, Collection):
+        print(f"  Nested collection: {element.name}")
+        for child in element.elements:
+            print(f"    Child: {child.speckle_type}")
 ```
 
 ## Summary
@@ -324,11 +483,11 @@ Choose your approach based on the data type:
     Handle complex BIM and connector data
   </Card>
   
-  <Card title="Traversing Objects" icon="diagram-project" href="/guides/traversing-objects">
+  <Card title="Data Traversal" icon="diagram-project" href="/developers/sdks/python/concepts/data-traversal">
     Learn traversal techniques for any structure
   </Card>
   
-  <Card title="Objects & Base" icon="cube" href="/concepts/objects">
+  <Card title="Objects & Base" icon="cube" href="/developers/sdks/python/concepts/objects">
     Understand the Base class
   </Card>
 </CardGroup>
