@@ -1,0 +1,589 @@
+---
+title: "Beginner: Working with Speckle Objects"
+description: "Learn how to create, structure, and work with Speckle Base objects"
+---
+
+## What You'll Learn
+
+By the end of this guide, you'll understand:
+- ✅ How to create and structure `Base` objects
+- ✅ The difference between direct attributes and the properties dictionary
+- ✅ How to access and discover object properties
+- ✅ How to work with lists and collections
+
+## Prerequisites
+
+Before starting this guide, you should:
+- Have [specklepy installed](/developers/sdks/python/getting-started/installation)
+- Understand basic Python (classes, lists, dictionaries)
+- Be familiar with the [quickstart](/developers/sdks/python/getting-started/quickstart)
+
+<Info>
+This guide focuses on **working with objects** - not sending/receiving them. For send/receive operations, see the [Quickstart](/developers/sdks/python/getting-started/quickstart).
+</Info>
+
+---
+
+## How do I create a Speckle object?
+
+You need to create custom data structures or add metadata to geometry for your Speckle project. Use the `Base` class - it's the foundation of all Speckle objects and supports dynamic properties:
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+# Create a base object
+obj = Base()
+
+# Add direct attributes
+obj.name = "My Wall"
+obj.elementId = "wall-001"
+obj.height = 3.5
+obj.isLoadBearing = True
+
+# Add nested structure
+obj.elements = []  # Will hold child objects
+
+print(f"Created: {obj.name}")
+```
+
+`Base` objects are Python classes that accept any property name dynamically (no predefined schema needed), serialize automatically for Speckle, support nesting (objects within objects), and work with Python's native attribute access.
+
+**When to create Base objects:**
+- Building custom data structures (surveys, analysis results, schedules)
+- Grouping related objects together
+- Adding application-specific metadata
+
+<Warning>
+**Don't use reserved names:** Avoid property names starting with `_` or matching Base methods like `id`, `speckle_type`, `get_member_names()`. These have special meanings.
+
+```python
+# ❌ Bad - overwrites internal property
+obj.id = "custom-123"  # This sets the Speckle hash ID
+
+# ✅ Good - use your own naming
+obj.elementId = "custom-123"
+```
+</Warning>
+
+---
+
+## How do I add metadata: direct attributes vs. properties dictionary?
+
+You need to attach metadata to objects, but you're unsure whether to use direct attributes (`obj.name`) or the properties dictionary (`obj.properties["name"]`).
+
+**Use direct attributes for structure and organization:**
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+# Direct attributes define YOUR data structure
+building = Base()
+building.name = "Building A"
+building.address = "123 Main St"
+building.levels = []  # Your hierarchy
+building.elements = []  # Your organization
+
+# Add a level
+level = Base()
+level.name = "Level 1"
+level.elevation = 0.0
+level.elements = []  # Objects on this level
+building.levels.append(level)
+```
+
+**Use the properties dictionary for queryable metadata:**
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+# Properties dict for metadata that other apps should find
+wall = Base()
+wall.name = "W-101"
+
+# Standard BIM metadata
+wall.properties = {
+    "category": "Walls",
+    "material": "Concrete",
+    "thickness": 200,
+    "fireRating": "2 hour",
+    "isLoadBearing": True,
+    "cost": 1500.00
+}
+
+# Access safely with defaults
+material = wall.properties.get("material", "Unknown")
+thickness = wall.properties.get("thickness", 0)
+```
+
+**Direct attributes** (`obj.name`) are part of your object's structure, provide Python-level property access, and are good for relationships and hierarchies like `obj.levels`, `obj.elements`, `obj.children`.
+
+**Properties dictionary** (`obj.properties`) is a standardized metadata container, follows BIM connector conventions, makes data searchable across applications, and commonly uses keys like `category`, `family`, `type`, `material`.
+
+<Info>
+**Which to use?** Both are valid Speckle patterns! The `properties` dictionary is a *convention* that makes metadata more discoverable. If Revit sends a wall, its category will be in `properties["category"]` - following this pattern makes your data easier to work with across platforms.
+</Info>
+
+**Combining both approaches:**
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Point, Mesh
+
+# Create a beam with both structure and metadata
+beam = Base()
+
+# Direct attributes - your structure
+beam.name = "B-205"
+beam.startPoint = Point(x=0, y=0, z=3.5)
+beam.endPoint = Point(x=5, y=0, z=3.5)
+beam.displayValue = mesh  # Geometry reference
+
+# Properties dict - queryable metadata
+beam.properties = {
+    "category": "Structural Framing",
+    "family": "Steel Beam",
+    "type": "W12x26",
+    "material": "Steel",
+    "length": 5.0,
+    "weight": 130.0
+}
+```
+
+---
+
+## How do I access object properties?
+
+You have a Speckle object and need to read its properties, but you don't know what properties it has or how to access them safely.
+
+**For direct attributes:**
+
+```python lines icon="python"
+# Direct access (if you know the property exists)
+name = obj.name
+height = obj.height
+
+# Safe access with hasattr()
+if hasattr(obj, "name"):
+    print(f"Name: {obj.name}")
+else:
+    print("No name property")
+
+# Safe access with getattr() and default
+name = getattr(obj, "name", "Unnamed")
+height = getattr(obj, "height", 0.0)
+```
+
+**For properties dictionary:**
+
+```python lines icon="python"
+# Direct access (might raise KeyError)
+category = obj.properties["category"]  # KeyError if missing!
+
+# ✅ Safe access with .get() and default
+category = obj.properties.get("category", "Unknown")
+material = obj.properties.get("material", "Not specified")
+
+# Check if key exists
+if "category" in obj.properties:
+    print(f"Category: {obj.properties['category']}")
+```
+
+**Discovering all properties** - use `get_member_names()` to discover what properties an object has:
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+obj = Base()
+obj.name = "Widget"
+obj.value = 42
+obj.tags = ["important", "new"]
+
+# Get all property names
+property_names = obj.get_member_names()
+print(property_names)
+# ['name', 'value', 'tags', 'id', 'speckle_type', ...]
+
+# Loop through all properties
+for prop_name in obj.get_member_names():
+    value = getattr(obj, prop_name, None)
+    print(f"{prop_name}: {value}")
+```
+
+<Accordion title="What does get_member_names() return?">
+`get_member_names()` returns all property names on the object, **automatically filtering out**:
+- Private members (starting with `_`)
+- Methods and functions
+- Class attributes
+
+This means you get a clean list of just the data properties. No need to check `if not name.startswith("_")` - it's already filtered!
+
+```python
+# get_member_names() already excludes private members
+for name in obj.get_member_names():
+    value = getattr(obj, name, None)  # Clean, no filtering needed
+```
+</Accordion>
+
+**Safe property access pattern:**
+
+```python lines icon="python" expandable
+def safely_read_object(obj):
+    """Read all properties from an object safely."""
+    
+    # Read known direct attributes with defaults
+    name = getattr(obj, "name", "Unnamed")
+    
+    # Read properties dictionary safely
+    properties = {}
+    if hasattr(obj, "properties") and obj.properties:
+        category = obj.properties.get("category", "Unknown")
+        material = obj.properties.get("material", "Not specified")
+        properties = {
+            "category": category,
+            "material": material
+        }
+    
+    return {
+        "name": name,
+        "properties": properties
+    }
+
+# Use it
+info = safely_read_object(wall)
+print(f"Wall: {info['name']}, Category: {info['properties']['category']}")
+```
+
+<Warning>
+**Don't assume properties exist!** Speckle objects can come from different sources with different schemas. Always use safe access patterns:
+
+```python
+# ❌ Bad - will crash if property doesn't exist
+category = obj.properties["category"]
+name = obj.name
+
+# ✅ Good - handles missing properties gracefully
+category = obj.properties.get("category", "Unknown")
+name = getattr(obj, "name", "Unnamed")
+```
+</Warning>
+
+---
+
+## How do I work with lists and collections?
+
+You need to work with multiple objects - filtering them, counting them, or processing them in bulk.
+
+**Looping through lists:**
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+# Create a collection of objects
+building = Base()
+building.elements = []
+
+for i in range(5):
+    element = Base()
+    element.name = f"Element-{i}"
+    element.properties = {"category": "Walls" if i % 2 == 0 else "Floors"}
+    building.elements.append(element)
+
+# Loop through elements
+for element in building.elements:
+    name = getattr(element, "name", "unnamed")
+    category = element.properties.get("category", "Unknown")
+    print(f"{name}: {category}")
+```
+
+**Filtering lists:**
+
+```python lines icon="python"
+# Filter with list comprehension
+walls = [
+    obj for obj in building.elements 
+    if obj.properties.get("category") == "Walls"
+]
+
+print(f"Found {len(walls)} walls")
+
+# Filter with multiple criteria
+load_bearing_walls = [
+    obj for obj in building.elements
+    if obj.properties.get("category") == "Walls"
+    and obj.properties.get("isLoadBearing", False)
+]
+```
+
+**Counting and aggregating:**
+
+```python lines icon="python"
+# Count by category
+from collections import Counter
+
+categories = Counter(
+    obj.properties.get("category", "Unknown")
+    for obj in building.elements
+)
+
+print(categories)
+# Counter({'Walls': 3, 'Floors': 2})
+
+# Sum numeric properties
+total_area = sum(
+    obj.properties.get("area", 0.0)
+    for obj in building.elements
+)
+
+print(f"Total area: {total_area}")
+```
+
+**Working with nested collections** - many Speckle objects use `elements` arrays for hierarchical structures:
+
+<Note>
+**Terminology Note:** Examples here use terms like "building", "level", "room" to illustrate hierarchical concepts. Real BIM data from connectors (Revit, Rhino, etc.) uses **proxy structures** rather than direct nesting - for example, Revit levels are `LevelProxy` objects that reference elements by ID. See [Proxification](/developers/sdks/python/concepts/proxification) and [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) for actual BIM structures.
+</Note>
+
+```python lines icon="python" expandable
+from specklepy.objects import Base
+
+# Create hierarchical structure (illustrative example)
+building = Base()
+building.name = "Building A"
+building.elements = []
+
+# Add levels
+for level_num in range(3):
+    level = Base()
+    level.name = f"Level {level_num}"
+    level.properties = {"category": "Levels", "elevation": level_num * 3.5}
+    level.elements = []  # Objects on this level
+    
+    # Add rooms to this level
+    for room_num in range(4):
+        room = Base()
+        room.name = f"Room {level_num}{room_num}"
+        room.properties = {"category": "Rooms", "area": 25.0}
+        level.elements.append(room)
+    
+    building.elements.append(level)
+
+# Process hierarchy
+for level in building.elements:
+    level_name = getattr(level, "name", "unnamed")
+    room_count = len(level.elements) if hasattr(level, "elements") else 0
+    print(f"{level_name}: {room_count} rooms")
+```
+
+**Common collection patterns:**
+
+```python lines icon="python"
+# Check if object has elements
+if hasattr(obj, "elements") and obj.elements:
+    print(f"Object has {len(obj.elements)} elements")
+    for element in obj.elements:
+        process(element)
+
+# Safe iteration (handles missing elements)
+elements = getattr(obj, "elements", [])
+for element in elements:
+    process(element)
+
+# Find first match
+def find_first(objects, category):
+    """Find first object with matching category."""
+    for obj in objects:
+        if obj.properties.get("category") == category:
+            return obj
+    return None
+
+wall = find_first(building.elements, "Walls")
+```
+
+<Warning>
+**Check if elements exists before looping:**
+
+```python
+# ❌ Bad - crashes if no elements property
+for element in obj.elements:
+    process(element)
+
+# ✅ Good - safe check first
+if hasattr(obj, "elements"):
+    for element in obj.elements:
+        process(element)
+
+# ✅ Also good - use getattr with default
+for element in getattr(obj, "elements", []):
+    process(element)
+```
+</Warning>
+
+---
+
+## Practical Examples
+
+### Example 1: Create a Survey Point Collection
+
+```python lines icon="python" expandable
+from specklepy.objects import Base
+from specklepy.objects.geometry import Point
+
+# Create survey collection
+survey = Base()
+survey.name = "Site Survey 2024-01"
+survey.date = "2024-01-15"
+survey.surveyor = "Jane Smith"
+survey.points = []
+
+# Add survey points
+coordinates = [
+    (0, 0, 100.5),
+    (10, 0, 100.8),
+    (10, 10, 101.2),
+    (0, 10, 100.9)
+]
+
+for i, (x, y, z) in enumerate(coordinates):
+    point = Point(x=x, y=y, z=z)
+    point.units = "m"
+    
+    # Add metadata as properties
+    point.properties = {
+        "pointId": f"SP-{i+1:03d}",
+        "accuracy": 0.01,
+        "method": "GPS"
+    }
+    
+    survey.points.append(point)
+
+print(f"Survey '{survey.name}' has {len(survey.points)} points")
+```
+
+### Example 2: Filter and Summarize Objects
+
+```python lines icon="python" expandable
+from collections import Counter
+
+def filter_by_property(objects, key, value):
+    """Filter objects by property key-value pair."""
+    return [
+        obj for obj in objects
+        if obj.properties.get(key) == value
+    ]
+
+def summarize_objects(objects):
+    """Create summary statistics for objects."""
+    
+    if not objects:
+        return "No objects to summarize"
+    
+    # Count by category
+    categories = Counter(
+        obj.properties.get("category", "Unknown")
+        for obj in objects
+    )
+    
+    # Calculate total area (if present)
+    total_area = sum(
+        obj.properties.get("area", 0.0)
+        for obj in objects
+    )
+    
+    return {
+        "count": len(objects),
+        "categories": dict(categories),
+        "total_area": total_area
+    }
+
+# Use the functions
+elements = building.elements
+walls = filter_by_property(elements, "category", "Walls")
+summary = summarize_objects(walls)
+
+print(f"Found {summary['count']} walls")
+print(f"Categories: {summary['categories']}")
+print(f"Total area: {summary['total_area']} m²")
+```
+
+### Example 3: Build a Hierarchy
+
+```python lines icon="python" expandable
+from specklepy.objects import Base
+
+def create_project_hierarchy():
+    """Create a multi-level project hierarchy."""
+    
+    # Project root
+    project = Base()
+    project.name = "Office Building"
+    project.elements = []
+    
+    # Building
+    building = Base()
+    building.name = "Building A"
+    building.properties = {"type": "Office", "floors": 3}
+    building.elements = []
+    
+    # Add levels
+    for floor in range(3):
+        level = Base()
+        level.name = f"Level {floor + 1}"
+        level.properties = {
+            "category": "Levels",
+            "elevation": floor * 3.5,
+            "area": 1000.0
+        }
+        level.elements = []
+        
+        # Add spaces
+        for space in range(5):
+            room = Base()
+            room.name = f"Room {floor + 1}.{space + 1}"
+            room.properties = {
+                "category": "Rooms",
+                "area": 25.0,
+                "occupancy": 4
+            }
+            level.elements.append(room)
+        
+        building.elements.append(level)
+    
+    project.elements.append(building)
+    return project
+
+# Create and inspect
+project = create_project_hierarchy()
+building = project.elements[0]
+
+for level in building.elements:
+    level_name = level.name
+    room_count = len(level.elements)
+    print(f"{level_name}: {room_count} rooms")
+```
+
+---
+
+## Learn More
+
+**Core Concepts:**
+- [Objects & Base Class](/developers/sdks/python/concepts/objects) - Deep dive into Base and object system
+- [Data Types](/developers/sdks/python/concepts/data-types) - Understanding Speckle's type system
+
+**Guides:**
+- [Simple Data Patterns](/developers/sdks/python/guides/simple-data-patterns) - More examples of custom data structures
+- [Intermediate: Finding and Extracting Data](/developers/sdks/python/guides/how-to-find-and-extract-data) - Learn to traverse and filter nested structures
+
+**API Reference:**
+- [Base class methods](/developers/sdks/python/api-reference/operations) - Complete Base API documentation
+
+---
+
+## Next Steps
+
+Now that you understand how to work with Speckle objects, you're ready to:
+
+1. **Learn traversal** - Navigate nested object structures recursively
+2. **Extract data** - Filter and find specific objects in complex hierarchies  
+3. **Work with geometry** - Extract and manipulate displayValue meshes from BIM objects
+
+Continue to [Intermediate: Finding and Extracting Data](/developers/sdks/python/guides/how-to-find-and-extract-data) →
