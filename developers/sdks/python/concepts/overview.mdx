@@ -14,7 +14,7 @@ Speckle uses an **object-based** approach rather than a file-based one. This is 
     - Version control through file copies
     - Large files, slow transfers
   </Card>
-  
+
   <Card title="Speckle (Object-Based)" icon="cube">
     - Data is individual objects
     - Incremental transfers (only changes)
@@ -36,15 +36,35 @@ from specklepy.objects.geometry import Point
 # All Speckle objects inherit from Base
 point = Point(x=10, y=20, z=5)
 
-# Base allows dynamic properties
+# Base allows dynamic properties (added after creation)
 custom = Base()
 custom.name = "My Object"
 custom.data = [1, 2, 3]
-custom.nested = Base(value=42)
+custom.nested = Base()
+custom.nested.value = 42
 ```
 
 <Info>
 Objects are **immutable** once sent - their hash (object ID) uniquely identifies their content.
+</Info>
+
+#### Static vs Dynamic Properties
+
+Speckle objects support both **static** (typed) and **dynamic** (untyped) properties. Static properties are defined in the class with type hints and provide IDE autocomplete, while dynamic properties can be added at runtime for application-specific data.
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point
+
+# Static properties (defined in class)
+point = Point(x=1.0, y=2.0, z=3.0)
+
+# Dynamic properties (added at runtime)
+point.custom_id = "POINT_001"
+point.metadata = {"author": "Alice"}
+```
+
+<Info>
+Learn more about [Static vs Dynamic Properties](/developers/sdks/python/concepts/objects#static-vs-dynamic-properties) including type checking, required vs optional properties, and how to work with both types.
 </Info>
 
 ### 2. Projects, Models, and Versions
@@ -58,63 +78,62 @@ Project
           └─ Object (Root object + children)
 ```
 
-<Accordion title="Projects">
-  **Projects** are top-level containers for related work.
-  
-  - Contain multiple models
-  - Have members with roles (owner, contributor, reviewer)
-  - Unique ID and name
-  
-  ```python lines icon="python"
-  from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
-  
-  project = client.project.create(ProjectCreateInput(
-      name="Office Building Renovation",
-      description="Main project for the renovation"
-  ))
-  project_id = project.id
-  ```
-</Accordion>
 
-<Accordion title="Models">
-  **Models** are branches within a project, representing different variants or disciplines.
-  
-  - Examples: "main", "design-option-a", "structural", "MEP"
-  - Each model has its own version history
-  - Projects always have a "main" model by default
-  
-  ```python lines icon="python"
-  from specklepy.core.api.inputs.model_inputs import CreateModelInput
-  
-  model = client.model.create(CreateModelInput(
-      project_id=project_id,
-      name="Structural Model",
-      description="Structural analysis model"
-  ))
-  model_id = model.id
-  ```
-</Accordion>
 
-<Accordion title="Versions">
-  **Versions** are snapshots of data at a point in time.
-  
-  - Immutable - cannot be changed after creation
-  - Reference a root object by its ID (hash)
-  - Have a message describing the changes
-  - Include metadata (author, timestamp, source application)
-  
-  ```python lines icon="python"
-  from specklepy.core.api.inputs.version_inputs import CreateVersionInput
-  
-  version_input = CreateVersionInput(
-      project_id=project_id,
-      model_id=model_id,
-      object_id=object_id,
-      message="Updated beam sizing"
-  )
-  version = client.version.create(version_input)
-  ```
-</Accordion>
+**Projects** are top-level containers for related work.
+
+- Contain multiple models
+- Have members with roles (owner, contributor, reviewer)
+- Unique ID and name
+
+```python lines icon="python"
+from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+
+project = client.project.create(ProjectCreateInput(
+    name="Office Building Renovation",
+    description="Main project for the renovation"
+))
+project_id = project.id
+```
+
+
+
+**Models** are branches within a project, representing different variants or disciplines.
+
+- Examples: "site-boundary", "design-option-a", "structural", "MEP"
+- Each model has its own version history
+
+```python lines icon="python"
+from specklepy.core.api.inputs.model_inputs import CreateModelInput
+
+model = client.model.create(CreateModelInput(
+    project_id=project_id,
+    name="Structural Model",
+    description="Structural analysis model"
+))
+model_id = model.id
+```
+
+**Versions** are snapshots of data at a point in time.
+
+- Immutable - cannot be changed after creation
+- Reference a root object by its ID (hash)
+- Have a message describing the changes
+- Include metadata (author, timestamp, source application)
+
+```python lines icon="python"
+from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+
+version_input = CreateVersionInput(
+    project_id=project_id,
+    model_id=model_id,
+    object_id=object_id,
+    message="Updated beam sizing"
+)
+version = client.version.create(version_input)
+```
+
+
 
 ### 3. Object IDs (Hashes)
 
@@ -146,42 +165,42 @@ This enables:
 
 **Transports** are the mechanism for moving objects between locations.
 
-<CardGroup cols={3}>
-  <Card title="ServerTransport" icon="server">
+<Tabs>
+  <Tab title="ServerTransport" icon="server">
     Communicates with Speckle Server
-    
+
     ```python lines icon="python"
     from specklepy.transports.server import ServerTransport
-    
+
     transport = ServerTransport(
         project_id=project_id,
         client=client
     )
     ```
-  </Card>
-  
-  <Card title="SQLiteTransport" icon="database">
+  </Tab>
+
+  <Tab title="SQLiteTransport" icon="database">
     Local persistent cache
-    
+
     ```python lines icon="python"
     from specklepy.transports.sqlite import SQLiteTransport
-    
+
     transport = SQLiteTransport()
     # Stores in ~/.local/share/Speckle
     ```
-  </Card>
-  
-  <Card title="MemoryTransport" icon="memory">
+  </Tab>
+
+  <Tab title="MemoryTransport" icon="memory">
     In-memory storage for testing
-    
+
     ```python lines icon="python"
     from specklepy.transports.memory import MemoryTransport
-    
+
     transport = MemoryTransport()
     # Cleared when program ends
     ```
-  </Card>
-</CardGroup>
+  </Tab>
+</Tabs>
 
 ### 5. Operations: Send and Receive
 
