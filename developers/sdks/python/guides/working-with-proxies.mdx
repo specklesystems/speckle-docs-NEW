@@ -27,7 +27,7 @@ After receiving a model version with `operations.receive()`, objects have a `dis
 
 The second case requires building an `applicationId` index to resolve the references.
 
-```python /dev/null/display-value-types.py#L1-15
+```python
 # Case 1: Direct mesh
 obj.displayValue = [mesh1, mesh2, ...]  # Meshes are directly accessible
 
@@ -50,7 +50,7 @@ obj.displayValue = [
 
 Start by finding all objects that have display geometry:
 
-```python /dev/null/find-display.py#L1-25
+```python
 from specklepy.api import operations
 from specklepy.transports.server import ServerTransport
 from specklepy.api.client import SpeckleClient
@@ -83,7 +83,7 @@ print(f"Found {len(objects_with_display)} displayable objects")
 
 For objects with direct mesh geometry:
 
-```python /dev/null/extract-direct-meshes.py#L1-30
+```python
 from specklepy.objects.geometry import Mesh
 
 def extract_direct_meshes(obj):
@@ -121,7 +121,7 @@ for obj in objects_with_display:
 
 To resolve instance references, build an index mapping applicationIds to objects:
 
-```python /dev/null/build-index.py#L1-35
+```python
 from specklepy.objects.graph_traversal.traversal import GraphTraversal
 
 def build_applicationid_index(root):
@@ -164,7 +164,7 @@ if some_obj:
 
 Instance definitions enable geometry reuse. The definition contains references to geometry objects (by applicationId), and each instance includes a transformation matrix.
 
-```python /dev/null/instance-structure.py#L1-20
+```python
 # Root has instanceDefinitionProxies
 version.instanceDefinitionProxies = [
     {
@@ -441,7 +441,7 @@ analyze_display_geometry("your_project_id", "version_id")
 
 Building an applicationId index traverses the entire object tree. Do this once at the start:
 
-```python /dev/null/best-practice-index.py#L1-10
+```python
 # ✅ Good: Build once, use many times
 app_id_index = build_applicationid_index(version)
 definitions = extract_instance_definitions(version, app_id_index)
@@ -457,7 +457,7 @@ for app_id in some_list_of_ids:
 
 Always use `.get()` when looking up by applicationId:
 
-```python /dev/null/safe-access.py#L1-10
+```python
 # ❌ This can crash
 obj = app_id_index[app_id]  # KeyError if not found
 
@@ -472,7 +472,7 @@ if obj:
 
 Not all model versions have instance definitions:
 
-```python /dev/null/check-proxies.py#L1-10
+```python
 # ✅ Always check first
 if hasattr(version, "instanceDefinitionProxies"):
     definitions = extract_instance_definitions(version, app_id_index)
@@ -495,7 +495,7 @@ else:
 
 **Solution:** Verify your index contains the referenced objects:
 
-```python /dev/null/debug-instance.py#L1-20
+```python
 def debug_instance_definition(proxy, app_id_index):
     """Debug helper to see what's in an instance definition."""
     print(f"Definition: {getattr(proxy, 'name', 'unnamed')}")
@@ -525,7 +525,7 @@ for proxy in version.instanceDefinitionProxies:
 
 **Solution:** Check the type of each item in displayValue:
 
-```python /dev/null/mixed-display.py#L1-25
+```python
 from specklepy.objects.geometry import Mesh
 
 def extract_mixed_display(obj, definitions):
@@ -564,7 +564,7 @@ def extract_mixed_display(obj, definitions):
 
 **Solution:** Always check before accessing, and handle both cases:
 
-```python /dev/null/check-instances.py#L1-15
+```python
 # Check if instances are used
 if hasattr(version, "instanceDefinitionProxies") and version.instanceDefinitionProxies:
     print(f"Found {len(version.instanceDefinitionProxies)} instance definitions")
@@ -590,7 +590,7 @@ for obj in objects_with_display:
 
 **Solution:** Check for the presence of `applicationId`:
 
-```python /dev/null/detect-instance.py#L1-20
+```python
 def is_instance_reference(item):
     """Check if displayValue item is an instance reference."""
     # Instance references have applicationId
