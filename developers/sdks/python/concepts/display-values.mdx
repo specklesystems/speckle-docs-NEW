@@ -315,7 +315,7 @@ def extract_all_display_meshes(obj):
     Returns flat list of all Mesh objects used for visualization.
     """
     meshes = []
-    
+
     def traverse(current):
         if isinstance(current, Mesh):
             meshes.append(current)
@@ -323,14 +323,14 @@ def extract_all_display_meshes(obj):
             # Check for displayValue property
             if hasattr(current, "displayValue"):
                 display = current.displayValue
-                
+
                 # Handle list or single mesh
                 if isinstance(display, list):
                     for item in display:
                         traverse(item)
                 elif display is not None:
                     traverse(display)
-            
+
             # Traverse other properties
             for name in current.get_member_names():
                 if not name.startswith("_") and name != "displayValue":
@@ -340,7 +340,7 @@ def extract_all_display_meshes(obj):
         elif isinstance(current, list):
             for item in current:
                 traverse(item)
-    
+
     traverse(obj)
     return meshes
 
@@ -361,18 +361,18 @@ def find_viewer_objects(root):
     These are objects with displayValue property.
     """
     viewer_objects = []
-    
+
     def traverse(obj):
         if isinstance(obj, Base):
             # Object with displayValue is viewer-selectable
             if hasattr(obj, "displayValue") and obj.displayValue is not None:
                 viewer_objects.append(obj)
-            
+
             # Continue traversing
             if hasattr(obj, "elements") and isinstance(obj.elements, list):
                 for element in obj.elements:
                     traverse(element)
-            
+
             for name in obj.get_member_names():
                 if not name.startswith("_") and name != "displayValue":
                     value = getattr(obj, name, None)
@@ -380,7 +380,7 @@ def find_viewer_objects(root):
         elif isinstance(obj, list):
             for item in obj:
                 traverse(item)
-    
+
     traverse(root)
     return viewer_objects
 
@@ -435,7 +435,7 @@ def create_box_with_display(x, y, z, width, height, depth):
         ],
         units="m"
     )
-    
+
     # Create data object with display value
     box = DataObject(
         name=f"Box at ({x}, {y}, {z})",
@@ -447,7 +447,7 @@ def create_box_with_display(x, y, z, width, height, depth):
         },
         displayValue=[display_mesh]  # Ensures visibility in viewer
     )
-    
+
     return box
 
 # Create and send
@@ -559,12 +559,18 @@ display_mesh = tessellate_for_viewer(surface, tolerance=0.01)  # 1cm
 
 ### 4. Preserve Material Information
 
+Materials and colors directly affect how objects are rendered in the Speckle viewer. There are multiple ways to control appearance:
+
+#### Method 1: Per-Vertex Colors in Mesh
+
+The simplest approach - embed colors directly in the mesh:
+
 ```python
 # Include material info in display mesh colors
 mesh = Mesh(
     vertices=[...],
     faces=[...],
-    colors=[0xFF0000, 0xFF0000, ...],  # Red vertices for "Brick" material
+    colors=[0xFF0000, 0xFF0000, ...],  # Per-vertex colors (ARGB format)
     units="m"
 )
 
@@ -574,6 +580,125 @@ steel_mesh = Mesh(vertices=[...], faces=[...], colors=[0xC0C0C0, ...])
 
 wall.displayValue = [concrete_mesh, steel_mesh]
 ```
+
+#### Method 2: RenderMaterial for Physically-Based Rendering
+
+For more sophisticated materials with metallic, roughness, and emissive properties:
+
+```python
+from specklepy.objects.other import RenderMaterial
+from specklepy.objects.data_objects import DataObject
+from specklepy.objects.geometry import Mesh
+
+# Define a material
+steel_material = RenderMaterial(
+    name="Brushed Steel",
+    diffuse=0xFFC0C0C0,      # ARGB color
+    metalness=0.9,            # 0.0 = non-metal, 1.0 = metal
+    roughness=0.4,            # 0.0 = smooth, 1.0 = rough
+    opacity=1.0,              # 0.0 = transparent, 1.0 = opaque
+    emissive=0xFF000000       # Glow color (default black = no glow)
+)
+
+# Assign to object
+beam = DataObject(
+    name="Steel Beam",
+    properties={"material_type": "Steel"},
+    displayValue=[mesh]
+)
+beam.renderMaterial = steel_material  # Single material for all display meshes
+```
+
+<Info>
+**RenderMaterial Properties:**
+- `diffuse` - Base color (ARGB integer format: 0xAARRGGBB)
+- `metalness` - How metallic the surface appears (0.0-1.0)
+- `roughness` - Surface roughness for reflections (0.0-1.0)
+- `opacity` - Transparency level (0.0-1.0)
+- `emissive` - Self-illumination color (ARGB format)
+
+These map to PBR (Physically Based Rendering) in the viewer, based on Three.js MeshStandardMaterial.
+</Info>
+
+#### Method 3: Material and Color Proxies
+
+For organizational purposes when multiple objects share materials or colors, use proxies (typically created by connectors):
+
+```python
+from specklepy.objects.proxies import RenderMaterialProxy, ColorProxy
+
+# Material proxy - multiple objects share one material
+material_proxy = RenderMaterialProxy(
+    value=steel_material,  # The RenderMaterial object
+    objects=["beam-1-guid", "beam-2-guid", "column-1-guid"]  # applicationIds
+)
+
+# Color proxy - organize by color/layer
+color_proxy = ColorProxy(
+    name="Structure Layer",
+    value=0xFFFF0000,  # Red
+    objects=["beam-1-guid", "beam-2-guid"]
+)
+
+# Add to root object
+root.renderMaterialProxies = [material_proxy]
+root.colorProxies = [color_proxy]
+```
+
+<Info>
+**ColorProxy and Viewer "Shaded" Mode**
+
+ColorProxies enable the **"Shaded" view mode** in the Speckle viewer, which provides an alternative presentation of your model:
+
+- **Default rendering** - Shows objects with their native materials, textures, and per-vertex colors (the "raw" object appearance)
+- **Shaded mode** - Applies ColorProxy colors, overriding native materials to show organizational structure (layers, categories, systems)
+
+This allows users to toggle between:
+- **Presentation view** - Realistic materials and colors for visualization
+- **Working view** - Color-coded by layer/category/system for organization and analysis
+
+Think of it as switching between "what it looks like" and "how it's organized."
+</Info>
+
+<Note>
+**When consuming data from connectors:**
+- Connectors (Revit, Rhino, etc.) typically use proxies to organize materials
+- The viewer resolves these proxies to apply materials to objects
+- See [Proxification](/developers/sdks/python/concepts/proxification) for details on how proxies work
+
+**When creating data in Python:**
+- For simple cases, use per-vertex colors or direct `renderMaterial` property
+- Only use proxies if you need to organize many objects by shared materials
+</Note>
+
+#### Viewer Rendering Priority
+
+The viewer applies materials in this priority order:
+
+1. **Per-vertex colors** in the mesh (highest priority)
+2. **RenderMaterial** assigned to the object
+3. **Material from RenderMaterialProxy** (if object is referenced)
+4. **Color from ColorProxy** (if object is referenced)
+5. **Default gray** (if nothing else specified)
+
+```python
+# Example: Vertex colors override RenderMaterial
+mesh = Mesh(
+    vertices=[...],
+    faces=[...],
+    colors=[0xFFFF0000, ...]  # Red vertex colors - these will show
+)
+
+obj = DataObject(
+    name="Example",
+    displayValue=[mesh]
+)
+obj.renderMaterial = steel_material  # This will be ignored due to vertex colors!
+```
+
+<Warning>
+If your mesh has per-vertex colors, they will override any RenderMaterial or proxy colors. To use RenderMaterial, ensure your mesh does not have a `colors` property, or set it to `None`.
+</Warning>
 
 ## Common Patterns
 
