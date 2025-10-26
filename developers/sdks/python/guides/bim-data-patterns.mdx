@@ -259,13 +259,20 @@ print(f"\nTotal volume: {df['volume'].sum():.2f} m³")
 print(f"Average area: {df['area'].mean():.2f} m²")
 
 # 5. Material summary
+# Compute material summary (assuming 'material' column exists in df)
+material_summary = (
+    df.groupby("material")
+      .agg(volume=("volume", "sum"),
+           area=("area", "sum"),
+           count=("material", "count"))
+      .reset_index()
+)
 print("\nMaterial Summary:")
-for mat_name, totals in material_summary.items():
-    print(f"\n{mat_name}:")
-    print(f"  Volume: {totals['volume']:.2f} m³")
-    print(f"  Area: {totals['area']:.2f} m²")
-    print(f"  Used in: {totals['count']} walls")
-```
+for _, row in material_summary.iterrows():
+    print(f"\n{row['material']}:")
+    print(f"  Volume: {row['volume']:.2f} m³")
+    print(f"  Area: {row['area']:.2f} m²")
+    print(f"  Used in: {row['count']} walls")
 
 ## Pattern 2: DisplayValue Proxies
 
