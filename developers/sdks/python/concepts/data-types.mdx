@@ -137,26 +137,33 @@ survey.notes = "Initial survey"
 
 ```python lines icon="python"
 from specklepy.api import operations
+from specklepy.objects.data_objects import DataObject
+from specklepy.objects.geometry import Mesh, Point, Line
 
 obj = operations.receive(object_id, remote_transport=transport)
 
-# What type is this?
-if obj.speckle_type == "Base":
-    print("Type 1: Custom Data - direct property access")
-    print(f"Name: {obj.name}")
+# What type of data is this? Check structural patterns, not speckle_type
+if isinstance(obj, DataObject) or (hasattr(obj, "properties") and isinstance(obj.properties, dict)):
+    print("Type 3: Complex BIM Data - check properties for semantics")
+    if hasattr(obj, "properties"):
+        category = obj.properties.get("category", "Unknown")
+        print(f"Category: {category}")
+    if hasattr(obj, "displayValue"):
+        print("Has display value for visualization")
 
-elif obj.speckle_type.startswith("Objects.Geometry"):
-    print("Type 2: Simple Model Data - check for properties dict")
+elif isinstance(obj, (Mesh, Point, Line)) or hasattr(obj, "vertices"):
+    print("Type 2: Simple Model Data - geometry object")
     if hasattr(obj, "properties"):
         print(f"Properties: {obj.properties}")
 
-elif obj.speckle_type.startswith("Objects.Data"):
-    print("Type 3: Complex BIM Data - need defensive traversal")
-    if hasattr(obj, "properties"):
-        print("Has properties dict")
-    if hasattr(obj, "displayValue"):
-        print("Display value available")
+else:
+    print("Type 1: Custom Data - direct property access")
+    print(f"Available properties: {obj.get_member_names()}")
 ```
+
+<Note>
+**Modern Approach:** Instead of checking `speckle_type` strings, check for structural patterns: Does it have a `properties` dict? Does it have `displayValue`? Is it a geometry class? This works reliably across all Speckle versions.
+</Note>
 
 ## Key Differences
 
