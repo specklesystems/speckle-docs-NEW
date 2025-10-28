@@ -1,0 +1,643 @@
+---
+title: "SpeckleClient"
+description: "API reference for the SpeckleClient class"
+---
+
+## Overview
+
+The `SpeckleClient` is your main entry point for interacting with Speckle Server. It handles authentication and provides access to resource APIs (projects, models, versions, users, etc.).
+
+```python
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token("your_token_here")
+
+project = client.project.get("project_id")
+```
+
+## Constructor
+
+### SpeckleClient()
+
+```python
+SpeckleClient(
+    host: str = "https://app.speckle.systems",
+    use_ssl: bool = True,
+    verify_certificate: bool = True
+)
+```
+
+Creates a new Speckle client instance.
+
+**Parameters:**
+
+<ResponseField name="host" type="str" default='"https://app.speckle.systems"'>
+  The Speckle server URL including protocol
+</ResponseField>
+
+<ResponseField name="use_ssl" type="bool" default="True">
+  Whether to use SSL/TLS
+</ResponseField>
+
+<ResponseField name="verify_certificate" type="bool" default="True">
+  Whether to verify SSL certificates
+</ResponseField>
+
+**Examples:**
+
+<Tabs>
+  <Tab title="Hosted Server">
+    ```python
+    from specklepy.api.client import SpeckleClient
+
+    client = SpeckleClient(host="https://app.speckle.systems")
+    ```
+  </Tab>
+
+  <Tab title="Self-Hosted Server">
+    ```python
+    from specklepy.api.client import SpeckleClient
+
+    client = SpeckleClient(host="https://speckle.yourcompany.com")
+    ```
+  </Tab>
+
+  <Tab title="Local Development">
+    ```python
+    from specklepy.api.client import SpeckleClient
+
+    client = SpeckleClient(
+        host="http://localhost:3000",
+        use_ssl=False
+    )
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+Only set `verify_certificate=False` for local development or testing. Always verify certificates in production!
+</Warning>
+
+## Authentication
+
+### authenticate_with_token()
+
+```python
+client.authenticate_with_token(token: str) -> None
+```
+
+Authenticate using a personal access token.
+
+**Parameters:**
+
+<ResponseField name="token" type="str" required>
+  Personal access token from your Speckle profile
+</ResponseField>
+
+
+**Example:**
+
+```python
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token("your_personal_access_token")
+```
+
+<Info>
+Get your personal access token from: **Avatar → Profile → Personal Access Tokens** in the Speckle web app.
+</Info>
+
+### authenticate_with_account()
+
+```python
+client.authenticate_with_account(account: Account) -> None
+```
+
+Authenticate using an Account object from local Speckle Manager/Connector.
+
+**Parameters:**
+
+<ResponseField name="account" type="Account" required>
+  Account object from `get_default_account()` or `get_local_accounts()`
+</ResponseField>
+
+**Example:**
+
+```python
+from specklepy.api.client import SpeckleClient
+from specklepy.api.credentials import get_default_account
+
+account = get_default_account()
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_account(account)
+```
+
+<Note>
+This method requires that you've previously logged in via Speckle Manager or a Speckle Connector (Rhino, Revit, etc.).
+</Note>
+
+## Properties
+
+### account
+
+```python
+client.account: Account
+```
+
+The currently authenticated account. Contains user information after authentication.
+
+**Example:**
+
+```python
+client.authenticate_with_token(token)
+
+print(f"User: {client.account.userInfo.name}")
+print(f"Email: {client.account.userInfo.email}")
+print(f"User ID: {client.account.userInfo.id}")
+```
+
+## Resource Properties
+
+The client provides access to various resource APIs through these properties. Each resource has its own detailed documentation page.
+
+<Note>
+**Listing Projects: Workspace vs Non-Workspace Servers**
+
+The method for listing projects differs depending on your server deployment:
+
+- **Workspace-enabled servers** (e.g., app.speckle.systems): Use `client.workspace.get_projects(workspace_id)` to list projects within a workspace, or `client.active_user.get_projects(filter=UserProjectsFilter(personalOnly=True))` for personal projects.
+
+- **Non-workspace servers** (self-hosted/open-source): Use `client.active_user.get_projects()` to list all projects you have access to. The workspace resource is not available.
+
+For cross-server compatibility, check workspace support first:
+```python
+info = client.server.get()
+if info.workspaces and info.workspaces.workspacesEnabled:
+    # Use workspace.get_projects()
+    workspaces = client.active_user.get_workspaces()
+    for ws in workspaces.items:
+        projects = client.workspace.get_projects(ws.id)
+else:
+    # Use active_user.get_projects()
+    projects = client.active_user.get_projects()
+```
+
+**Note:** In earlier versions of specklepy, projects were accessed via the `stream` resource with a `list()` method. This has been replaced by the resource-based approach described above.
+</Note>
+
+### project
+
+```python
+client.project: ProjectResource
+```
+
+Access project operations (create, get, update, delete, list).
+
+**Example:**
+
+```python
+from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+
+project = client.project.create(ProjectCreateInput(
+    name="My Project",
+    description="A new project"
+))
+
+retrieved = client.project.get(project.id)
+```
+
+See [ProjectResource](/developers/sdks/python/api-reference/resources/project) for complete API documentation.
+
+### model
+
+```python
+client.model: ModelResource
+```
+
+Access model operations (create, get, update, delete, list).
+
+**Example:**
+
+```python
+from specklepy.core.api.inputs.model_inputs import CreateModelInput
+
+model = client.model.create(CreateModelInput(
+    project_id="project_id",
+    name="Main Model"
+))
+```
+
+See [ModelResource](/developers/sdks/python/api-reference/resources/model) for complete API documentation.
+
+### version
+
+```python
+client.version: VersionResource
+```
+
+Access version operations (create, get, list, update, delete).
+
+**Example:**
+
+```python
+from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+
+version = client.version.create(CreateVersionInput(
+    project_id="project_id",
+    model_id="model_id",
+    object_id="object_id",
+    message="Initial design"
+))
+```
+
+See [VersionResource](/developers/sdks/python/api-reference/resources/version) for complete API documentation.
+
+### active_user
+
+```python
+client.active_user: ActiveUserResource
+```
+
+Operations on the currently authenticated user (get profile, update, get projects, etc.).
+
+**Example:**
+
+```python
+user = client.active_user.get()
+print(f"Name: {user.name}")
+print(f"Projects: {len(user.projects.items)}")
+```
+
+See [ActiveUserResource](/developers/sdks/python/api-reference/resources/active-user) for complete API documentation.
+
+### other_user
+
+```python
+client.other_user: OtherUserResource
+```
+
+Operations for looking up other users (get by ID, search).
+
+**Example:**
+
+```python
+user = client.other_user.get(user_id="other_user_id")
+results = client.other_user.search(query="john")
+```
+
+See [OtherUserResource](/developers/sdks/python/api-reference/resources/other-user) for complete API documentation.
+
+### server
+
+```python
+client.server: ServerResource
+```
+
+Server information and metadata.
+
+**Example:**
+
+```python
+version = client.server.version()
+info = client.server.get()
+print(f"Server: {info.name}")
+print(f"Version: {version}")
+```
+
+See [ServerResource](/developers/sdks/python/api-reference/resources/server) for complete API documentation.
+
+### workspace
+
+```python
+client.workspace: WorkspaceResource
+```
+
+<Note>
+**Workspace Resource Availability**
+
+The `workspace` resource is available on the hosted Speckle server at **app.speckle.systems** and other workspace-enabled deployments.
+
+**Self-hosted/open-source server deployments do not include workspace features** and this resource will not be available. Attempting to use workspace methods on non-workspace servers will raise an error.
+
+Check your server capabilities before using workspace operations, or wrap calls in try/except blocks for cross-server compatibility.
+</Note>
+
+Workspace operations (get workspace details, members, projects, settings).
+
+**Example:**
+
+```python
+try:
+    workspace = client.workspace.get("workspace_id")
+    print(f"Workspace: {workspace.name}")
+except Exception as e:
+    print("Workspace features not available on this server")
+```
+
+See [WorkspaceResource](/developers/sdks/python/api-reference/resources/workspace) for complete API documentation.
+
+## Custom GraphQL Queries
+
+When the SDK doesn't provide a method for a specific GraphQL operation, you can execute raw GraphQL queries using `execute_query()`.
+
+### execute_query()
+
+```python
+client.execute_query(query: str) -> Dict
+```
+
+Execute a raw GraphQL query against the Speckle server.
+
+**Parameters:**
+
+<ResponseField name="query" type="str" required>
+  GraphQL query string (use `gql()` for proper formatting)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="response" type="Dict">
+  Raw GraphQL response
+</ResponseField>
+
+**Example:**
+
+```python
+from gql import gql
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token(token)
+
+# Custom GraphQL query
+query = gql("""
+    query CustomQuery {
+        projects(limit: 100) {
+            items {
+                id
+                name
+                description
+                createdAt
+            }
+        }
+    }
+""")
+
+result = client.execute_query(query)
+projects = result['projects']['items']
+
+for project in projects:
+    print(f"{project['name']}: {project['id']}")
+```
+
+### When to Use Custom Queries
+
+Use `execute_query()` when you need to:
+- Access GraphQL fields not exposed by SDK methods
+- Perform complex queries with specific field selections
+- Use new API features before SDK support is added
+- Optimize queries by requesting only needed fields
+
+**Example - Custom Fields:**
+
+```python
+# Query custom or new fields not in SDK
+query = gql("""
+    query ProjectWithCustomFields($projectId: String!) {
+        project(id: $projectId) {
+            id
+            name
+            customField
+            newFeature {
+                data
+            }
+        }
+    }
+""")
+
+# Execute with variables
+result = client.execute_query(query)
+```
+
+**Example - Mutations:**
+
+```python
+# Custom mutation not yet in SDK
+mutation = gql("""
+    mutation CustomOperation($input: CustomInput!) {
+        customOperation(input: $input) {
+            success
+            data {
+                id
+                result
+            }
+        }
+    }
+""")
+
+result = client.execute_query(mutation)
+```
+
+<Note>
+**GraphQL Schema Documentation**
+
+To explore available queries, mutations, and fields, visit your Speckle server's GraphQL playground:
+- Hosted server: `https://app.speckle.systems/graphql`
+- Self-hosted: `https://your-server.com/graphql`
+
+The playground provides interactive documentation and autocomplete for the GraphQL schema.
+</Note>
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <Accordion title="How do I store credentials securely?">
+    Never hardcode tokens in your source code. Use environment variables instead:
+
+    ```python
+    import os
+    from specklepy.api.client import SpeckleClient
+
+    token = os.environ.get("SPECKLE_TOKEN")
+    if not token:
+        raise ValueError("SPECKLE_TOKEN environment variable not set")
+
+    client = SpeckleClient(host="https://app.speckle.systems")
+    client.authenticate_with_token(token)
+    ```
+  </Accordion>
+
+  <Accordion title="Should I create a new client for each operation?">
+    No. Create one client per server and reuse it for all operations:
+
+    ```python
+    # ✓ Good - create once, reuse
+    client = SpeckleClient(host="https://app.speckle.systems")
+    client.authenticate_with_token(token)
+
+    project1 = client.project.get(id1)
+    project2 = client.project.get(id2)
+
+    # ✗ Bad - don't create a new client each time
+    # client = SpeckleClient(...) # inside a loop
+    ```
+  </Accordion>
+
+  <Accordion title="How do I verify authentication succeeded?">
+    Access the `account` property after authentication:
+
+    ```python
+    from specklepy.api.client import SpeckleClient
+
+    client = SpeckleClient(host="https://app.speckle.systems")
+
+    try:
+        client.authenticate_with_token(token)
+        print(f"✓ Authenticated as {client.account.userInfo.name}")
+    except Exception as e:
+        print(f"✗ Authentication failed: {e}")
+        exit(1)
+    ```
+  </Accordion>
+
+  <Accordion title="How do I work with multiple servers?">
+    Create separate client instances for each server:
+
+```python
+from specklepy.api.client import SpeckleClient
+
+# Hosted server
+hosted = SpeckleClient(host="https://app.speckle.systems")
+hosted.authenticate_with_token(hosted_token)
+
+# Self-hosted server
+company = SpeckleClient(host="https://speckle.company.com")
+company.authenticate_with_token(company_token)
+```
+  </Accordion>
+
+  <Accordion title="How do I check if a server has workspace features?">
+    Workspace features are only available on specific deployments. Check before using:
+
+```python
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token(token)
+
+try:
+    workspaces = client.active_user.get_workspaces()
+    print(f"Workspace features available")
+except Exception:
+    print("Server does not support workspace features")
+```
+  </Accordion>
+
+  <Accordion title="How do I handle different server versions?">
+    Check the server version and adapt your code accordingly:
+
+```python
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token(token)
+
+version_tuple = client.server.version()
+major_version = version_tuple[0] if version_tuple else None
+
+if major_version and major_version >= 3:
+    print("Using v3+ features")
+elif major_version == 2:
+    print("Using v2 features")
+```
+  </Accordion>
+
+  <Accordion title="What exceptions should I handle?">
+    Common exceptions to handle:
+
+```python
+from specklepy.api.client import SpeckleClient
+
+try:
+    client = SpeckleClient(host="https://app.speckle.systems")
+    client.authenticate_with_token(token)
+
+    project = client.project.get("project_id")
+
+except ConnectionError:
+    print("Cannot connect to server")
+except PermissionError:
+    print("Authentication failed or insufficient permissions")
+except ValueError:
+    print("Invalid input (e.g., malformed ID)")
+except Exception as e:
+    print(f"Unexpected error: {e}")
+```
+  </Accordion>
+
+  <Accordion title="How do I list projects on different server types?">
+    The method for listing projects depends on whether the server has workspace features:
+
+    ```python
+    # Check server capabilities first
+    info = client.server.get()
+    has_workspaces = info.workspaces and info.workspaces.workspacesEnabled
+
+    if has_workspaces:
+        # Workspace-enabled server (e.g., https://app.speckle.systems)
+        # List workspace projects
+        workspaces = client.active_user.get_workspaces()
+        for ws in workspaces.items:
+            projects = client.workspace.get_projects(ws.id)
+            print(f"Workspace {ws.name}: {projects.totalCount} projects")
+        
+        # List personal projects
+        from specklepy.core.api.inputs.user_inputs import UserProjectsFilter
+        personal = client.active_user.get_projects(
+            filter=UserProjectsFilter(personalOnly=True)
+        )
+    else:
+        # Non-workspace server (self-hosted/open-source)
+        # List all accessible projects
+        projects = client.active_user.get_projects()
+        print(f"Total projects: {projects.totalCount}")
+    ```
+
+    **Note:** Earlier versions of specklepy used `stream.list()` - this has been replaced by the resource-based approach above.
+  </Accordion>
+
+  <Accordion title="How do I get my personal access token?">
+    1. Log in to your Speckle server (e.g., https://app.speckle.systems)
+    2. Click your avatar in the top-right
+    3. Go to **Profile**
+    4. Navigate to **Personal Access Tokens**
+    5. Click **New Token**
+    6. Give it a name and select appropriate scopes
+    7. Copy the token immediately (you won't see it again!)
+
+    Store it securely as an environment variable or in a secrets manager.
+  </Accordion>
+
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Operations" icon="arrows-rotate" href="/developers/sdks/python/api-reference/operations">
+    Learn about send and receive operations
+  </Card>
+
+  <Card title="Resources" icon="folder" href="/developers/sdks/python/api-reference/resources/project">
+    Explore detailed resource documentation
+  </Card>
+
+  <Card title="Authentication Guide" icon="key" href="/developers/sdks/python/getting-started/authentication">
+    Detailed authentication setup
+  </Card>
+
+  <Card title="Quickstart" icon="rocket" href="/developers/sdks/python/getting-started/quickstart">
+    Complete tutorial using the client
+  </Card>
+</CardGroup>

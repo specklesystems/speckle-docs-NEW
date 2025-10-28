@@ -1,0 +1,525 @@
+---
+title: "ActiveUserResource"
+description: "Complete API reference for active user operations in SpecklePy"
+---
+
+## Overview
+
+The `ActiveUserResource` provides methods for managing the currently authenticated user's profile, projects, and settings. Access it via `client.active_user` after authenticating your `SpeckleClient`.
+
+This resource represents **your own** user account and provides access to personal information, projects you have access to, and workspace memberships.
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token(token)
+
+# Access active user operations
+user = client.active_user.get()
+print(f"Logged in as: {user.name}")
+```
+
+## Methods
+
+### get()
+
+Get your own user profile information.
+
+```python lines icon="python"
+client.active_user.get() -> Optional[User]
+```
+
+**Parameters:** None
+
+**Returns:**
+
+<ResponseField name="user" type="User | None">
+  Your user profile, or `None` if not authenticated. See [User](#user)
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+user = client.active_user.get()
+
+if user:
+    print(f"Name: {user.name}")
+    print(f"Email: {user.email}")
+    print(f"Bio: {user.bio}")
+    print(f"Company: {user.company}")
+    print(f"Avatar: {user.avatar}")
+    print(f"Verified: {user.verified}")
+    print(f"Role: {user.role}")
+else:
+    print("Not authenticated")
+```
+### update()
+
+Update your user profile.
+
+```python lines icon="python"
+client.active_user.update(input: UserUpdateInput) -> User
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="UserUpdateInput" required>
+  Profile update parameters. See [UserUpdateInput](#userupdateinput)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="user" type="User">
+  The updated user profile. See [User](#user)
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.user_inputs import UserUpdateInput
+
+updated_user = client.active_user.update(UserUpdateInput(
+    name="Jane Smith",
+    bio="Structural Engineer specializing in BIM workflows",
+    company="ACME Engineering"
+))
+
+print(f"Updated profile: {updated_user.name}")
+```
+
+**UserUpdateInput Fields:**
+
+- `name` (str, optional) - New display name
+- `bio` (str, optional) - New biography
+- `company` (str, optional) - New company name
+- `avatar` (str, optional) - New avatar URL
+
+<Note>
+Email and other sensitive fields cannot be updated via the API. Use the web interface to change your email address.
+</Note>
+### get_projects()
+
+Get all projects you have access to.
+
+<Note>
+**When to use this method:**
+
+- **Non-workspace servers** (self-hosted/open-source): Use this method to list all projects you have access to.
+- **Workspace-enabled servers** (e.g., app.speckle.systems): Use this method with filters to list personal projects, or use `client.workspace.get_projects(workspace_id)` to list projects within a specific workspace.
+
+For workspace-enabled servers, consider using `UserProjectsFilter(personalOnly=True)` to explicitly get only your personal projects, or filter by `workspaceId` for workspace projects.
+
+**Note:** In earlier versions of specklepy, this functionality was provided by the `stream` resource with a `list()` method.
+</Note>
+
+```python lines icon="python"
+client.active_user.get_projects(
+    *,
+    limit: int = 25,
+    cursor: Optional[str] = None,
+    filter: Optional[UserProjectsFilter] = None
+) -> ResourceCollection[Project]
+```
+
+**Parameters:**
+
+<ResponseField name="limit" type="int" default="25">
+  Maximum number of projects to return
+</ResponseField>
+
+<ResponseField name="cursor" type="str" default="None">
+  Cursor for pagination
+</ResponseField>
+
+<ResponseField name="filter" type="UserProjectsFilter" default="None">
+  Filter criteria. See [UserProjectsFilter](#userprojectsfilter)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="projects" type="ResourceCollection[Project]">
+  Collection of projects
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+# Get all your projects
+projects = client.active_user.get_projects(limit=50)
+
+print(f"You have access to {projects.totalCount} projects:")
+for project in projects.items:
+    print(f"  - {project.name} ({project.role})")
+
+# Paginate through more projects
+if projects.cursor:
+    next_page = client.active_user.get_projects(cursor=projects.cursor)
+```
+
+**With Filtering:**
+
+```python lines icon="python"
+See [UserProjectsFilter](#userprojectsfilter) for filtering options.
+```
+### get_projects_with_permissions()
+
+Get your projects with detailed permission information.
+
+```python lines icon="python"
+client.active_user.get_projects_with_permissions(
+    *,
+    limit: int = 25,
+    cursor: Optional[str] = None,
+    filter: Optional[UserProjectsFilter] = None
+) -> ResourceCollection[ProjectWithPermissions]
+```
+
+**Parameters:**
+
+<ResponseField name="limit" type="int" default="25">
+  Maximum number of projects to return
+</ResponseField>
+
+<ResponseField name="cursor" type="str" default="None">
+  Cursor for pagination
+</ResponseField>
+
+<ResponseField name="filter" type="UserProjectsFilter" default="None">
+  Filter criteria. See [UserProjectsFilter](#userprojectsfilter)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="projects" type="ResourceCollection[ProjectWithPermissions]">
+  Projects with permissions
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+projects = client.active_user.get_projects_with_permissions(limit=10)
+
+for project in projects.items:
+    print(f"\n{project.name}:")
+
+    if project.permissions.canCreateModel.authorized:
+        print("  ✓ Can create models")
+
+    if project.permissions.canDelete.authorized:
+        print("  ✓ Can delete project")
+
+    if project.permissions.canPublish.authorized:
+        print("  ✓ Can publish versions")
+
+    if not project.permissions.canLoad.authorized:
+        print(f"  ✗ Cannot load: {project.permissions.canLoad.message}")
+```
+
+<Info>
+This method is useful when you need to check permissions before attempting operations, helping you build more robust applications.
+</Info>
+### get_project_invites()
+
+Get pending project invitations.
+
+```python lines icon="python"
+client.active_user.get_project_invites() -> List[PendingStreamCollaborator]
+```
+
+**Parameters:** None
+
+**Returns:**
+
+<ResponseField name="invites" type="List[PendingStreamCollaborator]">
+  List of pending invitations
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+invites = client.active_user.get_project_invites()
+
+if invites:
+    print(f"You have {len(invites)} pending invitations:")
+    for invite in invites:
+        print(f"\n  Project: {invite.projectName}")
+        print(f"  Role: {invite.role}")
+        print(f"  Invited by: {invite.invitedBy.name}")
+        print(f"  Invite ID: {invite.inviteId}")
+else:
+    print("No pending invitations")
+```
+
+<Note>
+Use the Speckle web interface to accept or decline invitations. This method only retrieves pending invitations. See [PendingStreamCollaborator](#pendingstreamcollaborator) for property details.
+</Note>
+### can_create_personal_projects()
+
+Check if you have permission to create personal (non-workspace) projects.
+
+```python lines icon="python"
+client.active_user.can_create_personal_projects() -> PermissionCheckResult
+```
+
+**Parameters:** None
+
+**Returns:**
+
+<ResponseField name="permission" type="PermissionCheckResult">
+  Permission check result. See [PermissionCheckResult](/developers/sdks/python/api-reference/resources/project#permissioncheckresult)
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+permission = client.active_user.can_create_personal_projects()
+
+if permission.authorized:
+    print("✓ You can create personal projects")
+
+    # Safe to create project
+    from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+    project = client.project.create(ProjectCreateInput(
+        name="My Personal Project"
+    ))
+else:
+    print(f"✗ Cannot create personal projects: {permission.message}")
+    print(f"   Code: {permission.code}")
+```
+### get_workspaces()
+
+Get workspaces you're a member of (workspace-enabled servers only).
+
+```python lines icon="python"
+client.active_user.get_workspaces(
+    limit: int = 25,
+    cursor: Optional[str] = None,
+    filter: Optional[UserWorkspacesFilter] = None
+) -> ResourceCollection[Workspace]
+```
+
+**Parameters:**
+
+<ResponseField name="limit" type="int" default="25">
+  Maximum number of workspaces to return
+</ResponseField>
+
+<ResponseField name="cursor" type="str" default="None">
+  Cursor for pagination
+</ResponseField>
+
+<ResponseField name="filter" type="UserWorkspacesFilter" default="None">
+  Filter criteria. See [UserWorkspacesFilter](#userworkspacesfilter)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="workspaces" type="ResourceCollection[Workspace]">
+  Collection of workspaces
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+workspaces = client.active_user.get_workspaces()
+
+print(f"You're a member of {workspaces.totalCount} workspaces:")
+for workspace in workspaces.items:
+    print(f"\n  {workspace.name}")
+    print(f"  Role: {workspace.role}")
+    print(f"  Slug: {workspace.slug}")
+
+    if workspace.permissions.canCreateProject.authorized:
+        print(f"  ✓ Can create projects")
+```
+
+See [Workspace](/developers/sdks/python/api-reference/resources/workspace#workspace) for property details.
+
+<Warning>
+This method only works on workspace-enabled servers (e.g., app.speckle.systems). On other servers, it will raise an error.
+</Warning>
+### get_active_workspace()
+
+Get your currently active workspace (workspace-enabled servers only).
+
+```python lines icon="python"
+client.active_user.get_active_workspace() -> Optional[LimitedWorkspace]
+```
+
+**Parameters:** None
+
+**Returns:**
+
+<ResponseField name="workspace" type="LimitedWorkspace | None">
+  Active workspace, or `None` if none selected
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+active_workspace = client.active_user.get_active_workspace()
+
+if active_workspace:
+    print(f"Active workspace: {active_workspace.name}")
+    print(f"Role: {active_workspace.role}")
+    print(f"Description: {active_workspace.description}")
+else:
+    print("No active workspace")
+```
+
+<Warning>
+This method only works on workspace-enabled servers (e.g., app.speckle.systems).
+</Warning>
+## Types
+
+### User
+
+Represents a Speckle user's full profile (your own account).
+
+<ResponseField name="id" type="str">
+  User ID
+</ResponseField>
+
+<ResponseField name="email" type="str">
+  Email address
+</ResponseField>
+
+<ResponseField name="name" type="str">
+  Display name
+</ResponseField>
+
+<ResponseField name="bio" type="str">
+  User biography
+</ResponseField>
+
+<ResponseField name="company" type="str">
+  Company name
+</ResponseField>
+
+<ResponseField name="avatar" type="str">
+  Avatar image URL
+</ResponseField>
+
+<ResponseField name="verified" type="bool">
+  Whether email is verified
+</ResponseField>
+
+<ResponseField name="role" type="str">
+  Server role (e.g., "server:user", "server:admin")
+</ResponseField>
+### PendingStreamCollaborator
+
+Represents a pending project invitation.
+
+<ResponseField name="id" type="str">
+  Invitation ID
+</ResponseField>
+
+<ResponseField name="inviteId" type="str">
+  Invite token ID
+</ResponseField>
+
+<ResponseField name="projectId" type="str">
+  Project ID
+</ResponseField>
+
+<ResponseField name="projectName" type="str">
+  Project name
+</ResponseField>
+
+<ResponseField name="title" type="str">
+  Invitation title
+</ResponseField>
+
+<ResponseField name="role" type="str">
+  Proposed role
+</ResponseField>
+
+<ResponseField name="token" type="str">
+  Invitation token
+</ResponseField>
+
+<ResponseField name="invitedBy" type="LimitedUser">
+  User who sent the invitation. See [LimitedUser](/developers/sdks/python/api-reference/resources/other-user#limiteduser)
+</ResponseField>
+
+<ResponseField name="user" type="LimitedUser">
+  Invited user (you). See [LimitedUser](/developers/sdks/python/api-reference/resources/other-user#limiteduser)
+</ResponseField>
+
+
+
+## Input Types
+
+### UserUpdateInput
+
+```python
+UserUpdateInput(
+    avatar: Optional[str] = None,
+    bio: Optional[str] = None,
+    company: Optional[str] = None,
+    name: Optional[str] = None
+)
+```
+
+Used with [`update()`](#update).
+
+**Fields:**
+- `avatar` (str, optional) - Avatar image URL
+- `bio` (str, optional) - User biography
+- `company` (str, optional) - Company name
+- `name` (str, optional) - Display name
+## Filters
+
+### UserProjectsFilter
+
+```python
+UserProjectsFilter(
+    search: Optional[str] = None,
+    only_with_roles: Optional[Sequence[str]] = None,
+    workspace_id: Optional[str] = None,
+    personal_only: Optional[bool] = None,
+    include_implicit_access: Optional[bool] = None
+)
+```
+
+Used with [`get_projects()`](#get-projects) and [`get_projects_with_permissions()`](#get-projects-with-permissions).
+
+**Fields:**
+- `search` (str, optional) - Search by project name or description
+- `only_with_roles` (List[str], optional) - Filter by user roles
+- `workspace_id` (str, optional) - Filter to specific workspace
+- `personal_only` (bool, optional) - Only return personal (non-workspace) projects
+- `include_implicit_access` (bool, optional) - Include projects with implicit access
+### UserWorkspacesFilter
+
+```python
+UserWorkspacesFilter(
+    search: Optional[str] = None
+)
+```
+
+Used with [`get_workspaces()`](#get-workspaces).
+
+**Fields:**
+- `search` (str, optional) - Search by workspace name
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="OtherUserResource" icon="users" href="/developers/sdks/python/api-reference/resources/other-user">
+    Look up other users on the server
+  </Card>
+
+  <Card title="ProjectResource" icon="folder" href="/developers/sdks/python/api-reference/resources/project">
+    Work with your projects
+  </Card>
+
+  <Card title="Authentication Guide" icon="key" href="/developers/sdks/python/getting-started/authentication">
+    Learn about authentication methods
+  </Card>
+
+  <Card title="SpeckleClient" icon="plug" href="/developers/sdks/python/api-reference/client">
+    Main client documentation
+  </Card>
+</CardGroup>

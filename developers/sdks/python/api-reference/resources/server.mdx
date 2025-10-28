@@ -1,0 +1,421 @@
+---
+title: "ServerResource"
+description: "API reference for server information and token operations in SpecklePy"
+---
+
+## Overview
+
+The `ServerResource` provides methods for retrieving server information, managing API tokens, and checking server capabilities. Access it via `client.server` after creating your `SpeckleClient`.
+
+```python
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token(token)
+
+info = client.server.get()
+```
+
+## Methods
+
+### get()
+
+Get detailed information about the Speckle server.
+
+```python
+client.server.get() -> ServerInfo
+```
+
+**Parameters:** None
+
+**Returns:**
+
+<ResponseField name="info" type="ServerInfo">
+  Server information object
+</ResponseField>
+
+**Example:**
+
+```python
+info = client.server.get()
+
+print(f"Name: {info.name}")
+print(f"Company: {info.company}")
+print(f"Description: {info.description}")
+print(f"Admin Contact: {info.adminContact}")
+print(f"Canonical URL: {info.canonicalUrl}")
+print(f"Version: {info.version}")
+
+# Check workspace support
+if info.workspaces and info.workspaces.workspacesEnabled:
+    print("✓ Workspace features enabled")
+```
+
+See [ServerInfo](#serverinfo) for property details.
+### version()
+
+Get the server version as a parsed tuple for easy version comparison.
+
+```python
+client.server.version() -> Tuple[Any, ...]
+```
+
+**Parameters:** None
+
+**Returns:**
+
+<ResponseField name="version" type="Tuple">
+  Version tuple in format `(major, minor, patch)` or `(major, minor, patch, tag, build)` for pre-release versions
+</ResponseField>
+
+**Example:**
+
+```python
+version = client.server.version()
+
+print(f"Version: {version}")
+# Output: (3, 0, 0) for stable or (3, 0, 0, 'alpha', 123) for pre-release
+
+# Version comparison
+major_version = version[0]
+if major_version >= 3:
+    print("Server supports v3 features")
+elif major_version == 2:
+    print("Server uses v2 features")
+else:
+    print("Legacy server version")
+```
+### apps()
+
+Get the list of apps registered on the server.
+
+```python
+client.server.apps() -> Dict
+```
+
+**Parameters:** None
+
+**Returns:**
+
+<ResponseField name="apps" type="Dict">
+  Dictionary of registered apps
+</ResponseField>
+
+**Example:**
+
+```python
+apps = client.server.apps()
+
+for app in apps:
+    print(f"\nApp: {app['name']}")
+    print(f"  Description: {app['description']}")
+    print(f"  Trust by default: {app['trustByDefault']}")
+    print(f"  Author: {app['author']['name']}")
+    if app.get('logo'):
+        print(f"  Logo: {app['logo']}")
+```
+
+See [App](#app) for property details.
+### create_token()
+
+Create a new personal API token programmatically.
+
+```python
+client.server.create_token(
+    name: str,
+    scopes: List[str],
+    lifespan: int
+) -> str
+```
+
+**Parameters:**
+
+<ResponseField name="name" type="str" required>
+  A descriptive name for the token
+</ResponseField>
+
+<ResponseField name="scopes" type="List[str]" required>
+  List of scope names to grant
+</ResponseField>
+
+<ResponseField name="lifespan" type="int" required>
+  Token lifespan in seconds
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="token" type="str">
+  The newly created token string
+</ResponseField>
+
+<Warning>
+The token is only shown once when created. Store it securely immediately!
+</Warning>
+
+**Example:**
+
+```python
+# Create a token with specific scopes
+token = client.server.create_token(
+    name="CI/CD Pipeline Token",
+    scopes=["streams:read", "streams:write", "profile:read"],
+    lifespan=86400 * 30  # 30 days in seconds
+)
+
+print(f"New token created: {token[:10]}...")
+print("Store this token securely - you won't see it again!")
+
+# Save to secure location (e.g., secrets manager, env file)
+import os
+with open('.env', 'a') as f:
+    f.write(f'\nSPECKLE_TOKEN={token}\n')
+```
+
+**Common Scopes:**
+
+- `streams:read` - Read project/stream data
+- `streams:write` - Write project/stream data
+- `profile:read` - Read user profile
+- `profile:email` - Access user email
+- `profile:delete` - Delete user profile
+- `users:read` - Read other user information
+- `users:email` - Access other user emails
+- `tokens:read` - Read token information
+- `tokens:write` - Create/revoke tokens
+### revoke_token()
+
+Revoke (delete) a personal API token.
+
+```python
+client.server.revoke_token(token: str) -> bool
+```
+
+**Parameters:**
+
+<ResponseField name="token" type="str" required>
+  The token string to revoke
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="success" type="bool">
+  `True` if the token was successfully revoked
+</ResponseField>
+
+**Example:**
+
+```python
+# Revoke a token
+token_to_revoke = "abc123def456..."
+
+success = client.server.revoke_token(token_to_revoke)
+
+if success:
+    print("✓ Token successfully revoked")
+```
+
+<Note>
+You can only revoke tokens that belong to your authenticated account.
+</Note>
+## Types
+
+### ServerInfo
+
+Represents detailed information about a Speckle server.
+
+<ResponseField name="name" type="str">
+  Server name
+</ResponseField>
+
+<ResponseField name="company" type="str">
+  Company name
+</ResponseField>
+
+<ResponseField name="description" type="str">
+  Server description
+</ResponseField>
+
+<ResponseField name="adminContact" type="str">
+  Admin contact email
+</ResponseField>
+
+<ResponseField name="canonicalUrl" type="str">
+  Server canonical URL
+</ResponseField>
+
+<ResponseField name="version" type="str">
+  Server version string (e.g., "3.0.0")
+</ResponseField>
+
+<ResponseField name="scopes" type="List[Scope]">
+  Available API scopes
+  - `name` (str) - Scope name
+  - `description` (str) - Scope description
+</ResponseField>
+
+<ResponseField name="authStrategies" type="List[AuthStrategy]">
+  Available authentication strategies
+  - `id` (str) - Strategy ID
+  - `name` (str) - Strategy name
+  - `icon` (str, optional) - Icon URL
+</ResponseField>
+
+<ResponseField name="workspaces" type="WorkspacesInfo">
+  Workspace feature information
+  - `workspacesEnabled` (bool) - Whether workspaces are enabled
+</ResponseField>
+### App
+
+Represents an application registered on the Speckle server.
+
+<ResponseField name="id" type="str">
+  App ID
+</ResponseField>
+
+<ResponseField name="name" type="str">
+  App name
+</ResponseField>
+
+<ResponseField name="description" type="str">
+  App description
+</ResponseField>
+
+<ResponseField name="termsAndConditionsLink" type="str">
+  Terms and conditions URL
+</ResponseField>
+
+<ResponseField name="trustByDefault" type="bool">
+  Whether app is trusted by default
+</ResponseField>
+
+<ResponseField name="logo" type="str">
+  App logo URL
+</ResponseField>
+
+<ResponseField name="author" type="dict">
+  App author information
+  - `id` (str) - Author user ID
+  - `name` (str) - Author name
+  - `avatar` (str, optional) - Author avatar URL
+</ResponseField>
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <Accordion title="How do I check if a server supports specific features?">
+    Use `get()` to retrieve server information and check capabilities:
+
+    ```python
+    info = client.server.get()
+
+    # Check workspace support
+    has_workspaces = (
+        info.workspaces and
+        info.workspaces.workspacesEnabled
+    )
+
+    # Check available scopes
+    scope_names = [scope.name for scope in info.scopes]
+    has_automation = "automate:report-results" in scope_names
+    ```
+  </Accordion>
+
+  <Accordion title="How do I compare server versions in my code?">
+    Use the `version()` method which returns a comparable tuple:
+
+    ```python
+    version = client.server.version()
+    major, minor = version[0], version[1]
+
+    # Check for minimum version
+    if (major, minor) >= (3, 0):
+        print("Server meets minimum version 3.0")
+
+    # Version-specific behavior
+    if major >= 3:
+        # Use v3 API features
+        pass
+    elif major == 2:
+        # Use v2 API features
+        pass
+    else:
+        raise ValueError("Unsupported server version")
+    ```
+  </Accordion>
+
+  <Accordion title="What scopes should I request for my token?">
+    Request only the scopes you need:
+
+    - **Read-only access**: `["streams:read", "profile:read"]`
+    - **Basic read/write**: `["streams:read", "streams:write", "profile:read"]`
+    - **Automation/CI**: `["streams:read", "streams:write", "profile:read", "tokens:write"]`
+    - **Admin operations**: Check server's available scopes with `get()`
+
+    Use `client.server.get().scopes` to see all available scopes and their descriptions.
+  </Accordion>
+
+  <Accordion title="How long should I set my token lifespan?">
+    Token lifespan recommendations:
+
+    - **Development/testing**: 7-30 days (`604800` - `2592000` seconds)
+    - **CI/CD pipelines**: 90-365 days (`7776000` - `31536000` seconds)
+    - **Production services**: 365 days, with rotation strategy
+    - **Temporary access**: 1-7 days (`86400` - `604800` seconds)
+
+    ```python
+    # Common lifespans
+    ONE_DAY = 86400
+    ONE_WEEK = 604800
+    ONE_MONTH = 2592000
+    ONE_YEAR = 31536000
+
+    token = client.server.create_token(
+        name="My Token", scopes=scopes, lifespan=ONE_MONTH
+    )
+    ```
+  </Accordion>
+
+  <Accordion title="Can I list all my existing tokens?">
+    The `ServerResource` doesn't provide a method to list tokens directly. To manage your tokens:
+
+    1. Log in to the Speckle web interface
+    2. Go to your profile settings
+    3. Navigate to "Personal Access Tokens"
+    4. View and manage all your tokens there
+
+    Alternatively, use the `ActiveUserResource` methods if available in your version.
+  </Accordion>
+
+  <Accordion title="What happens if I create a token with invalid scopes?">
+    The server will reject the request if you specify scopes that don't exist or that you don't have access to. Always check available scopes first:
+
+    ```python
+    # Get available scopes
+    info = client.server.get()
+    available_scopes = {scope.name for scope in info.scopes}
+
+    # Validate your desired scopes
+    desired_scopes = ["streams:read", "streams:write", "profile:read"]
+
+    if all(scope in available_scopes for scope in desired_scopes):
+        token = client.server.create_token(
+            name="My Token",
+            scopes=desired_scopes,
+            lifespan=2592000
+        )
+    else:
+        print("Some requested scopes are not available")
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="SpeckleClient" icon="plug" href="/developers/sdks/python/api-reference/client">
+    Main client documentation
+  </Card>
+
+  <Card title="ActiveUserResource" icon="user" href="/developers/sdks/python/api-reference/resources/active-user">
+    User profile operations
+  </Card>
+</CardGroup>

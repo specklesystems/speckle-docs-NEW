@@ -1,0 +1,747 @@
+---
+title: "Understanding Speckle Mesh"
+description: "How Speckle's Mesh format works - vertices, faces, nGons, normals, and colors explained"
+---
+
+## Overview
+
+The Speckle `Mesh` format is different from most 3D libraries you've encountered. Understanding its unique structure is critical to avoid frustration when creating or consuming geometry.
+
+<Warning>
+**Common Confusion:** Speckle's mesh format uses a **packed face array with nGon support** that's fundamentally different from libraries like three.js, Babylon.js, or standard OBJ files. The `faces` array encodes BOTH face size AND vertex indices in a single flat list.
+</Warning>
+
+## The Speckle Mesh Structure
+
+### Basic Properties
+
+```python
+from specklepy.objects.geometry import Mesh
+
+mesh = Mesh(
+    vertices=[...],           # Flat list of coordinates [x,y,z, x,y,z, ...]
+    faces=[...],              # Packed face array (see below)
+    colors=[...],             # Optional: per-vertex colors (ARGB integers)
+    textureCoordinates=[...], # Optional: UV coords [u,v, u,v, ...]
+    vertexNormals=[...],      # Optional: per-vertex normals [x,y,z, x,y,z, ...]
+    units="m"                 # Unit specification
+)
+```
+
+## The Vertices Array: Simple
+
+The `vertices` array is straightforward - a flat list of XYZ coordinates:
+
+```python
+vertices = [
+    x1, y1, z1,  # Vertex 0
+    x2, y2, z2,  # Vertex 1
+    x3, y3, z3,  # Vertex 2
+    x4, y4, z4,  # Vertex 3
+    # ... and so on
+]
+
+# Example: A quad (4 vertices)
+vertices = [
+    0, 0, 0,    # Vertex 0 at origin
+    1, 0, 0,    # Vertex 1
+    1, 1, 0,    # Vertex 2
+    0, 1, 0     # Vertex 3
+]
+
+# Number of vertices
+vertex_count = len(vertices) // 3  # = 4
+```
+
+**Key points:**
+- Always a multiple of 3 (X, Y, Z)
+- Indexed starting from 0
+- Units apply to these coordinates
+
+## The Faces Array: The Tricky Part
+
+<Warning>
+**This is where it gets different!** The `faces` array is NOT a simple list of triangle indices. It's a **packed format** that supports nGons (polygons with any number of sides).
+</Warning>
+
+### Face Array Format
+
+The `faces` array encodes face information as:
+
+```
+[vertex_count, index1, index2, index3, ..., vertex_count, index1, index2, ...]
+└── size ─┘└────── indices ─────┘└─ next face... ──────────┘
+```
+
+**Structure:**
+- First number = how many vertices in this face
+- Next N numbers = vertex indices for this face
+- Then repeat for next face
+
+### Example: Triangle
+
+```python
+# Triangle face (3 vertices)
+faces = [
+    3,      # This face has 3 vertices (triangle)
+    0, 1, 2 # Use vertices 0, 1, 2
+]
+
+# Complete mesh
+mesh = Mesh(
+    vertices=[
+        0, 0, 0,  # Vertex 0
+        1, 0, 0,  # Vertex 1
+        0, 1, 0   # Vertex 2
+    ],
+    faces=[3, 0, 1, 2],  # One triangle
+    units="m"
+)
+```
+
+### Example: Quad (4-sided polygon)
+
+```python
+# Quad face (4 vertices) - nGon!
+faces = [
+    4,         # This face has 4 vertices (quad)
+    0, 1, 2, 3 # Use vertices 0, 1, 2, 3
+]
+
+# Complete mesh
+mesh = Mesh(
+    vertices=[
+        0, 0, 0,  # Vertex 0
+        1, 0, 0,  # Vertex 1
+        1, 1, 0,  # Vertex 2
+        0, 1, 0   # Vertex 3
+    ],
+    faces=[4, 0, 1, 2, 3],  # One quad
+    units="m"
+)
+```
+
+### Example: Multiple Faces
+
+```python
+# Two triangles
+faces = [
+    3, 0, 1, 2,  # First triangle (vertices 0, 1, 2)
+    3, 2, 1, 3   # Second triangle (vertices 2, 1, 3)
+]
+
+# One triangle and one quad
+faces = [
+    3, 0, 1, 2,     # Triangle (3 vertices)
+    4, 3, 4, 5, 6   # Quad (4 vertices)
+]
+
+# Complex mesh with various nGons
+faces = [
+    3, 0, 1, 2,         # Triangle
+    4, 2, 3, 4, 5,      # Quad
+    5, 5, 6, 7, 8, 9,   # Pentagon!
+    6, 9, 10, 11, 12, 13, 14  # Hexagon!
+]
+```
+
+## Why This Format? nGon Support
+
+Most mesh libraries only support triangles (or triangles + quads). Speckle supports **nGons** - faces with any number of vertices.
+
+**Advantages:**
+- **Preserves design intent** - Doesn't force triangulation
+- **BIM compatibility** - Revit, Rhino often use quads and nGons
+- **Round-trip fidelity** - Original face structure preserved
+- **Smaller data** - No unnecessary triangulation
+
+**Trade-off:**
+- More complex to parse
+- Rendering engines must triangulate
+
+## Parsing the Faces Array
+
+### Reading Faces
+
+```python
+def parse_faces(mesh):
+    """Parse the packed faces array."""
+    i = 0
+    face_index = 0
+
+    while i < len(mesh.faces):
+        # Read face size
+        vertex_count = mesh.faces[i]
+
+        # Read vertex indices
+        indices = []
+        for j in range(vertex_count):
+            indices.append(mesh.faces[i + 1 + j])
+
+        print(f"Face {face_index}: {vertex_count} vertices, indices {indices}")
+
+        # Move to next face
+        i += vertex_count + 1
+        face_index += 1
+
+# Example usage
+mesh = Mesh(
+    vertices=[0,0,0, 1,0,0, 1,1,0, 0,1,0, 0.5,0.5,1],
+    faces=[4, 0,1,2,3,  3, 0,3,4],  # Quad + Triangle
+    units="m"
+)
+
+parse_faces(mesh)
+# Output:
+# Face 0: 4 vertices, indices [0, 1, 2, 3]
+# Face 1: 3 vertices, indices [0, 3, 4]
+```
+
+### Accessing Face Vertices
+
+```python
+def get_face_vertices(mesh, face_index):
+    """Get vertex coordinates for a specific face."""
+    i = 0
+    current_face = 0
+
+    while i < len(mesh.faces):
+        if current_face == face_index:
+            vertex_count = mesh.faces[i]
+            vertices = []
+
+            for j in range(vertex_count):
+                vert_idx = mesh.faces[i + 1 + j]
+                # Get XYZ from vertices array
+                x = mesh.vertices[vert_idx * 3]
+                y = mesh.vertices[vert_idx * 3 + 1]
+                z = mesh.vertices[vert_idx * 3 + 2]
+                vertices.append((x, y, z))
+
+            return vertices
+
+        vertex_count = mesh.faces[i]
+        i += vertex_count + 1
+        current_face += 1
+
+    return None
+
+# Or use the built-in method
+face_vertices = mesh.get_face_vertices(0)  # Returns list of Point objects
+```
+
+## Triangulating nGons
+
+Most rendering engines need triangles. Here's how to triangulate:
+
+```python
+def triangulate_mesh(mesh):
+    """Convert nGons to triangles using fan triangulation."""
+    triangulated_faces = []
+
+    i = 0
+    while i < len(mesh.faces):
+        vertex_count = mesh.faces[i]
+
+        if vertex_count == 3:
+            # Already a triangle
+            triangulated_faces.extend([3, mesh.faces[i+1], mesh.faces[i+2], mesh.faces[i+3]])
+
+        elif vertex_count > 3:
+            # Fan triangulation from first vertex
+            v0 = mesh.faces[i + 1]
+            for j in range(1, vertex_count - 1):
+                v1 = mesh.faces[i + 1 + j]
+                v2 = mesh.faces[i + 1 + j + 1]
+                triangulated_faces.extend([3, v0, v1, v2])
+
+        i += vertex_count + 1
+
+    return Mesh(
+        vertices=mesh.vertices,
+        faces=triangulated_faces,
+        colors=mesh.colors,
+        units=mesh.units
+    )
+```
+
+## Vertex Colors
+
+Colors are **per-vertex** ARGB integers (not per-face!):
+
+```python
+# Color format: 0xAARRGGBB
+# AA = Alpha (transparency)
+# RR = Red
+# GG = Green
+# BB = Blue
+
+colors = [
+    0xFFFF0000,  # Vertex 0: Red (opaque)
+    0xFF00FF00,  # Vertex 1: Green (opaque)
+    0xFF0000FF,  # Vertex 2: Blue (opaque)
+    0x80FFFF00   # Vertex 3: Yellow (50% transparent)
+]
+
+mesh = Mesh(
+    vertices=[0,0,0, 1,0,0, 1,1,0, 0,1,0],
+    faces=[4, 0,1,2,3],
+    colors=colors,  # One color per vertex
+    units="m"
+)
+```
+
+**Important:**
+- Length of `colors` must equal number of vertices
+- Colors interpolate across faces (gradient effect)
+- If empty, viewer uses default material color
+
+### Converting RGB to ARGB
+
+```python
+def rgb_to_argb(r, g, b, a=255):
+    """Convert RGB values (0-255) to ARGB integer."""
+    return (a << 24) | (r << 16) | (g << 8) | b
+
+def hex_to_argb(hex_color):
+    """Convert hex string to ARGB integer."""
+    if hex_color.startswith('#'):
+        hex_color = hex_color[1:]
+
+    if len(hex_color) == 6:
+        hex_color = 'FF' + hex_color  # Add full opacity
+
+    return int(hex_color, 16)
+
+# Usage
+red = rgb_to_argb(255, 0, 0)           # 0xFFFF0000
+blue = hex_to_argb('#0000FF')          # 0xFF0000FF
+transparent_green = rgb_to_argb(0, 255, 0, 128)  # 0x8000FF00
+```
+
+## Render Materials
+
+Render materials define the visual appearance of meshes using physically-based rendering properties. Unlike vertex colors (which are per-vertex), render materials apply to entire objects.
+
+### RenderMaterial Properties
+
+```python
+from specklepy.objects.other import RenderMaterial
+
+material = RenderMaterial(
+    name="Steel",
+    diffuse=0xFF808080,      # ARGB color (gray)
+    opacity=1.0,             # 0.0 (transparent) to 1.0 (opaque)
+    metalness=1.0,           # 0.0 (non-metal) to 1.0 (metal)
+    roughness=0.3,           # 0.0 (smooth/glossy) to 1.0 (rough/matte)
+    emissive=0xFF000000      # ARGB color for glow (black = no glow)
+)
+```
+
+**Properties:**
+- `name` (str, required): Material name
+- `diffuse` (int, required): Base color as ARGB integer (see [Vertex Colors](#vertex-colors))
+- `opacity` (float): Transparency level (default: 1.0)
+- `metalness` (float): Metallic appearance (default: 0.0)
+- `roughness` (float): Surface roughness (default: 1.0)
+- `emissive` (int): Self-illumination color as ARGB integer (default: 0xFF000000)
+
+### Direct Assignment
+
+Assign a material directly to a mesh:
+
+```python
+from specklepy.objects.geometry import Mesh
+
+mesh = Mesh(
+    vertices=[0,0,0, 1,0,0, 0,1,0],
+    faces=[3, 0,1,2],
+    units="m"
+)
+mesh.renderMaterial = material
+```
+
+### RenderMaterialProxy for Collections
+
+For efficiently sharing materials across multiple objects in a collection, use `RenderMaterialProxy`. This is the standard pattern used by Speckle connectors.
+
+<Info>
+**See the [Proxification guide](/developers/sdks/python/concepts/proxification#rendermaterialproxy)** for detailed information on how `RenderMaterialProxy` works, including:
+- How to create and use material proxies
+- Resolving proxy references
+- Best practices for large models
+</Info>
+
+### Material vs Vertex Colors
+
+**Use RenderMaterial when:**
+- Applying consistent appearance to entire objects
+- Using physically-based properties (metalness, roughness)
+- Need transparency or emissive effects
+- Sharing materials across multiple objects
+
+**Use vertex colors when:**
+- Per-vertex color variation (gradients, heatmaps)
+- Visualizing analysis data
+- Color-coding mesh regions
+
+**Can you use both?** Yes! Vertex colors and render materials can be combined, but viewer behavior may vary.
+
+## Vertex Normals
+
+Normals control surface shading (smooth vs flat):
+
+```python
+# Normals are per-vertex, like colors
+vertexNormals = [
+    nx1, ny1, nz1,  # Normal for vertex 0
+    nx2, ny2, nz2,  # Normal for vertex 1
+    nx3, ny3, nz3,  # Normal for vertex 2
+    # ...
+]
+
+mesh = Mesh(
+    vertices=[...],
+    faces=[...],
+    vertexNormals=[0,0,1, 0,0,1, 0,0,1, 0,0,1],  # All pointing up (+Z)
+    units="m"
+)
+```
+
+**Important facts:**
+- Length of `vertexNormals` must be same as `vertices` (3x vertex count)
+- Normals should be unit vectors (length = 1)
+- If empty, viewer auto-calculates normals
+- Per-vertex normals = smooth shading
+- Duplicated vertices with different normals = hard edges
+
+### Hard vs Soft Edges
+
+<Info>
+**Speckle connectors produce meshes with all hard-edged faces by default** - meaning every face has its own duplicated vertices rather than sharing vertices between faces. This approach prioritizes conversion speed and ensures consistent rendering.
+</Info>
+
+**Understanding edge behavior:**
+- **Hard edges** are the default - each face has its own vertices, creating sharp transitions
+- **Soft edges** would require shared vertices with averaged normals, but connectors don't typically create these
+- This means most Speckle meshes have "flat" shading rather than smooth shading
+
+<Note>
+If smooth shading or mixed hard/soft edges are required for your use case, mesh normalization can be performed as a server-side automation that processes the geometry and writes back properly normalized meshes with shared vertices where appropriate.
+</Note>
+
+## Two-Sidedness: Not Supported
+
+<Info>
+**Speckle doesn't have a "two-sided" material flag.** Faces have a front and back determined by winding order, but both sides render the same in the viewer.
+</Info>
+
+**Winding order:**
+- Right-hand rule determines front face
+- Counter-clockwise = front (when viewed from front)
+- Most viewers render both sides regardless
+
+
+
+
+## Creating Meshes: Complete Examples
+
+### Example 1: Simple Quad
+
+```python
+from specklepy.objects.geometry import Mesh
+
+# Create a flat square (1m x 1m)
+mesh = Mesh(
+    vertices=[
+        0, 0, 0,  # Bottom-left
+        1, 0, 0,  # Bottom-right
+        1, 1, 0,  # Top-right
+        0, 1, 0   # Top-left
+    ],
+    faces=[
+        4, 0, 1, 2, 3  # One quad face
+    ],
+    units="m"
+)
+```
+
+### Example 2: Colored Triangle
+
+```python
+# Rainbow triangle
+mesh = Mesh(
+    vertices=[
+        0, 0, 0,   # Bottom-left
+        1, 0, 0,   # Bottom-right
+        0.5, 1, 0  # Top-center
+    ],
+    faces=[3, 0, 1, 2],
+    colors=[
+        0xFFFF0000,  # Red
+        0xFF00FF00,  # Green
+        0xFF0000FF   # Blue
+    ],
+    units="m"
+)
+```
+
+### Example 3: Box with Triangulated Faces
+
+```python
+def create_box(width, height, depth):
+    """Create a box mesh (triangulated)."""
+    w, h, d = width/2, height/2, depth/2
+
+    vertices = [
+        -w, -h, -d,  # 0: back-bottom-left
+         w, -h, -d,  # 1: back-bottom-right
+         w,  h, -d,  # 2: back-top-right
+        -w,  h, -d,  # 3: back-top-left
+        -w, -h,  d,  # 4: front-bottom-left
+         w, -h,  d,  # 5: front-bottom-right
+         w,  h,  d,  # 6: front-top-right
+        -w,  h,  d   # 7: front-top-left
+    ]
+
+    faces = [
+        # Each face = 2 triangles
+        3, 0,1,2,  3, 0,2,3,  # Back
+        3, 4,5,6,  3, 4,6,7,  # Front
+        3, 0,4,7,  3, 0,7,3,  # Left
+        3, 1,5,6,  3, 1,6,2,  # Right
+        3, 3,2,6,  3, 3,6,7,  # Top
+        3, 0,1,5,  3, 0,5,4   # Bottom
+    ]
+
+    return Mesh(vertices=vertices, faces=faces, units="m")
+```
+
+### Example 4: Box with Quad Faces (nGons)
+
+```python
+def create_box_quads(width, height, depth):
+    """Create a box mesh using quads (more compact)."""
+    w, h, d = width/2, height/2, depth/2
+
+    vertices = [
+        -w, -h, -d,  # 0
+         w, -h, -d,  # 1
+         w,  h, -d,  # 2
+        -w,  h, -d,  # 3
+        -w, -h,  d,  # 4
+         w, -h,  d,  # 5
+         w,  h,  d,  # 6
+        -w,  h,  d   # 7
+    ]
+
+    faces = [
+        4, 0,1,2,3,  # Back (quad)
+        4, 5,4,7,6,  # Front (quad - note winding)
+        4, 4,0,3,7,  # Left
+        4, 1,5,6,2,  # Right
+        4, 3,2,6,7,  # Top
+        4, 4,5,1,0   # Bottom
+    ]
+
+    return Mesh(vertices=vertices, faces=faces, units="m")
+```
+
+## Common Questions
+
+<AccordionGroup>
+  <Accordion title="Why does my mesh not display correctly?">
+    The most common issue is forgetting the vertex count in the faces array. Speckle uses a packed format where each face starts with the number of vertices.
+
+    ```python
+    # ❌ WRONG - Missing vertex count
+    faces = [0, 1, 2]  # This won't work!
+
+    # ✅ CORRECT - Include vertex count
+    faces = [3, 0, 1, 2]  # 3 = triangle, then indices
+    ```
+  </Accordion>
+
+  <Accordion title="How do I ensure colors display properly?">
+    Colors must match the number of vertices exactly. Each vertex needs one color value.
+
+    ```python
+    # ❌ WRONG - Colors don't match vertices
+    mesh = Mesh(
+        vertices=[0,0,0, 1,0,0, 1,1,0],  # 3 vertices
+        faces=[3, 0,1,2],
+        colors=[0xFFFF0000, 0xFF00FF00]  # Only 2 colors!
+    )
+
+    # ✅ CORRECT - One color per vertex
+    mesh = Mesh(
+        vertices=[0,0,0, 1,0,0, 1,1,0],  # 3 vertices
+        faces=[3, 0,1,2],
+        colors=[0xFFFF0000, 0xFF00FF00, 0xFF0000FF]  # 3 colors
+    )
+    ```
+  </Accordion>
+
+  <Accordion title="Why should I always specify units?">
+    Units are crucial for proper scaling and display. Without units, your geometry might appear at the wrong size or scale.
+
+    ```python
+    # ❌ BAD - No units specified
+    mesh = Mesh(vertices=[...], faces=[...])
+
+    # ✅ GOOD - Always specify units
+    mesh = Mesh(vertices=[...], faces=[...], units="m")
+    ```
+  </Accordion>
+
+  <Accordion title="Why do my meshes look faceted/flat instead of smooth?">
+    Speckle connectors produce meshes with all hard-edged faces by default - each face has its own duplicated vertices rather than sharing vertices between faces. This creates flat shading rather than smooth shading.
+
+    If you need smooth shading, you can perform mesh normalization as a server-side automation to create shared vertices where appropriate.
+  </Accordion>
+</AccordionGroup>
+
+## Debugging Tools
+
+### Validate Mesh Structure
+
+```python
+def validate_mesh(mesh):
+    """Check mesh for common issues."""
+    errors = []
+    warnings = []
+
+    # Check vertices
+    if len(mesh.vertices) % 3 != 0:
+        errors.append(f"Vertices length {len(mesh.vertices)} is not multiple of 3")
+
+    vertex_count = len(mesh.vertices) // 3
+
+    # Check colors
+    if mesh.colors and len(mesh.colors) != vertex_count:
+        errors.append(f"Colors ({len(mesh.colors)}) != vertices ({vertex_count})")
+
+    # Check normals
+    if mesh.vertexNormals and len(mesh.vertexNormals) != len(mesh.vertices):
+        errors.append(f"Normals length ({len(mesh.vertexNormals)}) != vertices length ({len(mesh.vertices)})")
+
+    # Check face indices
+    i = 0
+    face_num = 0
+    while i < len(mesh.faces):
+        if i >= len(mesh.faces):
+            errors.append(f"Face {face_num}: Incomplete face definition")
+            break
+
+        vert_count = mesh.faces[i]
+        if vert_count < 3:
+            errors.append(f"Face {face_num}: Has only {vert_count} vertices (need 3+)")
+
+        for j in range(vert_count):
+            if i + 1 + j >= len(mesh.faces):
+                errors.append(f"Face {face_num}: Missing vertex index {j}")
+                break
+
+            idx = mesh.faces[i + 1 + j]
+            if idx >= vertex_count:
+                errors.append(f"Face {face_num}: Index {idx} out of range (max {vertex_count-1})")
+
+        i += vert_count + 1
+        face_num += 1
+
+    # Check units
+    if not mesh.units or mesh.units == "none":
+        warnings.append("No units specified")
+
+    return errors, warnings
+
+# Usage
+errors, warnings = validate_mesh(mesh)
+if errors:
+    print("❌ ERRORS:")
+    for err in errors:
+        print(f"  - {err}")
+if warnings:
+    print("⚠️  WARNINGS:")
+    for warn in warnings:
+        print(f"  - {warn}")
+if not errors and not warnings:
+    print("✅ Mesh is valid!")
+```
+
+### Visualize Mesh Info
+
+```python
+def print_mesh_info(mesh):
+    """Print detailed mesh information."""
+    vertex_count = len(mesh.vertices) // 3
+
+    # Count faces and face types
+    i = 0
+    face_count = 0
+    face_types = {}
+
+    while i < len(mesh.faces):
+        vert_count = mesh.faces[i]
+        face_types[vert_count] = face_types.get(vert_count, 0) + 1
+        i += vert_count + 1
+        face_count += 1
+
+    print(f"Mesh Information:")
+    print(f"  Vertices: {vertex_count}")
+    print(f"  Faces: {face_count}")
+    print(f"  Face breakdown:")
+    for vert_count, count in sorted(face_types.items()):
+        name = {3: "triangles", 4: "quads", 5: "pentagons", 6: "hexagons"}.get(vert_count, f"{vert_count}-gons")
+        print(f"    {name}: {count}")
+    print(f"  Has colors: {len(mesh.colors) > 0}")
+    print(f"  Has normals: {len(mesh.vertexNormals) > 0}")
+    print(f"  Has UVs: {len(mesh.textureCoordinates) > 0}")
+    print(f"  Units: {mesh.units}")
+```
+
+## Summary
+
+**Key takeaways:**
+
+1. **Vertices** = Flat list `[x,y,z, x,y,z, ...]`
+2. **Faces** = Packed format `[count, i1, i2, i3, count, ...]`
+3. **nGons supported** = Any number of vertices per face
+4. **Colors** = Per-vertex ARGB integers
+5. **RenderMaterials** = Physically-based materials with metalness, roughness, and opacity
+6. **RenderMaterialProxy** = Efficient material sharing across multiple objects
+7. **Normals** = Per-vertex, connectors produce all hard-edged faces (duplicated vertices)
+8. **No two-sided flag** = Must duplicate faces with reversed winding
+9. **Always specify units**
+
+**Common gotchas:**
+
+- ❌ Don't forget the vertex count in faces array
+- ❌ Colors/normals must match vertex count
+- ❌ Connectors create flat shading by default (no shared vertices)
+- ❌ No explicit two-sided support
+- ✅ nGons are supported and preserved
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Display Values" icon="eye" href="/developers/sdks/python/concepts/display-values">
+    How meshes are used in displayValue for viewer visibility
+  </Card>
+
+  <Card title="Proxification" icon="link" href="/developers/sdks/python/concepts/proxification">
+    Learn about RenderMaterialProxy and other proxy patterns
+  </Card>
+
+  <Card title="Working with Geometry" icon="shapes" href="/developers/sdks/python/guides/working-with-geometry">
+    Creating and manipulating geometry objects
+  </Card>
+
+  <Card title="Simple Data Patterns" icon="cube" href="/developers/sdks/python/guides/simple-data-patterns">
+    Patterns for working with geometry and properties
+  </Card>
+
+  <Card title="Objects & Base" icon="cube" href="/developers/sdks/python/concepts/objects">
+    Understanding the Base class and detachment
+  </Card>
+</CardGroup>

@@ -1,0 +1,364 @@
+---
+title: "WorkspaceResource"
+description: "API reference for workspace operations in SpecklePy"
+---
+
+<Warning>
+**Hosted Server Feature**
+
+The `WorkspaceResource` is only available on workspace-enabled Speckle deployments, primarily the hosted server at **app.speckle.systems**.
+
+**Self-hosted/open-source server deployments do not include workspace features.** Attempting to use workspace methods on non-workspace servers will raise an error.
+</Warning>
+
+## Overview
+
+The `WorkspaceResource` provides methods for managing Speckle workspaces. Access it via `client.workspace` after authenticating your `SpeckleClient`.
+
+Workspaces are organizational units that group projects and team members together on workspace-enabled servers.
+
+```python
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token(token)
+
+workspace = client.workspace.get("workspace_id")
+```
+
+## Methods
+
+### get()
+
+Get a single workspace by ID.
+
+```python
+client.workspace.get(workspace_id: str) -> Workspace
+```
+
+**Parameters:**
+
+<ResponseField name="workspace_id" type="str" required>
+  The ID of the workspace to retrieve
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="workspace" type="Workspace">
+  The workspace object
+</ResponseField>
+
+**Example:**
+
+```python
+workspace = client.workspace.get("workspace_abc123")
+
+print(f"Name: {workspace.name}")
+print(f"Slug: {workspace.slug}")
+print(f"Description: {workspace.description}")
+print(f"Role: {workspace.role}")
+print(f"Created: {workspace.createdAt}")
+
+if workspace.permissions.canCreateProject.authorized:
+    print("✓ Can create projects in this workspace")
+```
+
+See [Workspace](#workspace) for property details.
+### get_projects()
+
+Get all projects in a workspace with pagination support.
+
+```python
+client.workspace.get_projects(
+    workspace_id: str,
+    limit: int = 25,
+    cursor: Optional[str] = None,
+    filter: Optional[WorkspaceProjectsFilter] = None
+) -> ResourceCollection[Project]
+```
+
+**Parameters:**
+
+<ResponseField name="workspace_id" type="str" required>
+  The ID of the workspace
+</ResponseField>
+
+<ResponseField name="limit" type="int" default="25">
+  Maximum number of projects to return
+</ResponseField>
+
+<ResponseField name="cursor" type="str" default="None">
+  Cursor for pagination
+</ResponseField>
+
+<ResponseField name="filter" type="WorkspaceProjectsFilter" default="None">
+  Filter criteria
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="projects" type="ResourceCollection[Project]">
+  Collection with `items`, `totalCount`, and `cursor`
+</ResponseField>
+
+**Example:**
+
+```python
+projects = client.workspace.get_projects("workspace_id", limit=50)
+
+print(f"Total projects: {projects.totalCount}")
+for project in projects.items:
+    print(f"  - {project.name}")
+    print(f"    Visibility: {project.visibility}")
+    print(f"    Role: {project.role}")
+
+# Pagination
+if projects.cursor:
+    next_page = client.workspace.get_projects("workspace_id", cursor=projects.cursor)
+```
+
+**Filter Example:**
+
+```python
+from specklepy.core.api.inputs.project_inputs import WorkspaceProjectsFilter
+
+# Filter by search term
+filter = WorkspaceProjectsFilter(search="design")
+projects = client.workspace.get_projects("workspace_id", filter=filter)
+
+# Note: Check the WorkspaceProjectsFilter class for all available filter options
+# Common filters include:
+# - search: Search term for project name/description
+# - filter by visibility, roles, etc.
+```
+
+
+### get_projects_with_permissions()
+
+Get all projects in a workspace with detailed permission information.
+
+```python
+client.workspace.get_projects_with_permissions(
+    workspace_id: str,
+    limit: int = 25,
+    cursor: Optional[str] = None,
+    filter: Optional[WorkspaceProjectsFilter] = None
+) -> ResourceCollection[ProjectWithPermissions]
+```
+
+**Parameters:**
+
+<ResponseField name="workspace_id" type="str" required>
+  The ID of the workspace
+</ResponseField>
+
+<ResponseField name="limit" type="int" default="25">
+  Maximum number of projects to return
+</ResponseField>
+
+<ResponseField name="cursor" type="str" default="None">
+  Cursor for pagination
+</ResponseField>
+
+<ResponseField name="filter" type="WorkspaceProjectsFilter" default="None">
+  Filter criteria
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="projects" type="ResourceCollection[ProjectWithPermissions]">
+  Collection of projects with permission details
+</ResponseField>
+
+**Example:**
+
+```python
+projects = client.workspace.get_projects_with_permissions("workspace_id")
+
+for project in projects.items:
+    print(f"\nProject: {project.name}")
+    print(f"  Role: {project.role}")
+
+    # Check permissions
+    if project.permissions.canCreateModel.authorized:
+        print("  ✓ Can create models")
+    if project.permissions.canDelete.authorized:
+        print("  ✓ Can delete project")
+    if project.permissions.canPublish.authorized:
+        print("  ✓ Can publish versions")
+```
+
+**ProjectWithPermissions Additional Properties:**
+
+- `permissions` (ProjectPermissions) - Detailed permission checks
+  - `canCreateModel` - Model creation permission
+  - `canDelete` - Project deletion permission
+  - `canLoad` - Project loading permission
+  - `canPublish` - Version publishing permission
+
+Each permission object includes:
+- `authorized` (bool) - Whether the action is authorized
+- `code` (str) - Permission code
+- `message` (str, optional) - Human-readable message
+
+## Types
+
+### Workspace
+
+Represents a Speckle workspace.
+
+<ResponseField name="id" type="str">
+  Workspace ID
+</ResponseField>
+
+<ResponseField name="name" type="str">
+  Workspace name
+</ResponseField>
+
+<ResponseField name="slug" type="str">
+  URL-safe identifier
+</ResponseField>
+
+<ResponseField name="role" type="str">
+  Your role in the workspace
+</ResponseField>
+
+<ResponseField name="logo" type="str">
+  Workspace logo URL
+</ResponseField>
+
+<ResponseField name="description" type="str">
+  Workspace description
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime">
+  Creation timestamp
+</ResponseField>
+
+<ResponseField name="updatedAt" type="datetime">
+  Last update timestamp
+</ResponseField>
+
+<ResponseField name="readOnly" type="bool">
+  Whether workspace is read-only
+</ResponseField>
+
+<ResponseField name="creationState" type="object">
+  Creation state information
+  - `completed` (bool) - Whether workspace setup is complete
+</ResponseField>
+
+<ResponseField name="permissions" type="WorkspacePermissions">
+  Permission checks
+  - `canCreateProject` - Project creation permission
+</ResponseField>
+
+## Filters
+
+### WorkspaceProjectsFilter
+
+```python
+WorkspaceProjectsFilter(
+    search: Optional[str] = None,
+    with_project_role_only: Optional[bool] = None
+)
+```
+
+Used with [`get_projects()`](#get-projects) and [`get_projects_with_permissions()`](#get-projects-with-permissions).
+
+**Fields:**
+- `search` (str, optional) - Filter by project name
+- `with_project_role_only` (bool, optional) - Only return projects where user has explicit project role
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <Accordion title="Which servers support workspaces?">
+    Workspace features are available on:
+    - **app.speckle.systems** (hosted Speckle server)
+    - Enterprise deployments with workspace features enabled
+
+    Workspace features are **NOT** available on:
+    - Self-hosted open-source Speckle servers
+    - Community edition deployments
+
+    Check before using by wrapping calls in try/except blocks.
+  </Accordion>
+
+  <Accordion title="How do I check if workspace features are available?">
+    Attempt to get workspaces and handle the error:
+
+    ```python
+    try:
+        workspaces = client.active_user.get_workspaces()
+        print("Workspace features available")
+        # Proceed with workspace operations
+    except Exception as e:
+        print("Workspace features not available")
+        # Fall back to non-workspace operations
+    ```
+  </Accordion>
+
+  <Accordion title="How do I get my workspace ID?">
+    Use the `active_user` resource to list your workspaces:
+
+    ```python
+    workspaces = client.active_user.get_workspaces()
+
+    for ws in workspaces.items:
+        print(f"Workspace: {ws.name}")
+        print(f"  ID: {ws.id}")
+        print(f"  Slug: {ws.slug}")
+    ```
+  </Accordion>
+
+  <Accordion title="What's the difference between workspace projects and personal projects?">
+    - **Workspace projects**: Owned by a workspace, shared with workspace members, managed by workspace admins
+    - **Personal projects**: Owned by individual users, independent of workspaces
+
+    On workspace-enabled servers, projects can belong to either a workspace or a user. Check the `workspaceId` field on a project to determine ownership.
+
+    ```python
+    project = client.project.get("project_id")
+    if project.workspaceId:
+        print(f"Workspace project: {project.workspaceId}")
+    else:
+        print("Personal project")
+    ```
+  </Accordion>
+
+  <Accordion title="Can I create workspace projects?">
+    Project creation happens through the `ProjectResource`, but you can specify the workspace:
+
+    ```python
+    from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+
+    # Check permission first
+    workspace = client.workspace.get("workspace_id")
+    if not workspace.permissions.canCreateProject.authorized:
+        print("Cannot create projects in this workspace")
+    else:
+        # Create through project resource with workspaceId
+        project = client.project.create(ProjectCreateInput(
+            name="My Project",
+            workspaceId="workspace_id"
+        ))
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="ActiveUserResource" icon="user" href="/developers/sdks/python/api-reference/resources/active-user">
+    Get your workspaces with get_workspaces() and get_active_workspace()
+  </Card>
+
+  <Card title="ProjectResource" icon="folder" href="/developers/sdks/python/api-reference/resources/project">
+    Create projects within workspaces
+  </Card>
+
+  <Card title="SpeckleClient" icon="plug" href="/developers/sdks/python/api-reference/client">
+    Main client documentation
+  </Card>
+</CardGroup>

@@ -1,0 +1,194 @@
+---
+title: "specklepy"
+description: "The Python SDK for Speckle - Build powerful AEC data workflows"
+---
+
+**specklepy** is the Python SDK for Speckle, enabling you to interact with Speckle Server, send and receive geometry, and build custom integrations for the AEC industry.
+
+<Info>
+Compatible with **Speckle Object Model v3**
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/developers/sdks/python/getting-started/quickstart">
+    Get up and running in 5 minutes
+  </Card>
+  <Card title="Core Concepts" icon="book" href="/developers/sdks/python/concepts/overview">
+    Understand the fundamentals
+  </Card>
+  <Card title="API Reference" icon="code" href="/developers/sdks/python/api-reference/client">
+    Explore the complete API
+  </Card>
+  <Card title="Examples" icon="lightbulb" href="/developers/sdks/python/examples/basic-workflow">
+    See it in action
+  </Card>
+</CardGroup>
+
+## What is specklepy?
+
+specklepy is a comprehensive Python library that provides:
+
+- **Object-based data exchange** - Send and receive geometry and BIM data without files
+- **GraphQL API client** - Full access to Speckle Server's API
+- **Extensible object model** - Create custom objects that inherit from `Base`
+- **Multiple transport options** - Store data locally (SQLite), in-memory, or on Speckle Server
+- **Geometry support** - Rich geometric primitives (Point, Line, Mesh, Brep, etc.)
+- **Structural analysis** - Complete FEA/FEM object types
+
+<Info>
+specklepy v3 requires **Python 3.10+** and supports Windows, macOS, and Linux.
+</Info>
+
+## Key Features
+
+### Object-Based, Not File-Based
+
+Forget about files. Speckle uses **objects** as the fundamental unit of data exchange.
+
+```python lines icon="python"
+# Create geometry objects
+start = Point(x=0, y=0, z=0)
+end = Point(x=10, y=10, z=0)
+line = Line(start=start, end=end)
+```
+<Note>
+Instead of files, Speckle stores sets of objects in Models. Models are contained
+within Projects. Projects are contained within Workspaces. Learn more about
+organising your data in Speckle in the [User Guide](https://docs.speckle.dev/workspaces/projects).
+</Note>
+
+### Version Control for AEC Data
+
+Every change creates a new **version** (commit), giving you full history and traceability.
+
+```python lines icon="python"
+# Create a version with your data
+version_input = CreateVersionInput(
+    project_id=project_id,
+    model_id=model_id,
+    object_id=object_id,
+    message="Updated geometry"
+)
+version = client.version.create(version_input)
+```
+
+<Note>
+  The `object_id` here is of a **Speckle object** that has already been sent to the Speckle server. Sending will register it in the database, but visibility of it is within the scope of a **version**.
+</Note>
+
+<Note>
+  Objects not associated with a **Model** **Version** are considered as "Zombie objects" or "Orphans" other than keeping a record of `object_ids` they will be irretrievable.
+</Note>
+
+### Real-Time Collaboration
+
+Subscribe to changes and get notified when new data arrives.
+
+```python lines icon="python" focus={2-5}
+# Subscribe to project updates
+client.subscribe.project_versions_updated(
+    project_id=project_id,
+    callback=on_version_created
+)
+```
+
+<Warning>
+  Subscriptions may not make sense if the script is not running continuously. Consider using a webhook or a scheduled task instead.
+</Warning>
+
+## Common Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Custom Python backed web applications" icon="globe">
+    Extract data from one application (e.g., Revit) and load it into another that may have a python scripting interface and no Speckle Connector.
+  </Card>
+  <Card title="Automated Workflows" icon="gears">
+    Within Speckle Automation or your own automation pipelines that process AEC data, run analyses, or generate reports.
+  </Card>
+  <Card title="Custom Integrations" icon="plug">
+    Connect Speckle to your internal tools, databases, applications with a python scripting environment, or third-party services.
+  </Card>
+  <Card title="Structural Analysis" icon="bridge">
+    Work with FEA/FEM models using the built-in structural object types.
+  </Card>
+</CardGroup>
+
+## Installation
+
+Install specklepy using pip:
+
+```bash
+pip install specklepy
+```
+
+<Note>
+For detailed installation instructions, see the [Installation Guide](/developers/sdks/python/getting-started/installation).
+</Note>
+
+## Quick Example
+
+Here's a complete example of sending geometry to Speckle:
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+from specklepy.api.credentials import get_default_account
+from specklepy.api import operations
+from specklepy.objects.geometry import Point
+from specklepy.transports.server import ServerTransport
+from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+
+# Authenticate
+client = SpeckleClient(host="https://app.speckle.systems")
+account = get_default_account()
+client.authenticate_with_account(account)
+
+# Create geometry
+point = Point(x=10, y=20, z=5)
+
+# Send to server
+transport = ServerTransport(stream_id="your_project_id", client=client)
+object_id = operations.send(base=point, transports=[transport])
+
+# Get the main model
+models = client.model.get_models("your_project_id")
+model_id = models.items[0].id
+
+# Create a version
+version_input = CreateVersionInput(
+    project_id="your_project_id",
+    model_id=model_id,
+    object_id=object_id,
+    message="My first point!"
+)
+version = client.version.create(version_input)
+
+print(f"Created version: {version.id}")
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/developers/sdks/python/getting-started/installation">
+    Install specklepy and set up your environment
+  </Card>
+  <Card title="Authentication" icon="key" href="/developers/sdks/python/getting-started/authentication">
+    Learn how to authenticate with Speckle Server
+  </Card>
+  <Card title="Quickstart" icon="bolt" href="/developers/sdks/python/getting-started/quickstart">
+    Build your first integration
+  </Card>
+  <Card title="Core Concepts" icon="graduation-cap" href="/developers/sdks/python/concepts/overview">
+    Understand how specklepy works
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+<CardGroup cols={3}>
+  <Card title="Community Forum" icon="comments" href="https://speckle.community/c/help/developers">
+    Ask questions and share knowledge
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/specklesystems/specklepy/issues">
+    Report bugs and request features
+  </Card>
+</CardGroup>

@@ -1,0 +1,558 @@
+---
+title: "ProjectResource"
+description: "Complete API reference for project operations in SpecklePy"
+---
+
+## Overview
+
+The `ProjectResource` provides methods for managing Speckle projects. Access it via `client.project` after authenticating your `SpeckleClient`.
+
+Projects are the top-level containers in Speckle that hold models, versions, and team members.
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token(token)
+
+# Access project operations
+project = client.project.get("project_id")
+```
+
+## Methods
+
+### get()
+
+Get a single project by ID.
+
+```python lines icon="python"
+client.project.get(project_id: str) -> Project
+```
+
+**Parameters:**
+
+<ResponseField name="project_id" type="str" required>
+  The ID of the project to retrieve
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="project" type="Project">
+  The project object
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+project = client.project.get("abc123def456")
+
+print(f"Project: {project.name}")
+print(f"Description: {project.description}")
+print(f"Visibility: {project.visibility}")
+print(f"Role: {project.role}")
+print(f"Workspace ID: {project.workspaceId}")
+```
+
+See [Project](#project) for property details.
+### get_permissions()
+
+Get permission checks for a project.
+
+```python lines icon="python"
+client.project.get_permissions(project_id: str) -> ProjectPermissionChecks
+```
+
+**Parameters:**
+
+<ResponseField name="project_id" type="str" required>
+  The ID of the project
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="permissions" type="ProjectPermissionChecks">
+  Permission check results
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+permissions = client.project.get_permissions("project_id")
+
+if permissions.canCreateModel.authorized:
+    print("✓ You can create models")
+else:
+    print(f"✗ Cannot create models: {permissions.canCreateModel.message}")
+
+if permissions.canDelete.authorized:
+    print("✓ You can delete this project")
+
+if permissions.canPublish.authorized:
+    print("✓ You can publish to this project")
+```
+
+See [PermissionCheckResult](/developers/sdks/python/api-reference/resources/project#permissioncheckresult) for property details.
+### get_with_models()
+
+Get a project with its models included.
+
+```python lines icon="python"
+client.project.get_with_models(
+    project_id: str,
+    *,
+    models_limit: int = 25,
+    models_cursor: Optional[str] = None,
+    models_filter: Optional[ProjectModelsFilter] = None
+) -> ProjectWithModels
+```
+
+**Parameters:**
+
+<ResponseField name="project_id" type="str" required>
+  The ID of the project
+</ResponseField>
+
+<ResponseField name="models_limit" type="int" default="25">
+  Maximum number of models to return
+</ResponseField>
+
+<ResponseField name="models_cursor" type="str" default="None">
+  Cursor for pagination
+</ResponseField>
+
+<ResponseField name="models_filter" type="ProjectModelsFilter" default="None">
+  Filter criteria for models. See [ProjectModelsFilter](#projectmodelsfilter)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="project" type="ProjectWithModels">
+  Project with models collection
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+# Get project with first 10 models
+project = client.project.get_with_models(
+    "project_id",
+    models_limit=10
+)
+
+print(f"Project: {project.name}")
+print(f"Total models: {project.models.totalCount}")
+
+for model in project.models.items:
+    print(f"  - {model.name} (updated: {model.updatedAt})")
+
+# Paginate through more models
+if project.models.cursor:
+    next_page = client.project.get_with_models(
+        "project_id",
+        models_cursor=project.models.cursor
+    )
+```
+
+See [ProjectModelsFilter](#projectmodelsfilter) for filtering options.
+### get_with_team()
+
+Get a project with its team members and pending invitations.
+
+```python lines icon="python"
+client.project.get_with_team(project_id: str) -> ProjectWithTeam
+```
+
+**Parameters:**
+
+<ResponseField name="project_id" type="str" required>
+  The ID of the project
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="project" type="ProjectWithTeam">
+  Project with team information
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+project = client.project.get_with_team("project_id")
+
+print(f"Project: {project.name}")
+print(f"\nTeam members ({len(project.team)}):")
+for member in project.team:
+    print(f"  - {member.user.name} ({member.role})")
+
+print(f"\nPending invitations ({len(project.invitedTeam)}):")
+for invite in project.invitedTeam:
+    invited_by = invite.invitedBy.name if invite.invitedBy else "Unknown"
+    user_name = invite.user.name if invite.user else invite.title
+    print(f"  - {user_name} ({invite.role}) - invited by {invited_by}")
+```
+### create()
+
+Create a new personal project (non-workspace).
+
+```python lines icon="python"
+client.project.create(input: ProjectCreateInput) -> Project
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="ProjectCreateInput" required>
+  Project creation parameters. See [ProjectCreateInput](#projectcreateinput)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="project" type="Project">
+  The newly created project
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+
+# Create a basic project
+project = client.project.create(ProjectCreateInput(
+    name="My New Project",
+    description="A project for architectural designs",
+    visibility="PRIVATE"
+))
+
+print(f"Created project: {project.name} (ID: {project.id})")
+```
+
+See [ProjectCreateInput](#projectcreateinput) for all available fields.
+
+<Note>
+Check if you can create personal projects using `client.active_user.can_create_personal_projects()` before calling this method.
+</Note>
+### create_in_workspace()
+
+Create a new workspace project.
+
+```python lines icon="python"
+client.project.create_in_workspace(input: WorkspaceProjectCreateInput) -> Project
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="WorkspaceProjectCreateInput" required>
+  Workspace project creation parameters. See [WorkspaceProjectCreateInput](#workspaceprojectcreateinput)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="project" type="Project">
+  The newly created workspace project
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.project_inputs import WorkspaceProjectCreateInput
+
+# Get workspace ID first
+workspaces = client.active_user.get_workspaces(limit=1)
+workspace_id = workspaces.items[0].id
+
+# Create workspace project
+project = client.project.create_in_workspace(WorkspaceProjectCreateInput(
+    name="Team Project",
+    description="Shared project for the team",
+    visibility="PRIVATE",
+    workspaceId=workspace_id
+))
+
+print(f"Created workspace project: {project.name}")
+print(f"Workspace ID: {project.workspaceId}")
+```
+
+See [WorkspaceProjectCreateInput](#workspaceprojectcreateinput) for all available fields.
+
+<Warning>
+This method only works on workspace-enabled servers (e.g., app.speckle.systems). Check workspace permissions using `workspace.permissions.canCreateProject` before calling.
+</Warning>
+### update()
+
+Update an existing project.
+
+```python lines icon="python"
+client.project.update(input: ProjectUpdateInput) -> Project
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="ProjectUpdateInput" required>
+  Project update parameters. See [ProjectUpdateInput](#projectupdateinput)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="project" type="Project">
+  The updated project
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.project_inputs import ProjectUpdateInput
+
+# Update project details
+updated_project = client.project.update(ProjectUpdateInput(
+    id="project_id",
+    name="Updated Project Name",
+    description="New description",
+    visibility="PUBLIC",
+    allowPublicComments=True
+))
+
+print(f"Updated: {updated_project.name}")
+```
+
+See [ProjectUpdateInput](#projectupdateinput) for all available fields.
+### delete()
+
+Delete a project permanently.
+
+```python lines icon="python"
+client.project.delete(project_id: str) -> bool
+```
+
+**Parameters:**
+
+<ResponseField name="project_id" type="str" required>
+  The ID of the project to delete
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="success" type="bool">
+  `True` if deletion was successful
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+# Delete a project
+success = client.project.delete("project_id")
+
+if success:
+    print("✓ Project deleted successfully")
+else:
+    print("✗ Failed to delete project")
+```
+
+<Warning>
+This operation is irreversible! All models, versions, and data in the project will be permanently deleted.
+</Warning>
+### update_role()
+
+Update a team member's role in the project.
+
+```python lines icon="python"
+client.project.update_role(input: ProjectUpdateRoleInput) -> ProjectWithTeam
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="ProjectUpdateRoleInput" required>
+  Role update parameters
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="project" type="ProjectWithTeam">
+  Updated project with team information
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.project_inputs import ProjectUpdateRoleInput
+
+# Promote a user to contributor
+project = client.project.update_role(ProjectUpdateRoleInput(
+    projectId="project_id",
+    userId="user_id",
+    role="stream:contributor"  # or "stream:reviewer", "stream:owner"
+))
+
+print("Updated team roles:")
+for member in project.team:
+    print(f"  - {member.user.name}: {member.role}")
+```
+
+**ProjectUpdateRoleInput Fields:**
+
+- `projectId` (str, required) - The project ID
+- `userId` (str, required) - The user ID whose role to update
+- `role` (str, required) - New role: `"stream:owner"`, `"stream:contributor"`, or `"stream:reviewer"`
+
+**Role Permissions:**
+
+- `stream:owner` - Full control, can delete project and manage team
+- `stream:contributor` - Can create models and versions
+- `stream:reviewer` - Read-only access
+## Types
+
+### Project
+
+Represents a Speckle project.
+
+<ResponseField name="id" type="str">
+  Project ID
+</ResponseField>
+
+<ResponseField name="name" type="str">
+  Project name
+</ResponseField>
+
+<ResponseField name="description" type="str">
+  Project description
+</ResponseField>
+
+<ResponseField name="visibility" type="str">
+  `"PUBLIC"`, `"PRIVATE"`, or `"UNLISTED"`
+</ResponseField>
+
+<ResponseField name="role" type="str">
+  Your role: `"stream:owner"`, `"stream:contributor"`, or `"stream:reviewer"`
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime">
+  Creation timestamp
+</ResponseField>
+
+<ResponseField name="updatedAt" type="datetime">
+  Last update timestamp
+</ResponseField>
+
+<ResponseField name="allowPublicComments" type="bool">
+  Whether public comments are allowed
+</ResponseField>
+
+<ResponseField name="sourceApps" type="List[str]">
+  List of source applications used
+</ResponseField>
+
+<ResponseField name="workspaceId" type="str">
+  Workspace ID if this is a workspace project
+</ResponseField>
+### PermissionCheckResult
+
+Result of a permission check operation.
+
+<ResponseField name="authorized" type="bool">
+  Whether the action is authorized
+</ResponseField>
+
+<ResponseField name="code" type="str">
+  Permission code
+</ResponseField>
+
+<ResponseField name="message" type="str">
+  Human-readable message
+</ResponseField>
+## Input Types
+
+### ProjectCreateInput
+
+```python
+ProjectCreateInput(
+    name: str,
+    description: Optional[str] = None,
+    visibility: Optional[str] = None
+)
+```
+
+Used with [`create()`](#create).
+
+**Fields:**
+- `name` (str) - Project name
+- `description` (str, optional) - Project description
+- `visibility` (str, optional) - `"PRIVATE"`, `"PUBLIC"`, or `"UNLISTED"`
+### ProjectUpdateInput
+
+```python
+ProjectUpdateInput(
+    id: str,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    allow_public_comments: Optional[bool] = None,
+    visibility: Optional[str] = None
+)
+```
+
+Used with [`update()`](#update).
+
+**Fields:**
+- `id` (str) - Project ID
+- `name` (str, optional) - New project name
+- `description` (str, optional) - New description
+- `allow_public_comments` (bool, optional) - Allow public comments
+- `visibility` (str, optional) - New visibility setting
+### WorkspaceProjectCreateInput
+
+```python
+WorkspaceProjectCreateInput(
+    name: str,
+    description: Optional[str] = None,
+    visibility: Optional[str] = None,
+    workspaceId: str
+)
+```
+
+Used with [`create_in_workspace()`](#create-in-workspace).
+
+**Fields:**
+- `name` (str) - Project name
+- `description` (str, optional) - Project description
+- `visibility` (str, optional) - `"PRIVATE"`, `"PUBLIC"`, or `"UNLISTED"`
+- `workspaceId` (str) - Workspace ID
+## Filters
+
+### ProjectModelsFilter
+
+```python
+ProjectModelsFilter(
+    contributors: Optional[Sequence[str]] = None,
+    exclude_ids: Optional[Sequence[str]] = None,
+    ids: Optional[Sequence[str]] = None,
+    only_with_versions: Optional[bool] = None,
+    search: Optional[str] = None,
+    source_apps: Optional[Sequence[str]] = None
+)
+```
+
+Used with [`get_with_models()`](#get-with-models) and `client.model.get_models()`.
+
+**Fields:**
+- `contributors` (List[str], optional) - Filter by contributor user IDs
+- `exclude_ids` (List[str], optional) - Exclude specific model IDs
+- `ids` (List[str], optional) - Include only specific model IDs
+- `only_with_versions` (bool, optional) - Only return models with versions
+- `search` (str, optional) - Search by model name
+- `source_apps` (List[str], optional) - Filter by source application
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="ModelResource" icon="cube" href="/developers/sdks/python/api-reference/resources/model">
+    Work with models in projects
+  </Card>
+
+  <Card title="VersionResource" icon="clock-rotate-left" href="/developers/sdks/python/api-reference/resources/version">
+    Manage versions in models
+  </Card>
+
+  <Card title="ActiveUserResource" icon="user" href="/developers/sdks/python/api-reference/resources/active-user">
+    Get user's projects and permissions
+  </Card>
+
+  <Card title="SpeckleClient" icon="plug" href="/developers/sdks/python/api-reference/client">
+    Main client documentation
+  </Card>
+</CardGroup>

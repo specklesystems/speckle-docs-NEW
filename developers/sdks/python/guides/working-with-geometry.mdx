@@ -1,0 +1,739 @@
+---
+title: "Working with Geometry"
+description: "Complete guide to creating and manipulating geometric objects in specklepy"
+---
+
+## Overview
+
+Speckle provides a rich set of geometry types that work across all platforms. All geometry objects inherit from `Base` and implement common interfaces for properties like `units`, `area`, and `length`.
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point, Line, Mesh, Polyline
+from specklepy.objects import Base
+
+# All geometry are Base objects
+point = Point(x=1.0, y=2.0, z=3.0)
+print(isinstance(point, Base))  # True
+print(point.speckle_type)  # "Objects.Geometry.Point"
+```
+
+## Points
+
+The fundamental building block - a 3D coordinate:
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point
+
+# Create a point
+point = Point(x=10.0, y=20.0, z=5.0)
+point.units = "m"
+
+# Calculate distance
+other = Point(x=15.0, y=20.0, z=5.0)
+distance = point.distance_to(other)
+print(f"Distance: {distance} {point.units}")  # Distance: 5.0 m
+
+# Add custom properties
+point.label = "Corner A"
+point.timestamp = "2024-01-15"
+```
+
+### Point Collections
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point
+from specklepy.objects import Base
+
+# Create a collection of points
+survey_points = Base()
+survey_points.name = "Site Survey"
+survey_points.points = []
+
+for i in range(10):
+    point = Point(x=i * 10, y=i * 5, z=0)
+    point.label = f"SP-{i:03d}"
+    point.elevation = i * 0.5
+    survey_points.points.append(point)
+
+survey_points.count = len(survey_points.points)
+```
+
+## Vectors
+
+Represent direction and magnitude:
+
+```python lines icon="python"
+from specklepy.objects.geometry import Vector
+
+# Create a vector
+vec = Vector(x=1.0, y=0.0, z=0.0)
+vec.units = "m"
+
+# Get length (magnitude)
+print(f"Length: {vec.length}")  # Length: 1.0
+
+# Create from two points
+from specklepy.objects.geometry import Point
+
+p1 = Point(x=0, y=0, z=0)
+p2 = Point(x=3, y=4, z=0)
+
+vec = Vector(
+    x=p2.x - p1.x,
+    y=p2.y - p1.y,
+    z=p2.z - p1.z
+)
+print(f"Vector length: {vec.length}")  # 5.0 (3-4-5 triangle)
+```
+
+## Lines
+
+A line segment between two points:
+
+```python lines icon="python"
+from specklepy.objects.geometry import Line, Point
+
+# Create a line
+start = Point(x=0, y=0, z=0)
+end = Point(x=10, y=0, z=0)
+line = Line(start=start, end=end)
+line.units = "m"
+
+# Get length
+print(f"Line length: {line.length} {line.units}")
+
+# Add properties
+line.layer = "Grid Lines"
+line.color = 0xFF0000  # Red in ARGB
+line.lineweight = 0.5
+```
+
+### Line Grids
+
+```python lines icon="python"
+from specklepy.objects.geometry import Line, Point
+from specklepy.objects import Base
+
+def create_grid(width, height, spacing):
+    """Create a grid of lines."""
+    grid = Base()
+    grid.name = "Grid"
+    grid.lines = []
+    
+    # Horizontal lines
+    for i in range(0, height + 1, spacing):
+        line = Line(
+            start=Point(x=0, y=i, z=0),
+            end=Point(x=width, y=i, z=0)
+        )
+        line.label = f"H-{i//spacing}"
+        grid.lines.append(line)
+    
+    # Vertical lines
+    for i in range(0, width + 1, spacing):
+        line = Line(
+            start=Point(x=i, y=0, z=0),
+            end=Point(x=i, y=height, z=0)
+        )
+        line.label = f"V-{i//spacing}"
+        grid.lines.append(line)
+    
+    return grid
+
+# Use it
+grid = create_grid(width=100, height=50, spacing=10)
+print(f"Created {len(grid.lines)} grid lines")
+```
+
+## Polylines
+
+Multi-segment curves defined by vertices:
+
+```python lines icon="python"
+from specklepy.objects.geometry import Polyline
+
+# Create a polyline from flat coordinate list
+# Format: [x1, y1, z1, x2, y2, z2, ...]
+coords = [
+    0, 0, 0,    # Point 1
+    10, 0, 0,   # Point 2
+    10, 10, 0,  # Point 3
+    0, 10, 0,   # Point 4
+    0, 0, 0,    # Back to start (closed)
+]
+
+polyline = Polyline(value=coords)
+polyline.units = "m"
+
+# Check if closed
+print(f"Is closed: {polyline.is_closed()}")  # True
+
+# Calculate length
+length = polyline.calculate_length()
+print(f"Total length: {length} {polyline.units}")  # 40.0 m
+
+# Get as Point objects
+points = polyline.get_points()
+print(f"Number of points: {len(points)}")  # 5
+```
+
+### Building Polylines from Points
+
+```python lines icon="python"
+from specklepy.objects.geometry import Polyline, Point
+
+def polyline_from_points(points):
+    """Create a Polyline from a list of Point objects."""
+    coords = []
+    for point in points:
+        coords.extend([point.x, point.y, point.z])
+    
+    polyline = Polyline(value=coords)
+    if points:
+        polyline.units = points[0].units
+    return polyline
+
+# Use it
+points = [
+    Point(x=0, y=0, z=0),
+    Point(x=5, y=0, z=0),
+    Point(x=5, y=5, z=0),
+    Point(x=0, y=5, z=0),
+]
+
+polyline = polyline_from_points(points)
+```
+
+## Planes
+
+A plane with origin and axis vectors:
+
+```python lines icon="python"
+from specklepy.objects.geometry import Plane, Point, Vector
+
+# Create a plane at origin, aligned with world XY
+plane = Plane(
+    origin=Point(x=0, y=0, z=0),
+    normal=Vector(x=0, y=0, z=1),  # Z-up
+    xdir=Vector(x=1, y=0, z=0),     # X direction
+    ydir=Vector(x=0, y=1, z=0)      # Y direction
+)
+plane.units = "m"
+
+# Create a plane at different location
+elevated_plane = Plane(
+    origin=Point(x=10, y=10, z=5),
+    normal=Vector(x=0, y=0, z=1),
+    xdir=Vector(x=1, y=0, z=0),
+    ydir=Vector(x=0, y=1, z=0)
+)
+elevated_plane.units = "m"
+elevated_plane.name = "Construction Level 2"
+```
+
+## Meshes
+
+Triangle and quad meshes for 3D geometry:
+
+### Creating Meshes
+
+```python lines icon="python"
+from specklepy.objects.geometry import Mesh
+
+# Create a simple quad (two triangles forming a square)
+mesh = Mesh(
+    vertices=[
+        0, 0, 0,    # Vertex 0
+        10, 0, 0,   # Vertex 1
+        10, 10, 0,  # Vertex 2
+        0, 10, 0,   # Vertex 3
+    ],
+    faces=[
+        3, 0, 1, 2,  # Triangle: vertices 0, 1, 2 (face has 3 vertices)
+        3, 0, 2, 3,  # Triangle: vertices 0, 2, 3
+    ]
+)
+mesh.units = "m"
+
+print(f"Vertices: {mesh.vertices_count}")  # 4
+```
+
+<Info>
+**Mesh face format:** Each face starts with vertex count, followed by vertex indices.
+`[3, 0, 1, 2]` = triangle with vertices 0, 1, 2.
+`[4, 0, 1, 2, 3]` = quad with vertices 0, 1, 2, 3.
+</Info>
+
+### Mesh with Colors
+
+```python lines icon="python"
+from specklepy.objects.geometry import Mesh
+
+# Create mesh with vertex colors
+mesh = Mesh(
+    vertices=[
+        0, 0, 0,
+        1, 0, 0,
+        1, 1, 0,
+        0, 1, 0,
+    ],
+    faces=[4, 0, 1, 2, 3],  # Single quad
+    colors=[
+        0xFFFF0000,  # Red (ARGB format)
+        0xFF00FF00,  # Green
+        0xFF0000FF,  # Blue
+        0xFFFFFF00,  # Yellow
+    ]
+)
+mesh.units = "m"
+
+print(f"Has colors: {len(mesh.colors) > 0}")  # True
+```
+
+### Mesh Properties
+
+```python lines icon="python"
+from specklepy.objects.geometry import Mesh
+
+mesh = Mesh(
+    vertices=[0, 0, 0, 1, 0, 0, 0.5, 1, 0],
+    faces=[3, 0, 1, 2]
+)
+mesh.units = "m"
+
+# Get vertex count
+print(f"Vertex count: {mesh.vertices_count}")  # 3
+
+# Get points
+points = mesh.get_points()
+print(f"First point: {points[0]}")
+
+# Get face vertices
+face_verts = mesh.get_face_vertices(0)
+print(f"Face 0 has {len(face_verts)} vertices")
+
+# Calculate area
+area = mesh.calculate_area()
+print(f"Surface area: {area} {mesh.units}²")
+
+# Check if closed
+is_closed = mesh.is_closed()
+print(f"Is closed: {is_closed}")
+```
+
+### Building Complex Meshes
+
+```python lines icon="python"
+from specklepy.objects.geometry import Mesh
+import math
+
+def create_cylinder(radius, height, segments=16):
+    """Create a cylindrical mesh."""
+    vertices = []
+    faces = []
+    
+    # Bottom circle vertices
+    for i in range(segments):
+        angle = (i / segments) * 2 * math.pi
+        x = radius * math.cos(angle)
+        y = radius * math.sin(angle)
+        vertices.extend([x, y, 0])
+    
+    # Top circle vertices
+    for i in range(segments):
+        angle = (i / segments) * 2 * math.pi
+        x = radius * math.cos(angle)
+        y = radius * math.sin(angle)
+        vertices.extend([x, y, height])
+    
+    # Side faces (quads)
+    for i in range(segments):
+        next_i = (i + 1) % segments
+        faces.extend([
+            4,                    # Quad
+            i,                    # Bottom current
+            next_i,               # Bottom next
+            next_i + segments,    # Top next
+            i + segments,         # Top current
+        ])
+    
+    mesh = Mesh(vertices=vertices, faces=faces)
+    mesh.units = "m"
+    mesh.name = "Cylinder"
+    
+    return mesh
+
+# Use it
+cylinder = create_cylinder(radius=5, height=10, segments=32)
+print(f"Cylinder has {cylinder.vertices_count} vertices")
+```
+
+## Other Geometry Types
+
+### Circle
+
+```python lines icon="python"
+from specklepy.objects.geometry import Circle, Plane, Point, Vector
+
+circle = Circle(
+    plane=Plane(
+        origin=Point(x=0, y=0, z=0),
+        normal=Vector(x=0, y=0, z=1),
+        xdir=Vector(x=1, y=0, z=0),
+        ydir=Vector(x=0, y=1, z=0)
+    ),
+    radius=5.0
+)
+circle.units = "m"
+```
+
+### Arc
+
+```python lines icon="python"
+from specklepy.objects.geometry import Arc, Plane, Point, Vector
+import math
+
+arc = Arc(
+    plane=Plane(
+        origin=Point(x=0, y=0, z=0),
+        normal=Vector(x=0, y=0, z=1),
+        xdir=Vector(x=1, y=0, z=0),
+        ydir=Vector(x=0, y=1, z=0)
+    ),
+    radius=10.0,
+    startAngle=0.0,
+    endAngle=math.pi,  # 180 degrees in radians
+    angleRadians=math.pi
+)
+arc.units = "m"
+```
+
+### Box
+
+```python lines icon="python"
+from specklepy.objects.geometry import Box, Plane, Point, Vector
+
+box = Box(
+    basePlane=Plane(
+        origin=Point(x=0, y=0, z=0),
+        normal=Vector(x=0, y=0, z=1),
+        xdir=Vector(x=1, y=0, z=0),
+        ydir=Vector(x=0, y=1, z=0)
+    ),
+    xSize=Point(x=10, y=0, z=0),
+    ySize=Point(x=0, y=5, z=0),
+    zSize=Point(x=0, y=0, z=3)
+)
+box.units = "m"
+```
+
+## Units
+
+All geometry objects support units:
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point
+
+# Set units
+point = Point(x=1000, y=2000, z=0)
+point.units = "mm"
+
+line = Line(
+    start=Point(x=0, y=0, z=0, units="m"),
+    end=Point(x=1, y=0, z=0, units="m"),
+    units="m"
+)
+
+mesh = Mesh(vertices=[...], faces=[...])
+mesh.units = "ft"
+```
+
+<Warning>
+specklepy doesn't automatically convert units. Ensure all geometry in a collection uses consistent units, or handle conversion in your code.
+</Warning>
+
+### Common Units
+
+- `"m"` - meters
+- `"mm"` - millimeters
+- `"cm"` - centimeters
+- `"ft"` - feet
+- `"in"` - inches
+- `"yd"` - yards
+- `"km"` - kilometers
+- `"mi"` - miles
+
+## Display Values
+
+Complex objects often have a `displayValue` - simplified geometry for visualization:
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.geometry import Mesh
+
+# A parametric object
+column = Base()
+column.speckle_type = "Objects.Structural.Column"
+column.height = 3.0
+column.profile = "HE300A"
+
+# Add display geometry
+column.displayValue = Mesh(
+    vertices=[...],  # Mesh representing the column
+    faces=[...]
+)
+column.displayValue.units = "m"
+
+# Viewers will show the mesh even if they don't understand "Structural.Column"
+```
+
+<Info>
+Always provide `displayValue` for custom objects - it ensures they're visible in Speckle viewers even without native support.
+</Info>
+
+## Practical Examples
+
+### Example 1: Bounding Box
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point
+from specklepy.objects import Base
+
+def calculate_bounding_box(points):
+    """Calculate bounding box from list of points."""
+    if not points:
+        return None
+    
+    min_x = min(p.x for p in points)
+    max_x = max(p.x for p in points)
+    min_y = min(p.y for p in points)
+    max_y = max(p.y for p in points)
+    min_z = min(p.z for p in points)
+    max_z = max(p.z for p in points)
+    
+    bbox = Base()
+    bbox.name = "Bounding Box"
+    bbox.min = Point(x=min_x, y=min_y, z=min_z)
+    bbox.max = Point(x=max_x, y=max_y, z=max_z)
+    bbox.center = Point(
+        x=(min_x + max_x) / 2,
+        y=(min_y + max_y) / 2,
+        z=(min_z + max_z) / 2
+    )
+    bbox.dimensions = [max_x - min_x, max_y - min_y, max_z - min_z]
+    
+    return bbox
+
+# Use it
+points = [
+    Point(x=0, y=0, z=0),
+    Point(x=10, y=5, z=3),
+    Point(x=-2, y=8, z=1),
+]
+
+bbox = calculate_bounding_box(points)
+print(f"Center: ({bbox.center.x}, {bbox.center.y}, {bbox.center.z})")
+print(f"Dimensions: {bbox.dimensions}")
+```
+
+### Example 2: Polyline Simplification
+
+```python lines icon="python"
+from specklepy.objects.geometry import Polyline, Point
+
+def simplify_polyline(polyline, tolerance=0.1):
+    """Remove points that don't significantly change direction."""
+    points = polyline.get_points()
+    
+    if len(points) <= 2:
+        return polyline  # Can't simplify further
+    
+    simplified = [points[0]]  # Always keep first point
+    
+    for i in range(1, len(points) - 1):
+        prev = simplified[-1]
+        curr = points[i]
+        next_pt = points[i + 1]
+        
+        # Calculate distance from current point to line between prev and next
+        # If distance > tolerance, keep the point
+        # (Simplified distance calculation)
+        dist = abs(
+            (next_pt.x - prev.x) * (prev.y - curr.y) - 
+            (prev.x - curr.x) * (next_pt.y - prev.y)
+        ) / prev.distance_to(next_pt)
+        
+        if dist > tolerance:
+            simplified.append(curr)
+    
+    simplified.append(points[-1])  # Always keep last point
+    
+    # Build new polyline
+    coords = []
+    for p in simplified:
+        coords.extend([p.x, p.y, p.z])
+    
+    result = Polyline(value=coords)
+    result.units = polyline.units
+    
+    return result
+```
+
+### Example 3: Mesh from Height Map
+
+```python lines icon="python"
+from specklepy.objects.geometry import Mesh
+
+def mesh_from_heightmap(heights, width, height, scale=1.0):
+    """Create a mesh from a 2D height array."""
+    vertices = []
+    faces = []
+    
+    # Create vertices
+    for y in range(height):
+        for x in range(width):
+            vertices.extend([
+                x * scale,
+                y * scale,
+                heights[y][x] * scale
+            ])
+    
+    # Create faces (two triangles per grid cell)
+    for y in range(height - 1):
+        for x in range(width - 1):
+            # Vertex indices
+            i0 = y * width + x
+            i1 = y * width + (x + 1)
+            i2 = (y + 1) * width + (x + 1)
+            i3 = (y + 1) * width + x
+            
+            # Two triangles per quad
+            faces.extend([3, i0, i1, i2])
+            faces.extend([3, i0, i2, i3])
+    
+    mesh = Mesh(vertices=vertices, faces=faces)
+    mesh.units = "m"
+    
+    return mesh
+
+# Use it
+heights = [
+    [0, 0.5, 1.0],
+    [0.5, 1.0, 1.5],
+    [1.0, 1.5, 2.0],
+]
+
+terrain = mesh_from_heightmap(heights, width=3, height=3, scale=10.0)
+print(f"Terrain mesh: {terrain.vertices_count} vertices")
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always set units">
+    Explicitly set units on all geometry objects:
+    
+    ```python
+    # Good
+    point = Point(x=1, y=2, z=3)
+    point.units = "m"
+    
+    # Bad - undefined units
+    point = Point(x=1, y=2, z=3)
+    ```
+  </Accordion>
+  
+  <Accordion title="Use consistent units within collections">
+    Don't mix units in the same collection:
+    
+    ```python
+    # Good
+    collection = Base()
+    collection.items = [
+        Point(x=1, y=2, z=3, units="m"),
+        Point(x=4, y=5, z=6, units="m"),
+    ]
+    
+    # Bad - mixed units
+    collection.items = [
+        Point(x=1, y=2, z=3, units="m"),
+        Point(x=4, y=5, z=6, units="ft"),  # Different!
+    ]
+    ```
+  </Accordion>
+  
+  <Accordion title="Provide displayValue for custom objects">
+    Always include visualization geometry:
+    
+    ```python
+    custom_object = Base()
+    custom_object.speckle_type = "MyApp.CustomThing"
+    custom_object.custom_data = {...}  # Add your custom attributes
+    
+    # Add displayValue so viewers can show it
+    custom_object.displayValue = Mesh(...)
+    ```
+  </Accordion>
+  
+  <Accordion title="Validate mesh data">
+    Check vertex and face counts:
+    
+    ```python
+    def is_valid_mesh(mesh):
+        # Check vertex count
+        if len(mesh.vertices) % 3 != 0:
+            return False
+        
+        # Check face indices
+        i = 0
+        while i < len(mesh.faces):
+            vertex_count = mesh.faces[i]
+            for j in range(vertex_count):
+                vertex_idx = mesh.faces[i + 1 + j]
+                if vertex_idx >= mesh.vertices_count:
+                    return False
+            i += vertex_count + 1
+        
+        return True
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Summary
+
+specklepy provides comprehensive geometry types:
+
+- ✅ **Points** - 3D coordinates with distance calculations
+- ✅ **Vectors** - Direction and magnitude
+- ✅ **Lines** - Segment between two points
+- ✅ **Polylines** - Multi-segment curves
+- ✅ **Planes** - Origin with axis vectors
+- ✅ **Meshes** - Triangle and quad meshes with colors
+- ✅ **Curves** - Circles, arcs, ellipses, spirals
+- ✅ **Solids** - Boxes and parametric shapes
+
+All geometry:
+- Inherits from `Base`
+- Supports units
+- Can have custom properties
+- Works across all Speckle platforms
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Objects & Base Class" icon="cube" href="/concepts/objects">
+    Understand the Base class that all geometry inherits from
+  </Card>
+  
+  <Card title="Custom Objects" icon="wrench" href="/guides/custom-objects">
+    Create your own geometry types
+  </Card>
+  
+  <Card title="Sending & Receiving" icon="arrow-right-arrow-left" href="/guides/sending-receiving">
+    Send geometry to Speckle and receive it back
+  </Card>
+  
+  <Card title="Working with Data" icon="diagram-project" href="/concepts/working-with-data">
+    Traverse and extract data from complex objects
+  </Card>
+</CardGroup>

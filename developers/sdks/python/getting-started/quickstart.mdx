@@ -1,0 +1,348 @@
+---
+title: "Quickstart"
+description: "Build your first Speckle integration in 5 minutes"
+---
+
+## What You'll Build
+
+In this quickstart, you'll learn how to:
+
+1. Authenticate with Speckle Server
+2. Create a project and model
+3. Send geometry data to Speckle
+4. Receive geometry data from Speckle
+5. Create a version (commit)
+
+Let's get started!
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install specklepy">
+    ```bash
+    pip install specklepy
+    ```
+  </Step>
+  <Step title="Set up authentication">
+    Get a [personal access token](https://app.speckle.systems) from your Speckle profile<br />
+    *(Avatar → Settings → Developer → Access Tokens)*
+  </Step>
+</Steps>
+
+## Full Workflow
+### Step 1: Authentication
+
+First, let's authenticate with Speckle Server:
+
+<Tabs>
+  <Tab title="Using Token">
+    ```python lines icon="python" focus={4,7-8}
+        from specklepy.api.client import SpeckleClient
+
+        # Create client
+        client = SpeckleClient(host="app.speckle.systems")
+
+        # Authenticate with token
+        token = "your_token_here"  # Replace with your token
+        client.authenticate_with_token(token)
+
+        print(f"✓ Authenticated as {client.account.userInfo.name}")
+        ```
+  </Tab>
+
+  <Tab title="Using Local Account">
+    ```python lines icon="python" focus={5,8-9}
+        from specklepy.api.client import SpeckleClient
+        from specklepy.api.credentials import get_default_account
+
+        # Get account stored by desktop connector
+        account = get_default_account()
+
+        # Create and authenticate client
+        client = SpeckleClient(host="app.speckle.systems")
+        client.authenticate_with_account(account)
+
+        print(f"✓ Authenticated as {client.account.userInfo.name}")
+        ```
+  </Tab>
+</Tabs>
+
+<Check>
+If this works, you'll see your name printed!
+</Check>
+
+### Step 2: Create a Project
+
+Projects are the top-level containers for your data:
+
+```python lines icon="python" focus={3-7}
+from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+
+# Create a new project
+project = client.project.create(ProjectCreateInput(
+    name="My First Speckle Project",
+    description="Learning specklepy"
+))
+
+print(f"✓ Created project: {project.id}")
+
+# Get the project details
+project = client.project.get(project.id)
+print(f"Project name: {project.name}")
+```
+
+<Note>
+  If the workspace plan is already at your maximum project limit, you'll need to delete some projects before creating a new one.
+</Note>
+<Info>
+Projects replace what used to be called "Streams" in prior versions of Speckle.
+</Info>
+
+### Step 3: Create Geometry
+
+Now let's create some geometry objects:
+
+<Warning>
+**Important:** Sending geometry primitives (Point, Line, Mesh) directly will NOT make them visible in the 3D viewer! You must wrap them in a container object. This is why we use `Base()` below to group the geometry.
+</Warning>
+
+```python lines icon="python" focus={5-8,11,15-23,26-29}
+from specklepy.objects.geometry import Point, Line, Polyline
+from specklepy.objects import Base
+
+# Create some points
+p1 = Point(x=0, y=0, z=0)
+p2 = Point(x=10, y=0, z=0)
+p3 = Point(x=10, y=10, z=0)
+p4 = Point(x=0, y=10, z=0)
+
+# Create a line
+line = Line(start=p1, end=p2)
+
+# Create a polyline (closed rectangle)
+# Polyline uses a flat list of coordinates: [x1, y1, z1, x2, y2, z2, ...]
+coords = [
+    p1.x, p1.y, p1.z,
+    p2.x, p2.y, p2.z,
+    p3.x, p3.y, p3.z,
+    p4.x, p4.y, p4.z,
+    p1.x, p1.y, p1.z,  # Close the shape
+]
+polyline = Polyline(value=coords)
+polyline.units = "m"
+
+# ✅ IMPORTANT: Wrap geometry in Base object for viewer visibility
+object = Base()
+object.line = line
+object.rectangle = polyline
+object.points = [p1, p2, p3, p4]
+
+print("✓ Created geometry objects")
+```
+
+<Tip>
+The `Base` class is the foundation of all Speckle objects. You can attach any properties to it dynamically! Wrapping geometry in Base ensures it's visible in the 3D viewer.
+</Tip>
+
+### Step 4: Send Data to Speckle
+
+Use `operations.send()` to send your data:
+
+```python lines icon="python" focus={5,8}
+from specklepy.api import operations
+from specklepy.transports.server import ServerTransport
+
+# Create a transport (the vehicle for sending data)
+transport = ServerTransport(stream_id=project_id, client=client)
+
+# Send the data and the operation returns the object ID
+object_id = operations.send(base=object, transports=[transport])
+
+print(f"✓ Sent data! Object ID: {object_id}")
+```
+
+<Info>
+The `object_id` is a unique hash that represents your data. You'll use this to create a version. The hash is of the serialized data, not the object itself. [Learn more about serialization](https://docs.speckle.systems/python/api-reference/operations#serialize).
+</Info>
+
+<Note>
+  Transports continue to use the v2 nomenclature of `stream_id` in place of `project_id`.
+  This will likely be deprecated in the future.
+</Note>
+
+### Step 5: Create a Version
+
+Versions capture a snapshot of your data:
+
+```python lines icon="python" focus={12-18}
+from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+
+# Create a new model
+model_input = CreateModelInput(
+    project_id=project.id,
+    name="My first model",
+    description="This is my first model"
+)
+model = client.model.create(model_input)
+
+# Create a version
+version_input = CreateVersionInput(
+    project_id=project.id,
+    model_id=model.id,
+    object_id=object_id,
+    message="My first version!"
+)
+version = client.version.create(version_input)
+
+print(f"✓ Created version: {version.id}")
+print(f"View it: https://app.speckle.systems/projects/{project_id}/models/{model_id}")
+```
+
+<Check>
+Go to that URL to see your data in the 3D viewer!
+</Check>
+
+### Step 6: Receive Data
+
+Now let's receive the data back:
+
+```python lines icon="python" focus={2-3,6-9}
+# get the version and extract object id
+version = client.version.get(project.id, version.id)
+root_object_id = version.referencedObject
+
+# Receive the data using the object_id
+received_data = operations.receive(
+    obj_id=object_id,
+    remote_transport=transport
+)
+
+print(f"✓ Received data!")
+print(f"Line start: ({received_data.line.start.x}, {received_data.line.start.y}, {received_data.line.start.z})")
+print(f"Rectangle points: {len(received_data.rectangle.points)}")
+print(f"Number of points: {len(received_data.points)}")
+```
+
+
+<Info>
+**Why two steps?**
+
+Versions store metadata (author, timestamp, message) separately from the actual
+object data. This keeps version lists fast and lightweight. You only download
+the full data when you explicitly `receive()` it.
+</Info>
+
+<Note>
+You've now completed your first full Speckle workflow with Python! 🎉
+</Note>
+
+## Complete Example
+
+Here's the complete script:
+
+```python lines icon="python" expandable
+from specklepy.api.client import SpeckleClient
+from specklepy.api import operations
+from specklepy.objects.geometry import Point, Line, Polyline
+from specklepy.objects import Base
+from specklepy.transports.server import ServerTransport
+from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+from specklepy.core.api.inputs.model_inputs import CreateModelInput
+from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+
+# 1. Authenticate
+client = SpeckleClient(host="app.speckle.systems")
+token = "your_token_here"  # Replace with your token
+client.authenticate_with_token(token)
+print(f"✓ Authenticated as {client.account.userInfo.name}")
+
+# 2. Create project
+project = client.project.create(ProjectCreateInput(
+    name="My First Speckle Project",
+    description="Learning specklepy"
+))
+print(f"✓ Created project: {project.id}")
+
+# 3. Create geometry
+p1 = Point(x=0, y=0, z=0)
+p2 = Point(x=10, y=0, z=0)
+p3 = Point(x=10, y=10, z=0)
+p4 = Point(x=0, y=10, z=0)
+
+line = Line(start=p1, end=p2)
+
+# Polyline uses a flat list of coordinates
+coords = [
+    p1.x, p1.y, p1.z,
+    p2.x, p2.y, p2.z,
+    p3.x, p3.y, p3.z,
+    p4.x, p4.y, p4.z,
+    p1.x, p1.y, p1.z,
+]
+polyline = Polyline(value=coords)
+polyline.units = "m"
+
+data = Base()
+data.line = line
+data.rectangle = polyline
+data.points = [p1, p2, p3, p4]
+print("✓ Created geometry")
+
+# 4. Send data
+# Send to server
+transport = ServerTransport(stream_id=project.id, client=client)
+object_id = operations.send(base=data, transports=[transport])
+print(f"✓ Sent data: {object_id}")
+
+# 5. Create version
+models = client.model.list(project.id)
+model_id = models[0].id
+
+version_input = CreateVersionInput(
+    project_id=project.id,
+    model_id=model.id,
+    object_id=object_id,
+    message="My first version!"
+)
+version = client.version.create(version_input)
+print(f"✓ Created version: {version.id}")
+print(f"View: https://app.speckle.systems/projects/{project.id}/models/{model.id}")
+
+# 6. Receive data
+received_data = operations.receive(obj_id=object_id, remote_transport=transport)
+print(f"✓ Received data: {len(received_data.points)} points")
+```
+
+## What's Next?
+
+Now that you understand the basics, explore more advanced topics:
+
+<CardGroup cols={2}>
+  <Card title="Core Concepts" icon="book" href="/developers/sdks/python/concepts/overview">
+    Learn about Projects, Models, Versions, and Transports
+  </Card>
+
+  <Card title="Working with Geometry" icon="cube" href="/developers/sdks/python/guides/working-with-geometry">
+    Explore all available geometry types
+  </Card>
+
+  <Card title="Custom Objects" icon="puzzle-piece" href="/developers/sdks/python/guides/custom-objects">
+    Create your own custom Speckle objects
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/developers/sdks/python/api-reference/client">
+    Dive into the complete API documentation
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+<CardGroup cols={2}>
+  <Card title="Community Forum" icon="comments" href="https://speckle.community">
+    Ask questions and get help
+  </Card>
+
+  <Card title="GitHub" icon="github" href="https://github.com/specklesystems/specklepy">
+    View source code and report issues
+  </Card>
+</CardGroup>
