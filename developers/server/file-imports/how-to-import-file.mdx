@@ -1,0 +1,147 @@
+---
+title: Import a file via the API
+description: This is a tutorial to show how the server api should be used to import a file
+---
+
+
+## Pre-requisites
+
+- A Speckle server with the new file import set up via the `FF_NEXT_GEN_FILE_IMPORTER_ENABLED` feature flag. This is the easiest with our general availability [server](https://app.speckle.systems).
+- A personal access token with the `streams:write` scope
+- A Speckle project, where you have a `Can edit` role
+
+<Info>
+Get your personal access token from: **Avatar → Profile → Personal Access Tokens** in the Speckle web app.
+</Info>
+
+
+## Steps
+
+This is a full end to end tutorial, some steps are optional as long as you have references to the underlying resources.
+For all graphql mutation, make sure to send the token in as a request header named `Authorization`
+
+### Create a project (optional)
+
+```graphql
+mutation ProjectCreate($input: ProjectCreateInput!) {
+  projectMutations {
+    create(input: $input) {
+      id
+    }
+  }
+}
+```
+```json
+{
+  "input": {
+    "name": ""
+  }
+}
+```
+
+Note the `projectMutations.create.id` it will be used as `projectId` moving forward.
+
+### Generate a pre-signed upload url
+This action is a graphql mutation
+```graphql
+mutation GenerateFileUploadUrl($input: GenerateFileUploadUrlInput!) {
+  fileUploadMutations {
+    generateUploadUrl(input: $input) {
+      url,
+      fileId
+    }
+  }
+}
+```
+with an `$input` like this, where the `fileName` matches the name of the uploaded file.
+```json
+{
+  "input": {
+    "fileName": "example.ifc",
+    "projectId": "TAKEN FROM PROJECT CREATE"
+  }
+}
+```
+
+### Put the source file to the url
+
+The response of a successfull mutation is containing a pre-signed temporary url under the path:
+`data.fileUploadMutations.generateUploadUrl.url`.
+Send a `PUT` request to this url, with a `Content-Type` header matching your file content ie.: `application/octet-stream` and the file attached in the body.
+
+If the response is a successfull `200` status code, the response headers will contain an `Etag` header which will be needed for the next step.
+
+### Signal to the server, that the file import can be started
+
+This step requires a target model, where the file data should be imported to. If you need to you can create one programatically with a mutation
+
+```graphql
+mutation CreateModel($input: CreateModelInput!) {
+  modelMutations {
+    create(input: $input) {
+      id
+    }
+  }
+}
+```
+```json
+{
+  "input": {
+    "projectId": "TAKEN FROM PROJECT CREATE",
+    "name": "model name"
+  }
+}
+```
+
+store the `model.id` as it will be used next up as `modelId`
+
+```graphql
+mutation StartFileImport($input: StartFileImportInput!) {
+  fileUploadMutations {
+    startFileImport(input: $input) {
+      id
+      convertedStatus
+    }
+  }
+}
+```
+note: the etag needs to be a double quoted string, make sure to escape the quote marks if needed
+
+```json
+{
+  "input": {
+    "etag": "\"TAKE FROM FILE PUT RESPONSE HEADER\"",
+    "fileId": "TAKE FROM GENERATE UPLOAD MUTATION RESPONSE",
+    "modelId": "TAKE FROM MODEL CREATION MUTATION",
+    "projectId": "TAKEN FROM PROJECT CREATE"
+  }
+}
+```
+
+### Getting the import status
+
+Once the import has been started, the file import job gets an id at `fileUploadMutations.startFileImport.id`. This id can be used to get the status of the file import job.
+
+```graphql
+query ($projectId: String!, $modelId: String!) {
+  project(id: $projectId) {
+    model(id: $modelId) {
+      pendingImportedVersions {
+        id
+        convertedStatus
+        convertedMessage
+      }
+    }
+  }
+}
+```
+```json
+{
+    "modelId": "TAKE FROM MODEL CREATION MUTATION",
+    "projectId": "TAKEN FROM PROJECT CREATE"
+}
+```
+
+were the pending imported version id matches the file upload id generated in the previous step.
+The convertedStatus enum signals the job status where `0=queued` `1=processing` `2=success` `3=error`.
+In case of an error the error message is referenced at `convertedMessage`.
