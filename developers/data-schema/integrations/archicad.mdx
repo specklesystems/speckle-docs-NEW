@@ -1,0 +1,66 @@
+---
+title: Archicad Data Schema
+description: The structure and object schemas of a Revit model.
+---
+
+All Archicad models published to Speckle are structured by collections representing the File, Floor, and Type of each Archicad element.
+
+```mdx
+**Archicad Model Structure**
+
+```text
+📁 Root Collection
+├── 📁 Archicad File
+│   └── 📁 Floor
+│       └── 📁 Type
+│           └── 📄 Archicad Object
+└── Proxies: Render Materials
+
+## The Archicad Object
+
+<Info>
+The Speckle `ArchicadObject` represents an **element** `Autodesk.Revit.DB Element` in Archicad.
+</Info>
+
+The Archicad object inherits from the [DataObject](../schemas/dataobject) class, with the following schema:
+
+```JSON
+{
+  "__comment": "these fields are specified on the Base class",
+  "id": string,
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.ArchicadObject",
+  "applicationId": string,
+  
+  "__comment": "these fields are specified on the DataObject",
+  "name": string,
+  "properties": {
+    string : value
+  },
+  "displayValue": [
+    Base
+  ],
+
+  "__comment": "these fields are specified on the ArchicadObject",
+  "type": string,
+  "level": string,
+  "location": base,
+  "elements": [
+    ArchicadObject
+  ],
+  "units": string
+}
+```
+
+### Archicad Object Properties
+
+Archicad object properties include:
+- Dimensional properties
+- Classification
+- User defined properties
+- Material quantities
+- IFC properties
+
+## Proxies
+
+Proxies found on the root collection of an Archicad model:
+- [Render Materials](../schemas/proxy)

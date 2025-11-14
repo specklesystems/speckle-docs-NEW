@@ -1,0 +1,75 @@
+---
+title: Civil 3D Data Schema
+description: The structure and object schemas of a Civil 3D model.
+---
+
+All Civil 3D models published to Speckle are structured by collections representing the Layer of each Civil 3D element.
+
+```mdx
+**Civil 3D Model Structure**
+
+```text
+📁 Root Collection
+├── 📁 Civil 3D File
+│   └── 📁 Layer
+│       ├── 📄 Civil3d Object
+│       ├── 📄 Geometry
+│       └── 📄 Instance
+├── Proxies: Render Materials
+├── Proxies: Colors
+├── Proxies: Groups
+├── Proxies: Instance Definitions
+└── Proxies: Property Set Definitions
+
+## The Civil 3D Object
+
+<Info>
+The Speckle `Civil3dObject` class represents an **entity** `Autodesk.Civil.DatabaseServices.Entity` in Civil 3D.
+</Info>
+
+The Civil3d object inherits from the [DataObject](../schemas/dataobject) class, with the following schema:
+
+```JSON
+{
+  "__comment": "these fields are specified on the Base class",
+  "id": string,
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.Civil3dObject",
+  "applicationId": string,
+  
+  "__comment": "these fields are specified on the DataObject",
+  "name": string,
+  "properties": {
+    string : value
+  },
+  "displayValue": [
+    Base
+  ],
+
+  "__comment": "these fields are specified on the Civil3dObject",
+  "baseCurves": [
+    ICurve
+  ],
+  "elements": [
+    Base
+  ],
+  "units": string
+}
+```
+
+### Civil3d Object Properties
+
+Civil3d object properties include:
+- Extension Dictionaries
+- XData
+- Property Sets
+- Part Data
+- additional class properties that depend on the type of entity
+
+## Proxies
+
+Proxies found on the root collection of a Civil 3D model:
+- [Render Materials](../schemas/proxy)
+- [Colors](../schemas/proxy)
+- [Groups](../schemas/proxy)
+- [Instance Definitions](../schemas/proxy)
+- Property Set Definitions
