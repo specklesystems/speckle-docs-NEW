@@ -1,0 +1,173 @@
+---
+title: AutoCAD Schema
+description: Data schema and structure for AutoCAD models
+---
+
+The AutoCAD connector exports geometry and objects from AutoCAD, preserving layer organization and extended data.
+
+## Hierarchy
+
+AutoCAD models are organized by File and Layer:
+
+```
+Root Collection
+├── AutoCAD File
+│   └── Layer
+│       ├── Geometry (standalone)
+│       └── Instance
+├── Proxies: RenderMaterial[]
+├── Proxies: Color[]
+├── Proxies: Group[]
+└── Proxies: Definition[]
+```
+
+The hierarchy reflects AutoCAD's layer structure:
+- **File** - The AutoCAD file
+- **Layer** - AutoCAD layer
+
+## Object Types
+
+AutoCAD exports three types of objects:
+
+1. **Geometry** - Standalone geometry objects (Point, Line, Polyline, Arc, etc.)
+2. **Instance** - Block references pointing to Definition proxies
+3. **DataObject** - Objects with attached extended data (less common)
+
+### Geometry Objects
+
+Standalone geometry objects can appear directly in collections:
+
+```json
+{
+  "speckle_type": "Objects.Geometry.Line",
+  "id": "...",
+  "applicationId": "handle-123",
+  "start": {"x": 0, "y": 0, "z": 0},
+  "end": {"x": 10, "y": 10, "z": 0},
+  "units": "meters"
+}
+```
+
+### Instance Objects
+
+Instance objects reference Definition proxies for block definitions:
+
+```json
+{
+  "speckle_type": "Objects.Instance",
+  "applicationId": "instance-handle",
+  "definitionId": "block-guid",
+  "transform": {
+    "speckle_type": "Objects.Geometry.Matrix",
+    "value": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 20, 30, 1]
+  },
+  "units": "meters"
+}
+```
+
+## Properties
+
+Geometry and Instance objects can have a `properties` field dynamically attached containing:
+
+- **Extension Dictionaries** - Custom data stored in extension dictionaries
+- **XData** - Extended entity data
+
+```json
+{
+  "speckle_type": "Objects.Geometry.Line",
+  "applicationId": "handle-123",
+  "start": {"x": 0, "y": 0, "z": 0},
+  "end": {"x": 10, "y": 10, "z": 0},
+  "properties": {
+    "Extension Dictionaries": {
+      "CustomApp": {
+        "Key1": "Value1",
+        "Key2": "Value2"
+      }
+    },
+    "XData": {
+      "AppName": "MyApp",
+      "Data": [1001, "Tag", 1002, "Value"]
+    }
+  },
+  "units": "meters"
+}
+```
+
+## Proxies
+
+AutoCAD models use these proxy types:
+
+### RenderMaterial
+
+Material assignments for visual representation.
+
+### Color
+
+Color assignments for objects. Referenced by objects via `applicationId`.
+
+### Group
+
+Group proxies encode AutoCAD group memberships. Objects can belong to multiple groups.
+
+### Definition
+
+Definition proxies store geometry for block definitions. Referenced by Instance objects via `definitionId`.
+
+## Example: AutoCAD Geometry Object
+
+```json
+{
+  "id": "line-abc123...",
+  "speckle_type": "Objects.Geometry.Line",
+  "applicationId": "handle-456",
+  "start": {"x": 0, "y": 0, "z": 0},
+  "end": {"x": 10, "y": 10, "z": 0},
+  "properties": {
+    "Extension Dictionaries": {
+      "MyApp": {
+        "Layer": "A-WALL",
+        "Type": "Structural"
+      }
+    }
+  },
+  "units": "meters"
+}
+```
+
+## Example: AutoCAD Instance
+
+```json
+{
+  "id": "instance-xyz789...",
+  "speckle_type": "Objects.Instance",
+  "applicationId": "instance-handle-789",
+  "definitionId": "block-door",
+  "transform": {
+    "speckle_type": "Objects.Geometry.Matrix",
+    "value": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5, 10, 0, 1]
+  },
+  "units": "meters"
+}
+```
+
+## Invariants and Caveats
+
+1. **Standalone geometry** - Geometry objects can exist directly in collections
+2. **Instance/Definition pattern** - Block instances use the Instance/Definition proxy pattern
+3. **Properties are optional** - Not all geometry objects have properties
+4. **Layer organization** - Objects are organized by AutoCAD's layer structure
+5. **Extended data in properties** - Extension dictionaries and XData appear in `properties` field
+6. **No Info fields** - AutoCAD models don't include Info fields
+
+<Accordion title="How do I access block definition geometry?">
+Use the Instance's `definitionId` to find the corresponding Definition proxy, then access `proxy.value.displayValue` to get the geometry. See [Traversal Recipes](/developers/data-schema/traversal-recipes) for a complete example.
+</Accordion>
+
+## Related Documentation
+
+- [Object Model](/developers/data-schema/object-model) - Base object structure
+- [Geometry Model](/developers/data-schema/geometry-model) - Geometry storage
+- [Proxy Model](/developers/data-schema/proxy-model) - How proxies work
+- [Traversal Recipes](/developers/data-schema/traversal-recipes) - Processing patterns
+

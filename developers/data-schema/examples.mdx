@@ -1,0 +1,352 @@
+---
+title: Examples
+description: Complete working examples for common Speckle data model operations
+---
+
+This page provides complete, working examples for common operations on Speckle models.
+
+## Example 1: Find All Walls in a Revit Model
+
+```python
+def find_all_walls(root_collection):
+    """Find all wall objects in a Revit model."""
+    walls = []
+    
+    def traverse(coll):
+        if hasattr(coll, 'elements'):
+            for item in coll.elements:
+                # Check if it's a RevitObject with category "Walls"
+                if (hasattr(item, 'speckle_type') and 
+                    "RevitObject" in item.speckle_type and
+                    hasattr(item, 'category') and
+                    item.category == "Walls"):
+                    walls.append(item)
+                # Recurse into collections
+                elif (hasattr(item, 'speckle_type') and
+                      "Collection" in item.speckle_type):
+                    traverse(item)
+    
+    traverse(root_collection)
+    return walls
+
+# Usage
+root = get_root_collection()
+walls = find_all_walls(root)
+print(f"Found {len(walls)} walls")
+```
+
+## Example 2: Extract All Geometry from a Model
+
+```python
+def extract_all_geometry(root_collection):
+    """Extract all geometry objects from a model."""
+    all_geometry = []
+    
+    def traverse(coll):
+        if hasattr(coll, 'elements'):
+            for item in coll.elements:
+                # Check if it's a DataObject with displayValue
+                if (hasattr(item, 'displayValue') and 
+                    item.displayValue):
+                    all_geometry.extend(item.displayValue)
+                # Check if it's standalone geometry
+                elif (hasattr(item, 'speckle_type') and
+                      "Geometry" in item.speckle_type):
+                    all_geometry.append(item)
+                # Recurse into collections
+                elif (hasattr(item, 'speckle_type') and
+                      "Collection" in item.speckle_type):
+                    traverse(item)
+    
+    traverse(root_collection)
+    return all_geometry
+
+# Usage
+root = get_root_collection()
+geometry = extract_all_geometry(root)
+print(f"Found {len(geometry)} geometry objects")
+```
+
+## Example 3: Find Objects Using a Specific Material
+
+```python
+def find_objects_by_material(root_collection, material_name):
+    """Find all objects using a specific material."""
+    # Find the material proxy
+    material_proxy = None
+    if hasattr(root_collection, 'elements'):
+        for item in root_collection.elements:
+            if (hasattr(item, 'speckle_type') and
+                "RenderMaterial" in item.speckle_type and
+                hasattr(item, 'name') and
+                item.name == material_name):
+                material_proxy = item
+                break
+    
+    if not material_proxy or not hasattr(material_proxy, 'referencedIds'):
+        return []
+    
+    # Get referenced object IDs
+    referenced_ids = material_proxy.referencedIds
+    
+    # Find objects by applicationId
+    objects = []
+    def traverse(coll):
+        if hasattr(coll, 'elements'):
+            for item in coll.elements:
+                if (hasattr(item, 'applicationId') and
+                    item.applicationId in referenced_ids):
+                    objects.append(item)
+                elif (hasattr(item, 'speckle_type') and
+                      "Collection" in item.speckle_type):
+                    traverse(item)
+    
+    traverse(root_collection)
+    return objects
+
+# Usage
+root = get_root_collection()
+concrete_objects = find_objects_by_material(root, "Concrete")
+print(f"Found {len(concrete_objects)} objects using Concrete material")
+```
+
+## Example 4: Resolve Block Instance Geometry
+
+```python
+def resolve_instance_geometry(root_collection, instance):
+    """Get geometry for a block instance."""
+    if not hasattr(instance, 'definitionId'):
+        return None
+    
+    # Find the definition proxy
+    definition_proxy = None
+    if hasattr(root_collection, 'elements'):
+        for item in root_collection.elements:
+            if (hasattr(item, 'speckle_type') and
+                "Definition" in item.speckle_type and
+                hasattr(item, 'applicationId') and
+                item.applicationId == instance.definitionId):
+                definition_proxy = item
+                break
+    
+    if not definition_proxy:
+        return None
+    
+    # Get geometry from definition value
+    if (hasattr(definition_proxy, 'value') and
+        hasattr(definition_proxy.value, 'displayValue')):
+        return definition_proxy.value.displayValue
+    
+    return None
+
+# Usage
+root = get_root_collection()
+# Find an instance object
+instance = find_instance(root, "block-instance-123")
+if instance:
+    geometry = resolve_instance_geometry(root, instance)
+    if geometry:
+        print(f"Instance has {len(geometry)} geometry objects")
+```
+
+## Example 5: Build Material Usage Report
+
+```python
+def build_material_report(root_collection):
+    """Build a report of material usage across the model."""
+    # Get all material proxies
+    material_proxies = []
+    if hasattr(root_collection, 'elements'):
+        for item in root_collection.elements:
+            if (hasattr(item, 'speckle_type') and
+                "RenderMaterial" in item.speckle_type):
+                material_proxies.append(item)
+    
+    # Build report
+    report = {}
+    for material in material_proxies:
+        material_name = getattr(material, 'name', 'Unknown')
+        referenced_ids = getattr(material, 'referencedIds', [])
+        
+        # Count objects using this material
+        count = len(referenced_ids)
+        
+        report[material_name] = {
+            'count': count,
+            'object_ids': referenced_ids
+        }
+    
+    return report
+
+# Usage
+root = get_root_collection()
+report = build_material_report(root)
+for material, data in report.items():
+    print(f"{material}: {data['count']} objects")
+```
+
+## Example 6: Filter Objects by Property Value
+
+```python
+def find_objects_by_property(root_collection, property_path, value):
+    """Find objects with a specific property value."""
+    matches = []
+    
+    def get_nested_property(props, path):
+        """Get nested property using dot notation."""
+        keys = path.split('.')
+        current = props
+        for key in keys:
+            if isinstance(current, dict) and key in current:
+                current = current[key]
+            else:
+                return None
+        return current
+    
+    def traverse(coll):
+        if hasattr(coll, 'elements'):
+            for item in coll.elements:
+                # Check if it's a DataObject
+                if (hasattr(item, 'speckle_type') and
+                    "DataObject" in item.speckle_type and
+                    hasattr(item, 'properties')):
+                    prop_value = get_nested_property(item.properties, property_path)
+                    if prop_value == value:
+                        matches.append(item)
+                elif (hasattr(item, 'speckle_type') and
+                      "Collection" in item.speckle_type):
+                    traverse(item)
+    
+    traverse(root_collection)
+    return matches
+
+# Usage: Find walls with width = 0.2
+root = get_root_collection()
+walls_200mm = find_objects_by_property(
+    root,
+    "Type Parameters.Width",
+    0.2
+)
+print(f"Found {len(walls_200mm)} walls with width 0.2m")
+```
+
+## Example 7: Extract Model Statistics
+
+```python
+def get_model_statistics(root_collection):
+    """Get comprehensive statistics about a model."""
+    stats = {
+        'total_objects': 0,
+        'data_objects': 0,
+        'geometry_objects': 0,
+        'instances': 0,
+        'collections': 0,
+        'proxies': 0,
+        'geometry_types': {},
+        'object_types': {},
+        'connector': None
+    }
+    
+    def traverse(coll):
+        if hasattr(coll, 'elements'):
+            for item in coll.elements:
+                speckle_type = getattr(item, 'speckle_type', '')
+                
+                if "Collection" in speckle_type:
+                    stats['collections'] += 1
+                    traverse(item)
+                elif "DataObject" in speckle_type:
+                    stats['data_objects'] += 1
+                    stats['total_objects'] += 1
+                    
+                    # Track object type
+                    stats['object_types'][speckle_type] = (
+                        stats['object_types'].get(speckle_type, 0) + 1
+                    )
+                    
+                    # Detect connector
+                    if not stats['connector']:
+                        if "RevitObject" in speckle_type:
+                            stats['connector'] = "Revit"
+                        elif "ArchicadObject" in speckle_type:
+                            stats['connector'] = "ArchiCAD"
+                        elif "TeklaObject" in speckle_type:
+                            stats['connector'] = "Tekla"
+                        # ... add more connector detection
+                    
+                    # Count geometry
+                    if hasattr(item, 'displayValue') and item.displayValue:
+                        for geom in item.displayValue:
+                            stats['geometry_objects'] += 1
+                            geom_type = getattr(geom, 'speckle_type', 'Unknown')
+                            stats['geometry_types'][geom_type] = (
+                                stats['geometry_types'].get(geom_type, 0) + 1
+                            )
+                elif "Instance" in speckle_type:
+                    stats['instances'] += 1
+                    stats['total_objects'] += 1
+                elif "RenderMaterial" in speckle_type or "Level" in speckle_type:
+                    stats['proxies'] += 1
+    
+    traverse(root_collection)
+    return stats
+
+# Usage
+root = get_root_collection()
+stats = get_model_statistics(root)
+print(f"Connector: {stats['connector']}")
+print(f"Total objects: {stats['total_objects']}")
+print(f"Geometry types: {stats['geometry_types']}")
+```
+
+## Example 8: Process Objects by Collection Path
+
+```python
+def process_by_path(root_collection):
+    """Process objects with their collection path context."""
+    results = []
+    
+    def traverse(coll, path=""):
+        current_path = f"{path}/{coll.name}" if hasattr(coll, 'name') else path
+        
+        if hasattr(coll, 'elements'):
+            for item in coll.elements:
+                if (hasattr(item, 'speckle_type') and
+                    "DataObject" in item.speckle_type):
+                    # Process with path context
+                    results.append({
+                        'object': item,
+                        'path': current_path,
+                        'name': getattr(item, 'name', 'Unknown')
+                    })
+                elif (hasattr(item, 'speckle_type') and
+                      "Collection" in item.speckle_type):
+                    traverse(item, current_path)
+    
+    traverse(root_collection)
+    return results
+
+# Usage
+root = get_root_collection()
+results = process_by_path(root)
+for result in results:
+    print(f"{result['path']}: {result['name']}")
+```
+
+## Common Patterns
+
+These examples demonstrate common patterns:
+
+1. **Recursive traversal** - Always recurse into collections
+2. **Type checking** - Use `speckle_type` to identify object types
+3. **Attribute checking** - Use `hasattr()` before accessing properties
+4. **Proxy resolution** - Find proxies at root, resolve by `applicationId`
+5. **Property access** - Handle nested properties with dot notation
+6. **Geometry extraction** - Check both `displayValue` and standalone geometry
+
+## Next Steps
+
+- Review [Traversal Recipes](/developers/data-schema/traversal-recipes) for more patterns
+- Check [Connector pages](/developers/data-schema/connector-index) for connector-specific examples
+- See [Object Model](/developers/data-schema/object-model) for data model details
+

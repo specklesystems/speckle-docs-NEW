@@ -1,0 +1,407 @@
+---
+title: Traversal Recipes
+description: Patterns for navigating and processing Speckle models
+---
+
+Now that you understand the data model, here are practical patterns for traversing and processing Speckle models. These recipes assume you have a Root Collection object.
+
+## Recipe 1: Traverse Collections and Objects
+
+The most common pattern: walk the collection hierarchy to find all objects.
+
+```python
+def traverse_collections(collection):
+    """Recursively traverse collections and yield all objects."""
+    # Process objects in this collection
+    if hasattr(collection, 'elements'):
+        for obj in collection.elements:
+            yield obj
+    
+    # Recurse into nested collections
+    if hasattr(collection, 'elements'):
+        for item in collection.elements:
+            if is_collection(item):
+                yield from traverse_collections(item)
+
+def is_collection(obj):
+    """Check if an object is a collection."""
+    return obj.speckle_type == "Objects.Organization.Collection"
+
+# Usage
+root = get_root_collection()
+for obj in traverse_collections(root):
+    if is_data_object(obj):
+        process_object(obj)
+```
+
+## Recipe 2: Find All DataObjects
+
+Filter for DataObjects specifically:
+
+```python
+def find_all_data_objects(collection):
+    """Find all DataObjects in the model."""
+    data_objects = []
+    
+    def traverse(coll):
+        if hasattr(coll, 'elements'):
+            for item in coll.elements:
+                if is_data_object(item):
+                    data_objects.append(item)
+                elif is_collection(item):
+                    traverse(item)
+    
+    traverse(collection)
+    return data_objects
+
+def is_data_object(obj):
+    """Check if an object is a DataObject."""
+    return obj.speckle_type.startswith("Objects.Data.DataObject")
+
+# Usage
+root = get_root_collection()
+data_objects = find_all_data_objects(root)
+```
+
+## Recipe 3: Process Geometry from displayValue
+
+Extract and process geometry from DataObjects:
+
+```python
+def process_geometry(obj):
+    """Process all geometry in a DataObject's displayValue."""
+    if not hasattr(obj, 'displayValue') or not obj.displayValue:
+        return
+    
+    for geom in obj.displayValue:
+        geom_type = geom.speckle_type
+        
+        if "Mesh" in geom_type:
+            process_mesh(geom)
+        elif "Line" in geom_type or "Curve" in geom_type:
+            process_curve(geom)
+        elif "Point" in geom_type:
+            process_point(geom)
+        # ... handle other geometry types
+
+# Usage
+for obj in find_all_data_objects(root):
+    process_geometry(obj)
+```
+
+## Recipe 4: Resolve Proxy References
+
+Find which objects use a specific resource:
+
+```python
+def find_objects_using_resource(root, proxy_type, resource_name):
+    """Find all objects that use a specific resource via proxy."""
+    # Find the proxy
+    proxy = find_proxy_by_name(root, proxy_type, resource_name)
+    if not proxy:
+        return []
+    
+    # Get referenced object IDs
+    referenced_ids = proxy.referencedIds if hasattr(proxy, 'referencedIds') else []
+    
+    # Find objects by applicationId
+    objects = []
+    for obj in traverse_all_objects(root):
+        if hasattr(obj, 'applicationId') and obj.applicationId in referenced_ids:
+            objects.append(obj)
+    
+    return objects
+
+def find_proxy_by_name(root, proxy_type, name):
+    """Find a proxy by type and name."""
+    proxies = get_proxies(root, proxy_type)
+    for proxy in proxies:
+        if hasattr(proxy, 'name') and proxy.name == name:
+            return proxy
+    return None
+
+def get_proxies(root, proxy_type):
+    """Get all proxies of a specific type from root collection."""
+    if not hasattr(root, 'elements'):
+        return []
+    
+    proxies = []
+    for item in root.elements:
+        if hasattr(item, 'speckle_type') and proxy_type in item.speckle_type:
+            proxies.append(item)
+    return proxies
+
+# Usage: Find all objects using "Concrete" material
+concrete_objects = find_objects_using_resource(
+    root, 
+    "RenderMaterial", 
+    "Concrete"
+)
+```
+
+## Recipe 5: Find Resources for an Object
+
+Find which resources (materials, groups, etc.) an object uses:
+
+```python
+def find_resources_for_object(root, obj):
+    """Find all proxies that reference this object."""
+    if not hasattr(obj, 'applicationId'):
+        return []
+    
+    app_id = obj.applicationId
+    resources = []
+    
+    # Check all proxies
+    for proxy in get_all_proxies(root):
+        if hasattr(proxy, 'referencedIds') and app_id in proxy.referencedIds:
+            resources.append(proxy)
+    
+    return resources
+
+def get_all_proxies(root):
+    """Get all proxies from root collection."""
+    proxies = []
+    if hasattr(root, 'elements'):
+        for item in root.elements:
+            if is_proxy(item):
+                proxies.append(item)
+    return proxies
+
+def is_proxy(obj):
+    """Check if an object is a proxy."""
+    proxy_types = [
+        "RenderMaterial",
+        "Level",
+        "Group",
+        "Definition",
+        "Color"
+    ]
+    return any(pt in obj.speckle_type for pt in proxy_types)
+
+# Usage
+obj = get_object("wall-123")
+resources = find_resources_for_object(root, obj)
+for resource in resources:
+    print(f"{resource.speckle_type}: {resource.name}")
+```
+
+## Recipe 6: Resolve Instance Definitions
+
+Get geometry for instance objects:
+
+```python
+def resolve_instance_geometry(root, instance):
+    """Get the geometry for an instance by resolving its definition."""
+    if not hasattr(instance, 'definitionId'):
+        return None
+    
+    # Find the definition proxy
+    definition_proxy = find_proxy_by_application_id(
+        root, 
+        "Definition", 
+        instance.definitionId
+    )
+    
+    if not definition_proxy:
+        return None
+    
+    # Get geometry from definition value
+    if hasattr(definition_proxy, 'value') and hasattr(definition_proxy.value, 'displayValue'):
+        return definition_proxy.value.displayValue
+    
+    return None
+
+def find_proxy_by_application_id(root, proxy_type, app_id):
+    """Find a proxy by type and applicationId."""
+    proxies = get_proxies(root, proxy_type)
+    for proxy in proxies:
+        if hasattr(proxy, 'applicationId') and proxy.applicationId == app_id:
+            return proxy
+    return None
+
+# Usage
+for obj in traverse_all_objects(root):
+    if "Instance" in obj.speckle_type:
+        geometry = resolve_instance_geometry(root, obj)
+        if geometry:
+            process_geometry_list(geometry)
+```
+
+## Recipe 7: Build Object-Resource Map
+
+Create a lookup map for efficient access:
+
+```python
+def build_resource_map(root):
+    """Build maps for efficient object-resource lookups."""
+    # Map: object applicationId -> list of resources
+    object_to_resources = {}
+    
+    # Map: resource name -> list of object applicationIds
+    resource_to_objects = {}
+    
+    # Process all proxies
+    for proxy in get_all_proxies(root):
+        resource_name = getattr(proxy, 'name', 'unknown')
+        resource_type = proxy.speckle_type
+        
+        if hasattr(proxy, 'referencedIds'):
+            for app_id in proxy.referencedIds:
+                # Build object -> resources map
+                if app_id not in object_to_resources:
+                    object_to_resources[app_id] = []
+                object_to_resources[app_id].append(proxy)
+                
+                # Build resource -> objects map
+                key = f"{resource_type}:{resource_name}"
+                if key not in resource_to_objects:
+                    resource_to_objects[key] = []
+                resource_to_objects[key].append(app_id)
+    
+    return object_to_resources, resource_to_objects
+
+# Usage
+obj_to_res, res_to_obj = build_resource_map(root)
+
+# Find resources for an object
+wall_resources = obj_to_res.get("wall-123", [])
+
+# Find objects using a resource
+concrete_walls = res_to_obj.get("RenderMaterial:Concrete", [])
+```
+
+## Recipe 8: Filter by Properties
+
+Find objects matching specific property criteria:
+
+```python
+def find_objects_by_property(root, property_path, value):
+    """Find objects with a specific property value."""
+    matches = []
+    
+    for obj in find_all_data_objects(root):
+        if not hasattr(obj, 'properties'):
+            continue
+        
+        # Handle nested property paths like "Type Parameters.Width"
+        prop_value = get_nested_property(obj.properties, property_path)
+        
+        if prop_value == value:
+            matches.append(obj)
+    
+    return matches
+
+def get_nested_property(props, path):
+    """Get a nested property value using dot notation."""
+    keys = path.split('.')
+    current = props
+    
+    for key in keys:
+        if isinstance(current, dict) and key in current:
+            current = current[key]
+        else:
+            return None
+    
+    return current
+
+# Usage: Find all walls with width = 0.2
+walls_200mm = find_objects_by_property(
+    root, 
+    "Type Parameters.Width", 
+    0.2
+)
+```
+
+## Recipe 9: Process by Collection Path
+
+Process objects organized by their collection hierarchy:
+
+```python
+def process_by_collection_path(collection, path=""):
+    """Process objects with their collection path context."""
+    current_path = f"{path}/{collection.name}" if hasattr(collection, 'name') else path
+    
+    if hasattr(collection, 'elements'):
+        for item in collection.elements:
+            if is_data_object(item):
+                # Process with path context
+                process_object_with_path(item, current_path)
+            elif is_collection(item):
+                process_by_collection_path(item, current_path)
+
+# Usage: Understand object context
+process_by_collection_path(root)
+# Objects processed with paths like:
+# "/Project/Level 1/Walls/Basic Wall"
+```
+
+## Recipe 10: Extract Model Statistics
+
+Gather statistics about a model:
+
+```python
+def get_model_statistics(root):
+    """Get statistics about a model."""
+    stats = {
+        'total_objects': 0,
+        'data_objects': 0,
+        'geometry_objects': 0,
+        'instances': 0,
+        'collections': 0,
+        'proxies': 0,
+        'geometry_types': {},
+        'object_types': {}
+    }
+    
+    def traverse(coll):
+        if hasattr(coll, 'elements'):
+            for item in coll.elements:
+                if is_collection(item):
+                    stats['collections'] += 1
+                    traverse(item)
+                elif is_data_object(item):
+                    stats['data_objects'] += 1
+                    stats['total_objects'] += 1
+                    
+                    # Count object type
+                    obj_type = item.speckle_type
+                    stats['object_types'][obj_type] = stats['object_types'].get(obj_type, 0) + 1
+                    
+                    # Count geometry
+                    if hasattr(item, 'displayValue') and item.displayValue:
+                        for geom in item.displayValue:
+                            stats['geometry_objects'] += 1
+                            geom_type = geom.speckle_type
+                            stats['geometry_types'][geom_type] = stats['geometry_types'].get(geom_type, 0) + 1
+                elif "Instance" in item.speckle_type:
+                    stats['instances'] += 1
+                    stats['total_objects'] += 1
+                elif is_proxy(item):
+                    stats['proxies'] += 1
+    
+    traverse(root)
+    return stats
+
+# Usage
+stats = get_model_statistics(root)
+print(f"Total objects: {stats['total_objects']}")
+print(f"Geometry types: {stats['geometry_types']}")
+```
+
+## Common Patterns Summary
+
+1. **Always check for attributes** - Use `hasattr()` before accessing properties
+2. **Handle empty arrays** - `displayValue` and `referencedIds` may be empty
+3. **Use applicationId for references** - Proxies reference by `applicationId`, not `id`
+4. **Recurse collections** - Collections can be nested to any depth
+5. **Check speckle_type** - Use `speckle_type` to identify object types
+6. **Proxies are at root** - Always look for proxies in Root Collection
+7. **Geometry in displayValue** - All DataObject geometry is in `displayValue`
+
+## Next Steps
+
+- **[Connector Index](/developers/data-schema/connector-index)** - Connector-specific traversal considerations
+- **[Examples](/developers/data-schema/examples)** - Complete working examples
+- Review [Object Model](/developers/data-schema/object-model), [Geometry Model](/developers/data-schema/geometry-model), [Proxy Model](/developers/data-schema/proxy-model) for details
+

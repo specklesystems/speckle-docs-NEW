@@ -1,0 +1,102 @@
+---
+title: Connector Index
+description: Overview of connector-specific behaviors and data models
+---
+
+This page provides an overview of all Speckle connectors and links to their detailed documentation. Each connector follows the same fundamental data model but has connector-specific extensions and behaviors.
+
+## Connectors
+
+<CardGroup cols={2}>
+  <Card title="Revit" href="/developers/data-schema/connectors/revit" icon="cube">
+    BIM authoring tool for architecture, engineering, and construction
+  </Card>
+  <Card title="Rhino" href="/developers/data-schema/connectors/rhino" icon="cube">
+    3D modeling software for design and fabrication
+  </Card>
+  <Card title="AutoCAD" href="/developers/data-schema/connectors/autocad" icon="cube">
+    2D/3D CAD software for drafting and design
+  </Card>
+  <Card title="Civil 3D" href="/developers/data-schema/connectors/civil3d" icon="cube">
+    Civil engineering design and documentation software
+  </Card>
+  <Card title="Navisworks" href="/developers/data-schema/connectors/navisworks" icon="cube">
+    Project review software for coordination and clash detection
+  </Card>
+  <Card title="ArchiCAD" href="/developers/data-schema/connectors/archicad" icon="cube">
+    BIM software for architects
+  </Card>
+  <Card title="Tekla" href="/developers/data-schema/connectors/tekla" icon="cube">
+    BIM software for structural engineering
+  </Card>
+  <Card title="ETABS" href="/developers/data-schema/connectors/etabs" icon="cube">
+    Structural analysis and design software
+  </Card>
+  <Card title="IFC" href="/developers/data-schema/connectors/ifc" icon="cube">
+    Industry Foundation Classes file format
+  </Card>
+</CardGroup>
+
+## Connector Comparison
+
+| Connector | Hierarchy Pattern | Object Type | Proxies | Info Fields |
+|-----------|------------------|-------------|---------|-------------|
+| **Revit** | File → Level → Category → Type | RevitObject | RenderMaterial, Level, Group | Reference Point Transform, Views |
+| **Rhino** | File → Layer → Sublayer | Geometry, Instance | RenderMaterial, Color, Group, Definition | Views |
+| **AutoCAD** | File → Layer | Geometry, Instance | RenderMaterial, Color, Group, Definition | - |
+| **Civil 3D** | File → Layer | Civil3dObject, Geometry, Instance | RenderMaterial, Color, Group, Definition, PropertySetDefinition | - |
+| **Navisworks** | File (flat) or Selection Tree | NavisworksObject | RenderMaterial | - |
+| **ArchiCAD** | File → Floor → Type | ArchicadObject | RenderMaterial | - |
+| **Tekla** | File → Type | TeklaObject | RenderMaterial | - |
+| **ETABS** | File → Level → Design Orientation | EtabsObject | Section, Material | Analysis Results |
+| **IFC** | Project → Site → Building → Storey | DataObject | RenderMaterial, Level | - |
+
+## Common Patterns
+
+### BIM Connectors (Revit, ArchiCAD, Tekla, ETABS)
+
+- Use **DataObject extensions** (RevitObject, ArchicadObject, etc.)
+- Organize by **spatial hierarchy** (Levels/Floors)
+- Include **rich properties** (parameters, quantities, classifications)
+- Use **Level proxies** for floor associations
+
+### CAD Connectors (Rhino, AutoCAD, Civil 3D)
+
+- Support **standalone geometry** objects
+- Organize by **layers**
+- Use **Instance/Definition** pattern for blocks/components
+- Include **Color proxies** for visual styling
+
+### Special Cases
+
+- **Navisworks**: Can flatten hierarchy or preserve selection tree
+- **IFC**: Follows IFC spatial structure (Project → Site → Building → Storey)
+- **ETABS**: Includes analysis results in Info section
+
+## Connector Page Structure
+
+Each connector page follows this structure:
+
+1. **Description** - What the connector exports
+2. **Hierarchy** - How collections are organized
+3. **Object Extensions** - Connector-specific fields on DataObject
+4. **Proxies** - Which proxy types are used
+5. **Info Fields** - Model-level metadata
+6. **Example** - Canonical object example
+7. **Invariants** - Connector-specific rules and caveats
+
+## Using This Documentation
+
+1. **Start with core concepts** - Understand [Models](/developers/data-schema/concepts), [Objects](/developers/data-schema/object-model), [Proxies](/developers/data-schema/proxy-model) first
+2. **Review connector pages** - Understand connector-specific behaviors
+3. **Use traversal recipes** - Apply [traversal patterns](/developers/data-schema/traversal-recipes) to your use case
+4. **Check examples** - See [working examples](/developers/data-schema/examples) for common scenarios
+
+<Accordion title="Do I need to read all connector pages?">
+No! Read only the connectors you're working with. The core concepts apply to all connectors, and connector pages are reference material for when you need connector-specific details.
+</Accordion>
+
+<Accordion title="What if a connector isn't listed?">
+New connectors are added regularly. If you're working with an unlisted connector, it still follows the same fundamental data model. Check the connector's release notes or contact the Speckle team for connector-specific documentation.
+</Accordion>
+

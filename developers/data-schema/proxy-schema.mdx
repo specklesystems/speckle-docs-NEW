@@ -1,0 +1,271 @@
+---
+title: Proxy Schemas
+description: How proxies encode relationships between objects and shared resources
+---
+
+Proxies solve a fundamental problem: how to let objects participate in multiple organizational systems without duplicating data. This page explains how proxies work.
+
+## What Are Proxies?
+
+**Proxies** are relationship containers stored at the Root Collection level. They encode connections between:
+- Objects and shared resources (materials, levels, groups)
+- Objects and other objects (group memberships, instance definitions)
+
+Proxies allow a single object to be:
+- On "Level 1" (spatial organization)
+- In "Exterior Walls" group (functional grouping)
+- Using "Concrete" material (visual property)
+- Part of "Block A" definition (instance relationship)
+
+All without creating multiple copies of the object.
+
+## Proxy Structure
+
+All proxies follow this pattern:
+
+```json
+{
+  "speckle_type": "Objects.Organization.RenderMaterial",
+  "applicationId": "material-123",
+  "name": "Concrete",
+  "value": {
+    "color": [128, 128, 128],
+    "opacity": 1.0
+  },
+  "referencedIds": [
+    "obj-app-id-1",
+    "obj-app-id-2",
+    "obj-app-id-3"
+  ]
+}
+```
+
+### Key Fields
+
+- **`speckle_type`** - Identifies the proxy type
+- **`applicationId`** - Unique identifier for this proxy
+- **`name`** - Human-readable name
+- **`value`** - The actual resource data (material, level, etc.)
+- **`referencedIds`** - Array of `applicationId`s of objects that use this resource
+
+## Common Proxy Types
+
+### RenderMaterial
+
+Encodes material assignments:
+
+```json
+{
+  "speckle_type": "Objects.Organization.RenderMaterial",
+  "applicationId": "mat-concrete",
+  "name": "Concrete",
+  "value": {
+    "color": [128, 128, 128],
+    "opacity": 1.0,
+    "metallic": 0.0,
+    "roughness": 0.5
+  },
+  "referencedIds": ["wall-1", "wall-2", "column-1"]
+}
+```
+
+### Level
+
+Encodes level/floor associations:
+
+```json
+{
+  "speckle_type": "Objects.BuiltElements.Level",
+  "applicationId": "level-1",
+  "name": "Level 1",
+  "value": {
+    "elevation": 0.0,
+    "name": "Level 1"
+  },
+  "referencedIds": ["wall-1", "door-1", "window-1"]
+}
+```
+
+### Group
+
+Encodes group memberships:
+
+```json
+{
+  "speckle_type": "Objects.Organization.Group",
+  "applicationId": "group-exterior",
+  "name": "Exterior Walls",
+  "value": {
+    "name": "Exterior Walls"
+  },
+  "referencedIds": ["wall-1", "wall-2", "wall-3"]
+}
+```
+
+### Definition
+
+Stores geometry for instances (blocks, components):
+
+```json
+{
+  "speckle_type": "Objects.Organization.Definition",
+  "applicationId": "block-door",
+  "name": "Standard Door",
+  "value": {
+    "displayValue": [
+      {
+        "speckle_type": "Objects.Geometry.Mesh",
+        "vertices": [...],
+        "faces": [...]
+      }
+    ]
+  },
+  "referencedIds": ["instance-1", "instance-2", "instance-3"]
+}
+```
+
+### Color
+
+Encodes color assignments (CAD workflows):
+
+```json
+{
+  "speckle_type": "Objects.Organization.Color",
+  "applicationId": "color-red",
+  "name": "Red",
+  "value": {
+    "hex": "#FF0000"
+  },
+  "referencedIds": ["line-1", "line-2"]
+}
+```
+
+## How Proxies Reference Objects
+
+Proxies reference objects by **`applicationId`**, not `id`:
+
+```
+Object
+├── applicationId: "wall-123"
+└── ...
+
+RenderMaterial Proxy
+├── referencedIds: ["wall-123", "wall-456"]
+└── ...
+```
+
+To find which objects use a material:
+1. Get the RenderMaterial proxy
+2. Read its `referencedIds` array
+3. Find objects with matching `applicationId`
+
+To find which material an object uses:
+1. Get the object's `applicationId`
+2. Search all RenderMaterial proxies for one containing that `applicationId` in `referencedIds`
+
+<Accordion title="Why use applicationId instead of id for references?">
+`applicationId` is stable within a model version and represents the source application's identifier. `id` is content-based and changes if the object's data changes. For relationships that should persist even when object data changes, `applicationId` is the right choice.
+
+Also, `applicationId` is what the source application uses, making it easier to map back to the original data.
+</Accordion>
+
+## Proxy Location
+
+All proxies are stored at the **Root Collection** level:
+
+```
+Root Collection
+├── Collections (hierarchy)
+│   └── Objects
+├── Proxies (at root level)
+│   ├── RenderMaterial[]
+│   ├── Level[]
+│   ├── Group[]
+│   └── Definition[]
+└── Info
+```
+
+This centralized storage makes it easy to:
+- Find all proxies of a type
+- Resolve references efficiently
+- Avoid duplication
+
+## Multiple Relationships
+
+A single object can be referenced by multiple proxies:
+
+```
+Object (applicationId: "wall-1")
+│
+├── Referenced by Level proxy ("Level 1")
+├── Referenced by Group proxy ("Exterior Walls")
+├── Referenced by RenderMaterial proxy ("Concrete")
+└── Referenced by Definition proxy ("Wall Type A")
+```
+
+This is the power of proxies—they enable overlapping hierarchies without duplication.
+
+## Proxy Resolution Patterns
+
+### Pattern 1: Find objects using a resource
+
+```python
+# Find all objects using "Concrete" material
+material_proxy = find_proxy_by_name("Concrete", proxy_type="RenderMaterial")
+object_ids = material_proxy.referencedIds
+objects = [find_object_by_application_id(oid) for oid in object_ids]
+```
+
+### Pattern 2: Find resources used by an object
+
+```python
+# Find all materials used by this object
+object_app_id = obj.applicationId
+materials = [
+    proxy for proxy in all_render_material_proxies
+    if object_app_id in proxy.referencedIds
+]
+```
+
+### Pattern 3: Resolve instance definitions
+
+```python
+# Get geometry for an instance
+instance = get_object("instance-1")
+definition_proxy = find_proxy_by_application_id(
+    instance.definitionId, 
+    proxy_type="Definition"
+)
+geometry = definition_proxy.value.displayValue
+```
+
+## Connector-Specific Proxies
+
+Different connectors use different proxy types:
+
+- **Revit**: RenderMaterial, Level, Group
+- **Rhino**: RenderMaterial, Color, Group, Definition
+- **AutoCAD**: RenderMaterial, Color, Group, Definition
+- **Civil3D**: RenderMaterial, Color, Group, Definition, PropertySetDefinition
+- **Etabs**: Section, Material (specialized)
+
+See [connector pages](/developers/data-schema/connector-index) for details.
+
+## Proxy Invariants
+
+1. **Proxies are at root level** - Always stored in Root Collection, never nested
+2. **References use applicationId** - Always `applicationId`, never `id`
+3. **No circular references** - Proxies don't reference other proxies
+4. **Value is the resource** - The `value` field contains the actual resource data
+5. **referencedIds is a list** - Can reference zero or more objects
+
+<Accordion title="Can an object be in multiple groups?">
+Yes! An object's `applicationId` can appear in multiple Group proxy `referencedIds` arrays. This allows objects to belong to multiple functional groups simultaneously. The same applies to materials, levels, and other proxy types.
+</Accordion>
+
+## Next Steps
+
+- **[Traversal Recipes](/developers/data-schema/traversal-recipes)** - How to navigate proxies and resolve references
+- **[Connector Index](/developers/data-schema/connector-index)** - Connector-specific proxy usage
+- **[Object Model](/developers/data-schema/object-model)** - Review object structure
+

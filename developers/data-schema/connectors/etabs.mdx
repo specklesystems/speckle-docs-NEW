@@ -1,0 +1,215 @@
+---
+title: ETABS Schema
+description: Data schema and structure for ETABS models
+---
+
+The ETABS connector exports structural analysis elements from CSI ETABS, preserving level organization and analysis results.
+
+## Hierarchy
+
+ETABS models are organized by File, Level, and Design Orientation:
+
+```
+Root Collection
+├── Etabs File
+│   └── Level
+│       └── Design Orientation
+│           └── EtabsObject
+├── Proxies: Section[]
+├── Proxies: Material[]
+└── Info: analysisResults (optional)
+```
+
+The hierarchy reflects ETABS's organizational structure:
+- **File** - The ETABS file
+- **Level** - Building level/floor
+- **Design Orientation** - Design orientation (X, Y, etc.)
+
+## EtabsObject Structure
+
+EtabsObject extends [DataObject](/developers/data-schema/object-model) with these additional fields:
+
+```json
+{
+  "id": "string",
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.EtabsObject",
+  "applicationId": "string",
+  "name": "string",
+  "properties": {
+    "string": "any value"
+  },
+  "displayValue": [
+    "Base (geometry objects)"
+  ],
+  "units": "string",
+  
+  "__comment": "EtabsObject-specific fields",
+  "type": "string"
+}
+```
+
+### Connector-Specific Fields
+
+- **`type`** - The element type name (e.g., "Frame", "Area", "Point")
+
+## Properties
+
+EtabsObject `properties` contain:
+
+- **Assignments** - Material, section, and property modifier assignments
+- **Geometry properties** - Element geometry data
+- **Object ID properties** - Label, level, and other identifier properties
+
+```json
+{
+  "properties": {
+    "Assignments": {
+      "Material": "Concrete",
+      "Section": "W24x55",
+      "Property Modifiers": {
+        "Area": 1.0,
+        "Moment of Inertia": 1.0
+      }
+    },
+    "Geometry Properties": {
+      "Length": 5.0,
+      "Start Point": {"x": 0, "y": 0, "z": 0},
+      "End Point": {"x": 5, "y": 0, "z": 0}
+    },
+    "Object ID Properties": {
+      "Label": "Frame1",
+      "Level": "Level 1",
+      "Design Orientation": "X"
+    }
+  }
+}
+```
+
+## Proxies
+
+ETABS models use specialized proxy types:
+
+### Section
+
+Section proxies encode structural section definitions (e.g., W24x55, C10x20). Referenced by objects via `applicationId`.
+
+### Material
+
+Material proxies encode material definitions. Material proxy object IDs point to section proxies, creating a material → section relationship.
+
+### RenderMaterial
+
+Standard material assignments for visual representation.
+
+## Info Fields
+
+### analysisResults
+
+Analysis results stored at the model level, including:
+
+- **Base and joint reactions** - Reaction forces at supports
+- **Frame and story forces** - Forces in frame elements and story levels
+- **Story drifts** - Lateral displacement data
+
+```json
+{
+  "analysisResults": {
+    "Base Reactions": [
+      {
+        "Joint": "J1",
+        "Fx": 1000.0,
+        "Fy": 500.0,
+        "Fz": 2000.0,
+        "Mx": 0.0,
+        "My": 0.0,
+        "Mz": 0.0
+      }
+    ],
+    "Frame Forces": [
+      {
+        "Frame": "Frame1",
+        "Station": 0.0,
+        "P": 1000.0,
+        "V2": 500.0,
+        "V3": 200.0,
+        "T": 0.0,
+        "M2": 100.0,
+        "M3": 50.0
+      }
+    ],
+    "Story Drifts": [
+      {
+        "Story": "Story1",
+        "DriftX": 0.01,
+        "DriftY": 0.005
+      }
+    ]
+  }
+}
+```
+
+## Example: EtabsObject
+
+```json
+{
+  "id": "etabs-abc123...",
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.EtabsObject",
+  "applicationId": "element-456",
+  "name": "Frame - Frame1",
+  "properties": {
+    "Assignments": {
+      "Material": "Steel",
+      "Section": "W24x55",
+      "Property Modifiers": {
+        "Area": 1.0,
+        "Moment of Inertia": 1.0
+      }
+    },
+    "Geometry Properties": {
+      "Length": 5.0,
+      "Start Point": {"x": 0, "y": 0, "z": 0},
+      "End Point": {"x": 5, "y": 0, "z": 0}
+    },
+    "Object ID Properties": {
+      "Label": "Frame1",
+      "Level": "Level 1",
+      "Design Orientation": "X"
+    }
+  },
+  "displayValue": [
+    {
+      "speckle_type": "Objects.Geometry.Line",
+      "start": {"x": 0, "y": 0, "z": 0},
+      "end": {"x": 5, "y": 0, "z": 0},
+      "units": "meters"
+    }
+  ],
+  "type": "Frame",
+  "units": "meters"
+}
+```
+
+## Invariants and Caveats
+
+1. **No nested DataObjects** - EtabsObjects cannot contain other EtabsObjects as direct children
+2. **Geometry in displayValue** - All visual geometry is in `displayValue`
+3. **Specialized proxies** - ETABS uses Section and Material proxies, not just RenderMaterial
+4. **Material → Section relationship** - Material proxies reference section proxies
+5. **Analysis results in Info** - Model-level analysis data is in `info.analysisResults`
+6. **Design orientation** - Objects are organized by design orientation in addition to level
+
+<Accordion title="What's the difference between Section and Material proxies?">
+- **Section**: Defines the structural cross-section (e.g., W24x55 wide flange, C10x20 channel)
+- **Material**: Defines the material properties (e.g., Steel A36, Concrete 3000psi). Material proxies reference section proxies to create material-section combinations.
+</Accordion>
+
+<Accordion title="How do I access analysis results?">
+Analysis results are stored in the Root Collection's `info.analysisResults` field. This is model-level data, not per-object. Access it from the root collection object, not from individual EtabsObjects.
+</Accordion>
+
+## Related Documentation
+
+- [Object Model](/developers/data-schema/object-model) - Base object structure
+- [Proxy Model](/developers/data-schema/proxy-model) - How proxies work
+- [Traversal Recipes](/developers/data-schema/traversal-recipes) - Processing patterns
+

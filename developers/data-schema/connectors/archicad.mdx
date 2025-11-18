@@ -1,0 +1,181 @@
+---
+title: ArchiCAD Schema
+description: Data schema and structure for ArchiCAD models
+---
+
+The ArchiCAD connector exports BIM elements from Graphisoft ArchiCAD, preserving the hierarchical organization and property data.
+
+## Hierarchy
+
+ArchiCAD models are organized by File, Floor, and Type:
+
+```
+Root Collection
+├── Archicad File
+│   └── Floor
+│       └── Type
+│           └── ArchicadObject
+└── Proxies: RenderMaterial[]
+```
+
+The hierarchy reflects ArchiCAD's organizational structure:
+- **File** - The ArchiCAD file
+- **Floor** - Building floor/level
+- **Type** - Element type
+
+## ArchicadObject Structure
+
+ArchicadObject extends [DataObject](/developers/data-schema/object-model) with these additional fields:
+
+```json
+{
+  "id": "string",
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.ArchicadObject",
+  "applicationId": "string",
+  "name": "string",
+  "properties": {
+    "string": "any value"
+  },
+  "displayValue": [
+    "Base (geometry objects)"
+  ],
+  "units": "string",
+  
+  "__comment": "ArchicadObject-specific fields",
+  "type": "string",
+  "level": "string",
+  "location": "Base (point or curve)"
+}
+```
+
+### Connector-Specific Fields
+
+- **`type`** - The element type name
+- **`level`** - The floor/level name this element is associated with
+- **`location`** - A Point or Curve representing the element's location
+
+## Properties
+
+ArchicadObject `properties` contain:
+
+- **Dimensional properties** - Size, area, volume measurements
+- **Classification** - Element classification data
+- **User defined properties** - Custom properties defined in ArchiCAD
+- **Material quantities** - Material takeoff data
+- **IFC properties** - IFC-compatible property data
+
+```json
+{
+  "properties": {
+    "Volume": 12.5,
+    "Area": 45.2,
+    "Classification": {
+      "IFC Type": "IfcWall",
+      "Category": "Walls"
+    },
+    "User Defined Properties": {
+      "Custom Field 1": "Value 1",
+      "Custom Field 2": "Value 2"
+    },
+    "Material Quantities": {
+      "Concrete": {
+        "Volume": 12.5,
+        "Area": 45.2
+      }
+    },
+    "IFC Properties": {
+      "IfcWall": {
+        "Property Set": {
+          "Pset_WallCommon": {
+            "IsExternal": true,
+            "LoadBearing": false
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+## Proxies
+
+ArchiCAD models use:
+
+### RenderMaterial
+
+Material assignments for visual representation. Referenced by objects via `applicationId`.
+
+## Example: ArchicadObject
+
+```json
+{
+  "id": "archicad-abc123...",
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.ArchicadObject",
+  "applicationId": "element-456",
+  "name": "Basic Wall - 200mm",
+  "properties": {
+    "Volume": 12.5,
+    "Area": 45.2,
+    "Classification": {
+      "IFC Type": "IfcWall",
+      "Category": "Walls"
+    },
+    "User Defined Properties": {
+      "Project Code": "PRJ-2024-001",
+      "Zone": "Office"
+    },
+    "Material Quantities": {
+      "Concrete": {
+        "Volume": 12.5,
+        "Area": 45.2
+      }
+    },
+    "IFC Properties": {
+      "IfcWall": {
+        "Property Set": {
+          "Pset_WallCommon": {
+            "IsExternal": true,
+            "LoadBearing": false
+          }
+        }
+      }
+    }
+  },
+  "displayValue": [
+    {
+      "speckle_type": "Objects.Geometry.Mesh",
+      "vertices": [0, 0, 0, 10, 0, 0, 10, 0, 3, 0, 0, 3, ...],
+      "faces": [0, 1, 2, 0, 2, 3, ...],
+      "units": "meters"
+    }
+  ],
+  "type": "Basic Wall",
+  "level": "Ground Floor",
+  "location": {
+    "speckle_type": "Objects.Geometry.Line",
+    "start": {"x": 0, "y": 0, "z": 0},
+    "end": {"x": 10, "y": 0, "z": 0},
+    "units": "meters"
+  },
+  "units": "meters"
+}
+```
+
+## Invariants and Caveats
+
+1. **No nested DataObjects** - ArchicadObjects cannot contain other ArchicadObjects as direct children
+2. **Geometry in displayValue** - All visual geometry is in `displayValue`
+3. **Floor associations** - Objects are associated with floors via the `level` field
+4. **IFC compatibility** - Properties include IFC-compatible data for interoperability
+5. **User defined properties** - ArchiCAD custom properties appear in `properties.User Defined Properties`
+
+<Accordion title="How do I find all elements on a specific floor?">
+Filter by the `level` field on ArchicadObjects, or traverse the collection hierarchy which organizes objects by floor. The `level` field is a string matching the floor name.
+</Accordion>
+
+## Related Documentation
+
+- [Object Model](/developers/data-schema/object-model) - Base object structure
+- [Proxy Model](/developers/data-schema/proxy-model) - How proxies work
+- [Traversal Recipes](/developers/data-schema/traversal-recipes) - Processing patterns
+

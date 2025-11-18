@@ -1,0 +1,128 @@
+---
+title: Navisworks Schema
+description: Data schema and structure for Navisworks models
+---
+
+The Navisworks connector exports model items from Autodesk Navisworks, with configurable hierarchy preservation.
+
+## Hierarchy
+
+Navisworks models have two possible structures depending on the **preserve hierarchy** publish setting:
+
+### Default (Flattened Hierarchy)
+
+```
+Root Collection
+├── Navisworks File
+│   └── NavisworksObject (all objects at same level)
+└── Proxies: RenderMaterial[]
+```
+
+### Preserve Hierarchy Setting
+
+```
+Root Collection
+├── Navisworks File
+│   └── Selection Tree Item
+│       └── Nested Selection Tree Item
+│           └── NavisworksObject
+└── Proxies: RenderMaterial[]
+```
+
+The **preserve hierarchy** setting controls whether the Navisworks selection tree structure is preserved in the Speckle hierarchy.
+
+## NavisworksObject Structure
+
+NavisworksObject extends [DataObject](/developers/data-schema/object-model) with minimal additional fields:
+
+```json
+{
+  "id": "string",
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.NavisworksObject",
+  "applicationId": "string",
+  "name": "string",
+  "properties": {
+    "string": "any value"
+  },
+  "displayValue": [
+    "Base (geometry objects)"
+  ],
+  "units": "string"
+}
+```
+
+NavisworksObject is essentially a DataObject with no connector-specific extensions. All Navisworks-specific data is in the `properties` field.
+
+<Info>
+The Speckle `NavisworksObject` represents the **first selectable ancestor** `Navisworks.ModelItem` object in Navisworks.
+</Info>
+
+## Properties
+
+NavisworksObject `properties` contain Navisworks-specific property data. The exact structure depends on the source file type and properties available in Navisworks.
+
+Properties may include:
+- Source file information
+- Element properties from original applications
+- Navisworks-specific properties
+
+## Proxies
+
+Navisworks models use:
+
+### RenderMaterial
+
+Material assignments for visual representation. Referenced by objects via `applicationId`.
+
+## Example: NavisworksObject
+
+```json
+{
+  "id": "navisworks-abc123...",
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.NavisworksObject",
+  "applicationId": "modelitem-456",
+  "name": "Wall - A1",
+  "properties": {
+    "Source File": "Building.rvt",
+    "Element Id": "12345",
+    "Category": "Walls",
+    "Type": "Basic Wall"
+  },
+  "displayValue": [
+    {
+      "speckle_type": "Objects.Geometry.Mesh",
+      "vertices": [0, 0, 0, 10, 0, 0, 10, 0, 3, 0, 0, 3, ...],
+      "faces": [0, 1, 2, 0, 2, 3, ...],
+      "units": "meters"
+    }
+  ],
+  "units": "meters"
+}
+```
+
+## Invariants and Caveats
+
+1. **Minimal extension** - NavisworksObject has no connector-specific fields beyond DataObject
+2. **Hierarchy is configurable** - Structure depends on publish settings
+3. **First selectable ancestor** - Objects represent the first selectable item in Navisworks, not necessarily leaf nodes
+4. **Properties vary** - Property structure depends on source file types
+5. **No Info fields** - Navisworks models don't include Info fields
+
+<Accordion title="What does 'first selectable ancestor' mean?">
+In Navisworks, the selection tree can have nested items where parent items aren't directly selectable. The NavisworksObject represents the first item in the hierarchy that can actually be selected, which may be a parent of the actual geometry. This ensures objects are meaningful and selectable entities.
+</Accordion>
+
+<Accordion title="Should I use flattened or preserved hierarchy?">
+- **Flattened**: Simpler structure, all objects at one level. Good for simple processing.
+- **Preserved**: Maintains Navisworks selection tree structure. Good for understanding source organization and context.
+
+Choose based on whether you need the source hierarchy information.
+</Accordion>
+
+## Related Documentation
+
+- [Object Model](/developers/data-schema/object-model) - Base object structure
+- [Geometry Model](/developers/data-schema/geometry-model) - Geometry storage
+- [Proxy Model](/developers/data-schema/proxy-model) - How proxies work
+- [Traversal Recipes](/developers/data-schema/traversal-recipes) - Processing patterns
+
