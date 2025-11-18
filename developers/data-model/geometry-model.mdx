@@ -1,0 +1,198 @@
+---
+title: Geometry Model
+description: How geometry is stored and organized in Speckle
+---
+
+Geometry in Speckle is always stored in the `displayValue` array of DataObjects. This page explains how geometry objects are structured and organized.
+
+## Geometry Storage Rule
+
+**All visual geometry for a DataObject must be in `displayValue`.**
+
+```
+DataObject
+├── name: "Wall A1"
+├── properties: {...}
+└── displayValue: [
+      Mesh,        ← Visual representation
+      Line,        ← Edge curves
+      Point,       ← Key points
+      ...
+    ]
+```
+
+Geometry objects are never direct children of DataObjects—they're always in `displayValue`.
+
+## Geometry Object Types
+
+Speckle supports a wide range of geometry primitives:
+
+### Basic Primitives
+- **Point** - 3D point (x, y, z)
+- **Line** - Line segment between two points
+- **Polyline** - Connected line segments
+- **Curve** - Parametric curve (NURBS, etc.)
+- **Arc** - Circular arc
+- **Circle** - Full circle
+- **Ellipse** - Elliptical curve
+
+### Surface Geometry
+- **Mesh** - Triangulated surface
+- **Brep** - Boundary representation (solid or surface)
+- **Surface** - Parametric surface
+
+### Complex Geometry
+- **Instance** - Reference to a Definition proxy with transform
+
+## Geometry Object Schema
+
+All geometry objects follow this pattern:
+
+```json
+{
+  "id": "string",
+  "speckle_type": "Objects.Geometry.Mesh",
+  "applicationId": "string (optional)",
+  "units": "string",
+  "...geometry-specific fields..."
+}
+```
+
+### Example: Mesh
+
+```json
+{
+  "id": "mesh123...",
+  "speckle_type": "Objects.Geometry.Mesh",
+  "applicationId": "guid-456",
+  "vertices": [0, 0, 0, 10, 0, 0, 10, 10, 0, 0, 10, 0],
+  "faces": [0, 1, 2, 0, 2, 3],
+  "colors": [255, 0, 0, ...],
+  "textureCoordinates": [...],
+  "units": "meters"
+}
+```
+
+### Example: Point
+
+```json
+{
+  "id": "point789...",
+  "speckle_type": "Objects.Geometry.Point",
+  "applicationId": "guid-012",
+  "x": 5.0,
+  "y": 10.0,
+  "z": 2.5,
+  "units": "meters"
+}
+```
+
+## Multiple Geometry in displayValue
+
+A single DataObject can have multiple geometry objects in `displayValue`:
+
+```json
+{
+  "speckle_type": "Objects.Data.DataObject",
+  "name": "Complex Element",
+  "displayValue": [
+    {
+      "speckle_type": "Objects.Geometry.Mesh",
+      "vertices": [...],
+      "faces": [...]
+    },
+    {
+      "speckle_type": "Objects.Geometry.Line",
+      "start": {"x": 0, "y": 0, "z": 0},
+      "end": {"x": 10, "y": 10, "z": 0}
+    },
+    {
+      "speckle_type": "Objects.Geometry.Point",
+      "x": 5, "y": 5, "z": 0
+    }
+  ]
+}
+```
+
+This is common for:
+- **Visual representation** (Mesh) + **Edge curves** (Line/Polyline)
+- **Main geometry** + **Annotation geometry** (Points, Lines for dimensions)
+- **Multiple LODs** (Level of Detail) - different representations for different purposes
+
+<Accordion title="Why store geometry in an array instead of as direct properties?">
+Using an array allows:
+1. **Multiple representations** - The same object can have mesh, curves, and points
+2. **Flexibility** - Different connectors can add different geometry types
+3. **Consistency** - All geometry is accessed the same way (`obj.displayValue`)
+4. **Traversal** - Easy to iterate over all geometry for an object
+
+This design separates the object's identity and properties from its visual representation.
+</Accordion>
+
+## Geometry Units
+
+Every geometry object has a `units` field indicating the unit system:
+
+- `"meters"` (most common)
+- `"feet"`
+- `"millimeters"`
+- `"inches"`
+
+The `units` field should match the DataObject's `units` field. Always check units when processing geometry!
+
+## Pure Geometry Objects
+
+Sometimes you'll encounter geometry objects that aren't in a DataObject's `displayValue`—they exist as standalone objects in collections. This is common in CAD workflows (Rhino, AutoCAD) where geometry is the primary data type.
+
+```
+Collection
+├── Mesh (standalone geometry)
+├── Line (standalone geometry)
+└── DataObject
+    └── displayValue: [Mesh, Line]
+```
+
+Both patterns are valid. The key rule is: **if a DataObject has geometry, it's in `displayValue`**.
+
+## Instances and Definitions
+
+**Instance** objects reference geometry stored in Definition proxies:
+
+```
+Instance
+├── definitionId: "block-123" (applicationId)
+└── transform: Matrix
+
+Definition Proxy (at root)
+└── definition: {
+      displayValue: [Mesh, ...]
+    }
+```
+
+This allows the same geometry to be reused multiple times with different transforms (like blocks in CAD).
+
+## Geometry Processing Patterns
+
+When processing geometry:
+
+1. **Check `displayValue`** - Always look in `displayValue` for DataObjects
+2. **Handle arrays** - `displayValue` is always an array, even if it has one item
+3. **Check types** - Use `speckle_type` to determine geometry type
+4. **Respect units** - Convert units if needed for your use case
+5. **Handle empty arrays** - Some objects may have empty `displayValue` (data-only objects)
+
+<Accordion title="What if displayValue is empty?">
+Some DataObjects are data-only (no visual representation). They might represent:
+- **Metadata objects** - Classification, properties only
+- **Analytical elements** - Structural analysis data without geometry
+- **Relationships** - Objects that encode relationships but have no geometry
+
+Always check if `displayValue` exists and has items before processing geometry.
+</Accordion>
+
+## Next Steps
+
+- **[Proxy Model](/developers/data-model/proxy-model)** - How proxies encode relationships
+- **[Traversal Recipes](/developers/data-model/traversal-recipes)** - Patterns for processing geometry
+- **[Object Model](/developers/data-model/object-model)** - Review object structure
+
