@@ -1,0 +1,73 @@
+---
+title: Overview
+description: Introduction to Speckle's data model and how models are organized
+---
+
+<Note>
+Our model schemas and object model are still evolving, and there may be discrepancies or incompleteness between our documentation and the latest in development.
+If you have any questions, please contact us on the 
+[Speckle Community Forum: Developers](https://speckle.community/c/help/developers/18). 
+</Note>
+
+## What is a Speckle Model?
+
+A **Speckle Model** is a structured collection of data published from any source application (Revit, Rhino, AutoCAD, etc.). Every model follows the same fundamental structure, regardless of where it came from.
+
+## The Model Structure
+
+All Speckle models are organized into three main components:
+
+```
+┌─────────────────────────────────────┐
+│      Root Collection                │
+│  ┌───────────────────────────────┐  │
+│  │  Collections (hierarchy)      │  │
+│  │  └─ Collections               │  │
+│  │     └─ Objects               │  │
+│  ├───────────────────────────────┤  │
+│  │  Proxies (relationships)      │  │
+│  └───────────────────────────────┘  │
+│  ┌───────────────────────────────┐  │
+│  │  Info (metadata)              │  │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘
+```
+
+### Collections
+
+**Collections** are containers that organize objects into a hierarchy. The **Root Collection** is the top-level container representing the entire model. Collections can be nested to any depth, creating organizational structures like layers, levels, or categories.
+
+### Objects
+
+**Objects** are the atomic elements in your model—the actual data you're working with. Every object has:
+- An identity (`id`, `applicationId`)
+- A type (`speckle_type`)
+- Properties (metadata and data)
+- Geometry (stored in `displayValue`)
+
+### Proxies
+
+**Proxies** encode relationships between objects and shared resources (like materials, levels, or groups) without duplicating data. They allow objects to participate in multiple organizational systems simultaneously.
+
+### Info
+
+The **Info** section contains model-level metadata that applies to the entire model version, such as views, reference points, or analysis results.
+
+## Learning Path
+
+This documentation is organized as a progressive learning experience:
+
+1. **[Concepts](/developers/data-model/concepts)** - Core ideas: Models, Collections, Objects, Proxies, Info
+2. **[Object Model](/developers/data-model/object-model)** - How objects are structured and what fields they contain
+3. **[Geometry Model](/developers/data-model/geometry-model)** - How geometry is stored and organized
+4. **[Proxy Model](/developers/data-model/proxy-model)** - How proxies encode relationships
+5. **[Traversal Recipes](/developers/data-model/traversal-recipes)** - Patterns for navigating and processing models
+6. **[Connector Index](/developers/data-model/connector-index)** - Overview of connector-specific behaviors
+
+<Accordion title="Why is the structure the same across all connectors?">
+Speckle uses a unified data model so that data from any source can be consumed by any receiver. This means you can write code that works with Speckle models without needing to know which application created them. The connector-specific differences are captured in the object properties and hierarchy structure, not in the fundamental model organization.
+</Accordion>
+
+<Accordion title="What's the difference between a Speckle hierarchy and the source application's hierarchy?">
+The **source application's hierarchy** (e.g., Revit's levels/categories, Rhino's layers) is preserved in the Collections structure. However, Speckle also imposes its own organizational structure through Proxies, which can create additional relationships that don't exist in the source application. This allows objects to be organized in multiple ways simultaneously without duplication.
+</Accordion>

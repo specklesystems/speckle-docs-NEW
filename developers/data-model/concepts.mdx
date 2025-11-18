@@ -1,0 +1,115 @@
+---
+title: Core Concepts
+description: Understanding Models, Collections, Objects, Proxies, and Info
+---
+
+This page introduces the five fundamental concepts that make up every Speckle model. We'll keep things simple here—technical details come later.
+
+## Models
+
+A **Model** is the complete data structure published from a source application. It represents a snapshot of data at a specific point in time, organized into Collections, Objects, Proxies, and Info.
+
+Think of a Model as a container that holds everything together.
+
+## Collections
+
+**Collections** are organizational containers that create a hierarchy. They don't contain data themselves—they organize objects.
+
+```
+Root Collection
+├── Collection (e.g., "Level 1")
+│   ├── Collection (e.g., "Walls")
+│   │   └── Object (a wall)
+│   └── Collection (e.g., "Doors")
+│       └── Object (a door)
+└── Collection (e.g., "Level 2")
+    └── ...
+```
+
+The **Root Collection** is always the top-level container. Nested collections typically represent organizational structures from the source application:
+- **Revit**: File → Level → Category → Type
+- **Rhino**: File → Layer → Sublayer
+- **AutoCAD**: File → Layer
+
+Collections can be nested to any depth, but most connectors use 2-4 levels.
+
+<Accordion title="Can collections contain other collections?">
+Yes! Collections can be nested to any depth. However, most connectors use a predictable pattern (2-4 levels) based on the source application's organizational structure. The nesting depth is determined by the connector, not by Speckle's data model.
+</Accordion>
+
+## Objects
+
+**Objects** are the actual data elements in your model. They're atomic, selectable elements that typically have a visual representation.
+
+There are three types of objects:
+
+1. **Geometry** - A single piece of geometry (curve, mesh, brep, etc.)
+2. **DataObject** - A group of geometry representing a BIM element with properties (e.g., a wall, column, door)
+3. **Instance** - A transform and pointer to a Definition proxy, representing a block reference or instance
+
+Every object has:
+- An identity (`id`, `applicationId`)
+- A type (`speckle_type`)
+- Properties (metadata)
+- Geometry (in `displayValue`)
+
+<Accordion title="What's the difference between Geometry and DataObject?">
+**Geometry** objects are pure geometric primitives (Point, Line, Mesh, etc.) with no additional metadata. **DataObject** objects are BIM elements that combine geometry with rich properties (like a wall with material, dimensions, and type information). DataObjects typically contain multiple geometry objects in their `displayValue` array.
+</Accordion>
+
+## Proxies
+
+**Proxies** encode relationships between objects and shared resources. They allow objects to participate in multiple organizational systems without duplicating the objects themselves.
+
+For example, a single wall object can be:
+- On "Level 1" (via a Level proxy)
+- In "Exterior Walls" group (via a Group proxy)
+- Using "Concrete" material (via a RenderMaterial proxy)
+
+All without creating multiple copies of the wall.
+
+Proxies are stored at the Root Collection level and reference objects by their `applicationId`.
+
+<Accordion title="Why use proxies instead of just putting objects in collections?">
+Proxies solve the problem of **overlapping hierarchies**. A wall might belong to a level (spatial), a group (functional), and use a material (visual). If we only used collections, we'd have to choose one hierarchy or duplicate the wall. Proxies let us have all three relationships simultaneously without duplication.
+</Accordion>
+
+## Info
+
+**Info** contains model-level metadata that applies to the entire model version. This might include:
+- **Views** - Camera objects from 3D views
+- **Reference Point Transform** - Transform matrix for coordinate system adjustments
+- **Analysis Results** - Model-wide analysis data
+
+Info fields are optional and connector-specific. Not all models have Info fields.
+
+## How They Work Together
+
+```
+Model
+│
+├── Root Collection
+│   ├── Collections (hierarchy)
+│   │   └── Objects (data)
+│   │
+│   ├── Proxies (relationships)
+│   │   └── Reference objects by applicationId
+│   │
+│   └── Info (metadata)
+│       └── Model-wide data
+```
+
+The hierarchy (Collections) organizes objects spatially or categorically. Proxies add additional relationships (materials, groups, levels) that cross-cut the hierarchy. Info provides context about the entire model.
+
+<Accordion title="Can I ignore proxies if I only care about the hierarchy?">
+Yes, for simple use cases you can traverse just the Collections to find Objects. However, you'll miss important relationships like material assignments, group memberships, and level associations that are encoded in proxies. Most real-world workflows need both.
+</Accordion>
+
+## Next Steps
+
+Now that you understand the concepts, let's dive into the technical details:
+
+- **[Object Model](/developers/data-model/object-model)** - The structure and fields of objects
+- **[Geometry Model](/developers/data-model/geometry-model)** - How geometry is stored
+- **[Proxy Model](/developers/data-model/proxy-model)** - How proxies work in detail
+
