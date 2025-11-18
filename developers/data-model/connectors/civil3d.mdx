@@ -1,0 +1,191 @@
+---
+title: Civil 3D Connector
+description: Data schema and structure for Civil 3D models
+---
+
+The Civil 3D connector exports civil engineering entities from Autodesk Civil 3D, preserving layer organization and property set data.
+
+## Hierarchy
+
+Civil 3D models are organized by File and Layer:
+
+```
+Root Collection
+├── Civil 3D File
+│   └── Layer
+│       ├── Civil3dObject
+│       ├── Geometry (standalone)
+│       └── Instance
+├── Proxies: RenderMaterial[]
+├── Proxies: Color[]
+├── Proxies: Group[]
+├── Proxies: Definition[]
+└── Proxies: PropertySetDefinition[]
+```
+
+The hierarchy reflects Civil 3D's layer structure:
+- **File** - The Civil 3D file
+- **Layer** - AutoCAD layer (Civil 3D entities are organized by layer)
+
+## Object Types
+
+Civil 3D exports three types of objects:
+
+1. **Civil3dObject** - Civil 3D entities (alignments, surfaces, pipes, etc.)
+2. **Geometry** - Standalone geometry objects
+3. **Instance** - Block references pointing to Definition proxies
+
+## Civil3dObject Schema
+
+Civil3dObject extends [DataObject](/developers/data-model/object-model) with these additional fields:
+
+```json
+{
+  "id": "string",
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.Civil3dObject",
+  "applicationId": "string",
+  "name": "string",
+  "properties": {
+    "string": "any value"
+  },
+  "displayValue": [
+    "Base (geometry objects)"
+  ],
+  "units": "string",
+  
+  "__comment": "Civil3dObject-specific fields",
+  "baseCurves": [
+    "ICurve (geometry objects)"
+  ]
+}
+```
+
+### Connector-Specific Fields
+
+- **`baseCurves`** - An array of curve geometry objects representing the base curves of the Civil 3D entity (e.g., alignment centerline, pipe centerline)
+
+## Properties
+
+Civil3dObject `properties` contain:
+
+- **Extension Dictionaries** - Custom data stored in extension dictionaries
+- **XData** - Extended entity data
+- **Property Sets** - Civil 3D property set definitions
+- **Part Data** - Entity-specific part data
+- **Additional class properties** - Properties that depend on the entity type (alignment, surface, pipe, etc.)
+
+```json
+{
+  "properties": {
+    "Extension Dictionaries": {
+      "CustomApp": {
+        "Key": "Value"
+      }
+    },
+    "Property Sets": {
+      "Pipe Properties": {
+        "Diameter": 0.3,
+        "Material": "PVC"
+      }
+    },
+    "Part Data": {
+      "Part Family": "Pipe",
+      "Part Size": "300mm"
+    }
+  }
+}
+```
+
+## Proxies
+
+Civil 3D models use these proxy types:
+
+### RenderMaterial
+
+Material assignments for visual representation.
+
+### Color
+
+Color assignments for objects.
+
+### Group
+
+Group proxies encode group memberships.
+
+### Definition
+
+Definition proxies store geometry for block definitions.
+
+### PropertySetDefinition
+
+Property set definition proxies encode Civil 3D property set definitions. These define the schema for property sets used by Civil3dObjects.
+
+## Example: Civil3dObject
+
+```json
+{
+  "id": "civil3d-abc123...",
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.Civil3dObject",
+  "applicationId": "entity-456",
+  "name": "Alignment - Main Road",
+  "properties": {
+    "Property Sets": {
+      "Alignment Properties": {
+        "Length": 1250.5,
+        "Start Station": 0.0,
+        "End Station": 1250.5
+      }
+    },
+    "Part Data": {
+      "Entity Type": "Alignment",
+      "Style": "Centerline"
+    }
+  },
+  "displayValue": [
+    {
+      "speckle_type": "Objects.Geometry.Polyline",
+      "points": [
+        {"x": 0, "y": 0, "z": 0},
+        {"x": 100, "y": 50, "z": 0},
+        {"x": 200, "y": 100, "z": 0}
+      ],
+      "units": "meters"
+    }
+  ],
+  "baseCurves": [
+    {
+      "speckle_type": "Objects.Geometry.Polyline",
+      "points": [
+        {"x": 0, "y": 0, "z": 0},
+        {"x": 100, "y": 50, "z": 0},
+        {"x": 200, "y": 100, "z": 0}
+      ],
+      "units": "meters"
+    }
+  ],
+  "units": "meters"
+}
+```
+
+## Invariants and Caveats
+
+1. **baseCurves field** - Civil3dObjects have a `baseCurves` array in addition to `displayValue`
+2. **Property Sets** - Civil 3D property sets are stored in `properties.Property Sets`
+3. **Entity-specific properties** - Properties vary by entity type (alignment, surface, pipe, etc.)
+4. **Layer organization** - Objects are organized by AutoCAD layer structure
+5. **PropertySetDefinition proxies** - Unique to Civil 3D, these define property set schemas
+
+<Accordion title="What's the difference between baseCurves and displayValue?">
+- **baseCurves**: The fundamental curve geometry of the entity (e.g., alignment centerline, pipe centerline)
+- **displayValue**: The visual representation (may include additional geometry like labels, annotations, or meshed surfaces)
+
+For some entities, `baseCurves` and `displayValue` may contain similar geometry, but `displayValue` is optimized for visualization.
+</Accordion>
+
+## Related Documentation
+
+- [Object Model](/developers/data-model/object-model) - Base object structure
+- [Geometry Model](/developers/data-model/geometry-model) - Geometry storage
+- [Proxy Model](/developers/data-model/proxy-model) - How proxies work
+- [Traversal Recipes](/developers/data-model/traversal-recipes) - Processing patterns
+

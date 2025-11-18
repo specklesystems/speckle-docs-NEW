@@ -1,0 +1,201 @@
+---
+title: Revit Connector
+description: Data schema and structure for Revit models
+---
+
+The Revit connector exports BIM elements from Autodesk Revit, preserving the hierarchical organization and rich property data.
+
+## Hierarchy
+
+Revit models are organized by File, Level, Category, and Type:
+
+```
+Root Collection
+├── Revit File (may be a linked model)
+│   └── Level
+│       └── Category
+│           └── Type
+│               └── RevitObject
+├── Proxies: RenderMaterial[]
+├── Proxies: Level[]
+├── Proxies: Group[]
+├── Info: referencePointTransform (optional)
+└── Info: views (optional)
+```
+
+The hierarchy reflects Revit's organizational structure:
+- **File** - The Revit file (or linked model)
+- **Level** - Building level/floor
+- **Category** - Revit category (Walls, Doors, Windows, etc.)
+- **Type** - Element type/family type
+
+## RevitObject Schema
+
+RevitObject extends [DataObject](/developers/data-model/object-model) with these additional fields:
+
+```json
+{
+  "id": "string",
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.RevitObject",
+  "applicationId": "string",
+  "name": "string",
+  "properties": {
+    "string": "any value"
+  },
+  "displayValue": [
+    "Base (geometry objects)"
+  ],
+  "units": "string",
+  
+  "__comment": "RevitObject-specific fields",
+  "type": "string",
+  "family": "string",
+  "category": "string",
+  "level": "string",
+  "location": "Base (point or curve)"
+}
+```
+
+### Connector-Specific Fields
+
+- **`type`** - The element type name (e.g., "Basic Wall", "Standard Door")
+- **`family`** - The family name (e.g., "Basic Wall", "Door")
+- **`category`** - The Revit category (e.g., "Walls", "Doors", "Windows")
+- **`level`** - The level name this element is associated with
+- **`location`** - A Point or Curve representing the element's location
+
+## Properties
+
+RevitObject `properties` contain:
+
+- **Instance Parameters** - Element-specific parameter values
+- **Type Parameters** - Type-level parameter values (shared across all instances of the type)
+- **Material Quantities** - Material takeoff data (volume, area per material)
+
+Properties are organized hierarchically:
+
+```json
+{
+  "properties": {
+    "Volume": 12.5,
+    "Area": 45.2,
+    "Instance Parameters": {
+      "Wall Height": 3.0,
+      "Base Offset": 0.0
+    },
+    "Type Parameters": {
+      "Width": 0.2,
+      "Function": "Exterior"
+    },
+    "Material Quantities": {
+      "Concrete": {
+        "Volume": 12.5,
+        "Area": 45.2
+      }
+    }
+  }
+}
+```
+
+## Proxies
+
+Revit models use these proxy types:
+
+### RenderMaterial
+
+Material assignments for visual representation. Referenced by objects via `applicationId`.
+
+### Level
+
+Level proxies encode level definitions (elevation, name). Objects reference levels via the `level` field and through Level proxy `referencedIds`.
+
+### Group
+
+Group proxies encode Revit group memberships. Objects can belong to multiple groups.
+
+## Info Fields
+
+### referencePointTransform
+
+A 4x4 transformation matrix indicating the coordinate system transform applied to all model objects based on the selected reference point setting during publish.
+
+### views
+
+An array of `Camera` objects from **perspective 3D views** in the Revit file. These represent saved view configurations.
+
+## Example: RevitObject
+
+```json
+{
+  "id": "a1b2c3d4e5f6...",
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.RevitObject",
+  "applicationId": "12345",
+  "name": "Basic Wall - 200mm",
+  "properties": {
+    "Volume": 12.5,
+    "Area": 45.2,
+    "Instance Parameters": {
+      "Wall Height": 3.0,
+      "Base Offset": 0.0,
+      "Top Offset": 0.0
+    },
+    "Type Parameters": {
+      "Width": 0.2,
+      "Function": "Exterior",
+      "Structural Usage": "Non-bearing"
+    },
+    "Material Quantities": {
+      "Concrete": {
+        "Volume": 12.5,
+        "Area": 45.2
+      }
+    }
+  },
+  "displayValue": [
+    {
+      "speckle_type": "Objects.Geometry.Mesh",
+      "vertices": [0, 0, 0, 10, 0, 0, 10, 0, 3, 0, 0, 3, ...],
+      "faces": [0, 1, 2, 0, 2, 3, ...],
+      "units": "meters"
+    }
+  ],
+  "type": "Basic Wall",
+  "family": "Basic Wall",
+  "category": "Walls",
+  "level": "Level 1",
+  "location": {
+    "speckle_type": "Objects.Geometry.Line",
+    "start": {"x": 0, "y": 0, "z": 0},
+    "end": {"x": 10, "y": 0, "z": 0},
+    "units": "meters"
+  },
+  "units": "meters"
+}
+```
+
+## Invariants and Caveats
+
+1. **No nested DataObjects** - RevitObjects cannot contain other RevitObjects as direct children
+2. **Geometry in displayValue** - All visual geometry is in `displayValue`
+3. **Level associations** - Objects are associated with levels via the `level` field and Level proxies
+4. **Linked models** - Linked Revit models appear as separate File collections
+5. **Type vs Instance** - `type` field is the element type name, not the Revit TypeId
+6. **Properties hierarchy** - Instance and Type parameters are nested under "Instance Parameters" and "Type Parameters" keys
+
+<Accordion title="How do I find all walls on a specific level?">
+You can filter by the `level` field on RevitObjects, or use Level proxies. The `level` field is a string matching the level name. You can also traverse the collection hierarchy which organizes objects by level.
+</Accordion>
+
+<Accordion title="What's the difference between family and type?">
+- **Family**: The family name (e.g., "Basic Wall", "Door")
+- **Type**: The specific type within that family (e.g., "Basic Wall - 200mm", "Standard Door - 36in")
+
+A family can have multiple types, each with different parameter values.
+</Accordion>
+
+## Related Documentation
+
+- [Object Model](/developers/data-model/object-model) - Base object structure
+- [Proxy Model](/developers/data-model/proxy-model) - How proxies work
+- [Traversal Recipes](/developers/data-model/traversal-recipes) - Processing patterns
+
