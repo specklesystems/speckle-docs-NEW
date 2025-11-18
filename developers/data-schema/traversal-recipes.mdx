@@ -102,7 +102,7 @@ def find_objects_using_resource(root, proxy_type, resource_name):
         return []
     
     # Get referenced object IDs
-    referenced_ids = proxy.referencedIds if hasattr(proxy, 'referencedIds') else []
+    referenced_ids = proxy.objects if hasattr(proxy, 'objects') else []
     
     # Find objects by applicationId
     objects = []
@@ -154,7 +154,7 @@ def find_resources_for_object(root, obj):
     
     # Check all proxies
     for proxy in get_all_proxies(root):
-        if hasattr(proxy, 'referencedIds') and app_id in proxy.referencedIds:
+        if hasattr(proxy, 'objects') and app_id in proxy.objects:
             resources.append(proxy)
     
     return resources
@@ -246,8 +246,8 @@ def build_resource_map(root):
         resource_name = getattr(proxy, 'name', 'unknown')
         resource_type = proxy.speckle_type
         
-        if hasattr(proxy, 'referencedIds'):
-            for app_id in proxy.referencedIds:
+        if hasattr(proxy, 'objects'):
+            for app_id in proxy.objects:
                 # Build object -> resources map
                 if app_id not in object_to_resources:
                     object_to_resources[app_id] = []
@@ -392,7 +392,7 @@ print(f"Geometry types: {stats['geometry_types']}")
 ## Common Patterns Summary
 
 1. **Always check for attributes** - Use `hasattr()` before accessing properties
-2. **Handle empty arrays** - `displayValue` and `referencedIds` may be empty
+2. **Handle empty arrays** - `displayValue` and `objects` may be empty
 3. **Use applicationId for references** - Proxies reference by `applicationId`, not `id`
 4. **Recurse collections** - Collections can be nested to any depth
 5. **Check speckle_type** - Use `speckle_type` to identify object types

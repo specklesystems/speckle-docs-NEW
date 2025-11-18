@@ -43,13 +43,13 @@ Every Speckle object has:
   "applicationId": "string",
   "name": "string",
   "value": { "resource data" },
-  "referencedIds": [ "applicationId strings" ]
+  "objects": [ "applicationId strings" ]
 }
 ```
 
 - **Location**: Proxies are at Root Collection level
 - **References**: Use `applicationId`, never `id`
-- **Resolution**: Find proxy by `applicationId`, check `referencedIds` array
+- **Resolution**: Find proxy by `applicationId`, check `objects` array
 
 ## Global Rules
 
@@ -110,7 +110,7 @@ def find_objects_using_resource(root, proxy_type, resource_name):
     if not proxy:
         return []
     # Get referenced IDs
-    referenced_ids = getattr(proxy, 'referencedIds', [])
+    referenced_ids = getattr(proxy, 'objects', [])
     # Find objects
     return [obj for obj in traverse_all(root) 
             if getattr(obj, 'applicationId', None) in referenced_ids]
@@ -194,7 +194,7 @@ if hasattr(obj, 'displayValue') and obj.displayValue:
 |------|---------|
 | Find all objects | Traverse collections, check `speckle_type` |
 | Get geometry | Check `displayValue` array |
-| Resolve material | Find RenderMaterial proxy, check `referencedIds` |
+| Resolve material | Find RenderMaterial proxy, check `objects` |
 | Find by property | Traverse objects, access nested `properties` |
 | Resolve instance | Find Definition proxy by `definitionId`, get `value.displayValue` |
 | Get model info | Check Root Collection `info` field |
@@ -213,7 +213,7 @@ if hasattr(obj, 'displayValue') and obj.displayValue:
 ### Proxy Objects
 - `speckle_type`, `applicationId`, `name` (required)
 - `value` (resource data)
-- `referencedIds` (array of `applicationId` strings)
+- `objects` (array of `applicationId` strings)
 
 ### Collection Objects
 - `speckle_type` = "Objects.Organization.Collection"

@@ -32,7 +32,7 @@ All proxies follow this pattern:
     "color": [128, 128, 128],
     "opacity": 1.0
   },
-  "referencedIds": [
+  "objects": [
     "obj-app-id-1",
     "obj-app-id-2",
     "obj-app-id-3"
@@ -46,7 +46,7 @@ All proxies follow this pattern:
 - **`applicationId`** - Unique identifier for this proxy
 - **`name`** - Human-readable name
 - **`value`** - The actual resource data (material, level, etc.)
-- **`referencedIds`** - Array of `applicationId`s of objects that use this resource
+- **`objects`** - Array of `applicationId`s of objects that use this resource
 
 ## Common Proxy Types
 
@@ -65,7 +65,7 @@ Encodes material assignments:
     "metallic": 0.0,
     "roughness": 0.5
   },
-  "referencedIds": ["wall-1", "wall-2", "column-1"]
+  "objects": ["wall-1", "wall-2", "column-1"]
 }
 ```
 
@@ -82,7 +82,7 @@ Encodes level/floor associations:
     "elevation": 0.0,
     "name": "Level 1"
   },
-  "referencedIds": ["wall-1", "door-1", "window-1"]
+  "objects": ["wall-1", "door-1", "window-1"]
 }
 ```
 
@@ -98,7 +98,7 @@ Encodes group memberships:
   "value": {
     "name": "Exterior Walls"
   },
-  "referencedIds": ["wall-1", "wall-2", "wall-3"]
+  "objects": ["wall-1", "wall-2", "wall-3"]
 }
 ```
 
@@ -120,7 +120,7 @@ Stores geometry for instances (blocks, components):
       }
     ]
   },
-  "referencedIds": ["instance-1", "instance-2", "instance-3"]
+  "objects": ["instance-1", "instance-2", "instance-3"]
 }
 ```
 
@@ -136,7 +136,7 @@ Encodes color assignments (CAD workflows):
   "value": {
     "hex": "#FF0000"
   },
-  "referencedIds": ["line-1", "line-2"]
+  "objects": ["line-1", "line-2"]
 }
 ```
 
@@ -150,18 +150,18 @@ Object
 └── ...
 
 RenderMaterial Proxy
-├── referencedIds: ["wall-123", "wall-456"]
+├── objects: ["wall-123", "wall-456"]
 └── ...
 ```
 
 To find which objects use a material:
 1. Get the RenderMaterial proxy
-2. Read its `referencedIds` array
+2. Read its `objects` array
 3. Find objects with matching `applicationId`
 
 To find which material an object uses:
 1. Get the object's `applicationId`
-2. Search all RenderMaterial proxies for one containing that `applicationId` in `referencedIds`
+2. Search all RenderMaterial proxies for one containing that `applicationId` in `objects`
 
 <Accordion title="Why use applicationId instead of id for references?">
 `applicationId` is stable within a model version and represents the source application's identifier. `id` is content-based and changes if the object's data changes. For relationships that should persist even when object data changes, `applicationId` is the right choice.
@@ -212,7 +212,7 @@ This is the power of proxies—they enable overlapping hierarchies without dupli
 ```python
 # Find all objects using "Concrete" material
 material_proxy = find_proxy_by_name("Concrete", proxy_type="RenderMaterial")
-object_ids = material_proxy.referencedIds
+object_ids = material_proxy.objects
 objects = [find_object_by_application_id(oid) for oid in object_ids]
 ```
 
@@ -223,7 +223,7 @@ objects = [find_object_by_application_id(oid) for oid in object_ids]
 object_app_id = obj.applicationId
 materials = [
     proxy for proxy in all_render_material_proxies
-    if object_app_id in proxy.referencedIds
+    if object_app_id in proxy.objects
 ]
 ```
 
@@ -257,10 +257,10 @@ See [connector pages](/developers/data-schema/connector-index) for details.
 2. **References use applicationId** - Always `applicationId`, never `id`
 3. **No circular references** - Proxies don't reference other proxies
 4. **Value is the resource** - The `value` field contains the actual resource data
-5. **referencedIds is a list** - Can reference zero or more objects
+5. **objects is a list** - Can reference zero or more objects
 
 <Accordion title="Can an object be in multiple groups?">
-Yes! An object's `applicationId` can appear in multiple Group proxy `referencedIds` arrays. This allows objects to belong to multiple functional groups simultaneously. The same applies to materials, levels, and other proxy types.
+Yes! An object's `applicationId` can appear in multiple Group proxy `objects` arrays. This allows objects to belong to multiple functional groups simultaneously. The same applies to materials, levels, and other proxy types.
 </Accordion>
 
 ## Next Steps
