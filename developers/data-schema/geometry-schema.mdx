@@ -39,7 +39,7 @@ Speckle supports a wide range of geometry primitives:
 - **Ellipse** - Elliptical curve
 
 ### Surface Geometry
-- **Mesh** - Triangulated surface
+- **Mesh** - Triangulated surface (most basic), also supports quads and ngons; sent as hard-edged faces
 - **Brep** - Boundary representation (solid or surface)
 
 ### Complex Geometry
@@ -61,13 +61,49 @@ All geometry objects follow this pattern:
 
 ### Example: Mesh
 
+A Mesh is composed of vertices (3D points) and faces (polygons connecting vertices). The most basic mesh is triangulated (composed of triangles), though Speckle also supports quads and ngons. The following diagram illustrates this structure:
+
+```
+Mesh
+├── vertices: [x1, y1, z1, x2, y2, z2, x3, y3, z3, ...]
+│   └── Flat array of coordinates (every 3 values = one point)
+│
+├── faces: [3, 0, 1, 2, 4, 0, 2, 3, 4, ...]
+│   └── Each face is preceded by its vertex count (supports ngons)
+│       └── Example: [3, 0, 1, 2] = triangle with vertices 0, 1, 2
+│       └── Example: [4, 0, 2, 3, 4] = quad with vertices 0, 2, 3, 4
+│
+└── Optional fields:
+    ├── colors: [r1, g1, b1, r2, g2, b2, ...]
+    │   └── Colors per vertex (RGB values)
+    │   └── Faces take the average of their vertex colors
+    │   └── Used for quasi-textures or analytical results visualization
+    │
+    ├── normals: [nx1, ny1, nz1, nx2, ny2, nz2, ...]
+    │   └── Vertex normals (stored but not heavily used in connectors due to lack of host support)
+    │
+    └── textureCoordinates: [...]
+        └── Not yet utilized
+```
+
+Conceptually, a mesh is a surface composed of polygons where:
+- **Vertices** define the 3D points in space
+- **Faces** define polygons by referencing vertex indices, with each face preceded by its vertex count
+- The mesh represents a surface through connected polygons (triangles are most common, but quads and ngons are supported)
+- **Hard-edged faces**: Speckle does not implicitly normalize meshes—they are sent as hard-edged faces, preserving the exact geometry from the source application
+
+**Optional fields:**
+- **colors**: Colors are stored per vertex (RGB values). Faces take the average of their vertex colors, enabling quasi-texture mapping or visualization of analytical results (e.g., stress values, temperature gradients).
+- **normals**: Vertex normals are supported but not heavily used in connectors due to lack of host application support.
+- **textureCoordinates**: Not yet utilized in the current implementation.
+
 ```json
 {
   "id": "mesh123...",
   "speckle_type": "Objects.Geometry.Mesh",
   "applicationId": "guid-456",
   "vertices": [0, 0, 0, 10, 0, 0, 10, 10, 0, 0, 10, 0],
-  "faces": [0, 1, 2, 0, 2, 3],
+  "faces": [3, 0, 1, 2, 3, 0, 2, 3],
   "colors": [255, 0, 0, ...],
   "textureCoordinates": [...],
   "units": "meters"
