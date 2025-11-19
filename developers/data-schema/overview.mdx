@@ -13,36 +13,35 @@ If you have any questions, please contact us on the
 
 The **Data Schema** is the structuring of properties and geometries at the most granular level. It defines how data from any source application (Revit, Rhino, AutoCAD, etc.) is organized, starting from the smallest building blocks and building up into larger structures.
 
+### Design Principles
+
+Speckle's schema is built on a few core principles that drive its structure:
+
+- **Unified structure across connectors** - Same schema regardless of source application, so your code works with any Speckle data
+- **Flat, predictable hierarchy** - Directed tree structure prevents cycles and makes traversal straightforward
+- **Separation of organization and data** - Collections organize objects spatially/categorically; Proxies add cross-cutting relationships without duplication
+- **Content-based identity** - Objects are identified by content hash (`id`) for automatic deduplication, while `applicationId` provides stable tracking across versions
+- **Geometry in `displayValue`** - Uses minimum viable interoperable primitives (Meshes, Lines, Points) that almost all AEC and 3D software can ingest, ensuring maximum interoperability even when receivers don't understand higher-level concepts
+
 
 ## Projects, Models, and Versions as Addresses
 
-Projects, Models, and Versions form an addressing system that organizes and locates data in Speckle. Behind the scenes, **Projects have versions directly**—Models are user-facing semantic organization that provide meaning and context.
+Projects, Models, and Versions form an addressing system that organizes and locates data in Speckle.
 
 ```
-User-Facing View:          Behind the Scenes (API):
-Project                    Project
-  └─ Model (semantic)        └─ Version
-      └─ Version                └─ Root Collection
+Project
+  └─ Model (semantic)
+      └─ Version
           └─ Root Collection
 ```
 
-**Projects** are top-level containers that organize related work and control access. At the API level, projects have versions directly. See the [GraphQL API documentation](/developers/api/graphql) for the technical implementation.
+**Projects** are top-level containers that organize related work and control access.
 
-**Models** are user-facing semantic labels that provide organizational meaning (e.g., "structural", "MEP", "design-option-a"). They act as "window dressing" that groups related versions together for easier navigation and understanding, but they don't change the underlying structure—versions still belong to projects at the API level.
+**Models** are user-facing semantic labels that provide organizational meaning (e.g., "structural", "MEP", "design-option-a"). They group related versions together for easier navigation and understanding.
 
 **Versions** are immutable snapshots of data at a specific point in time. Each version references a Root Collection by its object ID, creating a discoverable entry point to the data.
 
 Think of this as an **addressing system**: Project → Model → Version provides a unique "address" to locate a specific package of information, where Models add semantic meaning to help users organize and find their work.
-
-<Note title="Objects and Addressing">
-Objects are scoped to projects—when an object is sent to a Speckle server, it's stored within a project's scope and receives a unique object ID (hash) based on its content. However, without being referenced by a version, the object is effectively **unreachable** through normal workflows—these are called "orphaned" or "zombie" objects.
-
-- **Orphaned objects** exist in the database and have object IDs, but cannot be browsed or discovered through the UI
-- They can still be retrieved if you have the object ID directly
-- To make objects discoverable, they must be referenced by a version (which belongs to a project, and optionally organized under a model)
-
-This separation between object storage and addressing allows for flexible workflows where objects can be created, stored, and later organized into the addressing hierarchy as needed.
-</Note>
 
 ## The Data Schema Structure
 
@@ -63,16 +62,16 @@ The Speckle data schema is structured as a **directed tree**. This is the core r
 
 - **Tree structure**: Data flows from Root Collection → Collections → Objects in a hierarchical, one-way relationship
 - **No cycles**: Unlike a directed acyclic graph (DAG), the tree structure prevents circular references
-- **Flat object graph**: Objects don't nest within other objects—they're organized in collections and referenced via proxies
+- **Flat object graph (best practice)**: As a general rule, objects don't nest within other objects—they're organized in collections and referenced via proxies. Some DataObjects (e.g., Revit curtain walls) may use an `elements` property when required by the source application.
 - **Proxies add cross-cutting relationships**: While the collection hierarchy is a tree, proxies create additional relationships (materials, levels, groups) that reference objects by `applicationId`
 
 **Key relationship rules:**
 1. Collections contain objects and other collections (via `elements` property)
-2. DataObjects contain geometry in `displayValue` (not nested DataObjects)
+2. DataObjects contain geometry in `displayValue` (and may contain child DataObjects via `elements` in some cases)
 3. Proxies reference objects by `applicationId` (stored at root level)
 4. Instances reference Definition proxies by `applicationId`
 
-This tree structure makes traversal predictable and efficient—you can walk from root to leaf without encountering cycles or complex reference resolution.
+**Why a tree?** This structure makes traversal predictable and efficient—you can walk from root to leaf without encountering cycles or complex reference resolution. The generally flat object graph (DataObjects typically don't nest) keeps the model simple and prevents deep nesting issues. Proxies solve the "overlapping hierarchies" problem—a wall can belong to a level, a group, and use a material simultaneously without duplication. **Note**: Traversal code should check for `elements` properties on both Collections and DataObjects to handle connector-specific exceptions.
 
 ## The Complete Structure
 
@@ -111,4 +110,15 @@ Speckle uses a unified Data Schema so that data from any source can be consumed 
 
 <Accordion title="What's the difference between a Speckle hierarchy and the source application's hierarchy?">
 The **source application's hierarchy** (e.g., Revit's levels/categories, Rhino's layers) is preserved in the Collections structure. However, Speckle also imposes its own organizational structure through Proxies, which can create additional relationships that don't exist in the source application. This allows objects to be organized in multiple ways simultaneously without duplication.
+</Accordion>
+
+<Accordion title="What about orphaned objects?">
+Objects are scoped to projects—when an object is sent to a Speckle server, it's stored within a project's scope. However, without being referenced by a version, the object is effectively unreachable through normal workflows. These "orphaned" objects exist in the database and can be retrieved if you have the object ID directly, but they cannot be browsed or discovered through the UI. To make objects discoverable, they must be referenced by a version.
+
+Behind the Scenes (API):
+```
+Project
+  └─ Version
+      └─ Root Collection
+```
 </Accordion>
