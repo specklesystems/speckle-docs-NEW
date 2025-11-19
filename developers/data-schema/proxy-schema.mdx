@@ -203,40 +203,7 @@ Object (applicationId: "wall-1")
 └── Referenced by Definition proxy ("Wall Type A")
 ```
 
-This is the power of proxies—they enable overlapping hierarchies without duplication.
 
-## Proxy Resolution Patterns
-
-### Pattern 1: Find objects using a resource
-
-```python
-# Find all objects using "Concrete" material
-material_proxy = find_proxy_by_name("Concrete", proxy_type="RenderMaterial")
-object_ids = material_proxy.objects
-objects = [find_object_by_application_id(oid) for oid in object_ids]
-```
-
-### Pattern 2: Find resources used by an object
-
-```python
-# Find all materials used by this object
-object_app_id = obj.applicationId
-materials = [
-    proxy for proxy in all_render_material_proxies
-    if object_app_id in proxy.objects
-]
-```
-
-### Pattern 3: Resolve instance definitions
-
-```python
-# Get geometry for an instance
-instance = get_object("instance-1")
-definition_proxy = find_proxy_by_application_id(
-    instance.definitionId, 
-    proxy_type="Definition"
-)
-geometry = definition_proxy.value.displayValue
 ```
 
 ## Connector-Specific Proxies
@@ -250,6 +217,52 @@ Different connectors use different proxy types:
 - **Etabs**: Section, Material (specialized)
 
 See [connector pages](/developers/data-schema/connector-index) for details.
+
+## Reference Objects (Non-Proxy)
+
+In addition to proxies, Speckle supports direct reference objects that point to other objects by ID. These are used for different purposes than proxies:
+
+### ObjectReference
+
+`ObjectReference` (deprecated as `Speckle.Core.Models.ObjectReference`, current type is `reference`) is a non-proxy reference object that directly references another object by its `id`:
+
+```json
+{
+  "speckle_type": "reference",
+  "referencedId": "object-hash-id"
+}
+```
+
+**Fields:**
+- **`referencedId`** (required) - The object `id` (hash) of the referenced object
+- **`closure`** (optional) - Dictionary mapping closure information
+
+Unlike proxies which reference by `applicationId` and are stored at root level, `ObjectReference` references by `id` and can appear anywhere in the object graph.
+
+### InstanceProxy
+
+`InstanceProxy` is a specialized proxy class for block/component instances (e.g., Rhino blocks, AutoCAD block references):
+
+```json
+{
+  "speckle_type": "Speckle.Core.Models.Instances.InstanceProxy",
+  "definitionId": "block-definition-app-id",
+  "transform": [4x4 matrix],
+  "units": "meters",
+  "maxDepth": 10
+}
+```
+
+**Fields:**
+- **`definitionId`** (required) - The `applicationId` of the Definition proxy that contains the geometry
+- **`transform`** (required) - 4x4 transformation matrix for the instance placement
+- **`units`** (required) - Units of the host application file
+- **`maxDepth`** (required) - Maximum depth for nested instance resolution
+
+`InstanceProxy` objects are used to represent instances in the object graph. To get the geometry for an instance:
+1. Get the `InstanceProxy` object
+2. Use its `definitionId` to find the corresponding Definition proxy
+3. Access `definition_proxy.value.displayValue` for the geometry
 
 ## Proxy Invariants
 

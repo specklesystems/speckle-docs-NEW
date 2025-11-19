@@ -50,6 +50,24 @@ Base provides:
 
 These are the atomic building blocks that combine to form objects.
 
+## Detachment
+
+**Detachment** is a core concept in Speckle that optimizes data transfer by storing large objects separately and referencing them by ID. When an object property is too large (e.g., a mesh with millions of vertices), the SDK automatically "detaches" it—storing the actual object separately and replacing it with a reference ID in the parent object.
+
+In JSON, detached properties appear with an `@` prefix (e.g., `"@atomic_object_collection": "hash123..."`). The actual object is stored in the transport layer and automatically resolved when the data is received.
+
+**Key points:**
+- **Automatic**: Detachment happens automatically during serialization for large properties
+- **Transparent**: References are automatically resolved during `receive()` operations
+- **Efficient**: Prevents large objects from bloating JSON payloads
+- **Deduplication**: Same object can be referenced multiple times without duplication
+
+Detachment is distinct from **proxification** (see [Proxy Schema](/developers/data-schema/proxy-schema)):
+- **Detachment**: Handles large individual objects (performance optimization)
+- **Proxification**: Enables multiple overlapping organizational hierarchies (structural organization)
+
+For detailed information on detachment, see the [original Speckle guide documentation](https://speckle.guide/user/detachable.html).
+
 ## Objects
 
 **Objects** are the actual data elements in a data package. They're atomic, selectable elements that typically have a visual representation.
@@ -134,15 +152,15 @@ Info fields are optional and connector-specific. Not all data packages have Info
 ```
 Data Package (at a Version)
 │
-├── Root Collection
-│   ├── Collections (hierarchy)
-│   │   └── Objects (data)
-│   │
-│   ├── Proxies (relationships)
-│   │   └── Reference objects by applicationId
-│   │
-│   └── Info (metadata)
-│       └── Model-wide data
+└── Root Collection
+    ├── Collections (hierarchy)
+    │   └── Objects (data)
+    │
+    ├── Proxies (relationships)
+    │   └── Reference objects by applicationId
+    │
+    └── Info (metadata)
+        └── Model-wide data
 ```
 
 The hierarchy (Collections) organizes objects spatially or categorically. Proxies add additional relationships (materials, groups, levels) that cross-cut the hierarchy. Info provides context about the entire data package.
