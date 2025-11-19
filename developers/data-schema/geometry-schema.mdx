@@ -141,6 +141,41 @@ Every geometry object has a `units` field indicating the unit system:
 
 The `units` field should match the DataObject's `units` field. Always check units when processing geometry!
 
+## Baked Geometry and Coordinate Spaces
+
+**Baked geometry** refers to geometry that has been converted from high-level representations (NURBS surfaces, parametric curves, procedural geometry) into interoperable primitives (Meshes, Lines, Points). This conversion happens during the send process—connectors "bake" complex geometry into primitives that receivers can understand.
+
+Conceptually, coordinate spaces work as follows:
+
+- **Local coordinates**: Geometry in `displayValue` is typically in the local coordinate space of the DataObject. The DataObject's position and orientation in the model are determined by its placement in the collection hierarchy and any transforms applied.
+
+- **World coordinates**: The complete model exists in a world coordinate space. To understand where geometry appears in the full model, you may need to:
+  - Apply transforms from parent collections
+  - Consider the Root Collection's reference point (if present in Info)
+  - Account for coordinate system transformations
+
+- **Units**: All coordinates are in the units specified by the `units` field. Always verify units before performing calculations or transformations.
+
+**When is geometry baked?** Geometry is baked during the send process when connectors convert source application geometry into Speckle primitives. This ensures maximum interoperability—receivers don't need to understand NURBS, parametric surfaces, or other complex representations. They receive simple, renderable primitives.
+
+## Geometry Primitives and Object Semantics
+
+Geometry primitives in `displayValue` are **agnostic** to the semantic meaning of the DataObject. A Mesh in a wall's `displayValue` is just a mesh—it doesn't "know" it represents a wall. The semantic meaning comes from:
+- The DataObject's `properties` (material, dimensions, type)
+- The DataObject's `speckle_type` (e.g., "Objects.Data.DataObject:Objects.Data.RevitObject")
+- The DataObject's position in the collection hierarchy
+
+This separation enables:
+- **Interoperability**: Receivers can render geometry even if they don't understand "Wall" semantics
+- **Flexibility**: The same geometry primitives work across different applications
+- **Clarity**: Geometry represents shape; properties represent meaning
+
+For example, a wall DataObject might have:
+- `properties.material = "Concrete"` (semantic: this is concrete)
+- `displayValue = [Mesh with gray color]` (geometric: this is a gray surface)
+
+The receiver can render the mesh without understanding walls, or can interpret the properties to understand it's a concrete wall.
+
 ## Pure Geometry Objects
 
 Sometimes you'll encounter geometry objects that aren't in a DataObject's `displayValue`—they exist as standalone objects in collections. This is common in CAD workflows (Rhino, AutoCAD) where geometry is the primary data type.
