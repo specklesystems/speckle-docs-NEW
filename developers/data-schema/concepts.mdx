@@ -3,7 +3,7 @@ title: Core Concepts
 description: Understanding Models, Collections, Objects, Proxies, and Info
 ---
 
-This page provides detailed explanations of the fundamental concepts that make up every Speckle data package, building from the most granular level upward. For a high-level overview, see the [Overview](/developers/data-schema/overview) page.
+This page provides detailed explanations of the fundamental concepts that make up every Speckle data package, building from the most granular level upward. Here you'll learn how [Collections](/developers/data-schema/overview#core-glossary), [DataObjects](/developers/data-schema/overview#core-glossary), [Proxies](/developers/data-schema/overview#core-glossary), and [Info](/developers/data-schema/overview#core-glossary) work together to create a structured, traversable model without cycles. For a high-level overview, see the [Overview](/developers/data-schema/overview) page.
 
 <Note title="Data Model vs Speckle Model">
 The "Data Model" and "Speckle Model" refer to different concepts:
@@ -59,19 +59,19 @@ For detailed information on detachment, see the [original Speckle guide document
 
 ## Objects
 
-**Objects** are the actual data elements in a data package. They're atomic, selectable elements that typically have a visual representation.
+**Objects** are the actual data elements in a data package. They're atomic, selectable elements that typically have a visual representation. Objects form the leaves of the tree structure—they contain the actual data and geometry, while Collections organize them.
 
 There are three types of objects:
 
-1. **Geometry** - A single piece of geometry (curve, mesh, brep, etc.) with minimal properties
-2. **DataObject** - A group of geometry representing a BIM element with rich properties (e.g., a wall, column, door)
-3. **Instance** - A transform and pointer to a Definition proxy, representing a block reference or instance
+1. **Geometry** - A single piece of geometry (curve, mesh, brep, etc.) with minimal properties. These are pure geometric primitives that can exist standalone or within a DataObject's `displayValue`.
+2. **DataObject** - A semantic object representing a BIM element or domain entity (wall, column, door) with rich properties and geometry stored in `displayValue`. DataObjects are the primary object type for BIM workflows.
+3. **Instance** - An object that references a [Definition](/developers/data-schema/overview#core-glossary) proxy by `applicationId` and applies a transform, representing repeated geometry (blocks, components). Instances enable geometry reuse without duplication.
 
 Every object has:
-- An identity (`id`, `applicationId`)
-- A type (`speckle_type`)
+- An identity (`id` - content-based hash, `applicationId` - source application identifier)
+- A type (`speckle_type` - identifies the object class)
 - Properties (metadata and data - key-value pairs)
-- Geometry (stored in `displayValue` - geometric primitives)
+- Geometry (stored in `displayValue` for DataObjects - geometric primitives)
 
 <Accordion title="What's the difference between Geometry and DataObject?">
 **Geometry** objects are primarily geometric primitives (Point, Line, Mesh, etc.) with minimal properties. **DataObject** objects are BIM elements that combine multiple geometries with rich properties (like a wall with material, dimensions, and type information). DataObjects typically contain multiple geometry objects in their `displayValue` array, along with extensive property data.
@@ -79,23 +79,34 @@ Every object has:
 
 ## Collections
 
-**Collections** are organizational containers that create a hierarchy. They don't contain data themselves—they organize objects. Collections have an `elements` property that contains their child objects and nested collections.
+**Collections** are organizational containers that create hierarchy. They don't contain data themselves—they organize objects and other collections. Collections have an `elements` property that contains their child objects and nested collections, forming a parent-child relationship tree.
 
 *Why separate collections from objects?* This separation allows the same organizational structure (levels, categories, layers) to be preserved from source applications while keeping objects themselves flat and reusable. Objects can participate in multiple organizational systems via proxies without being duplicated.
 
-Collections can be nested to create hierarchies:
+The following diagram illustrates the parent-child relationship structure:
 
 ```
-Collection (e.g., "Level 1")
-├── Collection (e.g., "Walls")
-│   └── Object (a wall)
-│       ├── Properties (name, material, height, etc.)
-│       └── Geometry (in displayValue)
-└── Collection (e.g., "Doors")
-    └── Object (a door)
-        ├── Properties (name, type, etc.)
-        └── Geometry (in displayValue)
+Root Collection (top-level container)
+│
+├── Collection (e.g., "Level 1") ← parent
+│   ├── Collection (e.g., "Walls") ← child of "Level 1", parent of wall objects
+│   │   └── DataObject (wall) ← child of "Walls"
+│   │       ├── Properties (name, material, height, etc.)
+│   │       └── displayValue: [Mesh, ...] (geometry)
+│   └── Collection (e.g., "Doors") ← child of "Level 1", parent of door objects
+│       └── DataObject (door) ← child of "Doors"
+│           ├── Properties (name, type, etc.)
+│           └── displayValue: [Mesh, ...] (geometry)
+│
+└── Collection (e.g., "Level 2") ← sibling of "Level 1"
+    └── ...
 ```
+
+Key relationship rules:
+- Collections contain objects and other collections (via `elements`)
+- Each object or collection has exactly one parent collection (except Root Collection)
+- The tree flows downward: Root Collection → Collections → Objects
+- No object can be a child of another object (objects don't nest)
 
 Nested collections typically represent organizational structures from the source application:
 - **Revit**: File → Level → Category → Type
@@ -106,7 +117,7 @@ Collections can be nested to any depth, but most connectors use 2-4 levels.
 
 ### Root Collection
 
-The **Root Collection** is always the top-level container for a data package at a version. It contains the collections hierarchy, proxies, and info.
+The **Root Collection** is always the top-level container for a data package at a version. It contains the collections hierarchy, proxies, and info. It has no parent—it is the root of the tree.
 
 <Accordion title="Can collections contain other collections?">
 Yes! Collections can be nested to any depth. However, most connectors use a predictable pattern (2-4 levels) based on the source application's organizational structure. The nesting depth is determined by the connector, not by Speckle's data model.
@@ -114,18 +125,20 @@ Yes! Collections can be nested to any depth. However, most connectors use a pred
 
 ## Proxies
 
-**Proxies** encode relationships between objects and shared resources. They allow objects to participate in multiple organizational systems without duplicating the objects themselves.
+**Proxies** encode relationships between objects and shared resources. They allow objects to participate in multiple organizational systems without duplicating the objects themselves. Unlike Collections, which create a single hierarchical tree, Proxies create cross-cutting relationships that reference objects by their `applicationId`.
 
-For example, a single wall object can be:
+For example, a single wall DataObject can be:
 - On "Level 1" (via a Level proxy)
 - In "Exterior Walls" group (via a Group proxy)
 - Using "Concrete" material (via a RenderMaterial proxy)
 
 All without creating multiple copies of the wall.
 
-Proxies are stored at the Root Collection level and reference objects by their `applicationId`.
+Proxies are stored at the Root Collection level and reference objects by their `applicationId`, not their `id`. This allows relationships to persist even when object content changes.
 
 *Why proxies?* Real-world data has overlapping organizational needs—spatial (levels), functional (groups), visual (materials), and structural (definitions). If we only used collections, we'd have to choose one hierarchy or duplicate objects. Proxies solve this by storing relationships separately at the root level, allowing objects to participate in multiple systems simultaneously.
+
+A special proxy type is the **Definition** proxy, which stores geometry for reuse by multiple **Instance** objects. This enables the instance-definition pattern common in CAD workflows (blocks, components).
 
 <Accordion title="Why use proxies instead of just putting objects in collections?">
 Proxies solve the problem of **overlapping hierarchies**. A wall might belong to a level (spatial), a group (functional), and use a material (visual). If we only used collections, we'd have to choose one hierarchy or duplicate the wall. Proxies let us have all three relationships simultaneously without duplication.
@@ -139,6 +152,17 @@ Proxies solve the problem of **overlapping hierarchies**. A wall might belong to
 - **Analysis Results** - Data package-wide analysis data
 
 Info fields are optional and connector-specific. Not all data packages have Info fields.
+
+## Avoiding Cycles and Preserving Provenance
+
+The tree structure ensures that the data model avoids cycles—you can traverse from Root Collection to any object without encountering circular references. This is achieved through strict parent-child relationships: each object or collection has exactly one parent, and objects don't nest within other objects (they're organized in collections).
+
+Provenance—the ability to track where data came from and how it relates across versions—is preserved through `applicationId`. This stable identifier from the source application remains constant even when object content changes, enabling:
+- Proxies to maintain relationships across versions
+- Tracking of objects through model evolution
+- Mapping back to source application elements
+
+The tree structure doesn't require knowledge of directed acyclic graphs (DAGs) to understand—it's simply a hierarchy where each node has one parent, and traversal flows from root to leaves without cycles.
 
 ## How They Work Together
 
@@ -162,11 +186,15 @@ The hierarchy (Collections) organizes objects spatially or categorically. Proxie
 Yes, for simple use cases you can traverse just the Collections to find Objects. However, you'll miss important relationships like material assignments, group memberships, and level associations that are encoded in proxies. Most real-world workflows need both. See the SDK documentation for traversal patterns and examples.
 </Accordion>
 
+## Conceptual Capability
+
+After reading this page, you understand the fundamental building blocks of Speckle's data model: how Properties and Geometries form Base Objects, how Objects (Geometry, DataObject, Instance) represent data elements, how Collections create hierarchical organization, how Proxies encode cross-cutting relationships, and how Info provides package-wide metadata. You recognize that the tree structure prevents cycles while preserving provenance through stable identifiers. You're ready to examine the detailed structure of objects and their fields.
+
 ## Next Steps
 
 Now that you understand the concepts, let's dive into the technical details:
 
-- **[Object Schema](/developers/data-schema/object-model)** - The structure and fields of objects
-- **[Geometry Schema](/developers/data-schema/geometry-model)** - How geometry is stored
-- **[Proxy Schema](/developers/data-schema/proxy-model)** - How proxies work in detail
+- **[Object Schema](/developers/data-schema/object-schema)** - The structure and fields of objects
+- **[Geometry Schema](/developers/data-schema/geometry-schema)** - How geometry is stored
+- **[Proxy Schema](/developers/data-schema/proxy-schema)** - How proxies work in detail
 
