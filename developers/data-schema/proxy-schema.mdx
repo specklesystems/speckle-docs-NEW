@@ -3,7 +3,7 @@ title: Proxy Schemas
 description: How proxies encode relationships between objects and shared resources
 ---
 
-Proxies solve a fundamental problem: how to let objects participate in multiple organizational systems without duplicating data. This page explains how proxies work.
+This page explains how [Proxies](/developers/data-schema/overview#core-glossary) encode relationships between objects and shared resources. Proxies solve a fundamental problem: how to let objects participate in multiple organizational systems without duplicating data. Here you'll learn how proxies reference objects, how [Definition](/developers/data-schema/overview#core-glossary) and [Instance](/developers/data-schema/overview#core-glossary) patterns work, how transforms propagate, and why proxies matter for deduplication, versioning, and performance.
 
 ## What Are Proxies?
 
@@ -104,7 +104,31 @@ Encodes group memberships:
 
 ### Definition
 
-Stores geometry for instances (blocks, components):
+Stores geometry for instances (blocks, components). The following diagram illustrates how multiple [Instance](/developers/data-schema/overview#core-glossary) objects reference a single [Definition](/developers/data-schema/overview#core-glossary) proxy:
+
+```
+Definition Proxy (at Root Collection)
+├── applicationId: "block-door"
+├── name: "Standard Door"
+└── value: {
+      displayValue: [Mesh, ...]  ← Geometry stored once
+    }
+
+Instance Objects (in Collections)
+├── Instance 1
+│   ├── definitionId: "block-door"  ← References Definition
+│   └── transform: [matrix for position 1]
+│
+├── Instance 2
+│   ├── definitionId: "block-door"  ← References same Definition
+│   └── transform: [matrix for position 2]
+│
+└── Instance 3
+    ├── definitionId: "block-door"  ← References same Definition
+    └── transform: [matrix for position 3]
+```
+
+The Definition stores the geometry once; each Instance references it and applies its own transform. This enables geometry reuse without duplication.
 
 ```json
 {
@@ -203,8 +227,31 @@ Object (applicationId: "wall-1")
 └── Referenced by Definition proxy ("Wall Type A")
 ```
 
+## Nested Proxies and Transform Propagation
 
-```
+**Nested proxies** occur when a Definition proxy's `value` contains objects that themselves reference other proxies. For example, a Definition might contain a DataObject that uses a RenderMaterial proxy.
+
+Transform propagation works as follows:
+- **Instance transforms** apply to the geometry stored in the Definition proxy
+- When resolving an Instance, you:
+  1. Find the Definition proxy by `definitionId` (using `applicationId`)
+  2. Extract the geometry from `definition.value.displayValue`
+  3. Apply the Instance's transform matrix to position/orient the geometry
+- **Nested instances**: If a Definition contains Instances, transforms compose—the nested Instance's transform is applied relative to the parent Instance's transform
+
+Conceptually, transforms flow from Instance → Definition → Geometry, positioning the geometry in world space based on the Instance's placement.
+
+## Why Proxies Matter: Deduplication, Versioning, and Performance
+
+Proxies provide three critical benefits:
+
+**Deduplication**: Shared resources (materials, levels, definitions) are stored once and referenced many times. A single RenderMaterial proxy can reference hundreds of objects, avoiding duplication of material data. Similarly, a Definition proxy stores geometry once for many Instances.
+
+**Versioning**: Because proxies reference objects by `applicationId` (which is stable across versions), relationships persist even when object content changes. A wall's material assignment remains linked even if the wall's geometry is modified.
+
+**Performance**: Storing shared resources once reduces data size and transfer time. Instead of duplicating material properties on every object, a single proxy contains the material and references all objects that use it. This is especially important for Definition proxies—geometry stored once can be reused by many Instances without duplication.
+
+These benefits make proxies essential for efficient, maintainable data models, especially in workflows with many repeated elements (blocks, components, shared materials).
 
 ## Connector-Specific Proxies
 
@@ -275,6 +322,10 @@ Unlike proxies which reference by `applicationId` and are stored at root level, 
 <Accordion title="Can an object be in multiple groups?">
 Yes! An object's `applicationId` can appear in multiple Group proxy `objects` arrays. This allows objects to belong to multiple functional groups simultaneously. The same applies to materials, levels, and other proxy types.
 </Accordion>
+
+## Conceptual Capability
+
+After reading this page, you understand how Proxies encode relationships between objects and shared resources: how proxies reference objects by `applicationId`, how Definition and Instance patterns enable geometry reuse, how transforms propagate from Instances to geometry, and why proxies matter for deduplication, versioning, and performance. You recognize that proxies solve the overlapping hierarchies problem by storing relationships separately, allowing objects to participate in multiple organizational systems without duplication. You're ready to explore connector-specific behaviors and extensions.
 
 ## Next Steps
 
