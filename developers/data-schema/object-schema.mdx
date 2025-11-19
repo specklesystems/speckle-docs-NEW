@@ -123,7 +123,7 @@ The `definitionId` references a Definition proxy that contains the actual geomet
 
 These rules apply to all objects:
 
-1. **No nested DataObjects** - DataObjects cannot contain other DataObjects as direct children. Use `displayValue` for geometry, and use proxies for relationships. *Exception: Revit curtain walls and IFC data may use an `elements` property (v2 style) to contain child objects.*
+1. **No nested DataObjects (guideline)** - As a best practice, DataObjects should not contain other DataObjects as direct children. Use `displayValue` for geometry, and use proxies for relationships. *However, some connectors (e.g., Revit curtain walls, IFC data) may use an `elements` property to contain child DataObjects when the source application's structure requires it. Traversal code should anticipate and handle both patterns.*
 
 2. **Geometry always in `displayValue`** - All visual geometry for a DataObject must be in the `displayValue` array, not as direct properties.
 
@@ -133,13 +133,13 @@ These rules apply to all objects:
 
 5. **Hierarchy is Speckle-imposed** - The collection hierarchy is created by Speckle connectors, not necessarily matching the source application's structure exactly.
 
-<Accordion title="Why can't DataObjects contain other DataObjects?">
-This design prevents deep nesting and keeps the data model flat and predictable. If you need to represent a hierarchical relationship (like a wall containing studs), use:
-1. Separate DataObjects in collections
-2. Proxies to encode the relationship
-3. Properties to store references
+<Accordion title="Why avoid nested DataObjects?">
+As a best practice, DataObjects should not contain other DataObjects to prevent deep nesting and keep the data model flat and predictable. The tree structure works best with a clear parent-child relationship through collections. For most hierarchical relationships (like a wall containing studs), use:
+1. Separate DataObjects in collections (spatial/categorical organization)
+2. Proxies to encode the relationship (functional/material relationships)
+3. Properties to store references (data-level relationships)
 
-This makes traversal and processing much simpler.
+**However**, some connectors (like Revit curtain walls, IFC data) may use an `elements` property on DataObjects when the source application's structure requires it. **Your traversal code should handle both patterns**—check for `elements` properties on both Collections and DataObjects to ensure robust data processing.
 </Accordion>
 
 <Accordion title="What's the difference between `id` and `applicationId`?">
