@@ -3,7 +3,24 @@ title: Object Schema
 description: The structure and fields of Speckle objects
 ---
 
-Now that you understand the concepts, let's examine the technical structure of objects. Every object in Speckle follows a consistent data model, regardless of which connector created it.
+This page examines the detailed structure of objects in Speckle's data model. Here you'll learn how [DataObjects](/developers/data-schema/overview#core-glossary), Geometry objects, and Instances are shaped, what fields they contain, and how to interpret their properties and relationships. Every object in Speckle follows a consistent data model, regardless of which connector created it.
+
+## Object Shape Overview
+
+Every Speckle object has a consistent shape, regardless of type. Conceptually, an object looks like this:
+
+```
+Object
+├── id: content-based hash (unique identifier)
+├── speckle_type: type name (e.g., "Objects.Data.DataObject")
+├── applicationId: source application identifier
+├── units: unit system (e.g., "meters")
+├── name: human-readable name (for DataObjects)
+├── properties: dictionary of key-value pairs (for DataObjects)
+└── displayValue: array of geometry objects (for DataObjects)
+```
+
+This structure applies to all objects, though not all fields are present on all object types. Geometry objects have geometry-specific fields instead of `properties` and `displayValue`. Instance objects have a `definitionId` and `transform` instead.
 
 ## Base Object Fields
 
@@ -66,6 +83,8 @@ A dictionary of key-value pairs containing all metadata about the object. This i
 
 The `properties` dictionary can contain nested structures, but the values are always JSON-serializable.
 
+**Role of properties**: Properties store semantic data—the "what" and "how" of an object (material, dimensions, classifications). They complement geometry stored in `displayValue`, which represents the "where" and "shape" of an object.
+
 ### `displayValue`
 
 An array of geometry objects that represent the visual appearance of this DataObject. Geometry objects (Point, Line, Mesh, Brep, etc.) are stored here, not as direct children.
@@ -78,6 +97,13 @@ DataObject
       ...
     ]
 ```
+
+**Role of displayValue**: The `displayValue` array contains the geometric representation—the visual shape of the object. This is distinct from the semantic meaning stored in `properties`. A wall DataObject has properties describing it as a wall (material, dimensions, type), while `displayValue` contains the mesh geometry showing where and how it appears in 3D space.
+
+**Distinction between DataObject, Semantic Object, and DisplayValue**:
+- **DataObject** is the container—it combines semantic data (`properties`) with geometric representation (`displayValue`)
+- **Semantic Object** refers to the domain meaning encoded in `properties` (e.g., "this is a wall with concrete material")
+- **DisplayValue** is the geometric representation—the actual 3D geometry primitives that can be rendered
 
 *Why `displayValue`?* This keeps DataObjects flat as a best practice—geometry is stored separately in an array, allowing multiple representations (mesh + curves + points) while maintaining a simple object structure. More importantly, `displayValue` uses **minimum viable interoperable primitives** (Meshes, Lines, Points) that almost all AEC and 3D software can ingest, even if they have no concept of higher-level objects like "Wall" or "TopologicalSurface". This ensures maximum interoperability across different applications. Note that some DataObjects (like Revit curtain walls) may also have an `elements` property containing child DataObjects when required by the source application.
 
@@ -118,6 +144,22 @@ Geometry objects don't have `properties` or `displayValue`—they are the geomet
 ```
 
 The `definitionId` references a Definition proxy that contains the actual geometry.
+
+## Interpreting Absent or Optional Fields
+
+When processing objects, you may encounter missing or optional fields. Here's how to interpret them:
+
+- **Missing `displayValue`**: The object has no geometric representation—it's data-only (e.g., classification, metadata, analytical data). The object still has semantic meaning through `properties`.
+
+- **Empty `displayValue` array**: Similar to missing—the object is intentionally data-only. Some connectors create objects for organizational or analytical purposes without geometry.
+
+- **Missing `properties`**: Only applies to Geometry objects, which don't have a `properties` field. DataObjects always have `properties`, though it may be an empty dictionary.
+
+- **Missing `applicationId`**: Some Geometry objects may not have an `applicationId` if they were created during conversion or processing. DataObjects should always have an `applicationId`.
+
+- **Optional connector-specific fields**: Fields like `type`, `family`, `category` (on RevitObject) are connector-specific extensions. Their absence doesn't indicate an error—they're only present when the connector adds them.
+
+**Best practice**: Always check for field existence before accessing it, and handle empty arrays and dictionaries gracefully.
 
 ## Global Invariants
 
@@ -193,7 +235,11 @@ Here's a realistic example of a Revit wall object:
 }
 ```
 
+## Conceptual Capability
+
+After reading this page, you understand the structure of Speckle objects: how all objects inherit from Base with core identity fields, how DataObjects combine semantic data (`properties`) with geometric representation (`displayValue`), how Geometry objects represent pure primitives, and how Instance objects reference Definition proxies. You can interpret absent or optional fields and understand the distinction between semantic meaning and geometric representation. You're ready to explore how geometry is structured within `displayValue`.
+
 ## Next Steps
 
-- **[Geometry Model](/developers/data-schema/geometry-schema)** - How geometry objects are structured
+- **[Geometry Schema](/developers/data-schema/geometry-schema)** - How geometry objects are structured
 - **[Proxy Schema](/developers/data-schema/proxy-schema)** - How proxies encode relationships
