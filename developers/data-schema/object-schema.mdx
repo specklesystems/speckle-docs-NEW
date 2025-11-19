@@ -81,7 +81,7 @@ DataObject
 
 ### `units`
 
-The unit system used for this object's geometry (e.g., `"meters"`, `"feet"`, `"millimeters"`).
+The unit system used for this object's geometry (e.g., `"m"`, `"ft"`, `"mm"`, `"in"`).
 
 ## Geometry Object Structure
 
@@ -121,7 +121,7 @@ The `definitionId` references a Definition proxy that contains the actual geomet
 
 These rules apply to all objects:
 
-1. **No nested DataObjects** - DataObjects cannot contain other DataObjects as direct children. Use `displayValue` for geometry, and use proxies for relationships.
+1. **No nested DataObjects** - DataObjects cannot contain other DataObjects as direct children. Use `displayValue` for geometry, and use proxies for relationships. *Exception: Revit curtain walls and IFC data may use an `elements` property (v2 style) to contain child objects.*
 
 2. **Geometry always in `displayValue`** - All visual geometry for a DataObject must be in the `displayValue` array, not as direct properties.
 
@@ -141,10 +141,10 @@ This makes traversal and processing much simpler.
 </Accordion>
 
 <Accordion title="What's the difference between `id` and `applicationId`?">
-- **`id`**: Speckle's content-based hash. Same content = same `id`. Used for deduplication and versioning.
-- **`applicationId`**: The source application's identifier (Revit element ID, Rhino GUID, etc.). Used for references and proxies. Can change if the object is modified in the source application.
+- **`id`**: Speckle's content-based hash. Same content = same `id`. Used for deduplication and content-based versioning.
+- **`applicationId`**: The source application's identifier (Revit element ID, Rhino GUID, etc.). Used for references, proxies, and tracking objects across versions.
 
-You use `id` to track objects across versions. You use `applicationId` to link objects to their source and to resolve proxy references.
+You use `applicationId` to track objects across versions (it's more stable—the same logical element keeps the same `applicationId` even if its content changes). You use `id` for deduplication and content-based lookups. Proxies reference objects by `applicationId`.
 </Accordion>
 
 ## Connector-Specific Extensions
