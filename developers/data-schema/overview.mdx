@@ -13,9 +13,6 @@ If you have any questions, please contact us on the
 
 The **Data Schema** is the structuring of properties and geometries at the most granular level. It defines how data from any source application (Revit, Rhino, AutoCAD, etc.) is organized, starting from the smallest building blocks and building up into larger structures.
 
-<Note>
-**Important**: The "Data Schema" is NOT the same as a "Speckle Model" in the addressing hierarchy. The Data Schema describes the structure of the data itself (how properties, geometries, objects, and collections are organized), while a "Speckle Model" is an organizational container in the addressing system. See the [addressing section](#projects-models-and-versions-as-addresses) below for clarification.
-</Note>
 
 ## Projects, Models, and Versions as Addresses
 
@@ -35,17 +32,17 @@ Project                    Project
 
 **Versions** are immutable snapshots of data at a specific point in time. Each version references a Root Collection by its object ID, creating a discoverable entry point to the data.
 
-Think of this as an **addressing system**: Project → Schema → Version provides a unique "address" to locate a specific package of information, where Schemas add semantic meaning to help users organize and find their work.
+Think of this as an **addressing system**: Project → Model → Version provides a unique "address" to locate a specific package of information, where Models add semantic meaning to help users organize and find their work.
 
-### Objects and Addressing
-
-**Important**: Objects can exist in Speckle independently of Projects, Models, and Versions. When an object is sent to a Speckle server, it receives a unique object ID (hash) based on its content. However, without being referenced by a version, the object is effectively **unreachable** through normal workflows—these are called "orphaned" or "zombie" objects.
+<Accordion title="Objects and Addressing">
+Objects are scoped to projects—when an object is sent to a Speckle server, it's stored within a project's scope and receives a unique object ID (hash) based on its content. However, without being referenced by a version, the object is effectively **unreachable** through normal workflows—these are called "orphaned" or "zombie" objects.
 
 - **Orphaned objects** exist in the database and have object IDs, but cannot be browsed or discovered through the UI
 - They can still be retrieved if you have the object ID directly
 - To make objects discoverable, they must be referenced by a version (which belongs to a project, and optionally organized under a model)
 
 This separation between object storage and addressing allows for flexible workflows where objects can be created, stored, and later organized into the addressing hierarchy as needed.
+</Accordion>
 
 ## The Data Schema Structure
 
@@ -59,6 +56,23 @@ The Data Schema organizes data from the most granular level upward:
 6. **Info** - Metadata that applies to the entire data package
 
 See the [Concepts](/developers/data-schema/concepts) page for detailed explanations of each component.
+
+## The Relationship Model
+
+The Speckle data schema is structured as a **directed tree**. This is the core relationship model that defines how objects relate to each other:
+
+- **Tree structure**: Data flows from Root Collection → Collections → Objects in a hierarchical, one-way relationship
+- **No cycles**: Unlike a directed acyclic graph (DAG), the tree structure prevents circular references
+- **Flat object graph**: Objects don't nest within other objects—they're organized in collections and referenced via proxies
+- **Proxies add cross-cutting relationships**: While the collection hierarchy is a tree, proxies create additional relationships (materials, levels, groups) that reference objects by `applicationId`
+
+**Key relationship rules:**
+1. Collections contain objects and other collections (via `elements` property)
+2. DataObjects contain geometry in `displayValue` (not nested DataObjects)
+3. Proxies reference objects by `applicationId` (stored at root level)
+4. Instances reference Definition proxies by `applicationId`
+
+This tree structure makes traversal predictable and efficient—you can walk from root to leaf without encountering cycles or complex reference resolution.
 
 ## The Complete Structure
 
