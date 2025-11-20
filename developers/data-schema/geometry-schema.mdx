@@ -10,13 +10,28 @@ This page explains how geometry is structured and organized in Speckle's data mo
 **All visual geometry for a DataObject must be in `displayValue`.**
 
 ```mermaid
-graph TD
-    A[DataObject] --> B["name: 'Wall A1'"]
-    A --> C["properties: {...}"]
-    A --> D["displayValue: array"]
-    D --> E[Mesh<br/>Visual representation]
-    D --> F[Line<br/>Edge curves]
-    D --> G[Point<br/>Key points]
+classDiagram
+    class DataObject {
+        +String name
+        +Dictionary properties
+        +Array displayValue
+    }
+    class Mesh {
+        +Array vertices
+        +Array faces
+    }
+    class Line {
+        +Point start
+        +Point end
+    }
+    class Point {
+        +Float x
+        +Float y
+        +Float z
+    }
+    DataObject "1" *-- "*" Mesh : displayValue contains
+    DataObject "1" *-- "*" Line : displayValue contains
+    DataObject "1" *-- "*" Point : displayValue contains
 ```
 
 Geometry objects are never direct children of DataObjects—they're always in `displayValue`.
@@ -62,13 +77,15 @@ All geometry objects follow this pattern:
 A Mesh is composed of vertices (3D points) and faces (polygons connecting vertices). The most basic mesh is triangulated (composed of triangles), though Speckle also supports quads and ngons. The following diagram illustrates this structure:
 
 ```mermaid
-graph TD
-    A[Mesh] --> B["vertices: [x1, y1, z1, ...]<br/>Flat array of coordinates<br/>every 3 values = one point"]
-    A --> C["faces: [3, 0, 1, 2, ...]<br/>Each face preceded by vertex count<br/>Example: [3, 0, 1, 2] = triangle<br/>Example: [4, 0, 2, 3, 4] = quad"]
-    A --> D[Optional fields]
-    D --> E["colors: [r1, g1, b1, ...]<br/>Colors per vertex RGB<br/>Faces take average<br/>Used for quasi-textures"]
-    D --> F["normals: [nx1, ny1, nz1, ...]<br/>Vertex normals<br/>Stored but not heavily used"]
-    D --> G["textureCoordinates: [...]<br/>Not yet utilized"]
+classDiagram
+    class Mesh {
+        +Array vertices
+        +Array faces
+        +Array colors
+        +Array normals
+        +Array textureCoordinates
+    }
+    note for Mesh "vertices: Flat array of coordinates\n every 3 values = one point\nfaces: Each face preceded by vertex count\n Example: [3, 0, 1, 2] = triangle\n Example: [4, 0, 2, 3, 4] = quad\ncolors: Colors per vertex RGB\n Faces take average\n Used for quasi-textures\nnormals: Vertex normals\n Stored but not heavily used\ntextureCoordinates: Not yet utilized"
 ```
 
 Conceptually, a mesh is a surface composed of polygons where:
