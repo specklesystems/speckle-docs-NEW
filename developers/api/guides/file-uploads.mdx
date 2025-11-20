@@ -1,0 +1,189 @@
+---
+title: Uploading IFC and Other Files
+description: Guide to uploading IFC, DWG, OBJ, and other file types using GraphQL mutations
+---
+
+There is no dedicated REST endpoint for uploading IFC, DWG, OBJ, or any other file types.
+
+The legacy `/api/file/...` path has been deprecated and removed.
+
+The supported programmatic workflow is a hybrid REST + S3 + GraphQL flow.
+
+It is the same flow used by the Speckle web app and connectors.
+
+This section documents the entire mechanism so developers do not have to reverse engineer the server.
+
+## Overview
+
+Uploading a file and triggering Speckle's automatic import pipeline is a three step process:
+
+1. **Ask Speckle Server for a presigned upload URL**
+   (GraphQL mutation: `fileUploadMutations.generateUploadUrl`)
+
+2. **Upload the file directly to S3**
+   (simple HTTP PUT to the presigned URL)
+
+3. **Tell Speckle to parse and import the file**
+   (GraphQL mutation: `fileUploadMutations.startFileImport`)
+
+**Important notes:**
+
+- Large files are never sent through the Speckle Server REST endpoints.
+- The upload URL points to your server's configured S3 or S3 compatible storage.
+- The ETag returned from S3 is required for step 3.
+- Import results appear as a new Model Version.
+
+## Step 1: Generate an upload URL
+
+**POST** `/graphql`
+
+**Mutation:**
+
+```graphql
+mutation GenerateUploadUrl($projectId: String!, $filename: String!) {
+  fileUploadMutations {
+    generateUploadUrl(input: {
+      projectId: $projectId,
+      filename: $filename
+    }) {
+      url
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "projectId": "your-project-id",
+  "filename": "MyModel.ifc"
+}
+```
+
+**Response example:**
+
+```json
+{
+  "data": {
+    "fileUploadMutations": {
+      "generateUploadUrl": {
+        "url": "https://your-s3-endpoint/presigned-upload-url"
+      }
+    }
+  }
+}
+```
+
+## Step 2: Upload the file to the presigned URL
+
+**PUT** `{presignedURL}`
+
+**Headers required:**
+
+```
+Content-Type: application/octet-stream   # or appropriate type
+```
+
+**Body:**
+
+```
+<raw file bytes>
+```
+
+**Important:**
+
+- S3 returns an ETag header.
+- The ETag is required for the final step.
+- Some S3 providers wrap the ETag in quotes. Keep the value exactly as returned.
+
+**Example curl:**
+
+```bash
+curl -X PUT \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary @MyModel.ifc \
+  "https://your-s3-presigned-url"
+```
+
+Record the ETag from the response headers:
+
+```
+ETag: "ad13b92e173..."
+```
+
+## Step 3: Trigger the file import
+
+Once the file is uploaded, tell Speckle to parse, convert, index and create a new model version.
+
+**POST** `/graphql`
+
+**Mutation:**
+
+```graphql
+mutation StartFileImport(
+  $projectId: String!,
+  $modelId: String!,
+  $fileId: String!,
+  $etag: String!
+) {
+  fileUploadMutations {
+    startFileImport(input: {
+      projectId: $projectId,
+      modelId: $modelId,
+      fileId: $fileId,
+      etag: $etag
+    }) {
+      id
+      status
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "projectId": "your-project-id",
+  "modelId": "the-target-model-id",
+  "fileId": "MyModel.ifc",
+  "etag": "ad13b92e173..."
+}
+```
+
+**Response example:**
+
+```json
+{
+  "data": {
+    "fileUploadMutations": {
+      "startFileImport": {
+        "id": "import-process-id",
+        "status": "QUEUED"
+      }
+    }
+  }
+}
+```
+
+Your file is now in the import pipeline. Once parsed, a new Version will appear under the referenced Model.
+
+## What developers need to know
+
+**File formats supported:**
+
+IFC, DWG, DXF, OBJ, STL, 3DM, and others depending on server version.
+
+**Why is this not REST?**
+
+Because:
+
+- Files should go direct to blob storage for performance and scale.
+- Restoration of legacy multipart REST endpoints would break S3-first ingestion.
+- GraphQL mutations model "actions" better than REST for asynchronous workflows.
+
+**Should I ever use the old REST upload?**
+
+No. It is gone for v3 and beyond.
+
