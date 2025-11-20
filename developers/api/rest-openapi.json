@@ -1,0 +1,507 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Speckle Server REST API",
+    "description": "REST API for Speckle Server. Use this API to upload and download objects, check object existence, and interact with your Speckle projects programmatically.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Speckle Support",
+      "url": "https://speckle.community"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://app.speckle.systems",
+      "description": "Speckle Cloud (Production)"
+    },
+    {
+      "url": "https://YOUR_SERVER_URL",
+      "description": "Self-hosted instance (replace with your server URL)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Personal access token. Get your token from your Speckle profile settings."
+      }
+    },
+    "schemas": {
+      "ObjectId": {
+        "type": "string",
+        "description": "A unique identifier for a Speckle object",
+        "example": "9b2cdb21da092dbd3558a4bc55b2cf7e"
+      },
+      "ObjectIdArray": {
+        "type": "string",
+        "description": "A JSON-serialized array of object IDs",
+        "example": "[\"object-id-1\", \"object-id-2\"]"
+      },
+      "ObjectDiffResponse": {
+        "type": "object",
+        "description": "A dictionary mapping object IDs to boolean values indicating whether the server already has that object",
+        "additionalProperties": {
+          "type": "boolean"
+        },
+        "example": {
+          "object-id-1": true,
+          "object-id-2": false
+        }
+      },
+      "SpeckleObject": {
+        "type": "object",
+        "description": "A Speckle object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "speckle_type": {
+            "type": "string"
+          },
+          "totalChildrenCount": {
+            "type": "integer"
+          },
+          "numbers": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "example": {
+          "id": "9b2cdb21da092dbd3558a4bc55b2cf7e",
+          "speckle_type": "Base",
+          "totalChildrenCount": 0,
+          "numbers": [0.04667752874618203, 0.16370857295385177, 0.1008153029515465]
+        }
+      },
+      "ObjectArray": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SpeckleObject"
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/diff/{projectId}": {
+      "post": {
+        "summary": "Check if the Server Contains a List of Objects",
+        "description": "This method is useful for optimizing uploads, so that objects that are already in the project are not uploaded for every commit. Returns a dictionary mapping object IDs to boolean values indicating whether each object exists on the server.",
+        "operationId": "checkObjectsExist",
+        "tags": ["Objects"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the project"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["objects"],
+                "properties": {
+                  "objects": {
+                    "$ref": "#/components/schemas/ObjectIdArray"
+                  }
+                }
+              },
+              "example": {
+                "objects": "[\"object-id-1\", \"object-id-2\"]"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dictionary mapping object IDs to boolean values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectDiffResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions (write permissions required)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-mint": {
+          "content": "## Limits\n\n*Recommended* max number of objects to check: `1000`"
+        }
+      }
+    },
+    "/objects/{projectId}": {
+      "post": {
+        "summary": "Upload a Batch of Objects",
+        "description": "Upload a batch of objects to a project. The batch is sent as multipart-encoded file content. Multiple batches can be sent in the same request as multiple files.",
+        "operationId": "uploadObjects",
+        "tags": ["Objects"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the project"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "JSON file containing an array of objects, optionally gzip-compressed"
+                  }
+                }
+              }
+            },
+            "application/gzip": {
+              "schema": {
+                "type": "string",
+                "format": "binary",
+                "description": "Gzip-compressed JSON file (recommended)"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObjectArray"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Objects uploaded successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions (write permissions required)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload too large - Request exceeds 50 MB limit"
+          }
+        },
+        "x-mint": {
+          "content": "## Notes\n\n- The server accepts multiple batches as multiple files in the same call\n- It's recommended to compress the batch with gzip and set the uploaded file `content_type` to `application/gzip`\n- Otherwise, set it to `application/json`\n\n## Limits\n\n- Maximum size of each individual object: `10 MB` (large objects can be split into multiple objects using `chunkable` properties and `detachable` properties)\n- Maximum size of each request: `50 MB` hard limit"
+        }
+      }
+    },
+    "/objects/{projectId}/{objectId}/single": {
+      "get": {
+        "summary": "Download a Single Object",
+        "description": "Download a single object by its ID. Returns only the specified object without its children.",
+        "operationId": "getSingleObject",
+        "tags": ["Objects"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the project"
+          },
+          {
+            "name": "objectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            },
+            "description": "The ID of the object to download"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The JSON representation of the object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpeckleObject"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions (read permissions required)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object not found"
+          }
+        }
+      }
+    },
+    "/api/getobjects/{projectId}": {
+      "post": {
+        "summary": "Download a List of Objects",
+        "description": "Download multiple objects by their IDs. This method is useful when optimizing downloads: Get the root object without children, check the children ids in the local cache and then request only the new objects with this method. The response format depends on the Accept header.",
+        "operationId": "getObjects",
+        "tags": ["Objects"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the project"
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["application/json", "text/plain"],
+              "default": "application/json"
+            },
+            "description": "Response format: 'application/json' returns a JSON array, 'text/plain' returns tab-separated values (object_id\\tobject_content)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["objects"],
+                "properties": {
+                  "objects": {
+                    "$ref": "#/components/schemas/ObjectIdArray"
+                  }
+                }
+              },
+              "example": {
+                "objects": "[\"object-id-1\", \"object-id-2\"]"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The requested objects. Format depends on Accept header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectArray"
+                },
+                "example": [
+                  {
+                    "id": "object-id-1",
+                    "speckle_type": "Base",
+                    "totalChildrenCount": 0
+                  },
+                  {
+                    "id": "object-id-2",
+                    "speckle_type": "Base",
+                    "totalChildrenCount": 0
+                  }
+                ]
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "object-id-1\t{\"id\":\"object-id-1\",\"speckle_type\":\"Base\"}\nobject-id-2\t{\"id\":\"object-id-2\",\"speckle_type\":\"Base\"}"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions (read permissions required)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-mint": {
+          "content": "## Limits\n\n*Recommended* max number of objects to download with 1 request: `1000`\n\n## Response Format\n\n- If `Accept` is `text/plain`, each line of the output contains 1 object in the format: `{object_id}\\t{object_content}`\n- If `Accept` is `application/json`, the output is a JSON representation of an array of objects."
+        }
+      }
+    },
+    "/objects/{projectId}/{objectId}": {
+      "get": {
+        "summary": "Download an Object and All its Children",
+        "description": "Download an object and all of its children recursively. The response format depends on the Accept header.",
+        "operationId": "getObjectWithChildren",
+        "tags": ["Objects"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the project"
+          },
+          {
+            "name": "objectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            },
+            "description": "The ID of the root object to download"
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["application/json", "text/plain"],
+              "default": "application/json"
+            },
+            "description": "Response format: 'application/json' returns a JSON array, 'text/plain' returns tab-separated values (object_id\\tobject_content)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested object and its children. Format depends on Accept header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectArray"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "object-id-1\t{\"id\":\"object-id-1\",\"speckle_type\":\"Base\"}\nchild-id-1\t{\"id\":\"child-id-1\",\"speckle_type\":\"Base\"}"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions (read permissions required)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object not found"
+          }
+        },
+        "x-mint": {
+          "content": "## Response Format\n\n- If `Accept` is `text/plain`, each line of the output contains 1 object in the format: `{object_id}\\t{object_content}`\n- If `Accept` is `application/json`, the output is a JSON representation of an array of objects."
+        }
+      }
+    }
+  }
+}
+

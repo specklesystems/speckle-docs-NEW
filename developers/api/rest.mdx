@@ -3,8 +3,50 @@ title: "REST API"
 description: "REST API reference for Speckle Server"
 ---
 
-# REST API Reference
+Use the REST API to integrate Speckle Server into your applications and workflows. This reference provides documentation for key endpoints, including authentication, request formats, response schemas, and example usage.
 
-This reference documents the REST API endpoints for Speckle Server.
+## Overview
+
+Our Speckle Server offers both a [GraphQL API](./graphql) and a REST API. For most queries, the GraphQL API is best suited because of its flexibility and ease of use. When working with uploading and downloading objects, the REST API is preferred.
+
+<Warning>
+  This documentation does not cover all REST API endpoints. 
+  Additional endpoints may be available. We will be adding more endpoints to the documentation as we continue to develop the API.
+</Warning>
+
+## Authentication
+
+All REST API endpoints require authentication using a personal access token. Include it in your requests:
+
+```bash
+Authorization: Bearer YOUR_TOKEN
+```
+
+Get your personal access token from your Speckle profile settings. For self-hosted instances, replace the domain with your server's address.
+
+## Base URL
+
+The base URL format is:
 
 ```
+https://YOUR_SERVER_URL/api
+```
+
+For Speckle Cloud, use:
+```
+https://app.speckle.systems
+```
+
+## Available Endpoints
+
+The following endpoints are documented below. Each endpoint page includes detailed request/response schemas, examples, and an interactive API playground:
+
+- **[Check if Objects Exist](POST /api/diff/{projectId})** - Optimize uploads by checking which objects already exist on the server
+- **[Upload Objects](POST /objects/{projectId})** - Upload a batch of objects to a project
+- **[Get Single Object](GET /objects/{projectId}/{objectId}/single)** - Download a single object without its children
+- **[Get Multiple Objects](POST /api/getobjects/{projectId})** - Download multiple objects by their IDs
+- **[Get Object with Children](GET /objects/{projectId}/{objectId})** - Download an object and all of its children recursively
+
+## Interactive API Playground
+
+Each endpoint page includes an interactive API playground where you can test requests directly in your browser. The playground uses the authentication and server configuration from the OpenAPI specification.
