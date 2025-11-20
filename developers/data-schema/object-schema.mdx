@@ -9,15 +9,15 @@ This page examines the detailed structure of objects in Speckle's data model. He
 
 Every Speckle object has a consistent shape, regardless of type. Conceptually, an object looks like this:
 
-```
-Object
-├── id: content-based hash (unique identifier)
-├── speckle_type: type name (e.g., "Objects.Data.DataObject")
-├── applicationId: source application identifier
-├── units: unit system (e.g., "meters")
-├── name: human-readable name (for DataObjects)
-├── properties: dictionary of key-value pairs (for DataObjects)
-└── displayValue: array of geometry objects (for DataObjects)
+```mermaid
+graph TD
+    A[Object] --> B["id: content-based hash<br/>unique identifier"]
+    A --> C["speckle_type: type name<br/>e.g., 'Objects.Data.DataObject'"]
+    A --> D["applicationId: source application identifier"]
+    A --> E["units: unit system<br/>e.g., 'meters'"]
+    A --> F["name: human-readable name<br/>for DataObjects"]
+    A --> G["properties: dictionary<br/>key-value pairs for DataObjects"]
+    A --> H["displayValue: array<br/>geometry objects for DataObjects"]
 ```
 
 This structure applies to all objects, though not all fields are present on all object types. Geometry objects have geometry-specific fields instead of `properties` and `displayValue`. Instance objects have a `definitionId` and `transform` instead.
@@ -89,13 +89,11 @@ The `properties` dictionary can contain nested structures, but the values are al
 
 An array of geometry objects that represent the visual appearance of this DataObject. Geometry objects (Point, Line, Mesh, Brep, etc.) are stored here, not as direct children.
 
-```
-DataObject
-└── displayValue: [
-      Mesh (visual representation),
-      Line (edge curves),
-      ...
-    ]
+```mermaid
+graph TD
+    A[DataObject] --> B["displayValue: array"]
+    B --> C[Mesh<br/>visual representation]
+    B --> D[Line<br/>edge curves]
 ```
 
 **Role of displayValue**: The `displayValue` array contains the geometric representation—the visual shape of the object. This is distinct from the semantic meaning stored in `properties`. A wall DataObject has properties describing it as a wall (material, dimensions, type), while `displayValue` contains the mesh geometry showing where and how it appears in 3D space.

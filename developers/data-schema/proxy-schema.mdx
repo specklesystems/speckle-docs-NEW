@@ -106,26 +106,28 @@ Encodes group memberships:
 
 Stores geometry for instances (blocks, components). The following diagram illustrates how multiple [Instance](/developers/data-schema/overview#core-glossary) objects reference a single [Definition](/developers/data-schema/overview#core-glossary) proxy:
 
-```
-Definition Proxy (at Root Collection)
-├── applicationId: "block-door"
-├── name: "Standard Door"
-└── value: {
-      displayValue: [Mesh, ...]  ← Geometry stored once
-    }
-
-Instance Objects (in Collections)
-├── Instance 1
-│   ├── definitionId: "block-door"  ← References Definition
-│   └── transform: [matrix for position 1]
-│
-├── Instance 2
-│   ├── definitionId: "block-door"  ← References same Definition
-│   └── transform: [matrix for position 2]
-│
-└── Instance 3
-    ├── definitionId: "block-door"  ← References same Definition
-    └── transform: [matrix for position 3]
+```mermaid
+graph TD
+    A[Definition Proxy<br/>at Root Collection] --> B["applicationId: 'block-door'"]
+    A --> C["name: 'Standard Door'"]
+    A --> D["value: {<br/>  displayValue: [Mesh, ...]<br/>}<br/>Geometry stored once"]
+    
+    E[Instance Objects<br/>in Collections] --> F[Instance 1]
+    E --> G[Instance 2]
+    E --> H[Instance 3]
+    
+    F --> I["definitionId: 'block-door'<br/>References Definition"]
+    F --> J["transform: matrix for position 1"]
+    
+    G --> K["definitionId: 'block-door'<br/>References same Definition"]
+    G --> L["transform: matrix for position 2"]
+    
+    H --> M["definitionId: 'block-door'<br/>References same Definition"]
+    H --> N["transform: matrix for position 3"]
+    
+    I -.references.-> A
+    K -.references.-> A
+    M -.references.-> A
 ```
 
 The Definition stores the geometry once; each Instance references it and applies its own transform. This enables geometry reuse without duplication.
@@ -168,14 +170,13 @@ Encodes color assignments (CAD workflows):
 
 Proxies reference objects by **`applicationId`**, not `id`:
 
-```
-Object
-├── applicationId: "wall-123"
-└── ...
-
-RenderMaterial Proxy
-├── objects: ["wall-123", "wall-456"]
-└── ...
+```mermaid
+graph LR
+    A[Object] --> B["applicationId: 'wall-123'"]
+    
+    C[RenderMaterial Proxy] --> D["objects: ['wall-123', 'wall-456']"]
+    
+    B -.referenced by.-> D
 ```
 
 To find which objects use a material:
@@ -197,16 +198,18 @@ Also, `applicationId` is what the source application uses, making it easier to m
 
 All proxies are stored at the **Root Collection** level:
 
-```
-Root Collection
-├── Collections (hierarchy)
-│   └── Objects
-├── Proxies (at root level)
-│   ├── RenderMaterial[]
-│   ├── Level[]
-│   ├── Group[]
-│   └── Definition[]
-└── Info
+```mermaid
+graph TD
+    A[Root Collection] --> B[Collections<br/>hierarchy]
+    A --> C[Proxies<br/>at root level]
+    A --> D[Info]
+    
+    B --> E[Objects]
+    
+    C --> F[RenderMaterial array]
+    C --> G[Level array]
+    C --> H[Group array]
+    C --> I[Definition array]
 ```
 
 This centralized storage makes it easy to:
@@ -218,13 +221,14 @@ This centralized storage makes it easy to:
 
 A single object can be referenced by multiple proxies:
 
-```
-Object (applicationId: "wall-1")
-│
-├── Referenced by Level proxy ("Level 1")
-├── Referenced by Group proxy ("Exterior Walls")
-├── Referenced by RenderMaterial proxy ("Concrete")
-└── Referenced by Definition proxy ("Wall Type A")
+```mermaid
+graph TD
+    A["Object<br/>applicationId: 'wall-1'"]
+    
+    B[Level proxy<br/>'Level 1'] -.references.-> A
+    C[Group proxy<br/>'Exterior Walls'] -.references.-> A
+    D[RenderMaterial proxy<br/>'Concrete'] -.references.-> A
+    E[Definition proxy<br/>'Wall Type A'] -.references.-> A
 ```
 
 ## Nested Proxies and Transform Propagation

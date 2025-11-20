@@ -85,21 +85,21 @@ Every object has:
 
 The following diagram illustrates the parent-child relationship structure:
 
-```
-Root Collection (top-level container)
-│
-├── Collection (e.g., "Level 1") ← parent
-│   ├── Collection (e.g., "Walls") ← child of "Level 1", parent of wall objects
-│   │   └── DataObject (wall) ← child of "Walls"
-│   │       ├── Properties (name, material, height, etc.)
-│   │       └── displayValue: [Mesh, ...] (geometry)
-│   └── Collection (e.g., "Doors") ← child of "Level 1", parent of door objects
-│       └── DataObject (door) ← child of "Doors"
-│           ├── Properties (name, type, etc.)
-│           └── displayValue: [Mesh, ...] (geometry)
-│
-└── Collection (e.g., "Level 2") ← sibling of "Level 1"
-    └── ...
+```mermaid
+graph TD
+    A[Root Collection<br/>top-level container] --> B["Collection: 'Level 1'<br/>parent"]
+    A --> C["Collection: 'Level 2'<br/>sibling of 'Level 1'"]
+    
+    B --> D["Collection: 'Walls'<br/>child of 'Level 1'<br/>parent of wall objects"]
+    B --> E["Collection: 'Doors'<br/>child of 'Level 1'<br/>parent of door objects"]
+    
+    D --> F[DataObject: wall<br/>child of 'Walls']
+    F --> G[Properties<br/>name, material, height, etc.]
+    F --> H["displayValue: [Mesh, ...]<br/>geometry"]
+    
+    E --> I[DataObject: door<br/>child of 'Doors']
+    I --> J[Properties<br/>name, type, etc.]
+    I --> K["displayValue: [Mesh, ...]<br/>geometry"]
 ```
 
 Key relationship rules:
@@ -166,18 +166,18 @@ The tree structure doesn't require knowledge of directed acyclic graphs (DAGs) t
 
 ## How They Work Together
 
-```
-Data Package (at a Version)
-│
-└── Root Collection
-    ├── Collections (hierarchy)
-    │   └── Objects (data)
-    │
-    ├── Proxies (relationships)
-    │   └── Reference objects by applicationId
-    │
-    └── Info (metadata)
-        └── Model-wide data
+```mermaid
+graph TD
+    A[Data Package<br/>at a Version] --> B[Root Collection]
+    B --> C[Collections<br/>hierarchy]
+    B --> D[Proxies<br/>relationships]
+    B --> E[Info<br/>metadata]
+    
+    C --> F[Objects<br/>data]
+    
+    D --> G[Reference objects<br/>by applicationId]
+    
+    E --> H[Model-wide data]
 ```
 
 The hierarchy (Collections) organizes objects spatially or categorically. Proxies add additional relationships (materials, groups, levels) that cross-cut the hierarchy. Info provides context about the entire data package.

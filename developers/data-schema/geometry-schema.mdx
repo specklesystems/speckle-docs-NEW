@@ -9,16 +9,14 @@ This page explains how geometry is structured and organized in Speckle's data mo
 
 **All visual geometry for a DataObject must be in `displayValue`.**
 
-```
-DataObject
-├── name: "Wall A1"
-├── properties: {...}
-└── displayValue: [
-      Mesh,        ← Visual representation
-      Line,        ← Edge curves
-      Point,       ← Key points
-      ...
-    ]
+```mermaid
+graph TD
+    A[DataObject] --> B["name: 'Wall A1'"]
+    A --> C["properties: {...}"]
+    A --> D["displayValue: array"]
+    D --> E[Mesh<br/>Visual representation]
+    D --> F[Line<br/>Edge curves]
+    D --> G[Point<br/>Key points]
 ```
 
 Geometry objects are never direct children of DataObjects—they're always in `displayValue`.
@@ -63,27 +61,14 @@ All geometry objects follow this pattern:
 
 A Mesh is composed of vertices (3D points) and faces (polygons connecting vertices). The most basic mesh is triangulated (composed of triangles), though Speckle also supports quads and ngons. The following diagram illustrates this structure:
 
-```
-Mesh
-├── vertices: [x1, y1, z1, x2, y2, z2, x3, y3, z3, ...]
-│   └── Flat array of coordinates (every 3 values = one point)
-│
-├── faces: [3, 0, 1, 2, 4, 0, 2, 3, 4, ...]
-│   └── Each face is preceded by its vertex count (supports ngons)
-│       └── Example: [3, 0, 1, 2] = triangle with vertices 0, 1, 2
-│       └── Example: [4, 0, 2, 3, 4] = quad with vertices 0, 2, 3, 4
-│
-└── Optional fields:
-    ├── colors: [r1, g1, b1, r2, g2, b2, ...]
-    │   └── Colors per vertex (RGB values)
-    │   └── Faces take the average of their vertex colors
-    │   └── Used for quasi-textures or analytical results visualization
-    │
-    ├── normals: [nx1, ny1, nz1, nx2, ny2, nz2, ...]
-    │   └── Vertex normals (stored but not heavily used in connectors due to lack of host support)
-    │
-    └── textureCoordinates: [...]
-        └── Not yet utilized
+```mermaid
+graph TD
+    A[Mesh] --> B["vertices: [x1, y1, z1, ...]<br/>Flat array of coordinates<br/>every 3 values = one point"]
+    A --> C["faces: [3, 0, 1, 2, ...]<br/>Each face preceded by vertex count<br/>Example: [3, 0, 1, 2] = triangle<br/>Example: [4, 0, 2, 3, 4] = quad"]
+    A --> D[Optional fields]
+    D --> E["colors: [r1, g1, b1, ...]<br/>Colors per vertex RGB<br/>Faces take average<br/>Used for quasi-textures"]
+    D --> F["normals: [nx1, ny1, nz1, ...]<br/>Vertex normals<br/>Stored but not heavily used"]
+    D --> G["textureCoordinates: [...]<br/>Not yet utilized"]
 ```
 
 Conceptually, a mesh is a surface composed of polygons where:
@@ -216,12 +201,12 @@ The receiver can render the mesh without understanding walls, or can interpret t
 
 Sometimes you'll encounter geometry objects that aren't in a DataObject's `displayValue`—they exist as standalone objects in collections. This is common in CAD workflows (Rhino, AutoCAD) where geometry is the primary data type.
 
-```
-Collection
-├── Mesh (standalone geometry)
-├── Line (standalone geometry)
-└── DataObject
-    └── displayValue: [Mesh, Line]
+```mermaid
+graph TD
+    A[Collection] --> B[Mesh<br/>standalone geometry]
+    A --> C[Line<br/>standalone geometry]
+    A --> D[DataObject]
+    D --> E["displayValue: [Mesh, Line]"]
 ```
 
 Both patterns are valid. The key rule is: **if a DataObject has geometry, it's in `displayValue`**.
@@ -230,15 +215,14 @@ Both patterns are valid. The key rule is: **if a DataObject has geometry, it's i
 
 **Instance** objects reference geometry stored in Definition proxies:
 
-```
-Instance
-├── definitionId: "block-123" (applicationId)
-└── transform: Matrix
-
-Definition Proxy (at root)
-└── definition: {
-      displayValue: [Mesh, ...]
-    }
+```mermaid
+graph LR
+    A[Instance] --> B["definitionId: 'block-123'<br/>applicationId"]
+    A --> C["transform: Matrix"]
+    
+    D[Definition Proxy<br/>at root] --> E["definition: {<br/>  displayValue: [Mesh, ...]<br/>}"]
+    
+    B -.references.-> D
 ```
 
 This allows the same geometry to be reused multiple times with different transforms (like blocks in CAD).

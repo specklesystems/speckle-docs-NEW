@@ -23,7 +23,7 @@ Before diving into the structure, here are the essential terms you'll encounter:
 - **DisplayValue** - An array property on DataObjects containing geometry primitives (meshes, lines, points) that represent the visual appearance.
 - **Root Collection** - The top-level container for a data package, holding the collections hierarchy, proxies, and info.
 - **Info** - Metadata fields at the root level that apply to the entire data package (views, transforms, analysis results).
-  </Note>
+</Note>
 
 ## What is the Data Schema?
 
@@ -43,11 +43,11 @@ Speckle's schema follows these core principles:
 
 Projects, Models, and Versions form an addressing system that organizes and locates data in Speckle.
 
-```
-Project
-  └─ Model (semantic)
-      └─ Version
-          └─ Root Collection
+```mermaid
+graph TD
+    A[Project] --> B[Model<br/>semantic]
+    B --> C[Version]
+    C --> D[Root Collection]
 ```
 
 **Projects** are top-level containers that organize related work and control access.
@@ -71,25 +71,24 @@ The Data Schema organizes data from the most granular level upward:
 
 The following diagram illustrates how these components form a tree structure:
 
-```
-Root Collection
-│
-├── Collections (hierarchical organization)
-│   ├── Collection (e.g., "Level 1")
-│   │   ├── Collection (e.g., "Walls")
-│   │   │   └── DataObject (wall with properties + displayValue)
-│   │   └── Collection (e.g., "Doors")
-│   │       └── DataObject (door with properties + displayValue)
-│   └── Collection (e.g., "Level 2")
-│       └── ...
-│
-├── Proxies (cross-cutting relationships)
-│   ├── RenderMaterial (references objects by applicationId)
-│   ├── Level (references objects by applicationId)
-│   └── Definition (stores geometry for Instances)
-│
-└── Info (package-wide metadata)
-    └── Views, Transforms, Analysis Results
+```mermaid
+graph TD
+    A[Root Collection] --> B[Collections<br/>hierarchical organization]
+    A --> C[Proxies<br/>cross-cutting relationships]
+    A --> D[Info<br/>package-wide metadata]
+    
+    B --> E["Collection: 'Level 1'"]
+    E --> F["Collection: 'Walls'"]
+    F --> G[DataObject<br/>wall with properties + displayValue]
+    E --> H["Collection: 'Doors'"]
+    H --> I[DataObject<br/>door with properties + displayValue]
+    B --> J["Collection: 'Level 2'"]
+    
+    C --> K[RenderMaterial<br/>references objects by applicationId]
+    C --> L[Level<br/>references objects by applicationId]
+    C --> M[Definition<br/>stores geometry for Instances]
+    
+    D --> N[Views, Transforms,<br/>Analysis Results]
 ```
 
 See the [Concepts](/developers/data-schema/concepts) page for detailed explanations of each component.
@@ -135,21 +134,21 @@ The key insight: the walls exist once as DataObjects in the collections hierarch
 
 Putting it all together, a complete data package looks like:
 
-```
-Data Package (at a Version)
-│
-└── Root Collection
-    ├── Collections (hierarchy)
-    │   └─ Collections
-    │      └─ Objects
-    │         ├── Properties (key-value pairs)
-    │         └── Geometry (in displayValue)
-    │
-    ├── Proxies (relationships)
-    │   └── Reference objects by applicationId
-    │
-    └── Info (metadata)
-        └── Data package-wide data
+```mermaid
+graph TD
+    A[Data Package<br/>at a Version] --> B[Root Collection]
+    B --> C[Collections<br/>hierarchy]
+    B --> D[Proxies<br/>relationships]
+    B --> E[Info<br/>metadata]
+    
+    C --> F[Collections]
+    F --> G[Objects]
+    G --> H[Properties<br/>key-value pairs]
+    G --> I[Geometry<br/>in displayValue]
+    
+    D --> J[Reference objects<br/>by applicationId]
+    
+    E --> K[Data package-wide data]
 ```
 
 ## Learning Path
@@ -184,10 +183,10 @@ Objects are scoped to projects—when an object is sent to a Speckle server, it'
 
 Behind the Scenes (API):
 
-```
-Project
-  └─ Version
-      └─ Root Collection
+```mermaid
+graph TD
+    A[Project] --> B[Version]
+    B --> C[Root Collection]
 ```
 
 </Accordion>
