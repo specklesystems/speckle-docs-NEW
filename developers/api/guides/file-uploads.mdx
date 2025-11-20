@@ -303,19 +303,33 @@ In case of an error, the error message is referenced at `convertedMessage`.
 
 ## What developers need to know
 
-**File formats supported:**
+<AccordionGroup>
+  <Accordion title="File formats supported">
+    For [app.speckle.systems](https://app.speckle.systems): IFC, DWG, DXF, OBJ, STL, 3DM, and others depending on server version.
 
-IFC, DWG, DXF, OBJ, STL, 3DM, and others depending on server version.
+    For self-hosted servers: IFC, STL, and OBJ only.
+  </Accordion>
 
-**Why is this not REST?**
+  <Accordion title="Why are different formats supported in self-hosted vs cloud?">
+    Self-hosted servers use open-source code dependencies, which limits the file formats that can be supported. Formats like DWG, DXF, and 3DM require proprietary libraries that are not available in open-source distributions, so they are only available on [app.speckle.systems](https://app.speckle.systems).
+  </Accordion>
 
-Because:
+  <Accordion title="Why is this not REST?">
+    Because:
 
-- Files should go direct to blob storage for performance and scale.
-- Restoration of legacy multipart REST endpoints would break S3-first ingestion.
-- GraphQL mutations model "actions" better than REST for asynchronous workflows.
+    - Files should go direct to blob storage for performance and scale.
+    - Restoration of legacy multipart REST endpoints would break S3-first ingestion.
+    - GraphQL mutations model "actions" better than REST for asynchronous workflows.
+  </Accordion>
 
-**Should I ever use the old REST upload?**
+  <Accordion title="Should I ever use the old REST upload?">
+    For [app.speckle.systems](https://app.speckle.systems), no. The old REST upload is gone for v3 and beyond.
 
-No. It is gone for v3 and beyond.
+    For self-hosted instances, the old REST upload may still be necessary if:
+    - Your server does not have a publicly available S3 service configured
+    - The feature flag `FF_LARGE_FILE_IMPORTS_ENABLED` is not enabled
+
+    In these cases, you may need to use the legacy REST endpoints. However, we recommend configuring S3 storage and enabling the feature flag to use the modern file upload workflow described above.
+  </Accordion>
+</AccordionGroup>
 
