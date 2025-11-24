@@ -24,7 +24,7 @@ tag: "Beta"
     4. Enter the integration details:
 
        <Frame>
-         ![](/images/beta/integrations/acc-add custom integration.png)
+                <img src="/images/beta/integrations/acc-add custom integration.png" alt="Add custom integration" />
        </Frame>
        - **Client ID**: `5Y2LzxsL3usaD1xAMyElBY8mcN6XKyfHfulZDV3up0jfhN5Y`
        - **Name**: `Speckle`
@@ -32,24 +32,24 @@ tag: "Beta"
     6. Select **Proceed Anyway** from the permission warning.
 
        <Frame>
-         ![](/images/beta/integrations/acc-premission warning.png)
+         <img src="/images/beta/integrations/acc-premission warning.png" alt="Permission warning" />
        </Frame>
   </Step>
   <Step title="Sign in to Autodesk Construction Cloud">
     1. Select **workspace settings** from the workspace dropdown (top left).
 
        <Frame>
-         ![](/images/beta/integrations/acc-workspace settings.png)
+         <img src="/images/beta/integrations/acc-workspace settings.png" alt="Workspace settings" />
        </Frame>
     2. Select **Log in** next to Autodesk Construction Cloud.
 
        <Frame>
-         ![](/images/beta/integrations/acc-login.png)
+         <img src="/images/beta/integrations/acc-login.png" alt="Login" />
        </Frame>
     3. Sign in to your ACC account and select **Allow** from the authorization dialog.
 
        <Frame>
-         ![](/images/beta/integrations/acc-authorize app.png)
+         <img src="/images/beta/integrations/acc-authorize app.png" alt="Authorize app" />
        </Frame>
 
     Your integration is now set up.
@@ -58,7 +58,7 @@ tag: "Beta"
     1. From your project in Speckle, select **Add model \> Sync from ACC**.
 
        <Frame>
-         ![](/images/beta/integrations/acc-add model.png)
+         <img src="/images/beta/integrations/acc-add model.png" alt="Add model" />
        </Frame>
     2. Select the file you want to sync. Your hubs, projects, folders and files from ACC will be listed here. 
        <Info>
@@ -66,31 +66,73 @@ tag: "Beta"
        </Info>
 
        <Frame>
-         ![](/images/beta/integrations/acc-select file.png)
+         <img src="/images/beta/integrations/acc-select file.png" alt="Select file" />
        </Frame>
-    3. _Optionally_, define the view to export. If you don’t specify a view name, the 3D view is used by default.
+    3. _Optionally_, define the view to export. See [View Selection](#view-selection) below for details on how this affects what gets synced.
+      <Frame>
+         <img src="/images/beta/integrations/acc-confirm selection.png" alt="Confirm selection" />
+       </Frame>
     4. Select **Create**.
 
     This connects your ACC file to your Speckle model. Changes in ACC sync automatically to Speckle.
   </Step>
 </Steps>
 
+## Supported File Formats
+
+The following file formats are currently supported for syncing from Autodesk Construction Cloud:
+
+| Format | Extension | Status |
+| ------ | --------- | ------ |
+| Revit  | `.rvt`    | ✅ Supported |
+| IFC    | `.ifc`    | ✅ Supported |
+
+<Info>
+  We're planning to add support for additional formats like `.dwg` and `.nwd` (Navisworks) in future releases.
+</Info>
+
+## View Selection
+
+When syncing a Revit file from ACC, you can optionally specify a view name to control which elements are included in the sync.
+
+### No view specified (default)
+
+When you don't specify a view name, **all supported elements from the entire model are synced**. This includes every element across all model.
+
+This is the recommended option when you want:
+- A complete representation of your model
+- Access to all elements for analytics and dashboards
+- Maximum data availability for downstream workflows
+
+### Specifying a view name
+
+When you enter a specific view name, **only elements visible in that view are synced**. The view name must match exactly (case-sensitive) with a view in your Revit model.
+
+This is useful when you want to:
+- Sync only a portion of your model
+- Focus on specific areas or disciplines
+- Match the scope of a particular coordination view
+- Sync views that correspond to different design options
+
+<Warning>
+  If the specified view name doesn't exist in the model, the sync will fail. Make sure the view name matches exactly.
+</Warning>
+
 <AccordionGroup>
-  <Accordion title="What file formats are supported?">
-    Currently .rvt (Revit) and .ifc files are supported. We're planning to add formats like .dwg and .nwd (Navisworks) in future releases.
-  </Accordion>
   <Accordion title="Is the connection read-only?">
     Yes. Speckle establishes a read-only connection with Autodesk Construction Cloud, which means we can sync and analyze your data but can't modify the original files. This ensures data integrity and security.
   </Accordion>
   <Accordion title="How often do files sync?">
-    Once you've created a sync model, it automatically syncs whenever a new version of the file is published to ACC. You don't need to manually trigger ongoing synchronization.
+    Once you've created a sync model, it automatically syncs whenever a new version of the file is published to Autodesk Construction Cloud. You don't need to manually trigger ongoing synchronization.
   </Accordion>
   <Accordion title="What if my sync fails?">
     Common causes include file access issues, authorization problems, or unsupported file formats. Check that:
 
-    - The ACC file is accessible
+    - The file is accessible
     - Your permissions are correct
-    - The file is in `.rvt` format Contact support if issues persist.
+    - The file is in **.rvt** or **.ifc** format 
+    
+    Contact support if issues persist.
   </Accordion>
   <Accordion title="How do I get beta access?">
     Contact us at [office@speckle.systems](mailto:office@speckle.systems) to request beta access. We're actively looking for feedback to improve the integration.
@@ -98,8 +140,8 @@ tag: "Beta"
   <Accordion title="What's the difference between the ACC integration and other integrations?">
     The ACC integration provides direct integration with Autodesk Construction Cloud and enables automatic synchronization of construction data. Unlike other integrations that require manual file uploads or connectors, ACC syncs happen automatically when files are updated in the cloud.
   </Accordion>
-  <Accordion title="Can I use ACC data with Speckle Intelligence?">
-    Yes. Once synced, your ACC data can be used with Speckle Intelligence for analytics, dashboard creation, and generating insights from your construction data.
+  <Accordion title="Can I use Autodesk Construction Cloud models with Speckle Intelligence?">
+    Yes. Once synced, your Autodesk Construction Cloud models can be used with Speckle Intelligence for analytics, dashboard creation, and generating insights from your construction data.
   </Accordion>
 </AccordionGroup>
 
@@ -109,10 +151,10 @@ tag: "Beta"
 | ---------------------------------------- | -------------- |
 | ACC account connection and authorization | ✅ Complete     |
 | Revit (`.rvt`) file synchronization      | ✅ Complete     |
+| IFC (`.ifc`) file synchronization        | ✅ Complete     |
 | Automatic sync on file updates           | ✅ Complete     |
 | Basic sync status monitoring             | ✅ Complete     |
-| Enhanced UI/UX for sync management       | 🔄 In Progress |
-| Additional file format support           | 🔄 In Progress |
+| Enhanced UI/UX for sync management       | ✅ Complete     |
 | Advanced sync configuration options      | 🔄 In Progress |
 | Improved error handling and reporting    | 🔄 In Progress |
 
