@@ -111,13 +111,13 @@ from specklepy.objects.geometry import Point, Line, Polyline
 from specklepy.objects import Base
 
 # Create some points
-p1 = Point(x=0, y=0, z=0)
-p2 = Point(x=10, y=0, z=0)
-p3 = Point(x=10, y=10, z=0)
-p4 = Point(x=0, y=10, z=0)
+p1 = Point(x=0, y=0, z=0, units="m")
+p2 = Point(x=10, y=0, z=0, units="m")
+p3 = Point(x=10, y=10, z=0, units="m")
+p4 = Point(x=0, y=10, z=0, units="m")
 
 # Create a line
-line = Line(start=p1, end=p2)
+line = Line(start=p1, end=p2, units="m")
 
 # Create a polyline (closed rectangle)
 # Polyline uses a flat list of coordinates: [x1, y1, z1, x2, y2, z2, ...]
@@ -128,8 +128,7 @@ coords = [
     p4.x, p4.y, p4.z,
     p1.x, p1.y, p1.z,  # Close the shape
 ]
-polyline = Polyline(value=coords)
-polyline.units = "m"
+polyline = Polyline(value=coords, units="m")
 
 # ✅ IMPORTANT: Wrap geometry in Base object for viewer visibility
 object = Base()
@@ -209,7 +208,7 @@ Now let's receive the data back:
 ```python lines icon="python" focus={2-3,6-9}
 # get the version and extract object id
 version = client.version.get(project.id, version.id)
-root_object_id = version.referencedObject
+root_object_id = version.referenced_object
 
 # Receive the data using the object_id
 received_data = operations.receive(
