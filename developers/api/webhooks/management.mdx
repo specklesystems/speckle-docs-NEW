@@ -1,0 +1,111 @@
+---
+title: Creating and Managing Webhooks
+description: How to create, update, test, and troubleshoot webhooks
+---
+
+## Webhooks Overview
+
+The **Settings** → **Webhooks** tab in your project displays all configured webhooks for that project. For each webhook, you'll see:
+
+- **Name**: The webhook identifier
+- **URL**: The endpoint where webhooks are sent
+- **Events**: The list of events that trigger this webhook
+- **Status**: Visual indicators showing the latest delivery status:
+  - Green checkmark: Recent successful deliveries
+  - Orange warning: Recent delivery failures or issues
+
+This view helps you monitor your webhooks at a glance and identify any that need attention.
+
+## Creating a Webhook
+
+Webhooks are configured at the project level. To create a webhook:
+
+1. Navigate to your project in the Speckle web app
+2. Go to **Settings** → **Webhooks**
+3. Click **ADD WEBHOOK** (or **Create webhook**)
+4. Fill in the webhook configuration:
+   - **URL**: The endpoint where webhook payloads will be sent (required)
+   - **Events**: Select which events should trigger this webhook (required)
+   - **Webhook name**: An optional name to help identify this webhook
+   - **Secret**: An optional secret for verifying webhook authenticity (recommended)
+
+5. Click **Create**
+
+<Note>
+You can change the webhook secret in the future, but you won't be able to retrieve the current secret value once it's set. Make sure to store it securely if you need it for verification.
+</Note>
+
+## Updating a Webhook
+
+You can update webhook configuration at any time:
+
+1. Navigate to **Settings** → **Webhooks** in your project
+2. Select the webhook you want to modify
+3. Update the URL, events, name, or secret as needed
+4. Save your changes
+
+## Testing Webhooks
+
+To test your webhook endpoint:
+
+1. Use a tool like [ngrok](https://ngrok.com/) or [webhook.site](https://webhook.site/) to create a temporary public URL
+2. Configure your webhook with the test URL
+3. Trigger the event manually (e.g., create a version)
+4. Verify the webhook payload is received correctly
+
+## Monitoring Webhook Delivery
+
+Monitor your webhook endpoint for:
+
+- Delivery failures (non-2xx responses)
+- Response times
+- Error rates
+- Payload validation errors
+
+Consider implementing logging and monitoring to track webhook delivery success and troubleshoot issues.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Why is my webhook not being triggered?">
+    If your webhook isn't being triggered, check the following:
+    
+    - Verify the event type is selected in the webhook configuration
+    - Check that the event actually occurred (create a test event)
+    - Verify your endpoint URL is accessible and returns 200 OK
+    - Ensure the webhook is enabled
+    - Check server logs for webhook delivery errors
+  </Accordion>
+
+  <Accordion title="Why is signature verification failing?">
+    If signature verification is failing, try these solutions:
+    
+    - Ensure you're using the correct secret (the one configured in the webhook)
+    - Verify you're computing the signature over the raw request body (not a parsed JSON object)
+    - Check that the signature header name matches `X-WEBHOOK-SIGNATURE` (case-sensitive)
+    - Ensure your secret hasn't been changed without updating your verification code
+    - Make sure you're using HMAC-SHA256 for signature computation
+  </Accordion>
+
+  <Accordion title="How do I understand the webhook payload structure?">
+    Webhook payloads follow a consistent structure, but the `event.data` field varies by event type:
+    
+    - Check the `event.event_name` field to determine which event occurred
+    - Refer to the [Available Events](../webhooks/events) page for example payloads for each event type
+    - Remember that payloads contain reference data (IDs, metadata) only, not full objects
+    - Use the IDs in the payload to fetch complete data via the [GraphQL API](../graphql) or [REST API](../rest)
+    - Contact support if you need details about specific event payloads
+  </Accordion>
+
+  <Accordion title="Why are there delays in webhook delivery?">
+    Webhook delivery delays can occur for several reasons:
+    
+    - Webhooks are delivered asynchronously, so small delays (seconds) are normal
+    - High server load may cause longer delays
+    - Network issues between Speckle servers and your endpoint can cause delays
+    - If delays are excessive (minutes or hours), check server status and contact support
+    
+    For time-sensitive workflows, consider implementing a polling fallback mechanism.
+  </Accordion>
+</AccordionGroup>
+
