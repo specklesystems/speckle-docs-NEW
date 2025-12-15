@@ -47,7 +47,7 @@ This allows you to fix validation issues directly in your modeling software with
 
 ## In Intelligence Dashboards
 
-The **Model Checker widget** in Intelligence dashboards provides a quick way to see the outcomes of individual validation rules directly in your dashboard.
+The **Property Checker** in Intelligence dashboards provides a quick way to see the outcomes of individual validation rules directly in your dashboard.
 
 ### What You Can Do
 
@@ -56,10 +56,11 @@ The **Model Checker widget** in Intelligence dashboards provides a quick way to 
 - **See validation steps** showing how many elements pass each WHERE, AND, and CHECK condition
 - **Colorize the 3D viewer** based on pass/fail results
 - **Get real-time validation** against dashboard data sources
+- **View breakdown by property** to analyze validation results across different property values
 
 ### Individual Rule Outcomes
 
-The Model Checker widget shows the outcome of each rule you configure:
+Property Checker shows the outcome of each rule you configure:
 - **Pass rate percentage** displayed in the center of the donut chart
 - **Passed vs. Failed counts** for elements that reached the CHECK step
 - **Validation chain steps** showing how many elements pass each filter condition
@@ -71,8 +72,33 @@ This is particularly useful for **quick validation checks** within a dashboard o
   <img src="/images/model-checker/widget-results.png" alt="view the results" />
 </Frame>
 
+### Breakdown Tab
+
+The **Breakdown** tab allows you to analyze validation results by grouping them according to properties from your model objects. This helps you identify patterns in validation failures across different categories, types, or other property values.
+
+**To use the Breakdown tab:**
+
+1. Ensure validation has run and results are available (check the Summary tab)
+2. Navigate to the **Breakdown** tab
+3. Select a property from the dropdown to view validation results grouped by that property's values
+4. The chart will update to show pass/fail rates for each property value
+
+**Property Selection Requirements:**
+
+The property dropdown in the Breakdown tab will only be usable when:
+- Validation rules are configured and have been executed
+- Validation results are available (check the Summary tab to confirm)
+- Model objects with validation results are accessible
+- Properties exist on the model objects that have validation results
+
+If the property dropdown is disabled even though validation has run:
+- Verify that the model source is properly connected and loaded
+- Check that validation results include object references
+- Ensure the model objects have properties that can be used for breakdown
+- Try refreshing the validation results or re-running the validation
+
 <Tip>
-The Model Checker widget validates against the data sources in your dashboard, making it perfect for ad-hoc validation checks. For reusable rulesets and automation integration, use the full [Model Checker UI](/analytics/model-checker/overview).
+Property Checker validates against the data sources in your dashboard, making it perfect for ad-hoc validation checks. For reusable rulesets and automation integration, use the full [Model Checker UI](/analytics/model-checker/overview).
 </Tip>
 
 ## Understanding Results
@@ -231,10 +257,18 @@ Results are updated automatically when new model versions are published and the 
 Yes, you can query Model Checker results using Speckle's GraphQL API and visualize them in Power BI. This allows you to create custom dashboards, track model quality over time, and establish relationships between validation results and model objects. Access validation results through the `automationsStatus` field in model versions.
 </Accordion>
 <Accordion title="Can I see individual rule outcomes in a dashboard?">
-Yes, the Model Checker widget in Intelligence dashboards lets you create validation rules directly in your dashboard and see the outcomes of individual rules. The widget displays pass/fail percentages, validation step counts, and can colorize the 3D viewer based on results. This is perfect for quick validation checks within a dashboard.
+Yes, Property Checker in Intelligence dashboards lets you create validation rules directly in your dashboard and see the outcomes of individual rules. Property Checker displays pass/fail percentages, validation step counts, and can colorize the 3D viewer based on results. This is perfect for quick validation checks within a dashboard.
 </Accordion>
 <Accordion title="Can I view Model Checker results in my host application?">
 Yes, Model Checker reports are viewable in Speckle connectors interface. You can isolate and highlight elements that failed validation directly in your host application (Revit, Rhino, etc.), making it easy to fix issues without leaving your modeling software.
+</Accordion>
+<Accordion title="Why is the property selection dropdown disabled in the Breakdown tab?">
+The property selection dropdown in the Breakdown tab requires that:
+- Validation has been executed and results are available
+- Model objects with validation results are accessible and have properties
+- The model source is properly connected to the validation widget
+
+If the dropdown remains disabled after validation has run, it may indicate that the model objects need to be loaded or that properties aren't available on the validated objects. Try refreshing the validation results or ensuring the model viewer widget is properly connected as the data source.
 </Accordion>
 </AccordionGroup>
 
