@@ -77,11 +77,13 @@ Projects are the top-level containers for your data:
 
 ```python lines icon="python" focus={3-7}
 from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+from specklepy.core.api.enums import ProjectVisibility
 
 # Create a new project
 project = client.project.create(ProjectCreateInput(
     name="My First Speckle Project",
-    description="Learning specklepy"
+    description="Learning specklepy",
+    visibility=ProjectVisibility.PRIVATE
 ))
 
 print(f"✓ Created project: {project.id}")
@@ -152,7 +154,7 @@ from specklepy.api import operations
 from specklepy.transports.server import ServerTransport
 
 # Create a transport (the vehicle for sending data)
-transport = ServerTransport(stream_id=project_id, client=client)
+transport = ServerTransport(stream_id=project.id, client=client)
 
 # Send the data and the operation returns the object ID
 object_id = operations.send(base=object, transports=[transport])
@@ -175,6 +177,7 @@ Versions capture a snapshot of your data:
 
 ```python lines icon="python" focus={12-18}
 from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+from specklepy.core.api.inputs.model_inputs import CreateModelInput
 
 # Create a new model
 model_input = CreateModelInput(
@@ -194,7 +197,7 @@ version_input = CreateVersionInput(
 version = client.version.create(version_input)
 
 print(f"✓ Created version: {version.id}")
-print(f"View it: https://app.speckle.systems/projects/{project_id}/models/{model_id}")
+print(f"View it: https://app.speckle.systems/projects/{project.id}/models/{model.id}")
 ```
 
 <Check>
@@ -210,9 +213,9 @@ Now let's receive the data back:
 version = client.version.get(project.id, version.id)
 root_object_id = version.referenced_object
 
-# Receive the data using the object_id
+# Receive the data using the object_id from the version
 received_data = operations.receive(
-    obj_id=object_id,
+    obj_id=root_object_id,
     remote_transport=transport
 )
 
@@ -248,6 +251,7 @@ from specklepy.transports.server import ServerTransport
 from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
 from specklepy.core.api.inputs.model_inputs import CreateModelInput
 from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+from specklepy.core.api.enums import ProjectVisibility
 
 # 1. Authenticate
 client = SpeckleClient(host="app.speckle.systems")
@@ -258,17 +262,18 @@ print(f"✓ Authenticated as {client.account.userInfo.name}")
 # 2. Create project
 project = client.project.create(ProjectCreateInput(
     name="My First Speckle Project",
-    description="Learning specklepy"
+    description="Learning specklepy",
+    visibility=ProjectVisibility.PRIVATE
 ))
 print(f"✓ Created project: {project.id}")
 
 # 3. Create geometry
-p1 = Point(x=0, y=0, z=0)
-p2 = Point(x=10, y=0, z=0)
-p3 = Point(x=10, y=10, z=0)
-p4 = Point(x=0, y=10, z=0)
+p1 = Point(x=0, y=0, z=0, units="m")
+p2 = Point(x=10, y=0, z=0, units="m")
+p3 = Point(x=10, y=10, z=0, units="m")
+p4 = Point(x=0, y=10, z=0, units="m")
 
-line = Line(start=p1, end=p2)
+line = Line(start=p1, end=p2, units="m")
 
 # Polyline uses a flat list of coordinates
 coords = [
@@ -278,8 +283,7 @@ coords = [
     p4.x, p4.y, p4.z,
     p1.x, p1.y, p1.z,
 ]
-polyline = Polyline(value=coords)
-polyline.units = "m"
+polyline = Polyline(value=coords, units="m")
 
 data = Base()
 data.line = line
@@ -294,8 +298,13 @@ object_id = operations.send(base=data, transports=[transport])
 print(f"✓ Sent data: {object_id}")
 
 # 5. Create version
-models = client.model.list(project.id)
-model_id = models[0].id
+# Create a new model
+model_input = CreateModelInput(
+    project_id=project.id,
+    name="My first model",
+    description="This is my first model"
+)
+model = client.model.create(model_input)
 
 version_input = CreateVersionInput(
     project_id=project.id,
