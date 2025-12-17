@@ -117,7 +117,13 @@ Collections can be nested to any depth, but most connectors use 2-4 levels.
 
 ### Root Collection
 
-The **Root Collection** is always the top-level container for a data package at a version. It contains the collections hierarchy, proxies, and info. It has no parent—it is the root of the tree.
+The **Root Collection** is always the top-level container for a data package at a version. It contains the collections hierarchy, proxies, info, and the closures table. It has no parent—it is the root of the tree.
+
+The **closures table** (stored as `__closure`) provides a flat list of all nodes (objects and collections) that are descendants of the Root Collection. It serves as a shortcut to enable rapid processing—viewers, host applications, and deserializers can use it to quickly identify which objects need to be retrieved, then reassemble them as the hierarchy is loaded in. When data is sent using Speckle's serializers, the closures table is automatically created and populated.
+
+<Note>
+Conceptually, the closures table is a dictionary where each key is a node ID (representing an object or collection) and each value represents the relative depth of that node in the tree structure.
+</Note>
 
 <Accordion title="Can collections contain other collections?">
 Yes! Collections can be nested to any depth. However, most connectors use a predictable pattern (2-4 levels) based on the source application's organizational structure. The nesting depth is determined by the connector, not by Speckle's data model.
