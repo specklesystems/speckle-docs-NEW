@@ -1,0 +1,227 @@
+---
+title: LLM Notes
+description: Structured notes for LLM consumption of Speckle data model
+---
+
+This page provides structured information optimized for LLM understanding and code generation. Use this as a reference when building tools that process Speckle data.
+
+## Core Data Model Invariants
+
+### Object Structure
+
+Every Speckle object has:
+- `id` (string, hash-based, immutable)
+- `speckle_type` (string, type identifier)
+- `applicationId` (string, source application identifier)
+- `units` (string, unit system)
+
+### DataObject Structure
+
+```json
+{
+  "id": "string",
+  "speckle_type": "Objects.Data.DataObject",
+  "applicationId": "string",
+  "name": "string",
+  "properties": { "string": "any value" },
+  "displayValue": [ "Base (geometry)" ],
+  "units": "string"
+}
+```
+
+### Geometry Storage
+
+- **Rule**: All DataObject geometry is in `displayValue` array
+- **Never**: Geometry as direct properties of DataObject
+- **Always**: `displayValue` is an array (may be empty)
+
+### Proxy Structure
+
+```json
+{
+  "speckle_type": "Objects.Organization.RenderMaterial",
+  "applicationId": "string",
+  "name": "string",
+  "value": { "resource data" },
+  "objects": [ "applicationId strings" ]
+}
+```
+
+- **Location**: Proxies are at Root Collection level
+- **References**: Use `applicationId`, never `id`
+- **Resolution**: Find proxy by `applicationId`, check `objects` array
+
+## Global Rules
+
+1. **No nested DataObjects** - DataObjects cannot contain other DataObjects
+2. **Geometry in displayValue** - All visual geometry is in `displayValue`
+3. **Proxies at root** - All proxies stored in Root Collection
+4. **References use applicationId** - Proxies reference by `applicationId`
+5. **Hierarchy is Speckle-imposed** - Collection structure created by connectors
+
+## Connector Patterns
+
+### BIM Connectors (Revit, ArchiCAD, Tekla, ETABS)
+
+- Extend DataObject with connector-specific fields
+- Organize by spatial hierarchy (Levels/Floors)
+- Rich properties (parameters, quantities)
+- Use Level proxies
+
+### CAD Connectors (Rhino, AutoCAD, Civil 3D)
+
+- Support standalone geometry objects
+- Organize by layers
+- Use Instance/Definition pattern
+- Include Color proxies
+
+## Common Proxy Types
+
+- `RenderMaterial` - Material assignments
+- `Level` - Level/floor associations
+- `Group` - Group memberships
+- `Definition` - Block/component definitions
+- `Color` - Color assignments (CAD)
+- `Section` - Structural sections (ETABS)
+- `Material` - Material definitions (ETABS)
+
+## Traversal Patterns
+
+### Pattern: Find All DataObjects
+
+```python
+def find_data_objects(collection):
+    objects = []
+    if hasattr(collection, 'elements'):
+        for item in collection.elements:
+            if "DataObject" in getattr(item, 'speckle_type', ''):
+                objects.append(item)
+            elif "Collection" in getattr(item, 'speckle_type', ''):
+                objects.extend(find_data_objects(item))
+    return objects
+```
+
+### Pattern: Resolve Proxy References
+
+```python
+def find_objects_using_resource(root, proxy_type, resource_name):
+    # Find proxy
+    proxy = find_proxy_by_name(root, proxy_type, resource_name)
+    if not proxy:
+        return []
+    # Get referenced IDs
+    referenced_ids = getattr(proxy, 'objects', [])
+    # Find objects
+    return [obj for obj in traverse_all(root) 
+            if getattr(obj, 'applicationId', None) in referenced_ids]
+```
+
+### Pattern: Extract Geometry
+
+```python
+def extract_geometry(obj):
+    if hasattr(obj, 'displayValue') and obj.displayValue:
+        return obj.displayValue
+    return []
+```
+
+## Type Detection
+
+### Check Object Type
+
+```python
+def is_data_object(obj):
+    return "DataObject" in getattr(obj, 'speckle_type', '')
+
+def is_collection(obj):
+    return "Collection" in getattr(obj, 'speckle_type', '')
+
+def is_proxy(obj):
+    proxy_types = ["RenderMaterial", "Level", "Group", "Definition", "Color"]
+    return any(pt in getattr(obj, 'speckle_type', '') for pt in proxy_types)
+```
+
+### Connector Detection
+
+```python
+def detect_connector(root):
+    for obj in traverse_all_data_objects(root):
+        st = getattr(obj, 'speckle_type', '')
+        if "RevitObject" in st:
+            return "Revit"
+        elif "ArchicadObject" in st:
+            return "ArchiCAD"
+        # ... more connectors
+    return "Unknown"
+```
+
+## Property Access Patterns
+
+### Nested Property Access
+
+```python
+def get_nested_property(props, path):
+    keys = path.split('.')
+    current = props
+    for key in keys:
+        if isinstance(current, dict) and key in current:
+            current = current[key]
+        else:
+            return None
+    return current
+```
+
+### Safe Attribute Access
+
+```python
+# Always check before access
+if hasattr(obj, 'displayValue') and obj.displayValue:
+    for geom in obj.displayValue:
+        process_geometry(geom)
+```
+
+## Common Mistakes to Avoid
+
+1. **Assuming displayValue exists** - Always check `hasattr()` and non-empty
+2. **Using id instead of applicationId** - Proxies use `applicationId`
+3. **Not recursing collections** - Collections can be nested
+4. **Ignoring units** - Always check `units` field
+5. **Hardcoding connector types** - Use `speckle_type` detection
+
+## Quick Reference
+
+| Task | Pattern |
+|------|---------|
+| Find all objects | Traverse collections, check `speckle_type` |
+| Get geometry | Check `displayValue` array |
+| Resolve material | Find RenderMaterial proxy, check `objects` |
+| Find by property | Traverse objects, access nested `properties` |
+| Resolve instance | Find Definition proxy by `definitionId`, get `value.displayValue` |
+| Get model info | Check Root Collection `info` field |
+
+## Data Model Quick Reference
+
+### DataObject Fields
+- `id`, `speckle_type`, `applicationId` (required)
+- `name`, `properties`, `displayValue`, `units` (DataObject)
+- Connector-specific fields (varies)
+
+### Geometry Objects
+- `id`, `speckle_type`, `units` (required)
+- Geometry-specific fields (varies by type)
+
+### Proxy Objects
+- `speckle_type`, `applicationId`, `name` (required)
+- `value` (resource data)
+- `objects` (array of `applicationId` strings)
+
+### Collection Objects
+- `speckle_type` = "Objects.Organization.Collection"
+- `elements` (array of objects and collections)
+- `name` (optional)
+
+## Related Documentation
+
+- [Object Schema](/developers/data-schema/object-schema) - Detailed data model
+- [Connector Index](/developers/data-schema/connector-index) - Connector details
+

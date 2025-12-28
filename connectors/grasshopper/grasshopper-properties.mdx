@@ -45,6 +45,8 @@ If your Grasshopper params are named, you can hold down `TAB` when piping your p
 **Outputs**
 1. The **Properties** output contains a Properties set which has a key-value Property for every non-empty input.
 
+**Additional Settings**
+
 `Right-click` the node for additional settings:
 - Set your node to **automatically inherit all names** when you pipe in input params.
 - Set your node to **create empty properties** if you want to completely remove an existing set of properties from your Speckle object.
@@ -111,19 +113,26 @@ The **Properties Selector** node lets you visually inspect all of the property k
 <img src="/images/connectors/grasshopper/node_propertiesselector.jpg" />
 </Frame>
 
+<Tip>
+Search pattern prefixes can be added to the beginning of your search string:
+**?** will only list items that **contain** the search string
+**&lt;** will only list items that **start with** the search string
+**>** will only list items that **end with** the search string
+**;** will indicate [regular expression](https://docs.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference\)
+</Tip>
+
 **Inputs**
 1. Add a **Properties** input to see all concatenated keys of all nested properties inside that properties set.
-    Use the **search bar with regex search** to filter the displayed keys if needed.
-2. Click to select any keys, or shift + click to select multiple keys.
-
-```cs title="regex tip"
-// add a "?" in front of your search query to limit displayed items
-foobar  // sorts all items to show matches first
-?foobar // only shows items that contain "foobar"
-```
+2. Use the **search bar with search patterns** to filter the displayed keys if needed.
+3. Click to select any keys, or shift + click to select multiple keys.
 
 **Outputs**
 1. The list of strings that are selected.
+
+**Additional Settings**
+
+`Right-click` the node for additional settings:
+- Set your node to always **auto-select all items** that are shown in the node panel.
 
 The **Query Properties** node will retrieve the values of properties from specific keys.
 
@@ -142,6 +151,29 @@ The **Query Properties** node will retrieve the values of properties from specif
 <Tip>
 If you frequently access the same property keys across multiple objects or models, you can create a [reusable node](/connectors/grasshopper/grasshopper-recommendations#create-reusable-project-components-with-grasshopper-user-objects) with your Property Selector and Query Properties nodes to retrieve specific properties.
 </Tip>
+
+**Option 3: Using the Expand Properties node for easy list access**
+
+<Note>
+This option is recommended for easy access to individual property values, especially list type values.
+</Note>
+
+The **Expand Properties** node lets you quickly retrieve the values of a set of Properties by creating one output per property. Property values may contain other Speckle Properties if they are nested, in which case you will need to use another Expand Properties node to access nested values.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_expandproperties.jpg" />
+</Frame>
+
+**Inputs**
+1. Add a **Properties** input of the Speckle Properties you want to inspect.
+
+**Outputs**
+1. An output parameter for every entry in the input **Properties**. List values will be useable as lists.
+
+**Additional Settings**
+
+`Right-click` an output param for additional settings:
+- Select **extract parameter** to automatically create a new param node with the value and name of the output param.
 
 ## Casting Speckle Properties
 

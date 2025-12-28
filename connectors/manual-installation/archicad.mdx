@@ -1,0 +1,61 @@
+---
+title: Archicad - Manual installation
+description: "Manual installation instructions for Speckle Archicad connector via ZIP"
+---
+
+<Warning>
+  **This guide is for IT administrators only.** If you are a regular user, see our [Archicad installation guide](/connectors/archicad) instead.
+</Warning>
+
+<Info>
+  **Install separately for each version**: Repeat these steps for each application version you want to use with Speckle.
+</Info>
+
+All current Speckle Connectors require the Speckle Desktop Services background service. [Learn more about Desktop Services](/connectors/manual-installation/desktop-services).
+
+## Install for a single user
+
+1. Extract the downloaded ZIP file.
+2. Copy all contents from `.\archicad{VERSION}\Speckle.apx` to `%AppData%\Speckle\Archicad\v3\{VERSION}\Add-Ons\`
+   - Replace `{VERSION}` with your Archicad version (example: `27`)
+   - Create the directory if it doesn't exist
+3. Open Registry Editor and navigate to `HKEY_CURRENT_USER\Software\GRAPHISOFT\Archicad\{VERSION}\Add-On Manager\Include`
+4. Increment the key value by 1
+   - If the key doesn't exist, set the value to `1`
+5. Create a new string value with that number prefixed by `#` (example: `#1`)
+   - Set the value type to REG_SZ
+   - Set the value to `lan.flat:///%APPDATA%/Speckle/Archicad/v3/{VERSION}/Add-Ons/Speckle.apx`
+   - Replace `{VERSION}` with your Archicad version
+6. Ensure the following values exist in `HKEY_CURRENT_USER\Software\GRAPHISOFT\Archicad\{VERSION}\Add-On Manager`:
+   - **Default Location** (REG_SZ): `%DEFAULT%`
+   - **Use Default Location** (REG_DWORD): `1`
+   - Create these values if they don't exist
+
+<Info>
+  The default location values ensure the connector appears properly in Archicad's Add-On Manager.
+</Info>
+
+## Verify installation
+
+Open Archicad and check the Add-On Manager to confirm that the Speckle connector appears in the list of add-ons.
+
+## Uninstall the connector
+
+1. Delete the `Speckle.apx` file from `%AppData%\Speckle\Archicad\v3\{VERSION}\Add-Ons\`
+2. Open Registry Editor and navigate to `HKEY_CURRENT_USER\Software\GRAPHISOFT\Archicad\{VERSION}\Add-On Manager\Include`
+3. Remove the string value you created during installation (example: `#1`)
+4. Decrement the key value by 1
+
+<Info>
+  You don't need to remove the **Default Location** and **Use Default Location** registry keys.
+</Info>
+
+To remove all Speckle products, delete the `%AppData%\Speckle\` folder.
+
+<Card
+  title="Back to manual installation overview"
+  icon="arrow-left"
+  href="/connectors/manual-installation/manual-installation"
+>
+  Return to connector selection
+</Card>

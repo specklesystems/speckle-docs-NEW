@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: This guide provides the minimal steps to get a Speckle server running quickly. For a complete deployment guide with all configuration options, see [Deploying with Docker Compose](/server/deploying-with-docker-compose).
+description: Quick start guide to deploy a Speckle server using Docker Compose. Learn the minimal steps to get a server running, including prerequisites, Docker Compose setup, and initial configuration for local or production use.
 ---
 
 ## Prerequisites
@@ -69,6 +69,8 @@ services:
       NUXT_PUBLIC_BACKEND_API_ORIGIN: 'http://speckle-server:3000'
       NUXT_PUBLIC_BASE_URL: 'http://127.0.0.1'
       NUXT_REDIS_URL: 'redis://redis'
+      # Set to true if running it w/ SSL
+      NUXT_PUBLIC_SSL_ENABLED: 'false'
 
   speckle-server:
     image: speckle/speckle-server:2
@@ -92,6 +94,14 @@ services:
       S3_SECRET_KEY: 'minioadmin'
       S3_BUCKET: 'speckle-server'
       FRONTEND_ORIGIN: 'http://127.0.0.1'
+      EMAIL: 'true'
+      EMAIL_HOST: 'your-email-host-domain-here'
+      EMAIL_PORT: '587' # or another SMTP compatible port as defined by your transactional (SMTP relay) email provider
+      EMAIL_USERNAME: 'your-email-service-username'
+      EMAIL_PASSWORD: 'your-email-service-password'
+      EMAIL_SECURE: 'false' # enable to require SSL (Note that TLS is often preferred; see EMAIL_REQUIRE_TLS)
+      EMAIL_REQUIRE_TLS: 'true' # enable to require TLS. Disable if SSL is used instead.
+      EMAIL_FROM: 'an-email-address-you-own-and-configured-with-your-transactional-email-provider@example.org'
 
   preview-service:
     image: speckle/speckle-preview-service:2
@@ -139,20 +149,18 @@ Once running, access your Speckle server at:
 ## Next Steps
 
 1. **Create your first user** by visiting the frontend URL
-2. **Configure your server** - see [Deploying with Docker Compose](/developers/server/deployment/docker-compose) for detailed configuration options
+2. **Configure your server** - a full example is [part of the server repo](https://github.com/specklesystems/speckle-server/blob/main/docker-compose-speckle.yml)
 3. **Set up SSL certificates** for production use
 4. **Configure backups** and monitoring
 
 ## Getting Help
 
-- **Full Deployment Guide**: [Deploying with Docker Compose](/developers/server/deployment/docker-compose)
 - **Community Forum**: [speckle.community](https://speckle.community)
 - **Professional Support**: [https://speckle.systems/pricing/](https://speckle.systems/pricing/)
 
 ---
 
 <Note>
-  **Important**: This basic setup is not recommended for production use. For
-  production deployments, see the complete [Deploying with Docker
-  Compose](/developers/server/deployment/docker-compose) guide.
+  **Important**: This basic setup is not recommended for production use. For production deployments, see the complete 
+  [Docker Compose Quickstart](/developers/server/getting-started) guide.
 </Note>

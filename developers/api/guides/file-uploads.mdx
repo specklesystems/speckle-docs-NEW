@@ -1,0 +1,335 @@
+---
+title: Uploading IFC and Other Files
+description: Guide to uploading IFC, DWG, OBJ, and other file types using GraphQL mutations
+---
+
+There is no dedicated REST endpoint for uploading IFC, DWG, OBJ, or any other file types.
+
+The legacy `/api/file/...` path has been deprecated and removed.
+
+The supported programmatic workflow is a hybrid REST + S3 + GraphQL flow.
+
+It is the same flow used by the Speckle web app and connectors.
+
+This section documents the entire mechanism so developers do not have to reverse engineer the server.
+
+## Pre-requisites
+
+- A personal access token with the `streams:write` scope
+- A Speckle project, where you have a `Can edit` role
+
+<Info>
+Get your personal access token from: **Avatar → Profile → Personal Access Tokens** in the Speckle web app.
+</Info>
+
+For all GraphQL mutations, make sure to send the token in as a request header named `Authorization`:
+
+```bash
+Authorization: Bearer YOUR_TOKEN
+```
+
+<Note>
+This guide requires a Speckle server with the new file import enabled. This is available by default on [app.speckle.systems](https://app.speckle.systems). For self-hosted instances, ensure the `FF_NEXT_GEN_FILE_IMPORTER_ENABLED` feature flag is enabled.
+</Note>
+
+## Overview
+
+Uploading a file and triggering Speckle's automatic import pipeline is a multi-step process:
+
+1. **Ask Speckle Server for a presigned upload URL**
+   (GraphQL mutation: `fileUploadMutations.generateUploadUrl`)
+
+2. **Upload the file directly to S3**
+   (simple HTTP PUT to the presigned URL)
+
+3. **Create a model (if needed)**
+   (GraphQL mutation: `modelMutations.create` - optional if you already have a model)
+
+4. **Tell Speckle to parse and import the file**
+   (GraphQL mutation: `fileUploadMutations.startFileImport`)
+
+5. **Check the import status**
+   (GraphQL query to monitor the import progress)
+
+**Important notes:**
+
+- Large files are never sent through the Speckle Server REST endpoints.
+- The upload URL points to your server's configured S3 or S3 compatible storage.
+- The ETag returned from S3 is required for step 4 (file import).
+- Import results appear as a new Model Version.
+
+## Step 1: Generate an upload URL
+
+**POST** `/graphql`
+
+**Mutation:**
+
+```graphql
+mutation GenerateFileUploadUrl($input: GenerateFileUploadUrlInput!) {
+  fileUploadMutations {
+    generateUploadUrl(input: $input) {
+      url
+      fileId
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "input": {
+    "fileName": "MyModel.ifc",
+    "projectId": "your-project-id"
+  }
+}
+```
+
+**Response example:**
+
+```json
+{
+  "data": {
+    "fileUploadMutations": {
+      "generateUploadUrl": {
+        "url": "https://your-s3-endpoint/presigned-upload-url",
+        "fileId": "file-id-to-use-in-step-3"
+      }
+    }
+  }
+}
+```
+
+**Important:** Save the `fileId` from the response - you **must** use this exact value in Step 4 when triggering the file import. Do not use the filename; use the `fileId` returned here.
+
+## Step 2: Upload the file to the presigned URL
+
+**PUT** `{presignedURL}`
+
+**Headers required:**
+
+```
+Content-Type: application/octet-stream   # or appropriate type
+```
+
+**Body:**
+
+```
+<raw file bytes>
+```
+
+**Important:**
+
+- S3 returns an ETag header.
+- The ETag is required for the final step.
+- The ETag needs to be a double-quoted string. Make sure to escape the quote marks if needed when passing it to the GraphQL mutation.
+
+**Example curl:**
+
+```bash
+curl -X PUT \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary @MyModel.ifc \
+  "https://your-s3-presigned-url"
+```
+
+If the response is a successful `200` status code, the response headers will contain an `ETag` header. Record this value:
+
+```
+ETag: "ad13b92e173..."
+```
+
+Note: When using this ETag in Step 4, it must be passed as a double-quoted string (e.g., `"\"ad13b92e173...\""`).
+
+## Step 3: Create a model (if needed)
+
+This step requires a target model, where the file data should be imported to. If you don't have a model yet, you can create one programmatically:
+
+**POST** `/graphql`
+
+**Mutation:**
+
+```graphql
+mutation CreateModel($input: CreateModelInput!) {
+  modelMutations {
+    create(input: $input) {
+      id
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "input": {
+    "projectId": "your-project-id",
+    "name": "model name"
+  }
+}
+```
+
+**Response example:**
+
+```json
+{
+  "data": {
+    "modelMutations": {
+      "create": {
+        "id": "the-target-model-id"
+      }
+    }
+  }
+}
+```
+
+Store the `model.id` as it will be used as `modelId` in the next step.
+
+## Step 4: Trigger the file import
+
+Once the file is uploaded, tell Speckle to parse, convert, index and create a new model version.
+
+**POST** `/graphql`
+
+**Mutation:**
+
+```graphql
+mutation StartFileImport($input: StartFileImportInput!) {
+  fileUploadMutations {
+    startFileImport(input: $input) {
+      id
+      convertedStatus
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "input": {
+    "etag": "\"ad13b92e173...\"",
+    "fileId": "file-id-from-step-1-response",
+    "modelId": "the-target-model-id",
+    "projectId": "your-project-id"
+  }
+}
+```
+
+**Important:** The `fileId` must be the exact value returned from Step 1's `generateUploadUrl` response. Do not use the filename - use the `fileId` from that response.
+
+**Response example:**
+
+```json
+{
+  "data": {
+    "fileUploadMutations": {
+      "startFileImport": {
+        "id": "import-process-id",
+        "convertedStatus": 0
+      }
+    }
+  }
+}
+```
+
+**Note:** The `convertedStatus` enum signals the job status where `0=queued`, `1=processing`, `2=success`, `3=error`.
+
+Your file is now in the import pipeline. Once parsed, a new Version will appear under the referenced Model.
+
+## Step 5: Getting the import status
+
+Once the import has been started, the file import job gets an id at `fileUploadMutations.startFileImport.id`. This id can be used to get the status of the file import job.
+
+**POST** `/graphql`
+
+**Query:**
+
+```graphql
+query ($projectId: String!, $modelId: String!) {
+  project(id: $projectId) {
+    model(id: $modelId) {
+      pendingImportedVersions {
+        id
+        convertedStatus
+        convertedMessage
+      }
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "modelId": "the-target-model-id",
+  "projectId": "your-project-id"
+}
+```
+
+**Response example:**
+
+```json
+{
+  "data": {
+    "project": {
+      "model": {
+        "pendingImportedVersions": [
+          {
+            "id": "import-process-id",
+            "convertedStatus": 2,
+            "convertedMessage": null
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+The pending imported version id matches the file upload id generated in Step 4.
+
+The `convertedStatus` enum signals the job status:
+- `0` = queued
+- `1` = processing
+- `2` = success
+- `3` = error
+
+In case of an error, the error message is referenced at `convertedMessage`.
+
+## What developers need to know
+
+<AccordionGroup>
+  <Accordion title="File formats supported">
+    For [app.speckle.systems](https://app.speckle.systems): IFC, DWG, DXF, OBJ, STL, 3DM, and others depending on server version.
+
+    For self-hosted servers: IFC, STL, and OBJ only.
+  </Accordion>
+
+  <Accordion title="Why are different formats supported in self-hosted vs cloud?">
+    Self-hosted servers use open-source code dependencies, which limits the file formats that can be supported. Formats like DWG, DXF, and 3DM require proprietary libraries that are not available in open-source distributions, so they are only available on [app.speckle.systems](https://app.speckle.systems).
+  </Accordion>
+
+  <Accordion title="Why is this not REST?">
+    Because:
+
+    - Files should go direct to blob storage for performance and scale.
+    - Restoration of legacy multipart REST endpoints would break S3-first ingestion.
+    - GraphQL mutations model "actions" better than REST for asynchronous workflows.
+  </Accordion>
+
+  <Accordion title="Should I ever use the old REST upload?">
+    For [app.speckle.systems](https://app.speckle.systems), no. The old REST upload is gone for v3 and beyond.
+
+    For self-hosted instances, the old REST upload may still be necessary if:
+    - Your server does not have a publicly available S3 service configured
+    - The feature flag `FF_LARGE_FILE_IMPORTS_ENABLED` is not enabled
+
+    In these cases, you may need to use the legacy REST endpoints. However, we recommend configuring S3 storage and enabling the feature flag to use the modern file upload workflow described above.
+  </Accordion>
+</AccordionGroup>
+

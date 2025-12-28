@@ -1,0 +1,1362 @@
+---
+title: "BIM Data Patterns"
+description: "Working with complex BIM and connector data from authoring tools"
+---
+
+## Overview
+
+When receiving data from BIM authoring tools (Revit, Rhino, ArchiCAD, etc.) via Speckle Connectors, you encounter rich, deeply nested structures with application-specific semantics.
+
+<Note>
+**Prerequisites:** This guide builds on traversal techniques. If you're new to navigating Speckle object graphs, start with [Traversing Objects](/developers/sdks/python/concepts/data-traversal) to learn the foundational patterns used throughout this guide.
+</Note>
+
+In Object Model v3, the Python SDK provides:
+- **Generic container objects**: `DataObject`, `BlenderObject`, `QgisObject`
+- **Geometry primitives**: `Mesh`, `Point`, `Line`, etc.
+- **Organizational proxies**: `LevelProxy`, `GroupProxy`, `ColorProxy`
+
+BIM semantics come from the **properties dictionary** on these objects, not from typed classes.
+
+```python lines icon="python"
+from specklepy.api import operations
+from specklepy.transports.server import ServerTransport
+
+# Receive BIM data from a connector
+transport = ServerTransport(stream_id=project_id, client=client)
+obj = operations.receive(object_id, remote_transport=transport)
+
+# Objects are generic containers with rich properties
+print(type(obj))  # <class 'specklepy.objects.data_objects.DataObject'>
+print(obj.speckle_type)  # "Objects.Data.DataObject"
+print(obj.name)  # "Basic Wall - 200mm"
+print(obj.properties.keys())  # Properties dictionary with BIM metadata
+```
+
+## Characteristics of BIM Data
+
+**Deep Nesting**
+
+BIM data often has nested structures with properties and sub-objects:
+
+```python lines icon="python"
+# v3 structure with properties dictionary
+obj.properties["volume"]  # Direct property access
+obj.properties["materials"]["Steel"]["area"]  # Nested material data
+#   └─1st level──┘  └──2nd level──┘  └─3rd─┘
+```
+
+**Understanding v3 Object Types**
+
+In v3, there are **no typed BIM classes** like `Wall` or `Column`. Everything is a generic container:
+
+```python lines icon="python"
+# All BIM objects are DataObject instances
+from specklepy.objects.data_objects import DataObject
+
+print(type(obj))  # <class 'DataObject'>
+print(obj.speckle_type)  # "Objects.Data.DataObject"
+
+# BIM semantics come from the properties dictionary
+print(obj.name)  # "Basic Wall - 200mm"
+print(obj.properties["category"])  # "Walls"
+print(obj.properties["family"])  # "Basic Wall"
+print(obj.properties["type"])  # "200mm"
+```
+
+**Check properties, not types:**
+
+```python lines icon="python"
+# Good - check properties for BIM semantics
+if obj.properties.get("category") == "Walls":
+    print(f"Found a wall: {obj.name}")
+
+# Don't check speckle_type - it's always "Objects.Data.DataObject"
+# Bad - won't work in v3
+if "Wall" in obj.speckle_type:  # This won't match anything useful
+    pass
+```
+
+**Reference-Based Architecture**
+
+Large nested objects are stored separately:
+
+```python lines icon="python"
+# Display value is a reference, not the actual object
+obj["@displayValue"]  # Returns: "hash123abc..."
+
+# To get the actual mesh, it's fetched from the transport
+# This happens automatically during receive
+```
+
+## Pattern 1: Revit Parameters
+
+Revit objects have rich parameter collections organized by category.
+
+**Understanding Revit Parameter Structure**
+
+```python lines icon="python"
+# Typical Revit parameter structure
+{
+    "parameters": {
+        "Type Parameters": {
+            "Width": {
+                "value": 0.2,
+                "units": "m",
+                "name": "Width",
+                "isShared": False,
+                "isReadOnly": True
+            },
+            "Function": {
+                "value": "Exterior",
+                "name": "Function"
+            }
+        },
+        "Instance Parameters": {
+            "Volume": {
+                "value": 15.5,
+                "units": "m³",
+                "name": "Volume"
+            },
+            "Area": {
+                "value": 45.0,
+                "units": "m²",
+                "name": "Area"
+            },
+            "Base Constraint": {
+                "value": "Level 1",
+                "name": "Base Constraint"
+            }
+        }
+    }
+}
+```
+
+**Extracting Revit Parameters**
+
+```python lines icon="python"
+from specklepy.objects import Base
+
+def extract_revit_parameters(obj):
+    """Extract all Revit parameters as a flat dictionary."""
+    params = {}
+    
+    # Get the parameters object
+    if not hasattr(obj, "parameters"):
+        return params
+    
+    parameters = obj.parameters
+    if not isinstance(parameters, (dict, Base)):
+        return params
+    
+    # Iterate through parameter categories
+    param_dict = parameters if isinstance(parameters, dict) else parameters.__dict__
+    
+    for category, category_params in param_dict.items():
+        if category.startswith("_"):
+            continue
+        
+        # Get parameters in this category
+        if isinstance(category_params, dict):
+            param_source = category_params
+        elif isinstance(category_params, Base):
+            param_source = category_params.__dict__
+        else:
+            continue
+        
+        for param_name, param_value in param_source.items():
+            if param_name.startswith("_"):
+                continue
+            
+            # Extract value from parameter object
+            if isinstance(param_value, dict):
+                value = param_value.get("value")
+                units = param_value.get("units")
+                
+                # Create compound key
+                key = f"{category}.{param_name}"
+                params[key] = {
+                    "value": value,
+                    "units": units,
+                    "category": category
+                }
+            elif isinstance(param_value, Base):
+                value = getattr(param_value, "value", param_value)
+                key = f"{category}.{param_name}"
+                params[key] = {"value": value, "category": category}
+    
+    return params
+
+# Use it
+wall = operations.receive(wall_id, remote_transport=transport)
+params = extract_revit_parameters(wall)
+
+for key, data in params.items():
+    value = data["value"]
+    units = data.get("units", "")
+    print(f"{key}: {value} {units}")
+```
+
+**Filtering by Parameter Value**
+
+```python lines icon="python"
+def filter_by_parameter(objects, param_name, param_value):
+    """Find all objects with a specific parameter value."""
+    results = []
+    
+    for obj in objects:
+        params = extract_revit_parameters(obj)
+        
+        # Check all parameter categories
+        for key, data in params.items():
+            if param_name in key and data["value"] == param_value:
+                results.append(obj)
+                break
+    
+    return results
+
+# Find all walls with Function = "Exterior"
+exterior_walls = filter_by_parameter(walls, "Function", "Exterior")
+print(f"Found {len(exterior_walls)} exterior walls")
+```
+
+**Converting Parameters to DataFrame**
+
+```python lines icon="python"
+import pandas as pd
+
+def revit_objects_to_dataframe(objects):
+    """Convert Revit objects with parameters to DataFrame."""
+    rows = []
+    
+    for obj in objects:
+        row = {
+            "id": obj.id,
+            "type": obj.speckle_type,
+            "family": getattr(obj, "family", ""),
+            "type_name": getattr(obj, "type", ""),
+        }
+        
+        # Add all parameters as columns
+        params = extract_revit_parameters(obj)
+        for key, data in params.items():
+            # Flatten the key (remove category prefix if desired)
+            column_name = key.split(".")[-1]  # Just the parameter name
+            row[column_name] = data["value"]
+        
+        rows.append(row)
+    
+    return pd.DataFrame(rows)
+
+# Use it
+walls = [...]  # Your Revit walls
+df = revit_objects_to_dataframe(walls)
+
+# 4. Analyze results
+print("\nWall Analysis:")
+print(df[["name", "speckle_type", "volume", "area"]].head())
+print(f"\nTotal volume: {df['volume'].sum():.2f} m³")
+print(f"Average area: {df['area'].mean():.2f} m²")
+
+# 5. Material summary
+# Compute material summary (assuming 'material' column exists in df)
+material_summary = (
+    df.groupby("material")
+      .agg(volume=("volume", "sum"),
+           area=("area", "sum"),
+           count=("material", "count"))
+      .reset_index()
+)
+print("\nMaterial Summary:")
+for _, row in material_summary.iterrows():
+    print(f"\n{row['material']}:")
+    print(f"  Volume: {row['volume']:.2f} m³")
+    print(f"  Area: {row['area']:.2f} m²")
+    print(f"  Used in: {row['count']} walls")
+
+## Pattern 2: DisplayValue Proxies
+
+Display geometry is often detached for performance.
+
+<Note>
+**Deep Dive:** For a comprehensive understanding of display values, including how to create them, best practices, and cross-platform visualization strategies, see [Display Values](/developers/sdks/python/concepts/display-values).
+</Note>
+
+<Note>
+**Proxified Display Values:** In many BIM models, display values are stored as **instance references** that need to be resolved using applicationId lookups. When `displayValue` contains references instead of direct meshes, see [Extracting Display Values and Transform Instances](/developers/sdks/python/guides/working-with-proxies) for the complete workflow on building applicationId indexes and resolving these references.
+</Note>
+
+**Understanding Display Values**
+
+BIM objects (like `DataObject`) have a `displayValue` property containing visualization geometry as a list of `Mesh` objects or other geometry.
+
+<Info>
+**Atomic Viewer Objects:** Objects with a `displayValue` property represent atomic, selectable items in the Speckle viewer. Each object with `displayValue` can be clicked, selected, and queried independently in the 3D view. When traversing objects, filtering by `displayValue` presence gives you all viewer-interactive elements.
+</Info>
+
+```python lines icon="python"
+# After receive, displayValue is the actual object (not a reference)
+wall = operations.receive(wall_id, remote_transport=transport)
+
+if hasattr(wall, "displayValue"):
+    display = wall.displayValue
+    
+    # Can be a single mesh
+    if hasattr(display, "vertices"):
+        print(f"Single mesh: {display.vertices_count} vertices")
+    
+    # Or a list of meshes
+    elif isinstance(display, list):
+        print(f"Multiple meshes: {len(display)}")
+        for mesh in display:
+            print(f"  - {mesh.vertices_count} vertices")
+```
+
+**Extracting All Display Geometry**
+
+```python lines icon="python"
+from specklepy.objects.geometry import Mesh
+
+def extract_display_meshes(obj):
+    """Recursively extract all display meshes from an object."""
+    meshes = []
+    
+    def traverse(current):
+        if isinstance(current, Mesh):
+            meshes.append(current)
+        elif isinstance(current, Base):
+            # Check for displayValue
+            if hasattr(current, "displayValue"):
+                display = current.displayValue
+                if isinstance(display, list):
+                    for item in display:
+                        traverse(item)
+                else:
+                    traverse(display)
+            
+            # Traverse other members
+            for name in current.get_member_names():
+                if not name.startswith("_") and name != "displayValue":
+                    value = getattr(current, name, None)
+                    traverse(value)
+        
+        elif isinstance(current, list):
+            for item in current:
+                traverse(item)
+    
+    traverse(obj)
+    return meshes
+
+# Use it
+all_meshes = extract_display_meshes(building)
+total_vertices = sum(m.vertices_count for m in all_meshes)
+print(f"Total display geometry: {len(all_meshes)} meshes, {total_vertices} vertices")
+```
+
+**Finding Atomic Displayable Objects**
+
+Extract all objects with `displayValue` - these are the atomic, viewer-selectable BIM elements:
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.data_objects import DataObject
+
+def find_displayable_objects(root):
+    """
+    Find all objects with displayValue property.
+    These are atomic objects that can be clicked/selected in the Speckle viewer.
+    """
+    displayable = []
+    
+    def traverse(obj):
+        if isinstance(obj, Base):
+            # Check if this object has displayValue (atomic/leaf node)
+            if hasattr(obj, "displayValue") and obj.displayValue is not None:
+                displayable.append(obj)
+                # Optimization: displayValue objects are typically leaf nodes
+                # They rarely have children with displayValue, so we can stop here
+                return
+            
+            # Container node - continue traversing via elements array
+            if hasattr(obj, "elements") and isinstance(obj.elements, list):
+                for element in obj.elements:
+                    traverse(element)
+            
+            # Traverse other properties
+            for name in obj.get_member_names():
+                if not name.startswith("_") and name != "displayValue":
+                    value = getattr(obj, name, None)
+                    traverse(value)
+        
+        elif isinstance(obj, list):
+            for item in obj:
+                traverse(item)
+    
+    traverse(root)
+    return displayable
+
+# Find all atomic BIM objects
+atomic_objects = find_displayable_objects(building)
+print(f"Found {len(atomic_objects)} atomic/displayable objects")
+
+# Analyze by category
+from collections import defaultdict
+by_category = defaultdict(int)
+
+for obj in atomic_objects:
+    if isinstance(obj, DataObject):
+        category = obj.properties.get("category", "Other")
+        by_category[category] += 1
+
+print("\nViewer-selectable objects by category:")
+for category, count in sorted(by_category.items()):
+    print(f"  {category}: {count}")
+```
+
+**Computing Bounding Box from Display**
+
+```python lines icon="python"
+from specklepy.objects.geometry import Point
+
+def compute_bounding_box(meshes):
+    """Compute bounding box from a list of meshes."""
+    if not meshes:
+        return None
+    
+    all_x, all_y, all_z = [], [], []
+    
+    for mesh in meshes:
+        # Extract all coordinates
+        for i in range(0, len(mesh.vertices), 3):
+            all_x.append(mesh.vertices[i])
+            all_y.append(mesh.vertices[i + 1])
+            all_z.append(mesh.vertices[i + 2])
+    
+    if not all_x:
+        return None
+    
+    bbox = {
+        "min": Point(x=min(all_x), y=min(all_y), z=min(all_z)),
+        "max": Point(x=max(all_x), y=max(all_y), z=max(all_z)),
+        "center": Point(
+            x=(min(all_x) + max(all_x)) / 2,
+            y=(min(all_y) + max(all_y)) / 2,
+            z=(min(all_z) + max(all_z)) / 2
+        ),
+        "size": [
+            max(all_x) - min(all_x),
+            max(all_y) - min(all_y),
+            max(all_z) - min(all_z)
+        ]
+    }
+    
+    return bbox
+
+# Use it
+display_meshes = extract_display_meshes(building)
+bbox = compute_bounding_box(display_meshes)
+print(f"Building bounds: {bbox['size']}")
+print(f"Center: ({bbox['center'].x}, {bbox['center'].y}, {bbox['center'].z})")
+```
+
+## Pattern 3: EncodedValue (Rhino-Specific)
+
+Rhino objects may include native binary data for Rhino-to-Rhino workflows.
+
+**Understanding EncodedValue**
+
+```python lines icon="python"
+# Rhino extrusion with encodedValue
+{
+    "speckle_type": "Objects.Geometry.Extrusion",
+    "displayValue": [...],  # Mesh for visualization
+    "encodedValue": "base64_encoded_3dm_data...",  # Native Rhino format
+}
+```
+
+**Checking for EncodedValue**
+
+```python lines icon="python"
+def has_native_rhino_data(obj):
+    """Check if object has Rhino native data."""
+    return hasattr(obj, "encodedValue") and obj.encodedValue is not None
+
+def extract_encoded_objects(root):
+    """Find all objects with encodedValue."""
+    results = []
+    
+    def traverse(obj):
+        if isinstance(obj, Base):
+            if has_native_rhino_data(obj):
+                results.append({
+                    "object": obj,
+                    "type": obj.speckle_type,
+                    "encoded_size": len(str(obj.encodedValue))
+                })
+            
+            # Traverse children
+            for name in obj.get_member_names():
+                if not name.startswith("_"):
+                    value = getattr(obj, name, None)
+                    traverse(value)
+        
+        elif isinstance(obj, list):
+            for item in obj:
+                traverse(item)
+    
+    traverse(root)
+    return results
+
+# Use it
+encoded_objects = extract_encoded_objects(rhino_data)
+print(f"Found {len(encoded_objects)} objects with native Rhino data")
+```
+
+<Info>
+`encodedValue` is primarily for Rhino-to-Rhino workflows. For other platforms, use `displayValue` instead.
+</Info>
+
+## Pattern 4: Instance and Definition
+
+Complex models use instance/definition patterns for efficiency (like Revit families or Rhino blocks).
+
+<Note>
+**Instance Definitions Location:** Instance definitions are stored in the `instanceDefinitionProxies` collection on the root object, not nested in the hierarchy. You need to build an applicationId index to resolve instance references, similar to how level proxies work (see Pattern 5).
+</Note>
+
+**Understanding Instances**
+
+Instance objects reference their definition by `applicationId`:
+
+```python lines icon="python"
+# Root object has instanceDefinitionProxies
+root.instanceDefinitionProxies = [
+    {
+        "value": {  # The actual definition with geometry
+            "applicationId": "block_def_123",
+            "speckle_type": "Objects.Geometry.Mesh",
+            # ... geometry data
+        }
+    }
+]
+
+# Instance objects reference the definition
+{
+    "speckle_type": "Objects.Other.Instance",
+    "applicationId": "block_def_123",  # References the definition above
+    "transform": [...],  # Position/rotation/scale matrix
+}
+```
+
+**Extracting Instances and Definitions**
+
+```python lines icon="python"
+def extract_instance_definitions(root):
+    """Extract instance definitions from instanceDefinitionProxies."""
+    definitions = {}
+    
+    # Get instanceDefinitionProxies from root
+    instance_def_proxies = getattr(root, "instanceDefinitionProxies", [])
+    
+    for proxy in instance_def_proxies:
+        if hasattr(proxy, "value"):
+            definition = proxy.value
+            app_id = getattr(definition, "applicationId", None)
+            if app_id:
+                definitions[app_id] = definition
+    
+    return definitions
+
+def find_instances(root):
+    """Find all instance objects in the hierarchy."""
+    instances = []
+    
+    def traverse(obj):
+        if isinstance(obj, Base):
+            if obj.speckle_type == "Objects.Other.Instance":
+                instances.append(obj)
+            
+            # Traverse children
+            for name in obj.get_member_names():
+                if name not in ["instanceDefinitionProxies"]:  # Skip proxies
+                    value = getattr(obj, name, None)
+                    traverse(value)
+        
+        elif isinstance(obj, list):
+            for item in obj:
+                traverse(item)
+    
+    traverse(root)
+    return instances
+
+# Use it
+definitions = extract_instance_definitions(root)
+instances = find_instances(root)
+
+print(f"Found {len(definitions)} unique definitions")
+print(f"Found {len(instances)} instances")
+
+# Match instances to definitions
+for instance in instances[:5]:  # Show first 5
+    app_id = getattr(instance, "applicationId", None)
+    if app_id and app_id in definitions:
+        definition = definitions[app_id]
+        print(f"Instance {instance.id} uses definition: {definition.speckle_type}")
+```
+
+## Pattern 5: Level and Location Data with Proxy Collections
+
+BIM models use **proxy collections** at the root level to organize objects by levels, colors, groups, and materials. Understanding this pattern is essential for working with BIM hierarchies.
+
+**Key Insight:** Proxies enable **multiple overlapping organizational hierarchies**. A single wall can simultaneously belong to:
+- A building level (architectural hierarchy)
+- A functional group (organizational grouping)
+- A layer (CAD hierarchy)
+- A material assignment (material hierarchy)
+- An instance type (blocks/families)
+
+This models real-world CAD/BIM organization where groups, layers, levels, and blocks all coexist without forcing objects into a single parent-child hierarchy.
+
+<Note>
+**See Also:** For a comprehensive explanation of proxification, why overlapping hierarchies matter, and intersection queries across multiple organizational systems, see [Proxification](/developers/sdks/python/concepts/proxification).
+</Note>
+
+<Info>
+**The Proxy Pattern Workflow:**
+
+1. **Proxies live at root level** - Look for `levelProxies`, `colorProxies`, etc. on the root object
+2. **Proxies contain applicationId lists** - Each proxy has an `objects` array of applicationId strings
+3. **Build an applicationId index** - Map applicationIds to actual objects in the `elements[]` hierarchy
+4. **Resolve references** - Match proxy applicationIds against your index to find actual objects
+5. **Reverse lookup for object level** - To find an object's level, search which proxy's list contains its applicationId
+
+This is a **two-step lookup process**, not direct nesting!
+</Info>
+
+**Understanding Proxy Collections**
+
+Proxy collections are stored as **properties at the root object level**:
+
+- `levelProxies` - Building levels/storeys organization
+- `colorProxies` - Color-based grouping
+- `groupProxies` - Named groups
+- `renderMaterialProxies` - Material assignments
+- `instanceDefinitionProxies` - Instance/definition relationships
+
+**Key Concept:** These are **reference collections**, not nested hierarchies. They contain lists of `applicationId` strings that point to objects in the `elements[]` hierarchy.
+
+**LevelProxy Structure**
+
+```python lines icon="python"
+from specklepy.objects.proxies import LevelProxy
+
+# Root object has levelProxies collection
+root = operations.receive(object_id, remote_transport=transport)
+
+# Access the levelProxies collection
+level_proxies = getattr(root, "levelProxies", [])
+
+# Each LevelProxy has:
+for level_proxy in level_proxies:
+    # 1. value: DataObject with level metadata
+    print(level_proxy.value.name)  # "Level 1"
+    print(level_proxy.value.properties.get("elevation"))  # 0.0
+    
+    # 2. objects: List of applicationId strings
+    print(level_proxy.objects)  # ["guid-1", "guid-2", "guid-3"]
+    
+    # 3. applicationId: The level's own GUID
+    print(level_proxy.applicationId)  # "level-guid"
+```
+
+**Finding LevelProxy Collections at Root**
+
+```python lines icon="python"
+from specklepy.objects.proxies import LevelProxy
+
+def get_level_proxies(root):
+    """
+    Extract level proxies from root object.
+    These are stored at the root level.
+    """
+    level_proxies = []
+    
+    # Check for levelProxies property
+    if hasattr(root, "levelProxies"):
+        proxies = getattr(root, "levelProxies")
+        if isinstance(proxies, list):
+            level_proxies = [p for p in proxies if isinstance(p, LevelProxy)]
+    
+    return level_proxies
+
+# Get all levels
+level_proxies = get_level_proxies(root)
+
+for level in level_proxies:
+    level_name = level.value.name
+    object_count = len(level.objects)
+    elevation = level.value.properties.get("elevation", 0)
+    
+    print(f"{level_name}: {object_count} objects at {elevation}m")
+```
+
+**Resolving Objects by applicationId**
+
+The challenge: LevelProxy contains `applicationId` strings, but you need to find the actual objects in the `elements[]` hierarchy.
+
+```python lines icon="python"
+from specklepy.objects import Base
+from specklepy.objects.data_objects import DataObject
+
+def build_applicationid_index(root):
+    """
+    Build an index mapping applicationId to objects.
+    This allows fast lookup when resolving proxy references.
+    """
+    index = {}
+    
+    def traverse(obj):
+        # Index any object with an applicationId
+        if isinstance(obj, Base) and hasattr(obj, "applicationId"):
+            if obj.applicationId:
+                index[obj.applicationId] = obj
+        
+        # Traverse elements hierarchy
+        if hasattr(obj, "elements") and isinstance(obj.elements, list):
+            for element in obj.elements:
+                traverse(element)
+        
+        # Traverse other properties
+        if isinstance(obj, Base):
+            for name in obj.get_member_names():
+                if not name.startswith("_") and name != "elements":
+                    value = getattr(obj, name, None)
+                    traverse(value)
+        
+        elif isinstance(obj, list):
+            for item in obj:
+                traverse(item)
+    
+    traverse(root)
+    return index
+
+# Build the index once
+app_id_index = build_applicationid_index(root)
+print(f"Indexed {len(app_id_index)} objects by applicationId")
+
+# Now you can quickly resolve any applicationId
+app_id = "some-guid-123"
+if app_id in app_id_index:
+    obj = app_id_index[app_id]
+    print(f"Found: {obj.name}")
+```
+
+**Grouping Objects by Level**
+
+Combine proxy collections with applicationId index to organize objects:
+
+```python lines icon="python"
+from collections import defaultdict
+
+def group_objects_by_level(root):
+    """
+    Group objects by their level using LevelProxy references.
+    Returns a dictionary: {level_name: [list of objects]}
+    """
+    # Step 1: Get level proxies from root
+    level_proxies = get_level_proxies(root)
+    
+    # Step 2: Build applicationId index
+    app_id_index = build_applicationid_index(root)
+    
+    # Step 3: Group objects by level
+    by_level = defaultdict(list)
+    
+    for level_proxy in level_proxies:
+        level_name = level_proxy.value.name
+        
+        # Resolve each applicationId to actual object
+        for app_id in level_proxy.objects:
+            if app_id in app_id_index:
+                obj = app_id_index[app_id]
+                by_level[level_name].append(obj)
+    
+    return dict(by_level)
+
+# Use it
+levels = group_objects_by_level(root)
+
+print("\nObjects by Level:")
+for level_name, objects in levels.items():
+    print(f"\n{level_name}: {len(objects)} objects")
+    
+    # Analyze by category
+    categories = defaultdict(int)
+    for obj in objects:
+        if isinstance(obj, DataObject):
+            category = obj.properties.get("category", "Other")
+            categories[category] += 1
+    
+    for category, count in categories.items():
+        print(f"  {category}: {count}")
+```
+
+**Complete Proxy Pattern Helper**
+
+A comprehensive helper for working with all proxy types:
+
+```python lines icon="python"
+from specklepy.objects.proxies import (
+    LevelProxy, 
+    ColorProxy, 
+    GroupProxy, 
+    RenderMaterialProxy
+)
+
+def extract_all_proxies(root):
+    """
+    Extract all proxy collections from root object.
+    Returns a dictionary of proxy type to list of proxies.
+    """
+    proxies = {
+        "levels": [],
+        "colors": [],
+        "groups": [],
+        "materials": []
+    }
+    
+    # Level proxies
+    if hasattr(root, "levelProxies"):
+        level_proxies = getattr(root, "levelProxies")
+        if isinstance(level_proxies, list):
+            proxies["levels"] = [p for p in level_proxies if isinstance(p, LevelProxy)]
+    
+    # Color proxies
+    if hasattr(root, "colorProxies"):
+        color_proxies = getattr(root, "colorProxies")
+        if isinstance(color_proxies, list):
+            proxies["colors"] = [p for p in color_proxies if isinstance(p, ColorProxy)]
+    
+    # Group proxies
+    if hasattr(root, "groupProxies"):
+        group_proxies = getattr(root, "groupProxies")
+        if isinstance(group_proxies, list):
+            proxies["groups"] = [p for p in group_proxies if isinstance(p, GroupProxy)]
+    
+    # Render material proxies
+    if hasattr(root, "renderMaterialProxies"):
+        mat_proxies = getattr(root, "renderMaterialProxies")
+        if isinstance(mat_proxies, list):
+            proxies["materials"] = [p for p in mat_proxies if isinstance(p, RenderMaterialProxy)]
+    
+    return proxies
+
+# Use it
+proxies = extract_all_proxies(root)
+
+print(f"Levels: {len(proxies['levels'])}")
+print(f"Colors: {len(proxies['colors'])}")
+print(f"Groups: {len(proxies['groups'])}")
+print(f"Materials: {len(proxies['materials'])}")
+
+# List all levels
+for level_proxy in proxies["levels"]:
+    level_name = level_proxy.value.name
+    print(f"  {level_name}: {len(level_proxy.objects)} objects")
+```
+
+**Finding an Object's Level**
+
+To find which level an object belongs to, you need to **reverse lookup** from the proxy collections:
+
+```python lines icon="python"
+def find_object_level(root, target_obj):
+    """
+    Find which level an object belongs to.
+    Returns the level name or None if not found.
+    """
+    # Get level proxies
+    level_proxies = get_level_proxies(root)
+    
+    # Get the object's applicationId
+    target_app_id = getattr(target_obj, "applicationId", None)
+    if not target_app_id:
+        return None
+    
+    # Search through level proxies
+    for level_proxy in level_proxies:
+        if target_app_id in level_proxy.objects:
+            return level_proxy.value.name
+    
+    return None
+
+# Use it
+wall = walls[0]  # Some wall object
+level_name = find_object_level(root, wall)
+print(f"Wall is on: {level_name}")
+```
+
+## Pattern 6: Material Quantities
+
+Revit objects can contain detailed material quantity takeoffs stored in `properties["Material Quantities"]`. These quantities exist **only on individual objects** - there is no pre-aggregated total at the model level. To get project-wide material totals, you need to traverse all objects and aggregate their material quantities.
+
+**Understanding Material Quantities**
+
+Each object with materials contains a `Material Quantities` dictionary with material breakdowns:
+
+```python lines icon="python"
+# Material Quantities structure in properties
+obj.properties["Material Quantities"] = {
+    "Cherry": {
+        "area": {
+            "name": "area",
+            "units": "Square metres",
+            "value": 2.68134846000001
+        },
+        "volume": {
+            "name": "volume",
+            "units": "Cubic metres",
+            "value": 0.04764924341099971
+        },
+        "density": {
+            "name": "density",
+            "units": "Kilograms per cubic metre",
+            "value": 544
+        },
+        "materialName": "Cherry",
+        "materialType": "Wood",
+        "materialClass": "Wood",
+        "structuralAsset": "Cherry",
+        "materialCategory": "Wood"
+    },
+    "Steel, Chrome Plated": {
+        # ... similar structure
+    }
+}
+```
+
+**Extracting Material Quantities from Individual Objects**
+
+```python lines icon="python"
+def extract_material_quantities(obj):
+    """Extract material quantities from a single object's properties."""
+    if not hasattr(obj, "properties") or not isinstance(obj.properties, dict):
+        return {}
+    
+    return obj.properties.get("Material Quantities", {})
+
+# Use it on a single object
+desk = objects[0]
+mat_quantities = extract_material_quantities(desk)
+
+print(f"Materials in {desk.name}:")
+for material_name, mat_data in mat_quantities.items():
+    volume = mat_data.get("volume", {}).get("value", 0)
+    units = mat_data.get("volume", {}).get("units", "m³")
+    print(f"  {material_name}: {volume} {units}")
+```
+
+**Aggregating Model-Wide Material Totals**
+
+To get total material quantities across the entire model version, traverse all objects and aggregate:
+
+```python lines icon="python"
+from specklepy.api import operations
+from specklepy.transports.server import ServerTransport
+from specklepy.objects.graph_traversal.default_traversal import create_default_traversal_function
+
+def collect_all_objects_with_materials(root):
+    """Traverse and collect all objects that have Material Quantities."""
+    objects_with_materials = []
+    traversal = create_default_traversal_function()
+    
+    for context in traversal.traverse(root):
+        obj = context.current
+        if hasattr(obj, "properties") and isinstance(obj.properties, dict):
+            if "Material Quantities" in obj.properties:
+                objects_with_materials.append(obj)
+    
+    return objects_with_materials
+
+# Receive the model version
+root = operations.receive(version_object_id, remote_transport=transport)
+
+# Collect all objects with materials
+objects_with_materials = collect_all_objects_with_materials(root)
+print(f"Found {len(objects_with_materials)} objects with material quantities")
+
+def aggregate_materials_by_type(objects):
+    """Aggregate material quantities across multiple objects."""
+    material_totals = {}
+    
+    for obj in objects:
+        mat_quantities = extract_material_quantities(obj)
+        
+        for material_name, mat_data in mat_quantities.items():
+            if material_name not in material_totals:
+                material_totals[material_name] = {
+                    "total_area": 0,
+                    "total_volume": 0,
+                    "count": 0,
+                    "type": mat_data.get("materialType", "Unknown"),
+                    "category": mat_data.get("materialCategory", "Unknown"),
+                    "density": mat_data.get("density", {}).get("value", 0)
+                }
+            
+            # Aggregate area
+            if "area" in mat_data and "value" in mat_data["area"]:
+                material_totals[material_name]["total_area"] += mat_data["area"]["value"]
+            
+            # Aggregate volume
+            if "volume" in mat_data and "value" in mat_data["volume"]:
+                material_totals[material_name]["total_volume"] += mat_data["volume"]["value"]
+            
+            material_totals[material_name]["count"] += 1
+    
+    return material_totals
+
+# Use it
+all_objects = []
+# ... collect objects from traversal
+
+materials = aggregate_materials_by_type(all_objects)
+
+print("Material Takeoff Summary:")
+for material, data in sorted(materials.items()):
+    print(f"{material} ({data['type']}):")
+    print(f"  Total Area: {data['total_area']:.2f} m²")
+    print(f"  Total Volume: {data['total_volume']:.4f} m³")
+    print(f"  Used in: {data['count']} elements")
+    if data['density'] > 0:
+        weight = data['total_volume'] * data['density']
+        print(f"  Estimated Weight: {weight:.2f} kg")
+```
+
+**Converting to DataFrame for Analysis**
+
+```python lines icon="python"
+import pandas as pd
+
+def materials_to_dataframe(objects):
+    """Convert material quantities to a detailed DataFrame."""
+    rows = []
+    
+    for obj in objects:
+        obj_name = getattr(obj, "name", "Unknown")
+        obj_id = getattr(obj, "id", "")
+        mat_quantities = extract_material_quantities(obj)
+        
+        for material_name, mat_data in mat_quantities.items():
+            row = {
+                "object_name": obj_name,
+                "object_id": obj_id,
+                "material_name": material_name,
+                "material_type": mat_data.get("materialType", ""),
+                "material_category": mat_data.get("materialCategory", ""),
+                "area_m2": mat_data.get("area", {}).get("value", 0),
+                "volume_m3": mat_data.get("volume", {}).get("value", 0),
+                "density_kg_m3": mat_data.get("density", {}).get("value", 0),
+            }
+            
+            # Calculate weight if density is available
+            if row["density_kg_m3"] > 0:
+                row["weight_kg"] = row["volume_m3"] * row["density_kg_m3"]
+            else:
+                row["weight_kg"] = 0
+            
+            rows.append(row)
+    
+    return pd.DataFrame(rows)
+
+# Use it
+df = materials_to_dataframe(all_objects)
+
+# Analyze by material type
+print("Material Summary by Type:")
+summary = df.groupby("material_type").agg({
+    "area_m2": "sum",
+    "volume_m3": "sum",
+    "weight_kg": "sum",
+    "object_id": "count"
+}).rename(columns={"object_id": "element_count"})
+
+print(summary)
+
+# Export for further analysis
+df.to_csv("material_quantities.csv", index=False)
+```
+
+## Complete Example: BIM Building Analysis
+
+```python lines icon="python"
+from specklepy.api import operations
+from specklepy.api.client import SpeckleClient
+from specklepy.transports.server import ServerTransport
+from specklepy.objects import Base
+from specklepy.objects.data_objects import DataObject
+from specklepy.objects.proxies import LevelProxy
+from collections import defaultdict
+import pandas as pd
+
+# 1. Setup and receive
+client = SpeckleClient(host="app.speckle.systems")
+client.authenticate_with_token(token)
+
+project_id = "your_project_id"
+version = client.version.get(project_id, version_id)
+object_id = version.referencedObject
+
+transport = ServerTransport(stream_id=project_id, client=client)
+root = operations.receive(object_id, remote_transport=transport)
+
+print(f"Received: {root.speckle_type}")
+
+# 2. Build applicationId index for level resolution
+def build_applicationid_index(obj):
+    """Build index mapping applicationId to objects."""
+    index = {}
+    
+    def traverse(o):
+        if isinstance(o, Base) and hasattr(o, "applicationId"):
+            if o.applicationId:
+                index[o.applicationId] = o
+        
+        if hasattr(o, "elements") and isinstance(o.elements, list):
+            for element in o.elements:
+                traverse(element)
+        
+        if isinstance(o, Base):
+            for name in o.get_member_names():
+                if not name.startswith("_") and name != "elements":
+                    value = getattr(o, name, None)
+                    traverse(value)
+        elif isinstance(o, list):
+            for item in o:
+                traverse(item)
+    
+    traverse(obj)
+    return index
+
+app_id_index = build_applicationid_index(root)
+print(f"Indexed {len(app_id_index)} objects by applicationId")
+
+# 3. Extract level proxies from root
+def get_level_proxies(obj):
+    """Extract level proxies from root levelProxies."""
+    if hasattr(obj, "levelProxies"):
+        proxies = getattr(obj, "levelProxies")
+        if isinstance(proxies, list):
+            return [p for p in proxies if isinstance(p, LevelProxy)]
+    return []
+
+level_proxies = get_level_proxies(root)
+print(f"Found {len(level_proxies)} levels")
+
+# 4. Build level lookup (applicationId -> level name)
+level_lookup = {}
+for level_proxy in level_proxies:
+    level_name = level_proxy.value.name
+    for app_id in level_proxy.objects:
+        level_lookup[app_id] = level_name
+
+# 5. Find all walls by checking properties
+def find_walls(obj):
+    """Find all walls by checking the properties dictionary."""
+    walls = []
+    
+    def traverse(o):
+        if isinstance(o, DataObject):
+            category = o.properties.get("category", "")
+            if category == "Walls":
+                walls.append(o)
+        
+        if hasattr(o, "elements") and isinstance(o.elements, list):
+            for element in o.elements:
+                traverse(element)
+        elif isinstance(o, Base):
+            for name in o.get_member_names():
+                if not name.startswith("_"):
+                    value = getattr(o, name, None)
+                    traverse(value)
+        elif isinstance(o, list):
+            for item in o:
+                traverse(item)
+    
+    traverse(obj)
+    return walls
+
+walls = find_walls(root)
+print(f"Found {len(walls)} walls")
+
+# 6. Extract properties to DataFrame
+rows = []
+material_summary = {}
+
+for wall in walls:
+    props = extract_properties(wall)
+    
+    row = {
+        "id": wall.id,
+        "application_id": getattr(wall, "applicationId", ""),
+        "name": getattr(wall, "name", ""),
+    }
+    
+    # Extract key properties
+    row["volume"] = props.get("volume", 0)
+    row["area"] = props.get("area", 0)
+    row["function"] = props.get("function", "")
+    row["width"] = props.get("width", 0)
+    
+    # Resolve level from applicationId
+    app_id = getattr(wall, "applicationId", None)
+    if app_id and app_id in level_lookup:
+        row["level"] = level_lookup[app_id]
+    else:
+        row["level"] = "Unknown"
+    
+    # Material quantities
+    materials = extract_material_quantities(wall)
+    for mat_name, mat_data in materials.items():
+        if mat_name.startswith("_"):
+            continue
+        if mat_name not in material_summary:
+            material_summary[mat_name] = {"volume": 0, "area": 0, "count": 0}
+        material_summary[mat_name]["volume"] += mat_data.get("volume", 0)
+        material_summary[mat_name]["area"] += mat_data.get("area", 0)
+        material_summary[mat_name]["count"] += 1
+    
+    rows.append(row)
+
+df = pd.DataFrame(rows)
+
+# 7. Analysis
+print("\n=== Wall Analysis ===")
+print(f"Total walls: {len(df)}")
+print(f"Total volume: {df['volume'].sum():.2f} m³")
+print(f"Total area: {df['area'].sum():.2f} m²")
+
+print("\nBy function:")
+print(df.groupby("function")["area"].sum())
+
+print("\nBy level:")
+by_level = df.groupby("level").agg({
+    "volume": "sum",
+    "area": "sum",
+    "id": "count"
+})
+by_level.columns = ["Total Volume (m³)", "Total Area (m²)", "Count"]
+print(by_level)
+
+# 8. Material Summary
+print("\n=== Material Summary ===")
+for mat_name, totals in material_summary.items():
+    print(f"\n{mat_name}:")
+    print(f"  Volume: {totals['volume']:.2f} m³")
+    print(f"  Area: {totals['area']:.2f} m²")
+    print(f"  Used in: {totals['count']} walls")
+
+# 9. Export results
+df.to_csv("wall_analysis.csv", index=False)
+print("\n✓ Exported to wall_analysis.csv")
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use defensive coding for parameters">
+    Always check if properties exist before accessing:
+    
+    ```python
+    # Good - safe access
+    params = getattr(obj, "parameters", {})
+    instance_params = params.get("Instance Parameters", {})
+    volume = instance_params.get("Volume", {}).get("value", 0)
+    
+    # Bad - will crash if structure differs
+    volume = obj.parameters["Instance Parameters"]["Volume"]["value"]
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle both dict and Base for parameters">
+    Parameters can be dict or Base objects:
+    
+    ```python
+    def safe_get_params(obj):
+        if not hasattr(obj, "parameters"):
+            return {}
+        
+        params = obj.parameters
+        if isinstance(params, dict):
+            return params
+        elif isinstance(params, Base):
+            return params.__dict__
+        return {}
+    ```
+  </Accordion>
+  
+  <Accordion title="Use displayValue for visualization">
+    Don't rely on encodedValue for cross-platform work:
+    
+    ```python
+    # Good - works everywhere
+    if hasattr(obj, "displayValue"):
+        meshes = obj.displayValue if isinstance(obj.displayValue, list) else [obj.displayValue]
+        # Process meshes...
+    
+    # Bad - only works in Rhino
+    if hasattr(obj, "encodedValue"):
+        # Can't use this in other platforms
+    ```
+  </Accordion>
+  
+  <Accordion title="Cache extracted data for performance">
+    Don't re-extract parameters repeatedly:
+    
+    ```python
+    # Good - extract once
+    params_cache = {obj.id: extract_revit_parameters(obj) for obj in objects}
+    
+    # Use cached data
+    for obj in objects:
+        params = params_cache[obj.id]
+        # Process...
+    
+    # Bad - extracts every time
+    for obj in objects:
+        params = extract_revit_parameters(obj)  # Slow!
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Summary
+
+Complex BIM data requires:
+
+- ✅ **Defensive coding** - Check before accessing
+- ✅ **Parameter extraction** - Understand the nested structure
+- ✅ **DisplayValue usage** - For cross-platform visualization
+- ✅ **Traversal patterns** - Find objects in deep hierarchies
+- ✅ **Level awareness** - Group by building levels
+- ✅ **Instance handling** - Understand instance/definition patterns
+
+These patterns work across Revit, Rhino, ArchiCAD, and other BIM tools.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Display Values" icon="eye" href="/developers/sdks/python/concepts/display-values">
+    Deep dive into display values and cross-platform visualization
+  </Card>
+
+  <Card title="Extracting Display Values" icon="cube" href="/developers/sdks/python/guides/working-with-proxies">
+    How to extract geometry from proxified display values and instances
+  </Card>
+
+  <Card title="Data Traversal" icon="diagram-project" href="/developers/sdks/python/concepts/data-traversal">
+    Advanced traversal techniques for any structure
+  </Card>
+  
+  <Card title="Simple Data Patterns" icon="shapes" href="/developers/sdks/python/guides/simple-data-patterns">
+    Working with simpler data structures
+  </Card>
+</CardGroup>

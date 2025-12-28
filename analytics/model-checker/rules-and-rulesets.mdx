@@ -1,0 +1,335 @@
+---
+title: "Rules and Rulesets"
+sidebarTitle: "Rules and Rulesets"
+description: "Learn how to create validation rules and use rulesets in automations."
+---
+
+## Understanding Rule Structure
+
+Each **rule** consists of one or more **conditions** that work together to validate model elements. Rules use a structured logic system:
+
+| Component | Description |
+| --- | --- |
+| **Logic** | How conditions combine: `WHERE` (filter), `AND` (additional filter), `CHECK` (final validation) |
+| **Property Name** | The object property to check (e.g., `category`, `width`, `baseline.length`) |
+| **Predicate** | The comparison operation (`equal to`, `greater than`, `less than`, `exists`, `in list`, etc.) |
+| **Value** | The reference value for comparison |
+| **Message** | Description shown in validation results (auto-generated but can be overwritten) |
+| **Report Severity** | Defines the importance: `ERROR`, `WARNING`, or `INFO` |
+
+<Warning>
+**Important Rule Structure**: Every rule must follow this pattern:
+- Start with a `WHERE` condition to filter objects
+- Add `AND` conditions to further refine the filter (optional)
+- End with a `CHECK` condition that performs the validation
+
+Each rule should only have **one** `CHECK` condition at the end. If you need multiple checks, create separate rules.
+</Warning>
+
+## Creating Your First Rule
+
+### Example: Checking Wall Thickness
+
+Let's create a rule that checks if walls are at least 200 units thick:
+
+1. **WHERE condition**: Filter for walls
+   - Property: `Category`
+   - Predicate: `equal to`
+   - Value: `Walls`
+
+2. **CHECK condition**: Validate thickness
+   - Property: `Width`
+   - Predicate: `less than`
+   - Value: `200`
+   - Severity: `ERROR`
+   - Message: "Wall thickness must be at least 200" (auto-generated, but can be customized)
+
+This rule will flag any wall thinner than 200 units as an error.
+
+### Adding Multiple Conditions
+
+You can add multiple `AND` conditions between `WHERE` and `CHECK` to create more complex filters:
+
+**Example**: Check steel beams that are too long
+- `WHERE` Category = Beams
+- `AND` Material = Steel
+- `CHECK` Length > 5000
+
+## Supported Predicates
+Model Checker supports the following predicates for comparing property values:
+| Predicate | Description | Example |
+| --- | --- | --- |
+| `exists` | Checks if a property exists | `height exists` |
+| `equal to` | Exact value match | `width equal to 300` |
+| `not equal to` | Value doesn't match | `material not equal to Concrete` |
+| `identical to` | Exact match (case-sensitive) | `name identical to Wall-01` |
+| `less than` | Value below threshold | `thickness less than 50` |
+| `greater than` | Value exceeds threshold | `height greater than 3000` |
+| `in range` | Value within bounds | `elevation in range 0,10000` |
+| `in list` | Value in allowed set | `type in list W1,W2,W3` |
+| `contains` | Property contains substring | `name contains Beam` |
+| `does not contain` | Property doesn't contain substring | `name does not contain temp` |
+| `is true` | Boolean property is true | `is_structural is true` |
+| `is false` | Boolean property is false | `is_placeholder is false` |
+| `is like` | Loose text matching (pattern matching) | `name is like Wall` matches "Walls", "Wall-01", etc. |
+## Rule Types
+
+### Property Existence
+Check whether specific properties exist on model elements. Useful for ensuring required data is present.
+
+**Example**: `CHECK` acoustic rating exists
+
+### Pattern Matching
+Validate that property values match specific patterns or formats. For example, ensure element names follow a naming convention.
+
+**Example**: Use `is like` for pattern matching or `contains` for substring matching.
+
+### Numeric Comparisons
+Compare numeric property values against thresholds or ranges. Check that dimensions, areas, or other measurements meet requirements.
+
+**Examples**:
+- `greater than` - Values above a threshold
+- `less than` - Values below a threshold
+- `in range` - Values between two numbers
+
+### Value Validation
+Verify that properties contain expected values or fall within acceptable ranges.
+
+**Examples**:
+- `equal to` - Exact match
+- `in list` - Match any value in a comma-separated list
+- `not equal to` - Exclude exact matches
+- `identical to` - Exact match (case-sensitive)
+
+## Rule Messages
+
+Rule messages are **auto-generated** to help validate the logic you are testing for. The auto-generated message describes what the rule is checking, making it easier to understand the validation logic.
+
+You can **overwrite** the auto-generated message with a custom message if you want to provide more specific guidance or context.
+
+<Tip>
+Auto-generated messages help ensure your rules are clear and understandable. Consider customizing them when you need to provide specific instructions or context for your team.
+</Tip>
+
+## Best Practices
+
+### Use Specific Property Paths
+Use exact property paths for accurate validation. The Model Checker understands properties in Speckle objects regardless of schema:
+
+- **Direct properties**: `category`, `name`, `id`
+- **Nested properties**: `baseline.length`, `parameters.WIDTH.value`
+- **Revit parameters**: Use parameter names like `Mark`, `Width`, `Assembly Code`
+
+<Tip>
+If a property like `Length` exists in multiple locations within an object's properties, specifying `baseline.length` ensures the correct value is checked.
+</Tip>
+
+### Set Appropriate Severity Levels
+- **ERROR**: Critical issues that must be fixed (e.g., "Wall thickness must be at least 200")
+- **WARNING**: Moderate concerns that should be reviewed (e.g., "Height should be no more than 3000")
+- **INFO**: Informational notifications (e.g., "Material is Concrete")
+
+### Write Clear Messages
+When customizing messages, make them actionable and specific. Avoid vague terms like "Wall thickness check" and instead say "Wall thickness must be at least 200mm."
+
+### Examples of Good vs. Bad Messages
+
+| Rule Condition | Bad Message ❌ | Better Message ✅ |
+| --- | --- | --- |
+| `Width less than 200` and `ERROR` | "Wall thickness check" | "Wall thickness must be at least 200" |
+| `Height greater than 3000` and `WARNING` | "Height check" | "Height should be no more than 3000" |
+| `Material equal to "Concrete"` and `INFO` | "Material info" | "Material is Concrete" |
+
+## Common Rule Patterns
+
+### Filter by Category
+```
+WHERE Category = Walls
+CHECK [validation condition]
+```
+
+### Multiple Filters
+```
+WHERE Category = Beams
+AND Material = Steel
+CHECK Length > 5000
+```
+
+### Property Existence Check
+```
+WHERE Category = Windows
+CHECK acoustic rating exists
+```
+
+### Value Range Check
+```
+WHERE Category = Walls
+CHECK Width in range 200,400
+```
+
+### Door Naming Convention
+```
+WHERE Category = Doors
+CHECK name is like ^D\d{3}$
+```
+This rule ensures all doors follow a naming convention (e.g., "D001", "D123").
+
+### Structural Column Height Range
+```
+WHERE Category = Columns
+AND is_structural is true
+CHECK height not in range 2400,4000
+```
+This rule checks that structural columns have heights between 2400 and 4000 units.
+
+## Exporting Rulesets
+
+### Getting Your Ruleset URL
+
+Once you've created a ruleset:
+
+1. Navigate to your project's rulesets page
+2. Find the ruleset you want to use
+3. Click **Copy Link** to get the URL for your ruleset
+
+This URL is a permanent link to your ruleset. When you update your rules in Model Checker, the URL automatically reflects the latest version.
+
+<Tip>
+The ruleset URL automatically updates when you modify your rules. You don't need to regenerate the URL or update your automation configuration.
+</Tip>
+
+### Exporting
+
+Rulesets can also be exported as files for backup or sharing:
+
+1. Navigate to your project's rulesets page
+2. Find the ruleset you want to export
+3. Use the export option to download the ruleset
+
+<Info>
+Exported files use the TSV (Tab-Separated Values) format. TSV files can be imported back into Model Checker or shared with other projects or teams.
+</Info>
+
+## Using Rulesets in Automations
+
+### Setting Up Model Checker Automation
+
+1. Copy the ruleset URL from Model Checker
+2. In Speckle Automate, create a new automation
+3. Select the **Model Checker** function
+4. Paste the ruleset URL into the configuration
+5. Configure which models or projects should be checked
+
+The automation will automatically use the latest version of your rules whenever the URL is accessed.
+
+### How It Works
+
+When you publish a model to Speckle:
+1. The Model Checker automation is triggered
+2. It fetches your rules from the ruleset URL
+3. It validates the model against all rules in the ruleset
+4. Results are stored and can be viewed in the 3D viewer
+
+## Importing Rules
+
+If you have existing rules in a file, you can import them into Model Checker:
+
+1. Navigate to your project's rulesets page
+2. Click **Import**
+3. Provide a name and description for the imported ruleset
+4. Upload your file
+
+<Info>
+Imported files should use the TSV (Tab-Separated Values) format. The file should have the following columns:
+</Info>
+
+<Warning>
+**TSV File Hosting**: If you're creating TSV files manually (outside of the Model Checker UI), the file must be hosted somewhere and served with the MIME-type `text/tab-separated-values`. The URL to this hosted file can then be used in automation configurations.
+</Warning>
+### File Format
+
+The file format should have the following columns:
+- **Rule Number** - Groups conditions into a single rule
+- **Logic** - WHERE, AND, or CHECK
+- **Property Name** - The object property to check
+- **Predicate** - The comparison operation
+- **Value** - The reference value for comparison
+- **Report Severity** - ERROR, WARNING, or INFO
+- **Message** - Description shown in validation results
+
+### Example File
+
+```
+Rule Number	Logic	Property Name	Predicate	Value	Report Severity	Message
+1	WHERE	Category	equal to	Walls		
+1	CHECK	Width	less than	200	ERROR	Wall thickness must be at least 200
+2	WHERE	Category	equal to	Beams		
+2	AND	Material	equal to	Steel		
+2	CHECK	Length	greater than	5000	WARNING	Steel beams should not exceed 5000 in length
+```
+
+## Managing Multiple Rulesets
+
+You can create multiple rulesets for a single project. This is useful for organizing different types of validation checks:
+
+- **Building Code Compliance** - Rules for code requirements
+- **Naming Conventions** - Rules for element naming standards
+- **Material Standards** - Rules for material specifications
+- **Dimensional Checks** - Rules for size and dimension validation
+
+Each ruleset can be used independently in automations, allowing you to run different validation checks on the same models.
+
+## Updating Rules
+
+When you update rules in Model Checker:
+
+1. Make changes to your rules in the Model Checker interface
+2. The ruleset URL automatically reflects the latest version
+3. Your automations will use the updated rules without needing to reconfigure
+
+No need to update automation configurations or regenerate URLs.
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+<Accordion title="Can I use the auto-generated message as-is?">
+Yes, the auto-generated messages are designed to be clear and helpful. You can use them as-is or customize them to provide more specific guidance for your team.
+</Accordion>
+<Accordion title="What if I need to check multiple properties in one rule?">
+You can add multiple `AND` conditions between `WHERE` and `CHECK` to filter by multiple properties. However, the `CHECK` condition should validate a single property. If you need to check multiple properties, create separate rules.
+</Accordion>
+<Accordion title="How do I know which property path to use?">
+Use the exact property path as it appears in your model data. If you're unsure, you can explore your model's properties in the 3D viewer or use the property search in Model Checker to find the correct path.
+</Accordion>
+<Accordion title="Can I use the same ruleset URL in multiple automations?">
+Yes, you can use the same ruleset URL in multiple automations. All automations will use the latest version of your rules whenever they run.
+</Accordion>
+<Accordion title="What happens if I delete a ruleset?">
+If you delete a ruleset, any automations using that ruleset's URL will no longer be able to fetch the rules. Make sure to update or remove those automations.
+</Accordion>
+<Accordion title="Do I need to update my automation when I change rules?">
+No, the ruleset URL automatically reflects the latest version of your rules. Your automations will use the updated rules without needing to reconfigure.
+</Accordion>
+<Accordion title="Can I share exported files with other teams?">
+Yes, exported files can be shared with other teams or imported into other projects. This makes it easy to standardize validation rules across projects.
+</Accordion>
+<Accordion title="Why TSV and not CSV?">
+TSV (Tab-Separated Values) is used instead of CSV (Comma-Separated Values) to cope with commas that may be present in properties or messages. TSV is the same as CSV but uses tabs in place of commas to separate values, preventing issues when property values or messages contain commas.
+</Accordion>
+<Accordion title="Can I create the file in Excel?">
+Yes, you can create TSV files in Excel. When saving, choose "Tab delimited" or "Text (Tab delimited)" as the file format. Make sure to save with the .tsv extension.
+</Accordion>
+<Accordion title="How does Model Checker relate to IDS (Information Delivery Specification)?">
+IDS (Information Delivery Specification) is designed for IFC model checking, but IDS rules can be applied to all Speckle models regardless of their source format. However, there are important differences:
+
+- **IDS checks for rules that relate to assembly membership** - IDS can validate relationships between elements and their assemblies
+- **Model Checker is isolated to the data within an element** - Model Checker focuses on validating properties and data within individual elements, not relationships between elements
+
+Future updates will include the ability to import IDS files and convert applicable rules to Speckle Model Checker format.
+</Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+- See how to [view and analyze results](/analytics/model-checker/viewing-results)
+

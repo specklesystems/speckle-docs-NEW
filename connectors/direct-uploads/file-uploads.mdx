@@ -1,85 +1,196 @@
 ---
-title: IFC and File Imports  
-description: "How to upload files directly to Speckle"
+title: "File uploads"
+description: "Upload files directly to your Speckle projects and view them in your browser—no desktop software or connector needed."
 ---
 
-import Versions from "/snippets/versions.mdx";
+## When to use file uploads
+
+Upload files directly when you:
+
+- Need to convert IFC data to Speckle format
+- Don't have the source application or license
+- Want to view a model quickly in your browser
+- Receive files from collaborators who don't use Speckle connectors
+- Work with file formats that don't have a dedicated Speckle connector
+
+## Upload a file
 
 <Info>
-  Supported file formats: **IFC, STL & OBJ**.
+  **Upload limits:** Maximum file size is 1000 MB for all plans and formats
 </Info>
 
-<Versions app="IFC" versions="IFC2x3, IFC4 & IFC4x3" />
-
-Our file import feature makes it easy for you to drag and drop files directly into your Speckle project.
-Use the **file import** method when:
-- you want IFC data in Speckle format
-- there is no Speckle connector available for your app
-- you can't or don't want to open a desktop software to view a model in your browser
-- you have a file from a collaborator who isn't using Speckle.
-
-<Note>IFC and file uploads is a beta functionality currently in development</Note>
-
-
-### Getting Started
-
 <Steps>
-  <Step title="Create a new project">
-    You will see a prompt to upload a file or publish from a connector.
+  <Step title="Create a project">
+    Select the option to upload a file.
+
     <Frame>
-    <img src="/images/files/file-upload.png" alt="upload" />
+      ![Upload file option](/images/files/file-upload.png)
     </Frame>
   </Step>
+  <Step title="Add your file">
+    Drag and drop your file into the project. Speckle creates a new model with the file name.
 
-  <Step title="Drag and drop your file">
-    Drag and drop the file on the project to initiate the upload, a new model will be created with the file name.
     <Frame>
-    <img src="/images/files/file-uploading.png" alt="uploading" />
+      ![File uploading progress](/images/files/file-uploading.png)
     </Frame>
   </Step>
-
   <Step title="Upload new versions">
+    To upload updated versions, select the dropdown menu on the model.
 
-   Use the dropdown menu on the model to upload new versions.
     <Frame>
-    <img src="/images/files/file-new_version.png" alt="new version" />
+      ![Upload new version option](/images/files/file-new_version.png)
     </Frame>
   </Step>
-
 </Steps>
 
-### General FAQ
-<Note>Please note, file downloads are currently not possible.</Note>
+## Supported file formats
+
+Speckle supports the following file formats:
+
+| Format                        | Extension | Status      |
+| ----------------------------- | --------- | ----------- |
+| IFC                           | .ifc      | ✔︎          |
+| Rhinoceros 3D                 | .3dm      | ✔︎          |
+| SketchUp                      | .skp      | ✔︎          |
+| AutoCAD                       | .dwg      | ✔︎          |
+| Drawing Exchange Format       | .dxf      | ✔︎          |
+| MicroStation                  | .dgn      | ✔︎          |
+| 3D Studio                     | .3ds      | ✔︎          |
+| SolidWorks Part               | .sldprt   | ✔︎          |
+| STEP                          | .stp      | ✔︎          |
+| STEP                          | .step     | ✔︎          |
+| Point Cloud                   | .e57      | ✔︎          |
+| 3D Manufacturing Format       | .3mf      | ✔︎          |
+| Additive Manufacturing Format | .amf      | ✔︎          |
+| Filmbox                       | .fbx      | ✔︎          |
+| IGES                          | .igs      | ✔︎          |
+| IGES                          | .iges     | ✔︎          |
+| Wavefront                     | .obj      | ✔︎          |
+| Polygon File Format           | .ply      | ✔︎          |
+| DirectX                       | .x        | ✔︎          |
+| Revit                         | .rvt      | ✔︎ |
+
+### Unit Conversion
+
+For several file formats, the Unit system of the source file will be automatically detected and preserved when sending through Speckle.
+
+- IFC ✔︎
+- 3dm ✔︎
+- DGN ✔︎
+- SKP ✔︎
+- STP ✔︎
+- FBX ✔︎
+
+Other formats have a different behaviour:
+
+| **Format** | **Behaviour**                |
+| ---------- | ---------------------------- |
+| DWG        | Geometry is scaled to meters |
+| 3DS        | Assuming file is in cm       |
+| OBJ        | Assuming file is in mm       |
+
+## File format details
+
+### IFC
+
+IFC files are converted to Speckle format with support for attributes, property sets, and quantities.
+
+<Info>
+  **Supported versions:** IFC2x3, IFC4
+</Info>
+
+<Check>
+  **Features**
+
+  - Element and element type attributes
+  - Property sets
+  - Element quantities
+  - **IFCSpaces** are published as volumetric geometry
+</Check>
+
+<Info>
+  **Known limitations**
+
+  - IFC2x2_FINAL and Release Candidate versions aren't supported
+  - Alternative formats such as XML, ZIP, and databases aren't supported
+  - 2D types like IfcAnnotation aren't currently supported
+</Info>
+
+### Rhino (3DM)
+
+Rhino files maintain geometry and layer structure when uploaded.
+
+<Note>
+  For better results with 3dm files, use the [Rhino connector](/connectors/rhino) when possible.
+</Note>
+
+<Info>
+  **Known limitations**
+
+  - Rhino 9 files aren't supported
+  - Dynamic text isn't supported
+</Info>
+
+### SketchUp (SKP)
+
+SketchUp models are converted with geometry and basic organization preserved.
+
+<Note>
+  For better results with SketchUp files, use the [SketchUp connector](/connectors/sketchup) when possible.
+</Note>
+
+<Info>
+  **Known limitations**
+
+  - Attributes aren't imported
+  - Dynamic components may not transfer correctly
+</Info>
+
+### DWG and DXF
+
+Upload AutoCAD drawing files directly. Results may vary depending on file complexity.
+
+<Note>
+  For better results with DWG files, use the [AutoCAD connector](/connectors/autocad) when possible.
+</Note>
+
+<Info>
+  **Known limitations**
+
+  - Large files may take longer to process
+  - Dynamic text isn't supported
+</Info>
+
+### Wavefront (OBJ)
+
+OBJ files are converted with geometry preserved.
+
+<Info>
+  **Known limitations**
+
+  - Materials aren't supported
+</Info>
+
+## Frequently asked questions
 
 <AccordionGroup>
-  <Accordion title="Will you support other formats for direct upload?">
-    We are currently limited to open-source formats because of licensing restrictions. If there are other formats you would like to see supported, please let us know.
+  <Accordion title="Can I download uploaded files?">
+    Yes, file downloads are available. To download a file
+
+    1. Select the dropdown menu (**...**) on the model.
+    2. Select **View uploads**.
+    3. Select **Download** next to the version you want.
   </Accordion>
   <Accordion title="My file is too large to upload">
-    The limits on file uploads are currently 100MB for all plans and all formats.
+    The limits on file uploads are currently **1000MB** for all plans and all formats.
   </Accordion>
-  <Accordion title="I have uploaded a file but it's not visible or still processing.">
-    We use a queue system to process files, so it can take awhile to generate the Speckle model after you upload your file.
-    If you do not see your model after a long time, this may be caused by faulty items inside your file.
-    Please report your problem in our [Community Forum](https://speckle.community/c/help) and include the following information:
-    - Your file type and version (if applicable)
-    - Your failed file (if possible)
-  </Accordion>
-</AccordionGroup>
+  <Accordion title="Why is my file stuck processing?">
+    We use a queue system to process files, so it can take awhile to generate the Speckle model after you upload your file. If you do not see your model after a long time, this may be caused by faulty items inside your file. Please report your problem in our [Community Forum](https://speckle.community/c/help) and include the following information:
 
-
-### IFC FAQ
-<AccordionGroup>
-  <Accordion title="Will you support IFC versions other than IFC2x3, IFC4 & IFC4x3?">
-    We currently support whatever formats the [web-ifc project](https://thatopen.github.io/engine_web-ifc/docs/) supports which Speckle uses under the hood.
+    - Your file type and version
+    - Your failed file
   </Accordion>
-  <Accordion title="Why are some objects missing in my IFC file?">
-    2D types such as IfcAnnotation are not supported currently.
-  </Accordion>
-  <Accordion title="Are objects uploaded with their type properties?">
-    Yes, IFC uploaded objects include element type properties.
-  </Accordion>
-  <Accordion title="Why are the units different in my uploaded IFC model?">
-    To handle unit compatibility with other Speckle models, all uploaded IFC models are converted to meters.
+  <Accordion title="Will you support additional formats?">
+    We're always looking to expand format support. Let us know which formats you'd like to see in future releases.
   </Accordion>
 </AccordionGroup>

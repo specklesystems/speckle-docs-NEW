@@ -16,7 +16,13 @@ This repository contains the official documentation for Speckle. The goal is to 
 * **Publishing & Loading (formerly Connectors)**
   Each connector follows the same skeleton: installation, sign-in, day-0 tasks (send/receive), followed by FAQs and troubleshooting.
 
-  We deliberately describe this section as **Publishing & Loading** rather than “Connectors.” This keeps the docs user-first and purpose-driven: users think in terms of publishing data into Speckle or loading it into another tool, not in terms of underlying plumbing. It frames the outcome (why) rather than the mechanism (how).
+  We deliberately describe this section as **Publishing & Loading** rather than "Connectors." This keeps the docs user-first and purpose-driven: users think in terms of publishing data into Speckle or loading it into another tool, not in terms of underlying plumbing. It frames the outcome (why) rather than the mechanism (how).
+
+  **Connector Documentation Structure:**
+  - Use main page sections for step-by-step guides (e.g., "Setting up Data Gateway")
+  - Use accordions for FAQs and troubleshooting questions
+  - Import and use standard components: `<Setup>`, `<Load>`, `<Publish>`, `<SetupFaq>`, `<LoadFaq>`, `<PublishFaq>`
+  - Avoid "How to do X" accordion titles that contain step-by-step instructions—these should be main sections instead
 
 ## Tone
 
@@ -26,9 +32,13 @@ This repository contains the official documentation for Speckle. The goal is to 
 
 ## FAQs, Best Practices, and Tips
 
-* **FAQs**: Maintained as the first stop for common issues and questions. They should be phrased in user language, short and atomic, and cover both obvious and edge-case scenarios.
+* **FAQs**: Maintained as the first stop for common issues and questions. They should be phrased in user language, short and atomic, and cover both obvious and edge-case scenarios. Use accordions for FAQs—they should answer specific questions, not provide step-by-step guides.
 * **Best Practices**: Principles and recommendations that help users avoid pitfalls and make good choices. They should read as guidance, not rigid rules.
 * **Tips & Tricks**: Small, optional enhancements or shortcuts. Presented as quick callouts, not workflows, and always optional to the main path.
+
+**When to use accordions vs. main sections:**
+- **Accordions**: For FAQs, troubleshooting questions, and quick reference information
+- **Main sections**: For step-by-step guides, detailed procedures, and comprehensive workflows
 
 ## Guardrails
 
@@ -51,18 +61,9 @@ Connector pages are naturally more detailed because they must cover multiple hos
 
 ### Development
 
-Ensure you have node 19 or above.
-Install the [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview the documentation changes locally:
-
-```bash
-npm i -g mintlify
-```
-
-Run the following command at the root of your documentation (where `docs.json` is):
-
-```bash
-mintlify dev
-```
+* Ensure you have node 19 or above.
+* `npm i` to install dependencies
+* `npm run dev` to start the local dev server
 
 ### Publishing Changes
 
