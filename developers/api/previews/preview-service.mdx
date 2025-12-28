@@ -3,114 +3,121 @@ title: "Preview Service"
 description: "Generate preview images for Speckle models and versions"
 ---
 
-The preview service generates image previews for Speckle models and versions. Previews are generated asynchronously and cached.
+## What this is
 
-## Endpoints
+Preview service makes image previews for projects, models, versions, and objects. Returns PNG files. If preview not ready, returns placeholder image.
 
-All preview endpoints return image files (PNG). If no preview exists, a placeholder image is returned.
+## When to use it
 
-<Note>
-The API endpoints use legacy parameter names (`streamId`, `branchName`, `commitId`) in the URL path for backward compatibility. These correspond to project ID, model name, and version ID in modern Speckle terminology.
-</Note>
+Use when you need preview images in your app. Previews generate in background. Cached after first generation.
 
-### Get Project Preview
+## When not to use it
 
-Returns preview for the latest version in a project.
+Do not use for real-time rendering. Previews are static images. Do not use if you need interactive 3D views.
+
+## The simplest working example
+
+Get preview for latest version in a project:
+
+```bash
+curl https://YOUR_SERVER_URL/preview/abc123
+```
+
+Returns PNG image. Replace `abc123` with your project ID.
+
+## Notes for real projects
+
+### Endpoints
+
+All endpoints return PNG images. If preview missing, placeholder image returned.
+
+URLs use old names (`streamId`, `branchName`, `commitId`) for backward compatibility. These mean project ID, model name, and version ID.
+
+### Get project preview
+
+Latest version in project:
 
 ```bash
 GET /preview/{streamId}/{angle?}
 ```
 
-**Parameters:**
-- `streamId` (required): Project ID (legacy parameter name)
-- `angle` (optional): View angle (e.g., `iso`, `top`, `front`)
+- `streamId`: Project ID (required)
+- `angle`: View angle like `iso`, `top`, `front` (optional)
 
-**Example:**
 ```bash
 curl https://YOUR_SERVER_URL/preview/abc123
 ```
 
-### Get Model Preview
+### Get model preview
 
-Returns preview for the latest version in a model.
+Latest version in specific model:
 
 ```bash
 GET /preview/{streamId}/branches/{branchName}/{angle?}
 ```
 
-Conceptually equivalent to: `GET /preview/{projectId}/branches/{modelName}/{angle?}`
+- `streamId`: Project ID (required)
+- `branchName`: Model name (required)
+- `angle`: View angle (optional)
 
-**Parameters:**
-- `streamId` (required): Project ID (legacy parameter name)
-- `branchName` (required): Model name (legacy parameter name)
-- `angle` (optional): View angle
-
-**Example:**
 ```bash
 curl https://YOUR_SERVER_URL/preview/abc123/branches/main
 ```
 
-### Get Version Preview
+### Get version preview
 
-Returns preview for a specific version.
+Specific version:
 
 ```bash
 GET /preview/{streamId}/commits/{commitId}/{angle?}
 ```
 
-**Parameters:**
-- `streamId` (required): Project ID (legacy parameter name)
-- `commitId` (required): Version ID (legacy parameter name)
-- `angle` (optional): View angle
+- `streamId`: Project ID (required)
+- `commitId`: Version ID (required)
+- `angle`: View angle (optional)
 
-**Example:**
 ```bash
 curl https://YOUR_SERVER_URL/preview/abc123/commits/def456
 ```
 
-### Get Object Preview
+### Get object preview
 
-Returns preview for a specific object.
+Specific object:
 
 ```bash
 GET /preview/{streamId}/objects/{objectId}/{angle?}
 ```
 
-**Parameters:**
-- `streamId` (required): Project ID (legacy parameter name)
-- `objectId` (required): Object ID
-- `angle` (optional): View angle
+- `streamId`: Project ID (required)
+- `objectId`: Object ID (required)
+- `angle`: View angle (optional)
 
-**Example:**
 ```bash
 curl https://YOUR_SERVER_URL/preview/abc123/objects/ghi789
 ```
 
-## Authentication
+### Authentication
 
-Preview endpoints respect project permissions. Include authentication token if accessing private projects:
+Private projects need auth token:
 
 ```bash
-Authorization: Bearer YOUR_TOKEN
+curl -H "Authorization: Bearer YOUR_TOKEN" https://YOUR_SERVER_URL/preview/abc123
 ```
 
-## Self-Hosted Setup
+Public projects work without token.
 
-For self-hosted instances, the preview service must be running and connected to your server.
+### Self-hosted setup
 
-The service reads jobs from a Redis queue and generates previews using Puppeteer. Configure the preview service with:
+Preview service must run separately. Needs:
 
-- Redis connection for job queue
-- Database connection to access object data
+- Redis for job queue
+- Database connection
 - Server URL for fetching objects
 
-See server deployment documentation for setup details.
+Service reads jobs from Redis. Generates previews with Puppeteer. Caches results.
 
-## Speckle Cloud
+See server deployment docs for setup.
 
-For models hosted on Speckle Cloud (app.speckle.systems), the preview service is already configured and available. No additional setup required.
+### Speckle Cloud
 
-<Note>
-The API endpoints are identical between the open source core and Speckle Cloud. The internal implementation includes additional features like multi-region blob storage support, but the API interface remains the same.
-</Note>
-
+Speckle Cloud (app.speckle.systems) has preview service running. No setup needed. API same as self-hosted.
