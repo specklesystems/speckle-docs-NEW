@@ -5,44 +5,44 @@ description: "Generate preview images for Speckle models and versions"
 
 ## What this is
 
-Preview service makes image previews for projects, models, versions, and objects. Returns PNG files. If preview not ready, returns placeholder image.
+The preview service generates image previews for projects, models, versions, and objects. The service returns PNG files. If a preview is not ready, the service returns a placeholder image.
 
 ## When to use it
 
-Use when you need preview images in your app. Previews generate in background. Cached after first generation.
+Use the preview service when you need preview images in your application. Previews are generated in the background. They are cached after the first generation.
 
 ## When not to use it
 
-Do not use for real-time rendering. Previews are static images. Do not use if you need interactive 3D views.
+Do not use the preview service for real-time rendering. Previews are static images. Do not use the preview service if you need interactive 3D views.
 
 ## The simplest working example
 
-Get preview for latest version in a project:
+Get the preview for the latest version in a project:
 
 ```bash
 curl https://YOUR_SERVER_URL/preview/abc123
 ```
 
-Returns PNG image. Replace `abc123` with your project ID.
+The endpoint returns a PNG image. Replace `abc123` with your project ID.
 
 ## Notes for real projects
 
 ### Endpoints
 
-All endpoints return PNG images. If preview missing, placeholder image returned.
+All endpoints return PNG images. If a preview is missing, a placeholder image is returned.
 
-URLs use old names (`streamId`, `branchName`, `commitId`) for backward compatibility. These mean project ID, model name, and version ID.
+The URLs use legacy parameter names (`streamId`, `branchName`, `commitId`) for backward compatibility. These correspond to project ID, model name, and version ID in modern Speckle terminology.
 
 ### Get project preview
 
-Latest version in project:
+Returns the preview for the latest version in a project:
 
 ```bash
 GET /preview/{streamId}/{angle?}
 ```
 
 - `streamId`: Project ID (required)
-- `angle`: View angle like `iso`, `top`, `front` (optional)
+- `angle`: View angle such as `iso`, `top`, or `front` (optional)
 
 ```bash
 curl https://YOUR_SERVER_URL/preview/abc123
@@ -50,7 +50,7 @@ curl https://YOUR_SERVER_URL/preview/abc123
 
 ### Get model preview
 
-Latest version in specific model:
+Returns the preview for the latest version in a specific model:
 
 ```bash
 GET /preview/{streamId}/branches/{branchName}/{angle?}
@@ -66,7 +66,7 @@ curl https://YOUR_SERVER_URL/preview/abc123/branches/main
 
 ### Get version preview
 
-Specific version:
+Returns the preview for a specific version:
 
 ```bash
 GET /preview/{streamId}/commits/{commitId}/{angle?}
@@ -82,7 +82,7 @@ curl https://YOUR_SERVER_URL/preview/abc123/commits/def456
 
 ### Get object preview
 
-Specific object:
+Returns the preview for a specific object:
 
 ```bash
 GET /preview/{streamId}/objects/{objectId}/{angle?}
@@ -98,26 +98,26 @@ curl https://YOUR_SERVER_URL/preview/abc123/objects/ghi789
 
 ### Authentication
 
-Private projects need auth token:
+Private projects require an authentication token:
 
 ```bash
 curl -H "Authorization: Bearer YOUR_TOKEN" https://YOUR_SERVER_URL/preview/abc123
 ```
 
-Public projects work without token.
+Public projects work without a token.
 
 ### Self-hosted setup
 
-Preview service must run separately. Needs:
+The preview service must run separately. It requires:
 
-- Redis for job queue
-- Database connection
-- Server URL for fetching objects
+- Redis for the job queue
+- A database connection
+- The server URL for fetching objects
 
-Service reads jobs from Redis. Generates previews with Puppeteer. Caches results.
+The service reads jobs from Redis. It generates previews with Puppeteer and caches the results.
 
-See server deployment docs for setup.
+See the server deployment documentation for setup details.
 
 ### Speckle Cloud
 
-Speckle Cloud (app.speckle.systems) has preview service running. No setup needed. API same as self-hosted.
+Speckle Cloud (app.speckle.systems) has the preview service running. No setup is needed. The API is the same as self-hosted.
