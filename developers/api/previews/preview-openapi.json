@@ -1,0 +1,401 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Speckle Preview Service API",
+    "description": "REST API for generating preview images of Speckle models and versions. The preview service generates image previews asynchronously and caches them for fast retrieval.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Speckle Support",
+      "url": "https://speckle.community"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://app.speckle.systems",
+      "description": "Speckle Cloud (Production)"
+    },
+    {
+      "url": "https://YOUR_SERVER_URL",
+      "description": "Self-hosted instance (replace with your server URL)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Personal access token. Required for private projects. Get your token from your Speckle profile settings."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/preview/{streamId}": {
+      "get": {
+        "summary": "Get Project Preview",
+        "description": "Returns a preview image for the latest version in a project. If no preview exists, a placeholder image is returned.",
+        "operationId": "getProjectPreview",
+        "tags": ["Previews"],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID (legacy name: streamId)"
+          },
+          {
+            "name": "angle",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["iso", "top", "front", "side"]
+            },
+            "description": "Optional view angle for the preview"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preview image (PNG)",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing authentication token",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "description": "Error placeholder image"
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "description": "Error placeholder image"
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found or no preview available",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "description": "No preview placeholder image"
+              }
+            }
+          }
+        },
+        "x-mint": {
+          "content": "## Notes\n\nThe API endpoints use `streamId` in the URL path for backward compatibility. In modern Speckle terminology, this refers to a project ID.\n\nIf no preview exists for the project, a placeholder image is returned instead of an error."
+        }
+      }
+    },
+    "/preview/{streamId}/branches/{branchName}": {
+      "get": {
+        "summary": "Get Model Preview",
+        "description": "Returns a preview image for the latest version in a model (branch). If no preview exists, a placeholder image is returned.",
+        "operationId": "getModelPreview",
+        "tags": ["Previews"],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID (legacy name: streamId)"
+          },
+          {
+            "name": "branchName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Model name (legacy name: branchName)"
+          },
+          {
+            "name": "angle",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["iso", "top", "front", "side"]
+            },
+            "description": "Optional view angle for the preview"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preview image (PNG)",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing authentication token",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "description": "Error placeholder image"
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "description": "Error placeholder image"
+              }
+            }
+          },
+          "404": {
+            "description": "Model not found or no preview available",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "description": "No preview placeholder image"
+              }
+            }
+          }
+        },
+        "x-mint": {
+          "content": "## Notes\n\nThe `branchName` parameter refers to a model name in modern Speckle terminology."
+        }
+      }
+    },
+    "/preview/{streamId}/commits/{commitId}": {
+      "get": {
+        "summary": "Get Version Preview",
+        "description": "Returns a preview image for a specific version (commit). If no preview exists, a placeholder image is returned.",
+        "operationId": "getVersionPreview",
+        "tags": ["Previews"],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID (legacy name: streamId)"
+          },
+          {
+            "name": "commitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Version ID (legacy name: commitId)"
+          },
+          {
+            "name": "angle",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["iso", "top", "front", "side"]
+            },
+            "description": "Optional view angle for the preview"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preview image (PNG)",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing authentication token",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "description": "Error placeholder image"
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "description": "Error placeholder image"
+              }
+            }
+          },
+          "404": {
+            "description": "Version not found or no preview available",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "description": "No preview placeholder image"
+              }
+            }
+          }
+        },
+        "x-mint": {
+          "content": "## Notes\n\nThe `commitId` parameter refers to a version ID in modern Speckle terminology."
+        }
+      }
+    },
+    "/preview/{streamId}/objects/{objectId}": {
+      "get": {
+        "summary": "Get Object Preview",
+        "description": "Returns a preview image for a specific object. If no preview exists, a placeholder image is returned.",
+        "operationId": "getObjectPreview",
+        "tags": ["Previews"],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID (legacy name: streamId)"
+          },
+          {
+            "name": "objectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Object ID"
+          },
+          {
+            "name": "angle",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["iso", "top", "front", "side"]
+            },
+            "description": "Optional view angle for the preview"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preview image (PNG)",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing authentication token",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "description": "Error placeholder image"
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "description": "Error placeholder image"
+              }
+            }
+          },
+          "404": {
+            "description": "Object not found or no preview available",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "description": "No preview placeholder image"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

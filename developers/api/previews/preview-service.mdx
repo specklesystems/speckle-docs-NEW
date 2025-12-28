@@ -1,0 +1,114 @@
+---
+title: "Preview Service"
+description: "Generate preview images for Speckle models and versions"
+---
+
+The preview service generates image previews for Speckle models and versions. Previews are generated asynchronously and cached.
+
+## Endpoints
+
+All preview endpoints return image files (PNG). If no preview exists, a placeholder image is returned.
+
+<Note>
+The API endpoints use `streamId` in the URL path for backward compatibility. In modern Speckle terminology, this refers to a project ID.
+</Note>
+
+### Get Project Preview
+
+Returns preview for the latest version in a project.
+
+```bash
+GET /preview/{streamId}/{angle?}
+```
+
+**Parameters:**
+- `streamId` (required): Project ID
+- `angle` (optional): View angle (e.g., `iso`, `top`, `front`)
+
+**Example:**
+```bash
+curl https://YOUR_SERVER_URL/preview/abc123
+```
+
+### Get Model Preview
+
+Returns preview for the latest version in a model.
+
+```bash
+GET /preview/{streamId}/branches/{branchName}/{angle?}
+```
+
+**Parameters:**
+- `streamId` (required): Project ID
+- `branchName` (required): Model name
+- `angle` (optional): View angle
+
+**Example:**
+```bash
+curl https://YOUR_SERVER_URL/preview/abc123/branches/main
+```
+
+### Get Version Preview
+
+Returns preview for a specific version.
+
+```bash
+GET /preview/{streamId}/commits/{commitId}/{angle?}
+```
+
+**Parameters:**
+- `streamId` (required): Project ID
+- `commitId` (required): Version ID
+- `angle` (optional): View angle
+
+**Example:**
+```bash
+curl https://YOUR_SERVER_URL/preview/abc123/commits/def456
+```
+
+### Get Object Preview
+
+Returns preview for a specific object.
+
+```bash
+GET /preview/{streamId}/objects/{objectId}/{angle?}
+```
+
+**Parameters:**
+- `streamId` (required): Project ID
+- `objectId` (required): Object ID
+- `angle` (optional): View angle
+
+**Example:**
+```bash
+curl https://YOUR_SERVER_URL/preview/abc123/objects/ghi789
+```
+
+## Authentication
+
+Preview endpoints respect project permissions. Include authentication token if accessing private projects:
+
+```bash
+Authorization: Bearer YOUR_TOKEN
+```
+
+## Self-Hosted Setup
+
+For self-hosted instances, the preview service must be running and connected to your server.
+
+The service reads jobs from a Redis queue and generates previews using Puppeteer. Configure the preview service with:
+
+- Redis connection for job queue
+- Database connection to access object data
+- Server URL for fetching objects
+
+See server deployment documentation for setup details.
+
+## Speckle Cloud
+
+For models hosted on Speckle Cloud (app.speckle.systems), the preview service is already configured and available. No additional setup required.
+
+<Note>
+The API endpoints are identical between the open source core and Speckle Cloud. The internal implementation includes additional features like multi-region blob storage support, but the API interface remains the same.
+</Note>
+
