@@ -100,19 +100,14 @@ Gets the extension of type T registered with the viewer.
 ### getObjectProperties
 
 ```typescript
-getObjectProperties(resourceURL?: string, bypassCache?: boolean): Promise<PropertyInfo[]>
+getObjectProperties(resourceURL?: string): Promise<PropertyInfo[]>
 ```
 
-Goes through all objects and builds [_PropertyInfo_](#propertyinfo) objects asynchronously.
-
-<Callout type="warning">
-When executing for a very large number of objects, this method can take long to finish
-</Callout>
+Returns [_PropertyInfo_](#propertyinfo) objects for all loaded objects. Properties are automatically extracted and cached when models are loaded.
 
 **Parameters**
 
-- **resourceURL**: The id of the node where to start building properties.
-- _(optional)_ **bypassCache**: Enabled the use of the property cache. Default _false_
+- _(optional)_ **resourceURL**: The resource URL to get properties for. If omitted, returns properties for all loaded resources.
 
 **Returns**: [_PropertyInfo[]_](#propertyinfo)
 
@@ -331,13 +326,56 @@ All the layers the viewer uses for rendering objects and props. Rendering order 
 interface PropertyInfo {
   key: string;
   objectCount: number;
-  type: "number" | "string";
+  type: "number" | "string" | "boolean";
+  path: string[];
+  concatenatedPath: string;
+  name: string;
 }
 ```
 
-- **key**: Property identifier, flattened.
+- **key**: Property identifier, flattened (e.g., `"level.name"`).
 - **objectCount**: Total number of objects that have this property.
-- **type**: If the property is numeric or string based.
+- **type**: The property value type - numeric, string, or boolean.
+- **path**: Property path as an array (e.g., `["level", "name"]`).
+- **concatenatedPath**: Full property path, same as `key`.
+- **name**: The property name (last segment of path, e.g., `"name"`).
+
+### NumericPropertyInfo
+
+```typescript
+interface NumericPropertyInfo extends PropertyInfo {
+  type: "number";
+  min: number;
+  max: number;
+  valueGroups: Array<{ value: number; id: string }>;
+  passMin: number | null;
+  passMax: number | null;
+}
+```
+
+Extended property info for numeric properties, includes min/max range and all value-to-object mappings.
+
+### StringPropertyInfo
+
+```typescript
+interface StringPropertyInfo extends PropertyInfo {
+  type: "string";
+  valueGroups: Array<{ value: string; ids: string[] }>;
+}
+```
+
+Extended property info for string properties, includes value groups mapping string values to object IDs.
+
+### BooleanPropertyInfo
+
+```typescript
+interface BooleanPropertyInfo extends PropertyInfo {
+  type: "boolean";
+  valueGroups: Array<{ value: boolean; ids: string[] }>;
+}
+```
+
+Extended property info for boolean properties, includes value groups mapping boolean values to object IDs.
 
 ### SelectionEvent
 
