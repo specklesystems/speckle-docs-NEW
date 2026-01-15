@@ -1,0 +1,123 @@
+---
+title: "Preview Service"
+description: "Generate preview images for Speckle models and versions"
+---
+
+## What this is
+
+The preview service generates image previews for projects, models, versions, and objects. The service returns PNG files. If a preview is not ready, the service returns a placeholder image.
+
+## When to use it
+
+Use the preview service when you need preview images in your application. Previews are generated in the background. They are cached after the first generation.
+
+## When not to use it
+
+Do not use the preview service for real-time rendering. Previews are static images. Do not use the preview service if you need interactive 3D views.
+
+## The simplest working example
+
+Get the preview for the latest version in a project:
+
+```bash
+curl https://YOUR_SERVER_URL/preview/abc123
+```
+
+The endpoint returns a PNG image. Replace `abc123` with your project ID.
+
+## Notes for real projects
+
+### Endpoints
+
+All endpoints return PNG images. If a preview is missing, a placeholder image is returned.
+
+The URLs use legacy parameter names (`streamId`, `branchName`, `commitId`) for backward compatibility. These correspond to project ID, model name, and version ID in modern Speckle terminology.
+
+### Get project preview
+
+Returns the preview for the latest version in a project:
+
+```bash
+GET /preview/{streamId}/{angle?}
+```
+
+- `streamId`: Project ID (required)
+- `angle`: View angle such as `iso`, `top`, or `front` (optional)
+
+```bash
+curl https://YOUR_SERVER_URL/preview/abc123
+```
+
+### Get model preview
+
+Returns the preview for the latest version in a specific model:
+
+```bash
+GET /preview/{streamId}/branches/{branchName}/{angle?}
+```
+
+- `streamId`: Project ID (required)
+- `branchName`: Model name (required)
+- `angle`: View angle (optional)
+
+```bash
+curl https://YOUR_SERVER_URL/preview/abc123/branches/main
+```
+
+### Get version preview
+
+Returns the preview for a specific version:
+
+```bash
+GET /preview/{streamId}/commits/{commitId}/{angle?}
+```
+
+- `streamId`: Project ID (required)
+- `commitId`: Version ID (required)
+- `angle`: View angle (optional)
+
+```bash
+curl https://YOUR_SERVER_URL/preview/abc123/commits/def456
+```
+
+### Get object preview
+
+Returns the preview for a specific object:
+
+```bash
+GET /preview/{streamId}/objects/{objectId}/{angle?}
+```
+
+- `streamId`: Project ID (required)
+- `objectId`: Object ID (required)
+- `angle`: View angle (optional)
+
+```bash
+curl https://YOUR_SERVER_URL/preview/abc123/objects/ghi789
+```
+
+### Authentication
+
+Private projects require an authentication token:
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" https://YOUR_SERVER_URL/preview/abc123
+```
+
+Public projects work without a token.
+
+### Self-hosted setup
+
+The preview service must run separately. It requires:
+
+- Redis for the job queue
+- A database connection
+- The server URL for fetching objects
+
+The service reads jobs from Redis. It generates previews with Puppeteer and caches the results.
+
+See the server deployment documentation for setup details.
+
+### Speckle Cloud
+
+Speckle Cloud (app.speckle.systems) has the preview service running. No setup is needed. The API is the same as self-hosted.
