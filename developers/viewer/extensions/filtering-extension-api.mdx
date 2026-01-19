@@ -198,12 +198,20 @@ type FilteringState = {
 interface PropertyInfo {
   key: string;
   objectCount: number;
-  type: 'number' | 'string';
+  type: 'number' | 'string' | 'boolean';
+  path: string[];
+  concatenatedPath: string;
+  name: string;
 }
 ```
 
 Outline of a filterable property.
 
-- **key**: The property key
+- **key**: The property key (flattened path, e.g., `"level.name"`)
 - **objectCount**: The object count where the key is present
-- **type**: Property type
+- **type**: Property type - `'number'`, `'string'`, or `'boolean'`
+- **path**: Property path as array segments
+- **concatenatedPath**: Full property path (same as `key`)
+- **name**: Property name (last path segment)
+
+See [Viewer API PropertyInfo](/developers/viewer/viewer-api#propertyinfo) for extended types (`NumericPropertyInfo`, `StringPropertyInfo`, `BooleanPropertyInfo`).
