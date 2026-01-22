@@ -91,26 +91,27 @@ The SSO setup guide includes the redirect URL, required scopes, grant type confi
 
 ## Firewall and Network Requirements
 
-Speckle requires outbound HTTPS connections to function. Whitelist the following domains and URLs to allow connectors, the web application, and API access.
+Speckle requires outbound HTTPS connections to function. Allowlist the following domains and URLs to allow connectors, the web application, and API access.
 
 ### Required Domains
 
 Allow outbound HTTPS (port 443) connections to:
 
 <Tip>
-For simplified firewall configuration, you can whitelist `*.speckle.systems` and `*.speckle.dev` to cover all Speckle domains. This includes current and future subdomains.
+For simplified firewall configuration, you can allowlist `*.speckle.systems` and `*.speckle.dev` to cover all Speckle domains. This includes current and future subdomains.
 </Tip>
 
 | Domain | Purpose | Required For |
 |--------|---------|--------------|
 | `app.speckle.systems` | Main API, web application, authentication | All functionality |
-| `www.speckle.systems` | Connector downloads, documentation | Connector installation |
-| `releases.speckle.systems` | Manual connector ZIP downloads | Manual installation |
-| `releases.speckle.dev` | Connector feed data | Connector update checks |
-| `dui.speckle.systems` | Desktop UI updates and components | Connector functionality |
 | `dashboards.speckle.systems` | Intelligence dashboards | Analytics and dashboards (optional) |
 | `docs.speckle.systems` | Documentation | Reference access (optional) |
+| `dui.speckle.systems` | Desktop UI updates and components | Connector functionality |
+| `releases.speckle.systems` | Manual connector ZIP downloads | Manual installation |
+| `releases.speckle.dev` | Connector feed data | Connector update checks |
 | `speckle.community` | Support forum, community resources | Support access (optional) |
+| `www.speckle.systems` | Connector downloads, documentation | Connector installation |
+| `*.digitaloceanspaces.com` | File storage and uploads | File uploads |
 
 <Note>
 The `dashboards.speckle.systems` domain is hosted on Netlify infrastructure during beta. If you encounter connectivity issues, contact [support@speckle.systems](mailto:support@speckle.systems) for current hosting details.
@@ -134,11 +135,11 @@ The following endpoints must be accessible for full functionality:
 - Allow WebSocket connections (WSS) to `app.speckle.systems` for real-time features in the web application
 
 **File uploads:**
-- File uploads use presigned S3 URLs that are generated dynamically. These are typically served through `app.speckle.systems` or associated CDN endpoints. If you encounter issues with file uploads, ensure `app.speckle.systems` and its associated CDN domains are fully whitelisted.
+- File uploads use presigned S3 URLs that are generated dynamically. These are typically served through `app.speckle.systems` or associated CDN endpoints. If you encounter issues with file uploads, ensure `app.speckle.systems` and its associated CDN domains (including `*.digitaloceanspaces.com`) are fully allowlisted.
 
 ### Self-Hosted Servers
 
-If your organization uses a self-hosted Speckle server, replace `app.speckle.systems` with your server's domain in all URLs above. Ensure your server domain is whitelisted and accessible from user workstations.
+If your organization uses a self-hosted Speckle server, replace `app.speckle.systems` with your server's domain in all URLs above. Ensure your server domain is allowlisted and accessible from user workstations.
 
 <Info>
 For self-hosted deployments, see the [Server Deployment Guide](/developers/server/getting-started) for infrastructure requirements.
@@ -182,8 +183,8 @@ For organizations with strict egress controls, consider deploying a self-hosted 
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Do we need to whitelist domains for both connectors and the web app?">
-    Yes. Connectors require access to `app.speckle.systems` for authentication and data transfer. The web application also requires access to the same domain. Whitelist `app.speckle.systems` for both use cases.
+  <Accordion title="Do we need to allowlist domains for both connectors and the web app?">
+    Yes. Connectors require access to `app.speckle.systems` for authentication and data transfer. The web application also requires access to the same domain. Allowlist `app.speckle.systems` for both use cases.
   </Accordion>
   
   <Accordion title="Why are connectors blocked even though ports are open?">
