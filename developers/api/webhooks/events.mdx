@@ -1,0 +1,395 @@
+---
+title: Events and Payloads
+description: Complete list of webhook events you can subscribe to with payload examples
+---
+
+You can configure webhooks to trigger on the following events. The event names shown here match what you'll see in the Speckle UI, which uses the current Speckle terminology (project, model, version).
+
+<Warning>
+**Event Name Mapping**: While the UI displays events using current Speckle semantics (project, model, version), the actual webhook payloads use legacy event names from Speckle v1/v2 (stream, branch, commit) for backward compatibility. The payload examples below show the actual `event_name` values you'll receive.
+
+**Payload Content**: Payloads contain reference data only (IDs, metadata), not full objects. Use the IDs with the [GraphQL API](../graphql) or [REST API](../rest) to retrieve complete data.
+</Warning>
+
+
+
+
+
+## Available Events
+
+### Project Events
+
+<Tabs>
+  <Tab title="project_update">
+    **Payload Event Name:** `stream_update`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "streamId": "project-id",
+      "changes": {
+        "name": "Updated Project Name",
+        "description": "Updated description"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="project_delete">
+    **Payload Event Name:** `stream_delete`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "streamId": "project-id"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Model Events
+
+<Tabs>
+  <Tab title="model_create">
+    **Payload Event Name:** `branch_create`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "branchId": "branch-id",
+      "branchName": "feature/new-feature",
+      "description": "New feature branch"
+    }
+    ```
+  </Tab>
+
+  <Tab title="model_update">
+    **Payload Event Name:** `branch_update`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "branchId": "branch-id",
+      "branchName": "feature/new-feature",
+      "changes": {
+        "name": "Updated Model Name",
+        "description": "Updated description"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="model_delete">
+    **Payload Event Name:** `branch_delete`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "branchId": "branch-id",
+      "branchName": "feature/new-feature"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Version Events
+
+<Tabs>
+  <Tab title="version_create">
+    **Payload Event Name:** `commit_create`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "commitId": "commit-id",
+      "branchName": "main",
+      "message": "Initial commit",
+      "authorName": "John Doe",
+      "authorId": "user-id"
+    }
+    ```
+  </Tab>
+
+  <Tab title="version_update">
+    **Payload Event Name:** `commit_update`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "commitId": "commit-id",
+      "branchName": "main",
+      "message": "Updated commit message",
+      "authorName": "John Doe",
+      "authorId": "user-id"
+    }
+    ```
+  </Tab>
+
+  <Tab title="version_receive">
+    **Payload Event Name:** `commit_receive`
+
+    <Note>
+    A version is received/consumed by another service or application 
+    (e.g., when a connector receives data from another project, or when data is 
+    imported into a different application).
+    </Note>
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "commitId": "commit-id",
+      "branchName": "main",
+      "message": "Received from external source",
+      "authorName": "John Doe",
+      "authorId": "user-id"
+    }
+    ```
+  </Tab>
+
+  <Tab title="version_delete">
+    **Payload Event Name:** `commit_delete`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "commitId": "commit-id",
+      "branchName": "main"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Comment Events
+
+<Tabs>
+  <Tab title="comment_created">
+    **Payload Event Name:** `comment_created`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "commentId": "comment-id",
+      "text": "This looks great!",
+      "resourceType": "commit",
+      "resourceId": "commit-id",
+      "authorId": "user-id"
+    }
+    ```
+  </Tab>
+
+  <Tab title="comment_archived">
+    **Payload Event Name:** `comment_archived`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "commentId": "comment-id",
+      "resourceType": "commit",
+      "resourceId": "commit-id"
+    }
+    ```
+  </Tab>
+
+  <Tab title="comment_replied">
+    **Payload Event Name:** `comment_replied`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "commentId": "comment-id",
+      "replyId": "reply-id",
+      "text": "Thanks for the feedback!",
+      "resourceType": "commit",
+      "resourceId": "commit-id",
+      "authorId": "user-id"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Permission Events
+
+<Tabs>
+  <Tab title="project_permissions_add">
+    **Payload Event Name:** `stream_permissions_add`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "streamId": "project-id",
+      "userId": "user-id",
+      "role": "editor"
+    }
+    ```
+  </Tab>
+
+  <Tab title="project_permissions_remove">
+    **Payload Event Name:** `stream_permissions_remove`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "streamId": "project-id",
+      "userId": "user-id",
+      "role": "editor"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Issue Events
+
+<Tabs>
+  <Tab title="issue_created">
+    **Payload Event Name:** `issue_created`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "issue": {
+        "id": "issue-id",
+        "title": "Bug in model",
+        "description": "Found a bug...",
+        "status": "open",
+        "priority": "high"
+      },
+      "userId": "user-id"
+    }
+    ```
+  </Tab>
+
+  <Tab title="issue_updated">
+    **Payload Event Name:** `issue_updated`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "issue": {
+        "id": "issue-id",
+        "title": "Bug in model",
+        "status": "resolved",
+        "priority": "high"
+      },
+      "userId": "user-id"
+    }
+    ```
+  </Tab>
+
+  <Tab title="issue_reply_created">
+    **Payload Event Name:** `issue_reply_created`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "issue": {
+        "id": "issue-id"
+      },
+      "reply": {
+        "id": "reply-id",
+        "text": "I'll look into this",
+        "authorId": "user-id"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="issue_deleted">
+    **Payload Event Name:** `issue_deleted`
+
+    **Payload `event.data`:**
+    ```json
+    {
+      "issue": {
+        "id": "issue-id",
+        "title": "Bug in model"
+      },
+      "userId": "user-id"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+The payload examples above show only the `event.data` field content. The full payload includes the base structure (stream, user, server, webhook info) as shown in the [Payload Structure](#payload-structure) section above. Use the `event.event_name` field to determine which event occurred and parse the `event.data` accordingly. To retrieve the full object data, use the IDs provided in `event.data` with the [GraphQL API](../graphql) or [REST API](../rest) endpoints.
+</Note>
+
+## Payload Structure
+
+All webhook payloads follow this base structure:
+
+```json
+{
+  "streamId": "project-id",
+  "stream": {
+    "id": "project-id",
+    "name": "My Project",
+    "description": "Project description",
+    "isPublic": false,
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-15T10:30:00Z"
+  },
+  "userId": "user-id",
+  "user": {
+    "id": "user-id",
+    "name": "John Doe",
+    "bio": "User bio",
+    "company": "Company Name",
+    "avatar": "https://...",
+    "verified": true
+  },
+  "activityMessage": "Event description",
+  "event": {
+    "event_name": "event_type",
+    "data": {
+      // Event-specific data (see examples below)
+    }
+  },
+  "server": {
+    "name": "Speckle Server",
+    "company": "Speckle Systems",
+    "canonicalUrl": "https://app.speckle.systems"
+  },
+  "webhook": {
+    "id": "webhook-id",
+    "streamId": "project-id",
+    "url": "https://your-endpoint.com/webhook",
+    "description": "My Webhook",
+    "enabled": true,
+    "triggers": ["event_type"]
+  }
+}
+```
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <Accordion title="How do I know which event to subscribe to?">
+    Choose events based on what actions you want to react to. For example:
+    - Use `version_create` to trigger CI/CD builds when new versions are published
+    - Use `comment_created` to send notifications when comments are added
+    - Use `issue_created` to integrate with issue tracking systems
+    - Use `project_permissions_add` to sync access control changes
+    
+    You can subscribe to multiple events with a single webhook.
+  </Accordion>
+
+  <Accordion title="What's the difference between version_create and version_receive?">
+    - `version_create`: Triggered when a version is created/published from a connector or API (when data is uploaded/pushed)
+    - `version_receive`: Triggered when a version is received/consumed by another service or application (e.g., when a connector receives data from another project, or when data is imported into a different application)
+    
+    Use `version_create` for most CI/CD and automation workflows, as it fires when users actively publish data. Use `version_receive` to track when versions are consumed by downstream services or applications.
+  </Accordion>
+
+  <Accordion title="Can I subscribe to multiple events with one webhook?">
+    Yes! When creating a webhook, you can select multiple events. The same webhook endpoint will receive payloads for all selected events. Use the `event.event_name` field to determine which event occurred.
+  </Accordion>
+
+  <Accordion title="Why do payloads use different event names than the UI?">
+    The UI uses current Speckle terminology (project, model, version), while payloads use legacy names (stream, branch, commit) from Speckle v1/v2 for backward compatibility. This ensures existing integrations continue to work. Always check the `event.event_name` field in the payload to see the actual event type.
+  </Accordion>
+
+  <Accordion title="What data is included in webhook payloads?">
+    Webhook payloads contain reference data (IDs, names, metadata) rather than full objects. This keeps payloads lightweight and secure. Use the IDs provided in the payload to fetch complete object data via the [GraphQL API](../graphql) or [REST API](../rest) when needed.
+  </Accordion>
+</AccordionGroup>
+

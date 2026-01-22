@@ -1,0 +1,168 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Speckle Server GraphQL API",
+    "description": "GraphQL API for Speckle Server. The complete, up-to-date API reference with full schema documentation is available through [Apollo Studio](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems).",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Speckle Support",
+      "url": "https://speckle.community"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://app.speckle.systems",
+      "description": "Speckle Cloud (Production)"
+    },
+    {
+      "url": "https://YOUR_SERVER_URL",
+      "description": "Self-hosted instance (replace with your server URL)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Personal access token. Get your token from your Speckle profile settings."
+      }
+    },
+    "schemas": {
+      "GraphQLRequest": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The GraphQL query string"
+          },
+          "variables": {
+            "type": "object",
+            "description": "Variables for the query",
+            "additionalProperties": true
+          },
+          "operationName": {
+            "type": "string",
+            "description": "Optional name of the operation to execute"
+          }
+        },
+        "example": {
+          "query": "query { activeUser { id name email } }"
+        }
+      },
+      "GraphQLResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "The response data",
+            "additionalProperties": true
+          },
+          "errors": {
+            "type": "array",
+            "description": "Array of errors, if any",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "locations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "path": {
+                  "type": "array"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/graphql": {
+      "post": {
+        "summary": "GraphQL Endpoint",
+        "description": "Execute GraphQL queries, mutations, and subscriptions. The complete GraphQL schema with all available types, queries, mutations, and subscriptions is documented in [Apollo Studio](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems).",
+        "operationId": "graphql",
+        "tags": ["GraphQL"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphQLRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "GraphQL response containing data and/or errors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphQLResponse"
+                },
+                "example": {
+                  "data": {
+                    "activeUser": {
+                      "id": "user-id",
+                      "name": "John Doe",
+                      "email": "john@example.com"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid GraphQL query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphQLResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-mint": {
+          "content": "## Full Schema Documentation\n\nThe complete GraphQL schema with all types, queries, mutations, and subscriptions is available in [Apollo Studio](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems).\n\n## Example Query\n\n```graphql\nquery {\n  activeUser {\n    id\n    name\n    email\n  }\n}\n```\n\n## Additional Resources\n\n- [Apollo Studio - Speckle Server API](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems) - Interactive schema explorer\n- [Apollo Studio - API Changelog](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems/changelog) - Track API changes\n- [GraphQL Official Documentation](https://graphql.org/learn/) - Learn GraphQL fundamentals"
+        }
+      }
+    }
+  }
+}
+

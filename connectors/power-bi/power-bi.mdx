@@ -82,7 +82,7 @@ Speckle's connection to Power BI consists of two parts.
     <Step title="Visualize a model">
     1. In the **Visualizations** pane, select **Speckle 3D Visual**
     2. Configure the visual:
-        - Drag *Version Object ID* column into the **Version Object ID** input -> required for **viewing**
+        - Drag *Model Info* column into the **Model Info** input -> required for **viewing**
         - Drag *Object IDs* column into the **Object IDs** input ->  required for **interactivity**
         - Drag any column into **Tooltip** input -> for **tooltip**
         - Drag any column into **Color by** input -> for **coloring** model
@@ -114,7 +114,7 @@ Speckle's connection to Power BI consists of two parts.
     </Accordion>
 
     <Accordion title="How do I hide the Speckle logo from the 3D visual?">
-        If you have a Business plan, you can hide Speckle branding by selecting the arrow in the top bar. Free plan users can't hide the Speckle logo.
+        If you have a paid plan, you can hide Speckle branding by selecting the arrow in the top bar. Explore plan users can't hide the Speckle logo.
     </Accordion>
 
 </AccordionGroup>
@@ -136,6 +136,15 @@ Speckle's connection to Power BI consists of two parts.
 
         1. Go to **File** > **Options and settings** > **Options** > **Security**
         2. Under **Authentication Browser**, clear **Use my default web browser**
+    </Accordion>
+
+    <Accordion title="Why do I get a 'Value cannot be null. Parameter name: uriString' error?">
+        This authentication error can be resolved by adjusting Power BI's browser settings:
+
+        1. Go to **File** > **Options and settings** > **Options**
+        2. Select the **Security** tab
+        3. Under **Authentication Browser**, clear **Use my default web browser**
+        4. Try loading your model again
     </Accordion>
 
     <Accordion title="How can I switch to a different account in Power BI?">
@@ -275,6 +284,37 @@ Data gateways are only needed for scheduled refresh in Power BI Service. For bas
 ## Helper Functions
 
 We’ve added a series of helper functions to the `Speckle` namespace to make working with Speckle data in Power BI more efficient and user-friendly.
+
+### `Speckle.Projects.Issues`
+
+Fetch issues from a given project, model, or version. <br/>
+
+```powerquery
+Speckle.Projects.Issues(url as text, getReplies as bool)
+```
+Returns a table with the following columns:
+- `Id`
+- `Title`
+- `Description`
+- `Status`
+- `Priority`
+- `Assignee`
+- `Due Date`
+- `Created`
+- `Updated`
+- `Labels`
+- `Replies`
+- `URL`
+
+This function accepts a `URL` -> project, model and version urls. <br/>
+_Optionally_, you can provide `getReplies` to extract replies.
+
+**Usage:**<br/>
+
+- **Fetch Issues from a project** -> `Speckle.Projects.Issues("https://app.speckle.systems/projects/PROJECT_ID/")`
+- **Fetch Issues from a model** -> `Speckle.Projects.Issues("https://app.speckle.systems/projects/PROJECT_ID/models/MODEL_ID/")`
+- **Fetch Issues from a version** -> `Speckle.Projects.Issues("https://app.speckle.systems/projects/PROJECT_ID/models/MODEL_ID@VERSION_ID/")`
+- **Fetch issues with replies** -> `Speckle.Projects.Issues("https://app.speckle.systems/projects/PROJECT_ID/", true)`
 
 ### `Speckle.Objects.Properties`
 

@@ -1,0 +1,125 @@
+---
+title: "Exceptions"
+description: "Exception types in SpecklePy"
+---
+
+## Overview
+
+SpecklePy defines custom exception types that inherit from `SpeckleException`. Catch this base exception to handle all Speckle-related errors.
+
+```python
+from specklepy.logging.exceptions import SpeckleException
+
+try:
+    result = client.project.get("project_id")
+except SpeckleException as e:
+    print(f"Error: {e.message}")
+```
+
+## Exception Types
+
+### SpeckleException
+
+Base exception for all Speckle-related errors.
+
+```python
+class SpeckleException(Exception):
+    message: str
+    exception: Optional[Exception]
+```
+
+### GraphQLException
+
+Raised when GraphQL queries or mutations fail.
+
+```python
+class GraphQLException(SpeckleException):
+    message: str
+    errors: Optional[List[Any]]
+    data: Optional[Any]
+```
+
+**Common causes:**
+- Invalid object IDs
+- Resource not found
+- Permission denied
+- Server errors
+
+**Example:**
+```python
+from specklepy.logging.exceptions import GraphQLException
+
+try:
+    project = client.project.get("invalid_id")
+except GraphQLException as e:
+    print(f"GraphQL error: {e.message}")
+```
+
+### SerializationException
+
+Raised when object serialization or deserialization fails.
+
+```python
+class SerializationException(SpeckleException):
+    message: str
+    obj: Any
+    unhandled_type: type
+    exception: Optional[Exception]
+```
+
+**Common causes:**
+- Non-Speckle objects without conversion
+- Circular references
+- Unsupported data types
+
+
+### UnsupportedException
+
+Raised when an operation or feature is not supported.
+
+```python
+class UnsupportedException(SpeckleException):
+    message: str
+```
+
+**Common causes:**
+- Features unavailable on older server versions
+- Unsupported object types
+- Platform-specific features
+
+
+
+### SpeckleInvalidUnitException
+
+Raised when invalid units are provided.
+
+```python
+class SpeckleInvalidUnitException(SpeckleException):
+    # Expected string units like "m", "ft", "mm", etc.
+```
+
+
+### WorkspacePermissionException
+
+Raised when workspace operations fail due to insufficient permissions.
+
+```python
+class WorkspacePermissionException(SpeckleException):
+    message: str
+```
+
+**Common causes:**
+- Insufficient workspace permissions
+- Workspace features not available on server
+- Not a member of the workspace
+
+## Related
+
+<CardGroup>
+<Card title="SpeckleClient" href="/developers/sdks/python/api-reference/client" icon="user">
+Client operations
+</Card>
+<Card title="Operations" href="/developers/sdks/python/api-reference/operations" icon="plug">
+Send/receive operations
+</Card>
+</CardGroup>

@@ -1,0 +1,124 @@
+---
+title: Connector Index
+description: Overview of connector-specific behaviors and data models
+---
+
+This page provides an overview of all Speckle connectors and links to their detailed documentation. Each connector follows the same fundamental data model but has connector-specific extensions and behaviors. Here you'll learn the purpose of connector-specific object types, how they relate to the core schema, and see a conceptual example of how domain objects map to Speckle's structure.
+
+## Purpose of Connector-Specific Object Types
+
+Connector-specific object types (like `RevitObject`, `ArchicadObject`, `TeklaObject`) extend the base [DataObject](/developers/data-schema/overview#core-glossary) with additional fields that preserve native semantics from the source application. These extensions enable:
+
+- **Semantic preservation**: Native concepts (like Revit's "Family" and "Type") are preserved as first-class fields
+- **Source mapping**: Objects can be mapped back to their source application elements
+- **Domain-specific data**: Connector-specific properties (like Civil3D's `baseCurves`) are accessible directly
+
+**Important**: Despite these extensions, all connector-specific objects follow the same core schema rules:
+- They are [DataObjects](/developers/data-schema/overview#core-glossary) with `properties` and `displayValue`
+- They participate in the same [Collection](/developers/data-schema/overview#core-glossary) hierarchy
+- They are referenced by [Proxies](/developers/data-schema/overview#core-glossary) using `applicationId`
+- Their geometry is stored in `displayValue` as interoperable primitives
+
+**Conceptual example**: A beam in Tekla is both:
+- A **TeklaObject** (connector-specific): Has `TeklaObject`-specific fields like `profile`, `material`, `class`
+- A **Speckle DataObject** (core schema): Has `properties`, `displayValue`, `applicationId`, follows the same structure as all DataObjects
+
+The connector-specific fields preserve Tekla semantics, while the core DataObject structure ensures interoperability. A receiver that doesn't understand Tekla can still render the geometry from `displayValue` and access basic properties.
+
+## Connectors
+
+<CardGroup cols={2}>
+  <Card title="Revit" href="/developers/data-schema/connectors/revit" icon="cube">
+    BIM authoring tool for architecture, engineering, and construction
+  </Card>
+  <Card title="Rhino" href="/developers/data-schema/connectors/rhino" icon="cube">
+    3D modeling software for design and fabrication
+  </Card>
+  <Card title="AutoCAD" href="/developers/data-schema/connectors/autocad" icon="cube">
+    2D/3D CAD software for drafting and design
+  </Card>
+  <Card title="Civil 3D" href="/developers/data-schema/connectors/civil3d" icon="cube">
+    Civil engineering design and documentation software
+  </Card>
+  <Card title="Navisworks" href="/developers/data-schema/connectors/navisworks" icon="cube">
+    Project review software for coordination and clash detection
+  </Card>
+  <Card title="ArchiCAD" href="/developers/data-schema/connectors/archicad" icon="cube">
+    BIM software for architects
+  </Card>
+  <Card title="Tekla" href="/developers/data-schema/connectors/tekla" icon="cube">
+    BIM software for structural engineering
+  </Card>
+  <Card title="ETABS" href="/developers/data-schema/connectors/etabs" icon="cube">
+    Structural analysis and design software
+  </Card>
+  <Card title="IFC" href="/developers/data-schema/connectors/ifc" icon="cube">
+    Industry Foundation Classes file format
+  </Card>
+</CardGroup>
+
+## Connector Comparison
+
+| Connector | Hierarchy Pattern | Object Type | Proxies | Info Fields |
+|-----------|------------------|-------------|---------|-------------|
+| **Revit** | File → Level → Category → Type | RevitObject | RenderMaterial, Level, Group | Reference Point Transform, Views |
+| **Rhino** | File → Layer → Sublayer | Geometry, Instance | RenderMaterial, Color, Group, Definition | Views |
+| **AutoCAD** | File → Layer | Geometry, Instance | RenderMaterial, Color, Group, Definition | - |
+| **Civil 3D** | File → Layer | Civil3dObject, Geometry, Instance | RenderMaterial, Color, Group, Definition, PropertySetDefinition | - |
+| **Navisworks** | File (flat) or Selection Tree | NavisworksObject | RenderMaterial | - |
+| **ArchiCAD** | File → Floor → Type | ArchicadObject | RenderMaterial | - |
+| **Tekla** | File → Type | TeklaObject | RenderMaterial | - |
+| **ETABS** | File → Level → Design Orientation | EtabsObject | Section, Material | Analysis Results |
+| **IFC** | Project → Site → Building → Storey | DataObject | RenderMaterial, Level | - |
+
+## Common Patterns
+
+### BIM Connectors (Revit, ArchiCAD, Tekla, ETABS)
+
+- Use **DataObject extensions** (RevitObject, ArchicadObject, etc.)
+- Organize by **spatial hierarchy** (Levels/Floors)
+- Include **rich properties** (parameters, quantities, classifications)
+- Use **Level proxies** for floor associations
+
+### CAD Connectors (Rhino, AutoCAD, Civil 3D)
+
+- Support **standalone geometry** objects
+- Organize by **layers**
+- Use **Instance/Definition** pattern for blocks/components
+- Include **Color proxies** for visual styling
+
+### Special Cases
+
+- **Navisworks**: Can flatten hierarchy or preserve selection tree
+- **IFC**: Follows IFC spatial structure (Project → Site → Building → Storey)
+- **ETABS**: Includes analysis results in Info section
+
+## Connector Page Structure
+
+Each connector page follows this structure:
+
+1. **Description** - What the connector exports
+2. **Hierarchy** - How collections are organized
+3. **Object Extensions** - Connector-specific fields on DataObject
+4. **Proxies** - Which proxy types are used
+5. **Info Fields** - Model-level metadata
+6. **Example** - Canonical object example
+7. **Invariants** - Connector-specific rules and caveats
+
+## Conceptual Capability
+
+After reading this page, you understand how connector-specific object types extend the core schema while preserving native semantics. You recognize that all connectors follow the same fundamental structure (Collections, DataObjects, Proxies, Info) but add connector-specific fields to preserve domain concepts. You can see how a single domain object (like a beam) is both connector-specific (preserving native semantics) and a core Speckle DataObject (ensuring interoperability). You're ready to explore specific connector pages for detailed behaviors.
+
+## Using This Documentation
+
+1. **Start with core concepts** - Understand [Concepts](/developers/data-schema/concepts), [Object Schema](/developers/data-schema/object-schema), [Proxy Schema](/developers/data-schema/proxy-schema) first
+2. **Review connector pages** - Understand connector-specific behaviors
+
+<Accordion title="Do I need to read all connector pages?">
+No! Read only the connectors you're working with. The core concepts apply to all connectors, and connector pages are reference material for when you need connector-specific details.
+</Accordion>
+
+<Accordion title="What if a connector isn't listed?">
+New connectors are added regularly. If you're working with an unlisted connector, it still follows the same fundamental data model. Check the connector's release notes or contact the Speckle team for connector-specific documentation.
+</Accordion>
+

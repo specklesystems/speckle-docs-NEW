@@ -1,0 +1,506 @@
+---
+title: "ModelResource"
+description: "Complete API reference for model operations in SpecklePy"
+---
+
+## Overview
+
+The `ModelResource` provides methods for managing models within Speckle projects. Access it via `client.model` after authenticating your `SpeckleClient`.
+
+Models are containers within projects that organize related versions of your data. Each model can have multiple versions representing different iterations or states.
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token(token)
+
+# Access model operations
+model = client.model.get("model_id", "project_id")
+```
+
+## Methods
+
+### get()
+
+Get a single model by ID.
+
+```python lines icon="python"
+client.model.get(model_id: str, project_id: str) -> Model
+```
+
+**Parameters:**
+
+<ResponseField name="model_id" type="str" required>
+  The ID of the model to retrieve
+</ResponseField>
+
+<ResponseField name="project_id" type="str" required>
+  The ID of the project containing the model
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="model" type="Model">
+  The model object
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+model = client.model.get("model_abc123", "project_xyz789")
+
+print(f"Model: {model.name}")
+print(f"Display Name: {model.displayName}")
+print(f"Description: {model.description}")
+print(f"Created: {model.createdAt}")
+print(f"Updated: {model.updatedAt}")
+print(f"Author: {model.author.name}")
+print(f"Preview URL: {model.previewUrl}")
+else:
+    print("Not authenticated")
+```
+
+See [Model](#model) for property details.
+### get_models()
+
+Get all models in a project with pagination support.
+
+```python lines icon="python"
+client.model.get_models(
+    project_id: str,
+    *,
+    models_limit: int = 25,
+    models_cursor: Optional[str] = None,
+    models_filter: Optional[ProjectModelsFilter] = None
+) -> ResourceCollection[Model]
+```
+
+**Parameters:**
+
+<ResponseField name="project_id" type="str" required>
+  The ID of the project
+</ResponseField>
+
+<ResponseField name="models_limit" type="int" default="25">
+  Maximum number of models to return
+</ResponseField>
+
+<ResponseField name="models_cursor" type="str" default="None">
+  Cursor for pagination
+</ResponseField>
+
+<ResponseField name="models_filter" type="ProjectModelsFilter" default="None">
+  Filter criteria. See [ProjectModelsFilter](#projectmodelsfilter)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="models" type="ResourceCollection[Model]">
+  Collection with `items`, `totalCount`, and `cursor`
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+# Get all models in a project
+models = client.model.get_models("project_id", models_limit=50)
+
+print(f"Total models: {models.totalCount}")
+for model in models.items:
+    print(f"  - {model.displayName} (updated: {model.updatedAt})")
+
+# Paginate through more models
+if models.cursor:
+    next_page = client.model.get_models(
+        "project_id",
+        models_cursor=models.cursor
+    )
+    print(f"Next page has {len(next_page.items)} models")
+```
+
+See [ProjectModelsFilter](#projectmodelsfilter) for filtering options.
+
+<Info>
+The `ResourceCollection` object includes:
+- `items` - List of Model objects
+- `totalCount` - Total number of models (across all pages)
+- `cursor` - Pagination cursor for next page (or `None` if no more pages)
+</Info>
+### get_with_versions()
+
+Get a model with its versions included.
+
+```python lines icon="python"
+client.model.get_with_versions(
+    model_id: str,
+    project_id: str,
+    *,
+    versions_limit: int = 25,
+    versions_cursor: Optional[str] = None,
+    versions_filter: Optional[ModelVersionsFilter] = None
+) -> ModelWithVersions
+```
+
+**Parameters:**
+
+<ResponseField name="model_id" type="str" required>
+  The ID of the model
+</ResponseField>
+
+<ResponseField name="project_id" type="str" required>
+  The ID of the project
+</ResponseField>
+
+<ResponseField name="versions_limit" type="int" default="25">
+  Maximum number of versions to return
+</ResponseField>
+
+<ResponseField name="versions_cursor" type="str" default="None">
+  Cursor for pagination
+</ResponseField>
+
+<ResponseField name="versions_filter" type="ModelVersionsFilter" default="None">
+  Filter criteria for versions. See [ModelVersionsFilter](#modelversionsfilter)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="model" type="ModelWithVersions">
+  Model with versions collection
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+# Get model with its latest 10 versions
+model = client.model.get_with_versions(
+    "model_id",
+    "project_id",
+    versions_limit=10
+)
+
+print(f"Model: {model.displayName}")
+print(f"Total versions: {model.versions.totalCount}")
+
+for version in model.versions.items:
+    print(f"  - {version.message}")
+    print(f"    By: {version.authorUser.name}")
+    print(f"    Created: {version.createdAt}")
+    print(f"    Object ID: {version.referencedObject}")
+```
+
+See [ModelVersionsFilter](#modelversionsfilter) for filtering options.
+
+**Pagination:**
+
+```python lines icon="python"
+# Get all versions (paginated)
+all_versions = []
+cursor = None
+
+while True:
+    model = client.model.get_with_versions(
+        "model_id",
+        "project_id",
+        versions_limit=100,
+        versions_cursor=cursor
+    )
+
+    all_versions.extend(model.versions.items)
+
+    if not model.versions.cursor:
+        break
+    cursor = model.versions.cursor
+
+print(f"Retrieved {len(all_versions)} versions total")
+```
+### create()
+
+Create a new model in a project.
+
+```python lines icon="python"
+client.model.create(input: CreateModelInput) -> Model
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="CreateModelInput" required>
+  Model creation parameters. See [CreateModelInput](#createmodelinput)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="model" type="Model">
+  The newly created model
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.model_inputs import CreateModelInput
+
+# Create a basic model
+model = client.model.create(CreateModelInput(
+    project_id="project_id",
+    name="Main Design",
+    description="Primary architectural design model"
+))
+
+print(f"Created model: {model.displayName} (ID: {model.id})")
+```
+
+See [CreateModelInput](#createmodelinput) for all available fields.
+
+**Advanced Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.model_inputs import CreateModelInput
+
+# Create multiple models for different disciplines
+disciplines = [
+    ("Architecture", "Architectural design and layout"),
+    ("Structure", "Structural engineering elements"),
+    ("MEP", "Mechanical, electrical, and plumbing systems"),
+]
+
+models = []
+for name, desc in disciplines:
+    model = client.model.create(CreateModelInput(
+        project_id=project_id,
+        name=name,
+        description=desc
+    ))
+    models.append(model)
+    print(f"✓ Created: {model.displayName}")
+
+print(f"\nTotal: {len(models)} models created")
+```
+### update()
+
+Update an existing model's properties.
+
+```python lines icon="python"
+client.model.update(input: UpdateModelInput) -> Model
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="UpdateModelInput" required>
+  Model update parameters. See [UpdateModelInput](#updatemodelinput)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="model" type="Model">
+  The updated model
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.model_inputs import UpdateModelInput
+
+# Update model details
+updated_model = client.model.update(UpdateModelInput(
+    id="model_id",
+    projectId="project_id",
+    name="Updated Model Name",
+    description="Updated description with more details"
+))
+
+print(f"Updated: {updated_model.displayName}")
+print(f"New description: {updated_model.description}")
+```
+
+See [UpdateModelInput](#updatemodelinput) for all available fields.
+### delete()
+
+Delete a model permanently.
+
+```python lines icon="python"
+client.model.delete(input: DeleteModelInput) -> bool
+```
+
+**Parameters:**
+
+<ResponseField name="input" type="DeleteModelInput" required>
+  Model deletion parameters. See [DeleteModelInput](#deletemodelinput)
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="success" type="bool">
+  `True` if deletion was successful
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+from specklepy.core.api.inputs.model_inputs import DeleteModelInput
+
+# Delete a model
+success = client.model.delete(DeleteModelInput(
+    projectId="project_id",
+    modelId="model_id"
+))
+
+if success:
+    print("✓ Model deleted successfully")
+else:
+    print("✗ Failed to delete model")
+```
+
+**DeleteModelInput Fields:**
+
+- `projectId` (str, required) - The project ID
+- `modelId` (str, required) - The model ID to delete
+
+<Warning>
+This operation is irreversible! All versions in the model will be permanently deleted. Consider archiving or exporting data before deletion.
+</Warning>
+## Types
+
+### Model
+
+Represents a Speckle model within a project.
+
+<ResponseField name="id" type="str">
+  Model ID
+</ResponseField>
+
+<ResponseField name="name" type="str">
+  Model name (URL-safe identifier)
+</ResponseField>
+
+<ResponseField name="displayName" type="str">
+  Human-readable display name
+</ResponseField>
+
+<ResponseField name="description" type="str">
+  Model description
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime">
+  Creation timestamp
+</ResponseField>
+
+<ResponseField name="updatedAt" type="datetime">
+  Last update timestamp
+</ResponseField>
+
+<ResponseField name="previewUrl" type="str">
+  URL to preview image
+</ResponseField>
+
+<ResponseField name="author" type="LimitedUser">
+  User who created the model. See [LimitedUser](/developers/sdks/python/api-reference/resources/other-user#limiteduser)
+</ResponseField>
+## Input Types
+
+### CreateModelInput
+
+```python
+CreateModelInput(
+    name: str,
+    description: Optional[str] = None,
+    project_id: str
+)
+```
+
+Used with [`create()`](#create).
+
+**Fields:**
+- `name` (str) - Model name
+- `description` (str, optional) - Model description
+- `project_id` (str) - Project ID
+### UpdateModelInput
+
+```python
+UpdateModelInput(
+    id: str,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    project_id: str
+)
+```
+
+Used with [`update()`](#update).
+
+**Fields:**
+- `id` (str) - Model ID
+- `name` (str, optional) - New model name
+- `description` (str, optional) - New description
+- `project_id` (str) - Project ID
+### DeleteModelInput
+
+```python
+DeleteModelInput(
+    id: str,
+    project_id: str
+)
+```
+
+Used with [`delete()`](#delete).
+
+**Fields:**
+- `id` (str) - Model ID
+- `project_id` (str) - Project ID
+## Filters
+
+### ProjectModelsFilter
+
+```python
+ProjectModelsFilter(
+    contributors: Optional[Sequence[str]] = None,
+    exclude_ids: Optional[Sequence[str]] = None,
+    ids: Optional[Sequence[str]] = None,
+    only_with_versions: Optional[bool] = None,
+    search: Optional[str] = None,
+    source_apps: Optional[Sequence[str]] = None
+)
+```
+
+Used with [`get_models()`](#get-models) and `client.project.get_with_models()`.
+
+**Fields:**
+- `contributors` (List[str], optional) - Filter by contributor user IDs
+- `exclude_ids` (List[str], optional) - Exclude specific model IDs
+- `ids` (List[str], optional) - Include only specific model IDs
+- `only_with_versions` (bool, optional) - Only return models with versions
+- `search` (str, optional) - Search by model name
+- `source_apps` (List[str], optional) - Filter by source application
+### ModelVersionsFilter
+
+```python
+ModelVersionsFilter(
+    priority_ids: Sequence[str],
+    priority_ids_only: Optional[bool] = None
+)
+```
+
+Used with [`get_with_versions()`](#get-with-versions).
+
+**Fields:**
+- `priority_ids` (List[str]) - Version IDs to prioritize
+- `priority_ids_only` (bool, optional) - Only return priority versions
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="VersionResource" icon="clock-rotate-left" href="/developers/sdks/python/api-reference/resources/version">
+    Create and manage versions in models
+  </Card>
+
+  <Card title="ProjectResource" icon="folder" href="/developers/sdks/python/api-reference/resources/project">
+    Manage projects that contain models
+  </Card>
+
+  <Card title="Operations" icon="arrows-rotate" href="/developers/sdks/python/api-reference/operations">
+    Send and receive data to/from models
+  </Card>
+
+  <Card title="SpeckleClient" icon="plug" href="/developers/sdks/python/api-reference/client">
+    Main client documentation
+  </Card>
+</CardGroup>

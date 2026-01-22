@@ -1,0 +1,209 @@
+---
+title: "IT Setup Guide"
+description: "Complete setup resources for IT administrators deploying Speckle in enterprise environments"
+noindex: true
+---
+
+This guide consolidates all technical setup requirements for IT teams deploying Speckle in enterprise environments. Share this page with your IT department to streamline approvals and configuration.
+
+<Note>
+This page is scoped to IT administrative tasks only. For end-user guides, see [Connector Installation](/connectors/installation) and [Workspace Management](/workspaces/workspaces).
+</Note>
+
+<CardGroup cols={2}>
+  <Card
+    title="Connector Installation"
+    icon="download"
+    href="#connector-installation"
+  >
+    Manual installation instructions and ZIP downloads
+  </Card>
+  <Card
+    title="SSO Setup"
+    icon="lock"
+    href="/workspaces/sso"
+  >
+    Configure Single Sign-On with your identity provider
+  </Card>
+  <Card
+    title="Firewall Requirements"
+    icon="shield"
+    href="#firewall-and-network-requirements"
+  >
+    Network and firewall configuration requirements
+  </Card>
+  <Card
+    title="Additional Resources"
+    icon="book"
+    href="#additional-resources"
+  >
+    Support contacts and related documentation
+  </Card>
+</CardGroup>
+
+## Connector Installation
+
+Speckle connectors enable users to publish and load data from design applications like Revit, Rhino, and Archicad.
+
+<Warning>
+**Connector updates work in two parts:**
+
+- **Desktop UI (DUI)**: Updated centrally and automatically propagates to all connectors without requiring connector updates. This shared interface handles authentication and common workflows.
+- **Connector addons**: Updated separately for each connector. Each application-specific connector (Revit, Rhino, etc.) must be updated individually.
+
+When deploying connectors manually, you only need to update connector addons. DUI updates automatically. Individual connector manual installation guides include steps to disable update notifications if you want to control when users see new versions.
+</Warning>
+
+<Note>
+**Update cadence and approval processes:**
+
+Speckle connectors are updated frequently to maintain compatibility with the evergreen Speckle server. Connectors are open source and can be inspected for security and compliance. If your organization requires approval for every software update, factor this frequent update cadence into your deployment process. Consider establishing a streamlined approval workflow or allowing automatic updates for patch releases.
+
+The Speckle server is also open source with delayed releases, allowing you to inspect changes before deployment if you're running a self-hosted instance.
+</Note>
+
+### Standard Installation
+
+Users can download and install connectors directly from [app.speckle.systems/connectors](https://app.speckle.systems/connectors). Standard installers handle dependencies automatically and are recommended for most deployments.
+
+[View Standard Installation Guide](/connectors/installation)
+
+### Manual Installation
+
+For environments that restrict executable installers or require centralized deployment, use manual ZIP-based installation:
+
+- **Download ZIP files:** [releases.speckle.systems](https://releases.speckle.systems/)
+- **Installation instructions:** [Manual Installation Guide](/connectors/manual-installation/manual-installation)
+
+The manual installation guide includes step-by-step instructions for all supported connectors, including the required Desktop Services background service.
+
+## Single Sign-On (SSO)
+
+Configure SSO to allow users to access Speckle using your organization's existing identity provider. Speckle supports any OIDC identity provider.
+
+<Note>
+SSO is available on the Enterprise plan.
+</Note>
+
+[View SSO Setup Guide](/workspaces/sso)
+
+The SSO setup guide includes the redirect URL, required scopes, grant type configuration, and identity provider setup steps.
+
+## Firewall and Network Requirements
+
+Speckle requires outbound HTTPS connections to function. Allowlist the following domains and URLs to allow connectors, the web application, and API access.
+
+### Required Domains
+
+Allow outbound HTTPS (port 443) connections to:
+
+<Tip>
+For simplified firewall configuration, you can allowlist `*.speckle.systems` and `*.speckle.dev` to cover all Speckle domains. This includes current and future subdomains.
+</Tip>
+
+| Domain | Purpose | Required For |
+|--------|---------|--------------|
+| `app.speckle.systems` | Main API, web application, authentication | All functionality |
+| `dashboards.speckle.systems` | Intelligence dashboards | Analytics and dashboards (optional) |
+| `docs.speckle.systems` | Documentation | Reference access (optional) |
+| `dui.speckle.systems` | Desktop UI updates and components | Connector functionality |
+| `releases.speckle.systems` | Manual connector ZIP downloads | Manual installation |
+| `releases.speckle.dev` | Connector feed data | Connector update checks |
+| `speckle.community` | Support forum, community resources | Support access (optional) |
+| `www.speckle.systems` | Connector downloads, documentation | Connector installation |
+| `*.digitaloceanspaces.com` | File storage and uploads | File uploads |
+
+<Note>
+The `dashboards.speckle.systems` domain is hosted on Netlify infrastructure during beta. If you encounter connectivity issues, contact [support@speckle.systems](mailto:support@speckle.systems) for current hosting details.
+</Note>
+
+### API Endpoints
+
+The following endpoints must be accessible for full functionality:
+
+**GraphQL API:**
+- `https://app.speckle.systems/graphql`
+
+**REST API:**
+- `https://app.speckle.systems/api/v1/*`
+
+**Authentication:**
+- `https://app.speckle.systems/api/v1/auth/*`
+- `https://app.speckle.systems/api/v1/workspaces/*/sso/oidc/callback` (for SSO)
+
+**WebSocket (for real-time features):**
+- Allow WebSocket connections (WSS) to `app.speckle.systems` for real-time features in the web application
+
+**File uploads:**
+- File uploads use presigned S3 URLs that are generated dynamically. These are typically served through `app.speckle.systems` or associated CDN endpoints. If you encounter issues with file uploads, ensure `app.speckle.systems` and its associated CDN domains (including `*.digitaloceanspaces.com`) are fully allowlisted.
+
+### Self-Hosted Servers
+
+If your organization uses a self-hosted Speckle server, replace `app.speckle.systems` with your server's domain in all URLs above. Ensure your server domain is allowlisted and accessible from user workstations.
+
+<Info>
+For self-hosted deployments, see the [Server Deployment Guide](/developers/server/getting-started) for infrastructure requirements.
+</Info>
+
+### Port Requirements
+
+- **Outbound HTTPS:** Port 443 (required)
+- **Outbound HTTP:** Port 80 (optional, for redirects only)
+- **WebSocket:** Port 443 (WSS, required for real-time features)
+
+### Regional Considerations
+
+`app.speckle.systems` is served through Cloudflare, which uses a global CDN with dynamic IP addresses that change frequently. For this reason, domain-based firewall rules are strongly recommended over IP-based rules.
+
+If your organization requires IP-based firewall rules, you can reference [Cloudflare's published IP ranges](https://www.cloudflare.com/ips/). However, these ranges are large and change regularly, making domain-based rules more reliable and easier to maintain.
+
+<Info>
+For the most current IP ranges or assistance with firewall configuration, contact [support@speckle.systems](mailto:support@speckle.systems).
+</Info>
+
+<Note>
+For organizations with strict egress controls, consider deploying a self-hosted Speckle server to keep all traffic within your network.
+</Note>
+
+## Additional Resources
+
+### Support
+
+- **Email:** [support@speckle.systems](mailto:support@speckle.systems)
+- **Community Forum:** [speckle.community](https://speckle.community)
+- **SSO Setup Assistance:** We offer guided SSO configuration calls. [Contact us](mailto:support@speckle.systems) to schedule.
+
+### Related Documentation
+
+- [Connector Installation (User Guide)](/connectors/installation)
+- [Manual Connector Installation](/connectors/manual-installation/manual-installation)
+- [SSO Configuration](/workspaces/sso)
+- [Server Deployment Guide](/developers/server/getting-started) (for self-hosted deployments)
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do we need to allowlist domains for both connectors and the web app?">
+    Yes. Connectors require access to `app.speckle.systems` for authentication and data transfer. The web application also requires access to the same domain. Allowlist `app.speckle.systems` for both use cases.
+  </Accordion>
+  
+  <Accordion title="Why are connectors blocked even though ports are open?">
+    Some firewalls require separate configuration to allow non-browser applications to access domains. Even when ports 443 and 80 are open, firewall rules may block applications like connectors that aren't web browsers. Configure your firewall to allow outbound HTTPS connections from all applications, not just browsers, or create specific rules for the connector executables.
+  </Accordion>
+  
+  <Accordion title="Can we use IP addresses instead of domain names?">
+    We strongly recommend using domain names. `app.speckle.systems` is served through Cloudflare, which uses a global CDN with dynamic IP addresses that change frequently. Domain-based rules are more reliable and easier to maintain. If IP-based rules are required, reference [Cloudflare's published IP ranges](https://www.cloudflare.com/ips/) or contact support for assistance.
+  </Accordion>
+  
+  <Accordion title="Do connectors work behind a corporate proxy?">
+    Connectors support HTTP proxies configured at the system level. Ensure proxy settings allow HTTPS connections to `app.speckle.systems`. Authentication may require interactive browser sessions.
+  </Accordion>
+  
+  <Accordion title="What if we block WebSocket connections?">
+    WebSocket connections are used for real-time features in the web application. Connectors will function without WebSocket access, but some web app features may be limited.
+  </Accordion>
+  
+  <Accordion title="Can we deploy connectors without internet access?">
+    No. Connectors require internet access to authenticate users and transfer data. For air-gapped environments, deploy a self-hosted Speckle server within your network.
+  </Accordion>
+</AccordionGroup>

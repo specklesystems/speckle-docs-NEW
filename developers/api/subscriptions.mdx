@@ -1,0 +1,95 @@
+---
+title: Subscriptions
+description: Real-time event notifications using GraphQL subscriptions
+---
+
+The Speckle GraphQL API supports real-time subscriptions for receiving live updates about events such as new versions, comments, project changes, and more. Subscriptions use WebSocket connections and follow the GraphQL subscription specification.
+
+## Overview
+
+GraphQL subscriptions provide a way to receive real-time updates from the Speckle server. Unlike webhooks, which are HTTP-based and designed for server-to-server communication, subscriptions are ideal for client applications that need to stay synchronized with Speckle data in real-time.
+
+<Note>
+**When to Use Subscriptions vs Webhooks**: 
+- **Subscriptions**: Use for client applications (web apps, desktop apps) that need real-time UI updates. Subscriptions use WebSocket connections and require an active connection.
+- **Webhooks**: Use for server-to-server integrations, CI/CD pipelines, and HTTP-based automation workflows. Webhooks send HTTP POST requests to your endpoint, making them ideal for serverless functions and webhook endpoints.
+
+See the [Webhooks](/developers/api/webhooks) documentation for HTTP-based event notifications and a complete comparison.
+</Note>
+
+## Available Subscriptions
+
+The complete list of available subscriptions is documented in Apollo Studio:
+
+[**Apollo Studio - Subscriptions**](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems/home?query=subscription)
+
+Common subscription types include:
+- **Project Events**: `projectUpdated`, `projectModelsUpdated`, `projectVersionsUpdated`, `projectCommentsUpdated`, `projectIssuesUpdated`
+- **Version Events**: `projectVersionsUpdated`, `projectPendingVersionsUpdated`
+- **Automation Events**: `projectAutomationsUpdated`, `projectTriggeredAutomationsStatusUpdated`
+- **Workspace & User Events**: `workspaceUpdated`, `userProjectsUpdated`
+
+<Warning>
+**Legacy Subscriptions**: Some subscriptions use legacy naming conventions (`branch`, `commit`, `stream`) for backward compatibility. These are marked with warnings in Apollo Studio. The modern equivalents use `project`, `model`, and `version` terminology.
+</Warning>
+
+## Using Subscriptions
+
+### Endpoint and Authentication
+
+Subscriptions use WebSocket connections. The endpoint for `app.speckle.systems` is:
+
+```
+wss://app.speckle.systems/graphql
+```
+
+Authenticate using a personal access token in the connection parameters:
+
+```javascript
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
+import { createClient } from 'graphql-ws';
+
+const wsLink = new GraphQLWsLink(createClient({
+  url: 'wss://app.speckle.systems/graphql',
+  connectionParams: {
+    Authorization: `Bearer ${YOUR_TOKEN}`
+  }
+}));
+```
+
+### Example
+
+Most subscriptions accept an `id` parameter to filter events for a specific project:
+
+```graphql
+subscription {
+  projectVersionsUpdated(id: "your-project-id") {
+    id
+    modelId
+    type
+    version {
+      id
+      message
+      createdAt
+    }
+  }
+}
+```
+
+Some subscriptions, like `userProjectsUpdated`, don't require parameters and will send updates for all projects the authenticated user has access to.
+
+### Connection Management
+
+WebSocket connections may drop due to network issues. Implement reconnection logic with exponential backoff in your client. Unsubscribe from subscriptions when components unmount or are no longer needed.
+
+## Comparison with Webhooks
+
+Both subscriptions and webhooks provide real-time event notifications, but they serve different use cases:
+
+| Feature | Subscriptions | Webhooks |
+|---------|--------------|----------|
+| **Connection Type** | WebSocket (persistent) | HTTP POST (stateless) |
+| **Best For** | Client applications, real-time UI | Server-to-server, CI/CD, automation |
+| **Connection Management** | Requires active connection | No connection needed |
+| **Scalability** | Limited by WebSocket connections | Scales with HTTP endpoints |
+| **Setup Complexity** | Requires WebSocket client | Simple HTTP endpoint |

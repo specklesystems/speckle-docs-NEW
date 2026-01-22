@@ -1,0 +1,533 @@
+---
+title: Webhooks to Slack
+description: Set up webhooks to post Slack messages whenever a model is updated in Speckle
+---
+
+This guide shows you how to set up webhooks to automatically post Slack notifications whenever a model is updated in your Speckle project.
+
+<Note>
+**Adaptable to Other Services**: While this guide uses Slack as an example, the same pattern works for any service that accepts webhooks or HTTP POST requests, such as:
+- Microsoft Teams
+- Discord
+- Email services (SendGrid, Mailgun)
+- Project management tools (Jira, Asana, Trello)
+- Custom APIs and databases
+- CI/CD systems
+
+Simply replace the Slack webhook URL and message format with your target service's API.
+</Note>
+
+## Overview
+
+You'll create a webhook endpoint that receives Speckle webhook events and forwards them to Slack's Incoming Webhooks API. This creates a bridge between Speckle events and Slack notifications. The same approach can be adapted for any other service that accepts HTTP POST requests.
+
+## Prerequisites
+
+- A Speckle project where you have admin or edit permissions
+- A Slack workspace where you can create webhooks (or another service that accepts HTTP POST requests)
+- A web endpoint to receive webhook events (can be a serverless function, cloud function, or traditional server)
+
+## Step 1: Create a Slack Incoming Webhook
+
+1. Go to your Slack workspace
+2. Navigate to [Slack Apps](https://api.slack.com/apps)
+3. Click **Create New App** → **From scratch**
+4. Name your app (e.g., "Speckle Notifications") and select your workspace
+5. Go to **Incoming Webhooks** in the left sidebar
+6. Toggle **Activate Incoming Webhooks** to **On**
+7. Click **Add New Webhook to Workspace**
+8. Select the channel where you want notifications (e.g., `#speckle-updates`)
+9. Click **Allow**
+10. Copy the **Webhook URL** (it looks like `https://hooks.slack.com/services/...`)
+
+<Note>
+Keep your Slack webhook URL secure. Anyone with this URL can post messages to your Slack channel.
+</Note>
+
+## Step 2: Create Your Webhook Endpoint
+
+Create an endpoint that receives Speckle webhooks and forwards them to Slack. Here's an example implementation:
+
+<CodeGroup>
+
+```javascript slack-webhook.js
+const express = require('express');
+const axios = require('axios');
+const app = express();
+
+app.use(express.json());
+
+// Your Slack webhook URL from Step 1
+const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
+
+app.post('/webhook', async (req, res) => {
+  try {
+    const payload = req.body.payload;
+    const event = payload.event;
+    
+    // Only process model_update events (branch_update in payload)
+    if (event.event_name === 'branch_update') {
+      const modelName = payload.stream?.name || 'Unknown Project';
+      const branchName = event.data?.branchName || 'Unknown Model';
+      const userName = payload.user?.name || 'Unknown User';
+      
+      // Format the Slack message
+      const slackMessage = {
+        text: `📦 Model Updated in ${modelName}`,
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `*Model Updated*\n*Project:* ${modelName}\n*Model:* ${branchName}\n*Updated by:* ${userName}`
+            }
+          },
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `<${payload.server.canonicalUrl}/projects/${payload.streamId}|View in Speckle>`
+            }
+          }
+        ]
+      };
+      
+      // Send to Slack
+      await axios.post(SLACK_WEBHOOK_URL, slackMessage);
+    }
+    
+    // Always return 200 to acknowledge receipt
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    // Still return 200 to prevent retries for Slack errors
+    res.status(200).send('OK');
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Webhook server running on port ${PORT}`);
+});
+```
+
+```python slack_webhook.py
+from flask import Flask, request
+import requests
+import os
+
+app = Flask(__name__)
+
+# Your Slack webhook URL from Step 1
+SLACK_WEBHOOK_URL = os.environ.get('SLACK_WEBHOOK_URL')
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    try:
+        payload = request.json.get('payload')
+        event = payload.get('event')
+        
+        # Only process model_update events (branch_update in payload)
+        if event.get('event_name') == 'branch_update':
+            model_name = payload.get('stream', {}).get('name', 'Unknown Project')
+            branch_name = event.get('data', {}).get('branchName', 'Unknown Model')
+            user_name = payload.get('user', {}).get('name', 'Unknown User')
+            
+            # Format the Slack message
+            slack_message = {
+                'text': f'📦 Model Updated in {model_name}',
+                'blocks': [
+                    {
+                        'type': 'section',
+                        'text': {
+                            'type': 'mrkdwn',
+                            'text': f'*Model Updated*\n*Project:* {model_name}\n*Model:* {branch_name}\n*Updated by:* {user_name}'
+                        }
+                    },
+                    {
+                        'type': 'section',
+                        'text': {
+                            'type': 'mrkdwn',
+                            'text': f'<{payload["server"]["canonicalUrl"]}/projects/{payload["streamId"]}|View in Speckle>'
+                        }
+                    }
+                ]
+            }
+            
+            # Send to Slack
+            requests.post(SLACK_WEBHOOK_URL, json=slack_message)
+        
+        # Always return 200 to acknowledge receipt
+        return 'OK', 200
+    except Exception as e:
+        print(f'Error processing webhook: {e}')
+        # Still return 200 to prevent retries for Slack errors
+        return 'OK', 200
+
+if __name__ == '__main__':
+    app.run(port=int(os.environ.get('PORT', 3000)))
+```
+
+</CodeGroup>
+
+### Serverless Function Example (AWS Lambda)
+
+Here's the same functionality as a serverless Lambda function:
+
+<CodeGroup>
+
+```javascript lambda-function.js
+// AWS Lambda function handler
+const axios = require('axios');
+
+const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
+
+exports.handler = async (event) => {
+  try {
+    const payload = JSON.parse(event.body).payload;
+    const webhookEvent = payload.event;
+    
+    // Only process model_update events (branch_update in payload)
+    if (webhookEvent.event_name === 'branch_update') {
+      const modelName = payload.stream?.name || 'Unknown Project';
+      const branchName = webhookEvent.data?.branchName || 'Unknown Model';
+      const userName = payload.user?.name || 'Unknown User';
+      
+      const slackMessage = {
+        text: `📦 Model Updated in ${modelName}`,
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `*Model Updated*\n*Project:* ${modelName}\n*Model:* ${branchName}\n*Updated by:* ${userName}`
+            }
+          }
+        ]
+      };
+      
+      await axios.post(SLACK_WEBHOOK_URL, slackMessage);
+    }
+    
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: 'OK' })
+    };
+  } catch (error) {
+    console.error('Error:', error);
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: 'OK' })
+    };
+  }
+};
+```
+
+```python lambda_function.py
+# AWS Lambda function handler
+import json
+import os
+import requests
+
+SLACK_WEBHOOK_URL = os.environ.get('SLACK_WEBHOOK_URL')
+
+def lambda_handler(event, context):
+    try:
+        payload = json.loads(event['body'])['payload']
+        webhook_event = payload['event']
+        
+        # Only process model_update events (branch_update in payload)
+        if webhook_event.get('event_name') == 'branch_update':
+            model_name = payload.get('stream', {}).get('name', 'Unknown Project')
+            branch_name = webhook_event.get('data', {}).get('branchName', 'Unknown Model')
+            user_name = payload.get('user', {}).get('name', 'Unknown User')
+            
+            slack_message = {
+                'text': f'📦 Model Updated in {model_name}',
+                'blocks': [
+                    {
+                        'type': 'section',
+                        'text': {
+                            'type': 'mrkdwn',
+                            'text': f'*Model Updated*\n*Project:* {model_name}\n*Model:* {branch_name}\n*Updated by:* {user_name}'
+                        }
+                    }
+                ]
+            }
+            
+            requests.post(SLACK_WEBHOOK_URL, json=slack_message)
+        
+        return {
+            'statusCode': 200,
+            'body': json.dumps({'message': 'OK'})
+        }
+    except Exception as e:
+        print(f'Error: {e}')
+        return {
+            'statusCode': 200,
+            'body': json.dumps({'message': 'OK'})
+        }
+```
+
+</CodeGroup>
+
+## Step 3: Deploy Your Webhook Endpoint
+
+Your webhook endpoint doesn't need to be a full server - it just needs to be a publicly accessible HTTP endpoint that can receive POST requests. You can use:
+
+### Serverless Functions (Recommended)
+
+**AWS Lambda:**
+- Create a Lambda function with an API Gateway trigger
+- Deploy your code and get a public URL
+- Pay only for requests (very cost-effective)
+
+**Google Cloud Functions:**
+- Deploy as an HTTP function
+- Automatically gets a public HTTPS URL
+- Scales automatically
+
+**Azure Functions:**
+- Create an HTTP-triggered function
+- Get a public endpoint URL
+- Serverless scaling
+
+**Vercel / Netlify Functions:**
+- Deploy as a serverless function
+- Automatic HTTPS and scaling
+- Great for simple integrations
+
+### Traditional Servers
+
+- **Cloud platforms**: Heroku, Railway, Render, DigitalOcean
+- **Your own server**: Any server with a public IP
+- **Local testing**: Use [ngrok](https://ngrok.com/) to create a temporary public URL
+
+<Info>
+**Why Serverless?** Serverless functions are ideal for webhooks because:
+- They only run when receiving requests (cost-effective)
+- Automatic scaling handles traffic spikes
+- No server management required
+- Built-in HTTPS support
+- Pay-per-use pricing model
+</Info>
+
+<Note>
+For production use, make sure your endpoint:
+- Uses HTTPS (automatic with most serverless platforms)
+- Verifies webhook signatures (see [Webhook Security](../webhooks/security))
+- Handles errors gracefully
+- Returns 200 OK quickly (process Slack requests asynchronously if needed)
+</Note>
+
+## Step 4: Configure the Speckle Webhook
+
+1. Navigate to your Speckle project
+2. Go to **Settings** → **Webhooks**
+3. Click **ADD WEBHOOK**
+4. Fill in the configuration:
+   - **URL**: Your webhook endpoint URL (e.g., `https://your-server.com/webhook`)
+   - **Events**: Select `model_update` (this maps to `branch_update` in the payload)
+   - **Webhook name**: "Slack Notifications"
+   - **Secret**: (Optional but recommended) Set a secret for signature verification
+5. Click **Create**
+
+## Step 5: Test the Integration
+
+1. Update a model in your Speckle project (e.g., rename it or modify its description)
+2. Check your Slack channel - you should see a notification
+3. Check your webhook endpoint logs to verify it received the event
+
+## Customizing the Message
+
+You can customize the Slack message format to include more information or different styling:
+
+<CodeGroup>
+
+```javascript custom-message.js
+// Example: Include more details
+const slackMessage = {
+  text: `📦 Model Updated: ${branchName}`,
+  blocks: [
+    {
+      type: 'header',
+      text: {
+        type: 'plain_text',
+        text: 'Model Updated'
+      }
+    },
+    {
+      type: 'section',
+      fields: [
+        {
+          type: 'mrkdwn',
+          text: `*Project:*\n${modelName}`
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Model:*\n${branchName}`
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Updated by:*\n${userName}`
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Time:*\n${new Date().toLocaleString()}`
+        }
+      ]
+    },
+    {
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: {
+            type: 'plain_text',
+            text: 'View in Speckle'
+          },
+          url: `${payload.server.canonicalUrl}/projects/${payload.streamId}`
+        }
+      ]
+    }
+  ]
+};
+```
+
+```python custom_message.py
+# Example: Include more details
+from datetime import datetime
+
+slack_message = {
+    'text': f'📦 Model Updated: {branch_name}',
+    'blocks': [
+        {
+            'type': 'header',
+            'text': {
+                'type': 'plain_text',
+                'text': 'Model Updated'
+            }
+        },
+        {
+            'type': 'section',
+            'fields': [
+                {
+                    'type': 'mrkdwn',
+                    'text': f'*Project:*\n{model_name}'
+                },
+                {
+                    'type': 'mrkdwn',
+                    'text': f'*Model:*\n{branch_name}'
+                },
+                {
+                    'type': 'mrkdwn',
+                    'text': f'*Updated by:*\n{user_name}'
+                },
+                {
+                    'type': 'mrkdwn',
+                    'text': f'*Time:*\n{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+                }
+            ]
+        },
+        {
+            'type': 'actions',
+            'elements': [
+                {
+                    'type': 'button',
+                    'text': {
+                        'type': 'plain_text',
+                        'text': 'View in Speckle'
+                    },
+                    'url': f'{payload["server"]["canonicalUrl"]}/projects/{payload["streamId"]}'
+                }
+            ]
+        }
+    ]
+}
+```
+
+</CodeGroup>
+
+## Extending to Other Events
+
+You can extend this to notify on other events by checking different `event_name` values:
+
+- `commit_create` - New version created
+- `commit_update` - Version updated
+- `comment_created` - New comment added
+- `issue_created` - New issue created
+
+Example:
+
+```javascript
+if (event.event_name === 'branch_update') {
+  // Handle model update
+} else if (event.event_name === 'commit_create') {
+  // Handle version creation
+  const versionMessage = {
+    text: `✨ New Version Created: ${event.data.message || 'No message'}`
+  };
+  await axios.post(SLACK_WEBHOOK_URL, versionMessage);
+}
+```
+
+## Security Considerations
+
+<Warning>
+**Important Security Notes:**
+
+1. **Verify Webhook Signatures**: Always verify that webhooks are actually coming from Speckle. See [Webhook Security](../webhooks/security) for signature verification code.
+
+2. **Protect Your Slack Webhook URL**: Keep your Slack webhook URL in environment variables, never commit it to version control.
+
+3. **Use HTTPS**: Always use HTTPS for your webhook endpoint in production.
+
+4. **Handle Errors Gracefully**: Return 200 OK even if Slack posting fails to prevent infinite retries.
+</Warning>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Why aren't I receiving Slack notifications?">
+    - Verify your webhook endpoint is accessible (test with a simple curl request)
+    - Check that you selected `model_update` in the Speckle webhook configuration
+    - Verify your Slack webhook URL is correct
+    - Check your endpoint logs for errors
+    - Ensure your endpoint returns 200 OK quickly
+  </Accordion>
+
+  <Accordion title="How do I test locally?">
+    Use [ngrok](https://ngrok.com/) to create a public URL that forwards to your local server:
+    
+    1. Run `ngrok http 3000` (or your local port)
+    2. Copy the ngrok URL (e.g., `https://abc123.ngrok.io`)
+    3. Use this URL in your Speckle webhook configuration
+    4. Your local server will receive webhook events
+    
+    Alternatively, you can deploy to a serverless function in a development environment for testing.
+  </Accordion>
+
+  <Accordion title="Do I need to run a server 24/7?">
+    No! If you use serverless functions (AWS Lambda, Google Cloud Functions, Azure Functions, Vercel, etc.), you don't need a running server. The function only executes when it receives a webhook request, making it very cost-effective. You only pay for the requests you receive.
+  </Accordion>
+
+  <Accordion title="Can I filter which models trigger notifications?">
+    Yes! Add conditional logic in your webhook handler:
+    
+    ```javascript
+    // Only notify for specific models
+    const allowedModels = ['production', 'staging'];
+    if (allowedModels.includes(branchName)) {
+      // Send Slack notification
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Documentation
+
+- [Available Events](../webhooks/events) - Complete list of webhook events
+- [Webhook Security](../webhooks/security) - Securing your webhook endpoints
+- [Webhook Payloads](../webhooks/events) - Understanding webhook payload structure
+- [Slack Block Kit](https://api.slack.com/block-kit) - Formatting rich Slack messages
+
