@@ -63,22 +63,17 @@ Removes all measurements, including finished or ongoing now.
 
 **Returns**: void
 
-### fromMeasurementData
+### addMeasurement
 
 ```typescript
-fromMeasurementData(startPoint: Vector3, endPoint: Vector3): void
+addMeasurement(data: MeasurementData): void
 ```
 
-Programatically adds a measurements.
-
-<Warning>
-  Currently only _PointToPoint_ measurements can pe programatically added
-</Warning>
+Programatically adds a measurement from serializable measurement data.
 
 **Parameters**
 
-- **startPoint**: Vector3
-- **endPoint**: Vector3
+- **data**: [_MeasurementData_](/developers/viewer/extensions/measurements-tool-api#measurementdata)
 
 **Returns**: void
 
@@ -91,6 +86,18 @@ removeMeasurement(): void
 Removes any currently ongoing measurements.
 
 **Returns**: void
+
+### toMeasurementData
+
+```typescript
+toMeasurementData(): MeasurementData[]
+```
+
+Returns the serializable data for all measurements
+
+**Returns**: [_MeasurementData[]_](/developers/viewer/extensions/measurements-tool-api#measurementdata)
+
+
 
 ## Typedefs
 
@@ -136,6 +143,24 @@ enum MeasurementType {
 ```
 
 Measurement types.
+
+
+### MeasurementData
+```typescript
+interface MeasurementData {
+  type: MeasurementType
+  startPoint: readonly [number, number, number] // vec3
+  endPoint: readonly [number, number, number] // vec3
+  startNormal: readonly [number, number, number] // vec3
+  endNormal: readonly [number, number, number] // vec3
+  value: number
+  innerPoints?: (readonly [number, number, number])[] // array of vec3
+  units?: string
+  precision?: number
+  uuid: string
+}
+```
+Serializable measurement data
 
 ## Constants
 
