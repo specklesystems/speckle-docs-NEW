@@ -1,7 +1,7 @@
 ---
 title: "Rules and Rulesets"
 sidebarTitle: "Rules and Rulesets"
-description: "Learn how to create validation rules and use rulesets in automations."
+description: "Learn how to create validation rules and structure rulesets for Property Checker and Model Validation."
 ---
 
 ## Understanding Rule Structure
@@ -56,7 +56,8 @@ You can add multiple `AND` conditions between `WHERE` and `CHECK` to create more
 - `CHECK` Length > 5000
 
 ## Supported Predicates
-Model Checker supports the following predicates for comparing property values:
+
+Validation supports the following predicates for comparing property values:
 | Predicate | Description | Example |
 | --- | --- | --- |
 | `exists` | Checks if a property exists | `height exists` |
@@ -72,6 +73,7 @@ Model Checker supports the following predicates for comparing property values:
 | `is true` | Boolean property is true | `is_structural is true` |
 | `is false` | Boolean property is false | `is_placeholder is false` |
 | `is like` | Loose text matching (pattern matching) | `name is like Wall` matches "Walls", "Wall-01", etc. |
+
 ## Rule Types
 
 ### Property Existence
@@ -114,7 +116,7 @@ Auto-generated messages help ensure your rules are clear and understandable. Con
 ## Best Practices
 
 ### Use Specific Property Paths
-Use exact property paths for accurate validation. The Model Checker understands properties in Speckle objects regardless of schema:
+Use exact property paths for accurate validation. Rules apply to properties in Speckle objects regardless of schema:
 
 - **Direct properties**: `category`, `name`, `id`
 - **Nested properties**: `baseline.length`, `parameters.WIDTH.value`
@@ -182,59 +184,25 @@ CHECK height not in range 2400,4000
 ```
 This rule checks that structural columns have heights between 2400 and 4000 units.
 
-## Exporting Rulesets
-
-### Getting Your Ruleset URL
-
-Once you've created a ruleset:
-
-1. Navigate to your project's rulesets page
-2. Find the ruleset you want to use
-3. Click **Copy Link** to get the URL for your ruleset
-
-This URL is a permanent link to your ruleset. When you update your rules in Model Checker, the URL automatically reflects the latest version.
-
-<Tip>
-The ruleset URL automatically updates when you modify your rules. You don't need to regenerate the URL or update your automation configuration.
-</Tip>
+## Exporting and Importing Rulesets
 
 ### Exporting
 
-Rulesets can also be exported as files for backup or sharing:
+Rulesets can be exported as files for backup or sharing:
 
-1. Navigate to your project's rulesets page
-2. Find the ruleset you want to export
+1. Open your project's rulesets
+2. Select the ruleset you want to export
 3. Use the export option to download the ruleset
 
 <Info>
-Exported files use the TSV (Tab-Separated Values) format. TSV files can be imported back into Model Checker or shared with other projects or teams.
+Exported files use the TSV (Tab-Separated Values) format. TSV files can be imported back into your project or shared with other projects or teams.
 </Info>
 
-## Using Rulesets in Automations
+### Importing Rules
 
-### Setting Up Model Checker Automation
+If you have existing rules in a file, you can import them:
 
-1. Copy the ruleset URL from Model Checker
-2. In Speckle Automate, create a new automation
-3. Select the **Model Checker** function
-4. Paste the ruleset URL into the configuration
-5. Configure which models or projects should be checked
-
-The automation will automatically use the latest version of your rules whenever the URL is accessed.
-
-### How It Works
-
-When you publish a model to Speckle:
-1. The Model Checker automation is triggered
-2. It fetches your rules from the ruleset URL
-3. It validates the model against all rules in the ruleset
-4. Results are stored and can be viewed in the 3D viewer
-
-## Importing Rules
-
-If you have existing rules in a file, you can import them into Model Checker:
-
-1. Navigate to your project's rulesets page
+1. Open your project's rulesets
 2. Click **Import**
 3. Provide a name and description for the imported ruleset
 4. Upload your file
@@ -243,9 +211,6 @@ If you have existing rules in a file, you can import them into Model Checker:
 Imported files should use the TSV (Tab-Separated Values) format. The file should have the following columns:
 </Info>
 
-<Warning>
-**TSV File Hosting**: If you're creating TSV files manually (outside of the Model Checker UI), the file must be hosted somewhere and served with the MIME-type `text/tab-separated-values`. The URL to this hosted file can then be used in automation configurations.
-</Warning>
 ### File Format
 
 The file format should have the following columns:
@@ -277,17 +242,7 @@ You can create multiple rulesets for a single project. This is useful for organi
 - **Material Standards** - Rules for material specifications
 - **Dimensional Checks** - Rules for size and dimension validation
 
-Each ruleset can be used independently in automations, allowing you to run different validation checks on the same models.
-
-## Updating Rules
-
-When you update rules in Model Checker:
-
-1. Make changes to your rules in the Model Checker interface
-2. The ruleset URL automatically reflects the latest version
-3. Your automations will use the updated rules without needing to reconfigure
-
-No need to update automation configurations or regenerate URLs.
+Each ruleset can be used independently for different validation purposes.
 
 ## Frequently Asked Questions
 
@@ -299,37 +254,17 @@ Yes, the auto-generated messages are designed to be clear and helpful. You can u
 You can add multiple `AND` conditions between `WHERE` and `CHECK` to filter by multiple properties. However, the `CHECK` condition should validate a single property. If you need to check multiple properties, create separate rules.
 </Accordion>
 <Accordion title="How do I know which property path to use?">
-Use the exact property path as it appears in your model data. If you're unsure, you can explore your model's properties in the 3D viewer or use the property search in Model Checker to find the correct path.
-</Accordion>
-<Accordion title="Can I use the same ruleset URL in multiple automations?">
-Yes, you can use the same ruleset URL in multiple automations. All automations will use the latest version of your rules whenever they run.
-</Accordion>
-<Accordion title="What happens if I delete a ruleset?">
-If you delete a ruleset, any automations using that ruleset's URL will no longer be able to fetch the rules. Make sure to update or remove those automations.
-</Accordion>
-<Accordion title="Do I need to update my automation when I change rules?">
-No, the ruleset URL automatically reflects the latest version of your rules. Your automations will use the updated rules without needing to reconfigure.
+Use the exact property path as it appears in your model data. If you're unsure, explore your model's properties in the 3D viewer or use the property search in the validation interface to find the correct path.
 </Accordion>
 <Accordion title="Can I share exported files with other teams?">
 Yes, exported files can be shared with other teams or imported into other projects. This makes it easy to standardize validation rules across projects.
 </Accordion>
-<Accordion title="Why TSV and not CSV?">
-TSV (Tab-Separated Values) is used instead of CSV (Comma-Separated Values) to cope with commas that may be present in properties or messages. TSV is the same as CSV but uses tabs in place of commas to separate values, preventing issues when property values or messages contain commas.
-</Accordion>
-<Accordion title="Can I create the file in Excel?">
-Yes, you can create TSV files in Excel. When saving, choose "Tab delimited" or "Text (Tab delimited)" as the file format. Make sure to save with the .tsv extension.
-</Accordion>
-<Accordion title="How does Model Checker relate to IDS (Information Delivery Specification)?">
-IDS (Information Delivery Specification) is designed for IFC model checking, but IDS rules can be applied to all Speckle models regardless of their source format. However, there are important differences:
+<Accordion title="How does validation relate to IDS (Information Delivery Specification)?">
+IDS (Information Delivery Specification) is designed for IFC model checking, but IDS rules can be applied to all Speckle models regardless of their source format. There are important differences:
 
 - **IDS checks for rules that relate to assembly membership** - IDS can validate relationships between elements and their assemblies
-- **Model Checker is isolated to the data within an element** - Model Checker focuses on validating properties and data within individual elements, not relationships between elements
+- **Property- and Model Validation focus on data within an element** - They validate properties and data within individual elements, not relationships between elements
 
-Future updates will include the ability to import IDS files and convert applicable rules to Speckle Model Checker format.
+Future updates will include support for importing IDS and COBie for the definition of rulesets.
 </Accordion>
 </AccordionGroup>
-
-## Next Steps
-
-- See how to [view and analyze results](/analytics/model-checker/viewing-results)
-

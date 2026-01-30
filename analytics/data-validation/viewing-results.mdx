@@ -1,49 +1,8 @@
 ---
 title: "Viewing Results"
 sidebarTitle: "Viewing Results"
-description: "Learn how to view and analyze validation results from Property Checker, Model Validation, and Automated Validation."
+description: "Learn how to view and analyze validation results from Property Checker and Model Validation in Intelligence dashboards."
 ---
-
-## In the 3D Viewer
-
-Validation results are integrated into Speckle's 3D viewer. Elements that fail validation rules are flagged with warnings or errors, making it easy to identify issues visually.
-
-<Frame>
-  <img src="/images/model-checker/results.png" alt="view the results" />
-</Frame>
-
-### Visual Indicators
-
-- **Errors** - Critical issues that must be fixed
-- **Warnings** - Moderate concerns that should be reviewed
-- **Info** - Informational notifications
-
-### Filtering by Results
-
-You can filter the 3D viewer to show only elements that:
-- Passed all rules
-- Failed specific rules
-- Have errors or warnings
-- Match specific severity levels
-
-## In Speckle Connectors
-
-Automated Validation reports are also viewable in Speckle connectors interface. You can view validation results directly in your host application (Revit, Rhino, etc.) and interact with failed elements.
-
-### Isolating and Highlighting Elements
-
-When viewing Automated Validation results in a connector:
-
-- **Isolate elements** that failed validation rules
-- **Highlight elements** in your host application based on validation results
-- **Navigate to specific elements** that need attention
-- **Review validation messages** directly in the connector interface
-
-This allows you to fix validation issues directly in your modeling software without switching between applications.
-
-<Frame>
-  <img src="/images/model-checker/connector-results.png" alt="view the results" />
-</Frame>
 
 ## In Intelligence Dashboards
 
@@ -60,6 +19,10 @@ The **Property Checker** is an Intelligence widget that provides spot checking o
 - **Get real-time validation** against dashboard data sources
 - **View breakdown by property** to analyze validation results across different property values
 
+<Frame>
+  <img src="/images/model-checker/widget-results.png" alt="view the results" />
+</Frame>
+
 Property Checker shows the outcome of each rule you configure:
 - **Pass rate percentage** displayed in the center of the donut chart
 - **Passed vs. Failed counts** for elements that reached the CHECK step
@@ -68,20 +31,23 @@ Property Checker shows the outcome of each rule you configure:
 
 This is particularly useful for **quick, ad-hoc validation checks** of individual properties within a dashboard.
 
+<Tip>
+Property Checker validates against the data sources in your dashboard, making it perfect for ad-hoc validation checks of individual properties. For validation at scale with automation integration, use [Model Validation](/analytics/data-validation/overview) (Enterprise) or [Automated Validation](/analytics/data-validation/overview) (Enterprise).
+</Tip>
+
 ### Model Validation
 
 **Model Validation** is an Intelligence widget that checks a single model against a ruleset defined as many Property Checks. It uses Automated Validation (Automate) under the hood to enable validation at scale and is an Enterprise feature.
 
 - Validates a single model against a complete ruleset
-- Uses Automated Validation for comprehensive validation
+- Rules can be defined as ERROR, WARNING, or INFO which will proportionally contribute to an overall validation score.
 - View comprehensive validation results in dashboards
+- Uses Automated Validation for comprehensive validation
 - Enterprise feature (requires Automate)
 
-<Frame>
-  <img src="/images/model-checker/widget-results.png" alt="view the results" />
-</Frame>
 
-### Breakdown Tab
+
+#### Breakdown Tab
 
 The **Breakdown** tab allows you to analyze validation results by grouping them according to properties from your model objects. This helps you identify patterns in validation failures across different categories, types, or other property values.
 
@@ -106,9 +72,11 @@ If the property dropdown is disabled even though validation has run:
 - Ensure the model objects have properties that can be used for breakdown
 - Try refreshing the validation results or re-running the validation
 
-<Tip>
-Property Checker validates against the data sources in your dashboard, making it perfect for ad-hoc validation checks of individual properties. For validation at scale with automation integration, use [Model Validation](/analytics/model-checker/overview) (Enterprise) or [Automated Validation](/analytics/model-checker/overview) (Enterprise).
-</Tip>
+#### Rules tab
+
+For every Rule in a Model Validation ruleset you can review the results as per the Property Checker widget.
+
+
 
 ## Understanding Results
 
@@ -126,121 +94,6 @@ Each model element will show:
 - The severity of any failures
 - The message associated with each failure
 
-## In Power BI
-
-Automated Validation results can be visualized and analyzed in Power BI, allowing you to create custom dashboards and track model data quality over time.
-
-### What You Can Do
-
-- **Query validation results** for one or multiple model versions using Speckle's GraphQL API
-- **Establish relationships** between validation results and 3D model objects
-- **Track model health over time** using interactive Power BI charts
-- **Create custom reports** tailored to your project needs
-
-### Getting Started
-
-To view Automated Validation results in Power BI:
-
-1. Use Power BI Desktop with the **Speckle Data Connector** or query Speckle's GraphQL API directly
-2. Query the `automationsStatus` field from model versions to access validation results
-3. Extract validation data including:
-   - **Category** (validation rule applied)
-   - **Level** (error, warning, info)
-   - **Object IDs** (affected elements)
-   - **Message** (rule description)
-   - **Metadata** (custom rule details)
-4. Link validation results to model objects using Object IDs
-5. Create visualizations to track trends and analyze model quality
-
-This approach is particularly useful for **Project Managers, BIM Coordinators, and Engineers** who need deeper insights into model validation beyond what's available in the 3D viewer.
-
-### Power Query M Code Examples
-
-<AccordionGroup>
-<Accordion title="Step 1: Parse the Speckle URL">
-Extract project and model IDs from your Speckle URL:
-
-```m
-let
-    projectUrl = "https://your-speckle-server/projects/{your-project-id}/models/{your-model-id}",
-    parsedUrl = Speckle.Parser(projectUrl)
-in
-    parsedUrl
-```
-
-Rename this query to **ParsedSpeckleURL**.
-</Accordion>
-
-<Accordion title="Step 2: Query Automated Validation Results">
-Query validation results for a single model version:
-
-```m
-let
-    query = """
-    query GetCheckerResults($projectId: String!, $modelId: String!, $limit: Int!) {
-        project(id: $projectId) {
-            model(id: $modelId) {
-                versions(limit: $limit) {
-                    items {
-                        automationsStatus {
-                            automationRuns {
-                                functionRuns {
-                                    results 
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    """,
-    variables = [
-        projectId = ParsedSpeckleURL[projectId],
-        modelId = ParsedSpeckleURL[modelId],
-        limit = 1
-    ],
-    response = Speckle.Api.Fetch(ParsedSpeckleURL[baseUrl], query, variables)
-in
-    response
-```
-
-Rename this query to **ModelCheckerResults**.
-</Accordion>
-
-<Accordion title="Step 3: Extract Automation Runs">
-Get all automation runs from the response:
-
-```m
-objects = response[project][model][versions][items]{0}[automationsStatus][automationsRuns]
-```
-
-Expand **objectResults** in Power Query to extract:
-- **Category** (validation rule applied)
-- **Level** (error, warning, info)
-- **Object IDs** (affected elements)
-- **Message** (rule description)
-- **Metadata** (custom rule details)
-</Accordion>
-
-<Accordion title="Step 4: Query Multiple Versions">
-To track model health over time, modify the query to fetch multiple versions:
-
-```m
-let
-    variables = [
-        projectId = ParsedSpeckleURL[projectId],
-        modelId = ParsedSpeckleURL[modelId],
-        limit = 3
-    ]
-in
-    // Use the same query structure with increased limit
-```
-
-This allows you to create trend charts showing validation results across multiple model versions.
-</Accordion>
-</AccordionGroup>
-
 ## Best Practices
 
 ### Regular Review
@@ -250,28 +103,13 @@ Set up regular reviews of validation results to catch issues early in your workf
 Share results with your team to ensure everyone is aware of validation issues and can address them promptly.
 
 <AccordionGroup>
-<Accordion title="How do I know which elements failed validation?">
-Elements that fail validation are visually flagged in the 3D viewer. You can click on flagged elements to see which rules they failed and the associated messages.
-</Accordion>
-<Accordion title="Can I filter results by specific rules?">
-Yes, you can filter the 3D viewer to show only elements that failed specific rules. This helps you focus on particular validation issues.
-</Accordion>
 <Accordion title="What does 'Not Applied' mean?">
 A rule shows as "Not Applied" when it couldn't be evaluated, typically because no elements matched the `WHERE` condition. This is normal and doesn't indicate an error.
-</Accordion>
-<Accordion title="How often are results updated?">
-Results are updated automatically when new model versions are published and Automated Validation runs.
-</Accordion>
-<Accordion title="Can I view Automated Validation results in Power BI?">
-Yes, you can query Automated Validation results using Speckle's GraphQL API and visualize them in Power BI. This allows you to create custom dashboards, track model quality over time, and establish relationships between validation results and model objects. Access validation results through the `automationsStatus` field in model versions.
 </Accordion>
 <Accordion title="Can I see individual rule outcomes in a dashboard?">
 Yes, Property Checker in Intelligence dashboards lets you create validation rules directly in your dashboard and see the outcomes of individual rules. Property Checker displays pass/fail percentages, validation step counts, and can colorize the 3D viewer based on results. This is perfect for quick, ad-hoc validation checks of individual properties within a dashboard.
 
 For validating a single model against a complete ruleset, use Model Validation (Enterprise feature), which uses Automated Validation under the hood.
-</Accordion>
-<Accordion title="Can I view Automated Validation results in my host application?">
-Yes, Automated Validation reports are viewable in Speckle connectors interface. You can isolate and highlight elements that failed validation directly in your host application (Revit, Rhino, etc.), making it easy to fix issues without leaving your modeling software.
 </Accordion>
 <Accordion title="Why is the property selection dropdown disabled in the Breakdown tab?">
 The property selection dropdown in the Breakdown tab requires that:
@@ -282,7 +120,3 @@ The property selection dropdown in the Breakdown tab requires that:
 If the dropdown remains disabled after validation has run, it may indicate that the model objects need to be loaded or that properties aren't available on the validated objects. Try refreshing the validation results or ensuring the model viewer widget is properly connected as the data source.
 </Accordion>
 </AccordionGroup>
-
-## Next Steps
-
-- Learn about [creating rules and using rulesets](/analytics/model-checker/rules-and-rulesets)
