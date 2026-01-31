@@ -1,0 +1,174 @@
+---
+title: "Filters"
+sidebarTitle: "Filters"
+description: "Filter levels, operators, and property behaviour for Intelligence dashboards."
+---
+
+Filters let you focus on specific parts of your data. This page covers filter levels, operators, and property
+behaviour. Chart and table widgets drive both page-level filters and optional widget-level filters.
+
+In this section:
+
+- [Filter levels](#filter-levels) — Page-level vs widget-level
+- [How page-level filters interact](#how-page-level-filters-interact) — OR within a chip, AND across chips
+- [Operators and data types](#operators-and-data-types) — Text, number, list, and special operators
+- [Properties and the data model](#properties-and-the-data-model) — Nested properties, type coercion, and edge cases
+
+### Page-level filters
+
+When you apply a filter from a widget (for example by clicking a value in a chart), it becomes a **page-level filter**
+that affects all widgets on the dashboard.
+
+- Multiple filters can be active at once
+- Active filters appear at the top of the dashboard as chips; click the X on a chip to remove it
+- Individual widgets can opt out of page-level filters in their settings
+
+### Widget-level filters
+
+Many widgets have **local filters** that affect only that widget. Use them to focus a single widget on a subset of
+data without changing the rest of the dashboard.
+
+### Filter levels
+
+**Page-level (data-source-level) filters** affect what data is used across the dashboard. They apply to all widgets
+unless a widget opts out. Use page-level filters when you want the whole dashboard to focus on the same subset (e.g.
+one category, one floor).
+
+**Widget-level filters** affect only the displayed results in that widget. They do not change the data sent to other
+widgets or the model viewer. Use widget-level filters when one chart or table should show a different slice of the
+same data.
+
+### How page-level filters interact
+
+Clicking a value in a chart or table adds a **page-level filter** (shown as a chip at the top of the dashboard). How
+filters combine:
+
+- **Within one filter (one chip)**: If you select multiple values for the same property (e.g. Category = Walls and
+  Floors), they combine as **OR**—objects matching any of those values are included.
+- **Across filters (multiple chips)**: Each chip is a separate filter (e.g. one for Category, one for Level). Multiple
+  chips combine as **AND**—only objects that match every active filter are included.
+
+Example: a chip "Category: Walls, Floors" and a chip "Level: 01" together show only elements that are (Walls or
+Floors) **and** on Level 01. Widget-level filters apply on top of page-level filters for that widget only.
+
+<AccordionGroup>
+  <Accordion title="When should I use widget filters vs page filters?">
+    Use page filters when you want to focus the entire dashboard on specific data. Use widget filters when you want
+    one widget to show different data than the rest of the dashboard.
+  </Accordion>
+  <Accordion title="Can I save filter combinations?">
+    Filters are part of the dashboard state. When you save or share a dashboard, the active filters are saved with it.
+  </Accordion>
+  <Accordion title="Why isn't a filter affecting a widget?">
+    The widget may be set to opt out of page-level filters. Check the widget settings for "Apply page filters."
+  </Accordion>
+  <Accordion title="Can I filter by properties that don't exist in all models?">
+    Yes. The filter applies only to objects that have that property; objects without it are excluded.
+  </Accordion>
+  <Accordion title="Can I define a negative or exclusive filter?">
+    Yes, but only via the filter UI, not by clicking a chart. Use **Does not contain**, **Not equal to**, or **Not in
+    list** in a widget's filter settings to exclude values (e.g. "Category **Not equal to** Walls"). Chart-triggered
+    filters (clicking a value in a chart to add a chip) are always inclusive—they restrict to the clicked value(s).
+    You cannot click a chart slice to exclude it; use the filter UI for "show everything except X."
+  </Accordion>
+  <Accordion title="Can I clear all page-level filters at once?">
+    No. Remove each filter chip with the X on the chip. There is no "clear all" action for page-level filters in the
+    current UI.
+  </Accordion>
+</AccordionGroup>
+
+### Operators and data types
+
+The operators available depend on the property's data type. Use the filter UI on a widget to choose a property and
+operator.
+
+#### Text operators
+
+| Operator         | Description                          |
+| ---------------- | ------------------------------------ |
+| Contains         | Value contains the given text        |
+| Does not contain | Value does not contain the text      |
+| Matches pattern  | Value matches a pattern (see below)  |
+| Begins with      | Value starts with the given text     |
+| Ends with        | Value ends with the given text       |
+| Equal to         | Exact match                          |
+| Not equal to     | Exclude exact matches                |
+
+#### Numeric operators
+
+| Operator         | Description                         |
+| ---------------- | ----------------------------------- |
+| Equal to         | Exact match                         |
+| Not equal to     | Exclude exact matches               |
+| `Greater than`   | Value above the threshold           |
+| `Less than`      | Value below the threshold           |
+| In range         | Value between two numbers          |
+
+#### List operators
+
+| Operator      | Description                                 |
+| ------------- | ------------------------------------------- |
+| In list       | Value matches any in a comma-separated list |
+| Not in list   | Value does not match any in the list        |
+
+#### Special operators
+
+| Operator             | Description                            |
+| -------------------- | -------------------------------------- |
+| Exists               | The property is present on the object  |
+| Has value            | The property is not empty              |
+| Is true / Is false   | For boolean properties                 |
+
+#### Matches pattern
+
+**Matches pattern** (sometimes shown as "Is like") uses wildcards for text matching. Common placeholders:
+
+- `%` — matches any sequence of characters (including none)
+- `_` — matches a single character
+
+Examples:
+
+- `door_*` or `door%` — matches "door_01", "door_a", "doorway"
+- `*window*` or `%window%` — matches any value containing "window"
+- `Wall%` — matches values that start with "Wall"
+
+Pattern matching is case-sensitive in most cases. Use it when you need to match a family of values (e.g. all doors,
+all elements on a level) without listing each one.
+
+<Note>
+Full regex is not yet supported for **Matches pattern**. Only the wildcard placeholder `%` (any sequence) is
+supported in the current implementation. Matching is case-independent. Regex-style syntax (e.g. character classes,
+anchors, alternation) may not behave as expected.
+</Note>
+
+### Operator availability by data type
+
+- **Text**: Contains, Does not contain, Matches pattern, Begins with, Ends with, Equal to, Not equal to
+- **Number**: Equal to, Not equal to, `Greater than`, `Less than`, In range
+- **List**: In list, Not in list
+- **Boolean**: Is true, Is false, Equal to
+- **Any**: Exists, Has value
+
+The filter UI may restrict operators based on the selected property so you only see options that apply.
+
+### Properties and the data model
+
+**Nested properties**: You can filter on nested or computed fields when the widget exposes them (e.g. a path like
+`element.material.name`). Select the property from the widget's filter dropdown; the exact path depends on how the
+model and widget expose properties. If a property does not exist on some objects, those objects are excluded when the
+filter is applied.
+
+**Type coercion**: Values are compared using the property type. If a number is stored as a string, the filter may treat
+it as text (e.g. "Contains", "Equal to" for the string). For numeric comparisons (`Greater than`, `Less than`,
+Range), the value is interpreted as a number when possible. Boolean properties use Is true / Is false.
+
+**List-based filters**: "In list" and "Not in list" expect comma-separated values. List filters apply to the current
+property only; they do not filter by multiple properties in one rule. Add multiple rules if you need to combine
+conditions.
+
+<Note>
+**When filtering becomes rules**: If you need reusable rules, pass/fail checks, or rulesets (e.g. "all doors must have
+a fire rating"), use the **Property Checker** or **Model Validation** widgets and define rules in the widget or in a
+ruleset. For rule syntax, rulesets, and automated validation, see
+[Data Validation](/analytics/data-validation/overview).
+</Note>
