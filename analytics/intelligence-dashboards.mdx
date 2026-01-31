@@ -45,178 +45,218 @@ Dashboards let you create custom, interactive views of your model data. Analyze 
   />
 </div>
 
-<AccordionGroup>
-<Accordion title="What can I do with dashboards?">
-Dashboards let you analyze model data through charts, tables, and 3D visualizations. You can track properties, compare model versions, identify changes, and create visual reports for your team.
-</Accordion>
-<Accordion title="Do I need special access to use dashboards?">
-No, dashboards are available to all users in public beta. You just need access to the workspace and projects you want to analyze.
-</Accordion>
-<Accordion title="Can I share dashboards with my team?">
-Yes, dashboards are shared at the workspace level. Anyone with access to your workspace can view and edit dashboards.
-</Accordion>
-</AccordionGroup>
+## Bring in your data
 
-## Working with Models
+Each dashboard needs at least one **Model Viewer** widget. The model viewer displays your 3D model and provides data to other widgets. A **Dual viewer** widget lets you compare two models side by side.
 
-### Adding models to your dashboard
-
-Each dashboard needs at least one model viewer widget. The model viewer displays your 3D model and provides data to other widgets on the dashboard.
+### Adding models
 
 To add a model:
+
 1. Drag the **Model Viewer** widget onto the canvas
 2. Select a project from the dropdown
 3. Select a model from that project
 4. Choose whether to load the latest version automatically or pin to a specific version
 
-<AccordionGroup>
-<Accordion title="Can I add multiple models to one dashboard?">
-Yes, you can add multiple model viewer widgets to a dashboard. Other widgets can then connect to any of these models as their data source.
-</Accordion>
-<Accordion title="Should I pin to a specific version or use 'latest'?">
-Use "latest" if you want the dashboard to automatically update when new versions are published. Pin to a specific version if you need to analyze a particular state of the model.
-</Accordion>
-<Accordion title="Can I add models from different projects?">
-Yes, you can add models from any project you have access to within the workspace, including models from different projects or disciplines.
-</Accordion>
-</AccordionGroup>
+Use **latest** if you want the dashboard to update when new versions are published. Pin to a specific version if you need to analyze a particular state of the model. You can add models from any project you have access to within the workspace.
 
 ### Comparing models and versions
 
-Some widgets support multiple data sources, letting you compare:
-- Different versions of the same model
-- Models from different disciplines
-- Models from different projects
+Some widgets support multiple data sources. You can compare different versions of the same model, models from different disciplines, or models from different projects.
 
 Widgets with multiple sources offer two modes:
 
-**Aggregate Mode**: Combines data from all sources into a unified view. Use this to analyze data across multiple models or versions together.
-
-**Compare Mode**: Shows differences between sources. Use this to identify what's changed between versions or what differs between models.
+- **Aggregate mode**: Combines data from all sources into a unified view. Use this to analyze data across multiple models or versions together.
+- **Compare mode**: Shows differences between sources. Use this to identify what's changed between versions or what differs between models.
 
 <AccordionGroup>
-<Accordion title="How do I compare two model versions?">
-Add a widget that supports multiple sources (like a chart or table), then connect it to the same model but select different versions. Switch to Compare mode to see the differences.
-</Accordion>
-<Accordion title="Can I compare models from different software?">
-Yes, as long as both models are in Speckle, you can compare them. The comparison works on shared properties between the models.
-</Accordion>
+  <Accordion title="Can I add multiple models to one dashboard?">
+    Yes. Add multiple model viewer widgets; other widgets can then connect to any of them as their data source.
+  </Accordion>
+  <Accordion title="Can I compare models from different software?">
+    Yes. As long as both models are in Speckle, you can compare them. The comparison works on shared properties between the models.
+  </Accordion>
 </AccordionGroup>
 
-## Filtering and Analysis
+## Explore and filter
+
+Filters let you focus on specific parts of your data. Chart and table widgets drive both page-level filters and optional widget-level filters. You can also colorize the 3D viewer from widget data and use ghost mode to see filtered-out objects as context.
+
+In this section:
+
+- [Filter levels](#filter-levels) — Page-level vs widget-level
+- [Operators and data types](#operators-and-data-types) — Text, number, list, and special operators
+- [Properties and the data model](#properties-and-the-data-model) — Nested properties, type coercion, and edge cases
+- [Model viewer features](#model-viewer-features) — Ghost mode and colorizing
 
 ### Page-level filters
 
-Filters let you focus on specific parts of your data. When you apply a filter from a widget, it becomes a page-level filter that affects all widgets on the dashboard.
+When you apply a filter from a widget (for example by clicking a value in a chart), it becomes a **page-level filter** that affects all widgets on the dashboard.
 
 - Multiple filters can be active at once
-- Active filters appear at the top of the dashboard
-- Click the X on a filter chip to remove it
+- Active filters appear at the top of the dashboard as chips; click the X on a chip to remove it
 - Individual widgets can opt out of page-level filters in their settings
 
-<AccordionGroup>
-<Accordion title="How do I create a filter?">
-Click on a value in any chart or table widget. That value becomes a filter that applies to the whole dashboard. You can also use the filter icon on widgets to create custom filter rules.
-</Accordion>
-<Accordion title="Why isn't a filter affecting a widget?">
-The widget may be set to opt out of page-level filters. Check the widget settings to see if "Apply page filters" is disabled.
-</Accordion>
-<Accordion title="Can I save filter combinations?">
-Filters are part of the dashboard state. When you save or share a dashboard, the active filters are saved with it.
-</Accordion>
-</AccordionGroup>
+### Widget-level filters
 
-### Widget-level filtering
+Many widgets have **local filters** that affect only that widget. Use them to focus a single widget on a subset of data without changing the rest of the dashboard.
 
-Many widgets have their own local filters that don't affect other widgets. Use local filters to focus a specific widget on a subset of data.
+### Filter levels {#filter-levels}
 
-Filter types available:
+**Page-level (data-source-level) filters** affect what data is used across the dashboard. They apply to all widgets unless a widget opts out. Use page-level filters when you want the whole dashboard to focus on the same subset (e.g. one category, one floor).
 
-**Text filters:**
-- Contains - Find items with matching text
-- Does not contain - Exclude items with text
-- Is like - Pattern matching with wildcards (e.g., "Wall%")
-- Equal to - Match exact text
-- Not equal to - Exclude exact matches
-
-**Number filters:**
-- Greater than - Values above a threshold
-- Less than - Values below a threshold
-- In range - Values between two numbers
-- Equal to - Exact match
-
-**List filters:**
-- In list - Match any value in a comma-separated list
-- Not in list - Exclude values in a list
-
-**Special filters:**
-- Exists - Item has this property
-- Has value - Property is not empty
-- Is true/Is false - For boolean properties
+**Widget-level filters** affect only the displayed results in that widget. They do not change the data sent to other widgets or the model viewer. Use widget-level filters when one chart or table should show a different slice of the same data.
 
 <AccordionGroup>
-<Accordion title="When should I use widget filters vs page filters?">
-Use page filters when you want to focus the entire dashboard on specific data. Use widget filters when you want one widget to show different data than the rest of the dashboard.
-</Accordion>
-<Accordion title="Can I filter by properties that don't exist in all models?">
-Yes, but the filter will only apply to objects that have that property. Objects without the property are automatically excluded.
-</Accordion>
+  <Accordion title="When should I use widget filters vs page filters?">
+    Use page filters when you want to focus the entire dashboard on specific data. Use widget filters when you want one widget to show different data than the rest of the dashboard.
+  </Accordion>
+  <Accordion title="Can I save filter combinations?">
+    Filters are part of the dashboard state. When you save or share a dashboard, the active filters are saved with it.
+  </Accordion>
 </AccordionGroup>
 
-## Model Viewer Features
+### Operators and data types {#operators-and-data-types}
 
-### Ghost mode
+The operators available depend on the property's data type. Use the filter UI on a widget to choose a property and operator.
 
-Ghost mode shows filtered-out objects as semi-transparent, providing context for the objects you're analyzing.
+#### Text operators
+
+| Operator         | Description                         |
+| ---------------- | ----------------------------------- |
+| Contains         | Value contains the given text       |
+| Does not contain | Value does not contain the text     |
+| Matches pattern  | Value matches a pattern (see below)  |
+| Begins with      | Value starts with the given text    |
+| Ends with        | Value ends with the given text      |
+| Equal to         | Exact match                         |
+| Not equal to     | Exclude exact matches               |
+
+#### Numeric operators
+
+| Operator     | Description                     |
+| ------------ | ------------------------------- |
+| Equal to     | Exact match                     |
+| Not equal to | Exclude exact matches           |
+| Greater than | Value above the threshold       |
+| Less than    | Value below the threshold       |
+| In range     | Value between two numbers       |
+
+#### List operators
+
+| Operator    | Description                                |
+| ----------- | ------------------------------------------ |
+| In list     | Value matches any in a comma-separated list |
+| Not in list | Value does not match any in the list       |
+
+#### Special operators
+
+| Operator           | Description                           |
+| ------------------ | ------------------------------------- |
+| Exists             | The property is present on the object |
+| Has value          | The property is not empty             |
+| Is true / Is false | For boolean properties                |
+
+#### Matches pattern {#matches-pattern}
+
+**Matches pattern** (sometimes shown as "Is like") uses wildcards for text matching. Common placeholders:
+
+- `%` — matches any sequence of characters (including none)
+- `_` — matches a single character
+
+Examples:
+
+- `door_*` or `door%` — matches "door_01", "door_a", "doorway"
+- `*window*` or `%window%` — matches any value containing "window"
+- `Wall%` — matches values that start with "Wall"
+
+Pattern matching is case-sensitive in most cases. Use it when you need to match a family of values (e.g. all doors, all elements on a level) without listing each one.
+
+### Operator availability by data type
+
+| Data type | Typical operators available                                                                 |
+| --------- | ------------------------------------------------------------------------------------------- |
+| Text      | Contains, Does not contain, Matches pattern, Begins with, Ends with, Equal to, Not equal to  |
+| Number    | Equal to, Not equal to, Greater than, Less than, In range                                   |
+| List      | In list, Not in list                                                                        |
+| Boolean   | Is true, Is false, Equal to                                                                 |
+| Any       | Exists, Has value                                                                           |
+
+The filter UI may restrict operators based on the selected property so you only see options that apply.
+
+### Properties and the data model {#properties-and-the-data-model}
+
+**Nested properties**: You can filter on nested or computed fields when the widget exposes them (e.g. a path like `element.material.name`). Select the property from the widget's filter dropdown; the exact path depends on how the model and widget expose properties. If a property does not exist on some objects, those objects are excluded when the filter is applied.
+
+**Type coercion**: Values are compared using the property type. If a number is stored as a string, the filter may treat it as text (e.g. "Contains", "Equal to" for the string). For numeric comparisons (Greater than, Less than, Range), the value is interpreted as a number when possible. Boolean properties use Is true / Is false.
+
+**List-based filters**: "In list" and "Not in list" expect comma-separated values. List filters apply to the current property only; they do not filter by multiple properties in one rule. Add multiple rules if you need to combine conditions.
+
+### Model viewer features {#model-viewer-features}
+
+#### Ghost mode
+
+Ghost mode shows filtered-out objects as semi-transparent, so you can see how the filtered subset relates to the rest of the model.
 
 To enable ghost mode:
+
 1. Select the model viewer widget
 2. Toggle **Ghost mode** in the widget settings
 
-<AccordionGroup>
-<Accordion title="When should I use ghost mode?">
-Use ghost mode when you need to see how filtered objects relate to the rest of the model. For example, viewing selected walls in the context of the full building.
-</Accordion>
-</AccordionGroup>
+<Tip>
+Use ghost mode when you need to see filtered objects in context (e.g. selected walls in the full building).
+</Tip>
 
-### Colorizing the model
+#### Colorizing the model
 
-Model viewers can colorize objects based on widget data. When you select "Color Model By" on a chart or table widget, the 3D model updates to show the data visually.
+Model viewers can colorize objects based on widget data. When you select **Color Model By** on a chart or table widget, the 3D model updates to show that data visually. Only one colorization is active at a time; the most recent action takes precedence. Click the active colorization control in the widget or filter bar to remove it.
 
 <AccordionGroup>
-<Accordion title="Can I colorize by multiple properties at once?">
-No, only one colorization can be active at a time. The most recent "Color Model By" action takes precedence.
-</Accordion>
-<Accordion title="How do I remove colorization?">
-Click the active colorization control in the widget or filter bar to turn it off.
-</Accordion>
+  <Accordion title="Why isn't a filter affecting a widget?">
+    The widget may be set to opt out of page-level filters. Check the widget settings for "Apply page filters."
+  </Accordion>
+  <Accordion title="Can I filter by properties that don't exist in all models?">
+    Yes. The filter applies only to objects that have that property; objects without it are excluded.
+  </Accordion>
 </AccordionGroup>
 
-## Widget Management
+## Organize and share
 
-All widgets share common controls:
+### Layout and widgets
 
-- **Remove** - Delete the widget from the dashboard
-- **Change Data Source** - Connect to a different model or version
-- **Full Screen** - Expand widget to full screen
-- **Settings** - Access widget-specific options
+All widgets share common controls: **Remove**, **Change Data Source**, **Full Screen**, and **Settings**. Chart widgets also offer **Chart Style** and **Local Filters**. You can drag widget edges or corners to resize. Use **Section** widgets to group parts of the dashboard and improve navigation.
 
-Chart widgets have additional options:
-- **Chart Style** - Switch between different visualization types (bar, line, pie, etc.)
-- **Local Filters** - Apply filters that only affect this widget
+Layout, widget positions, filter state, and pinned versions are saved with the dashboard. When you share the dashboard, others see the same layout and state.
+
+### Sharing and permissions
+
+Dashboards are shared at the workspace level. Anyone with access to your workspace can view and edit dashboards according to their [workspace role](/workspaces/roles-and-seats). To control who can view or edit, manage [roles and permissions](/workspaces/roles-and-seats) for your workspace.
 
 <AccordionGroup>
-<Accordion title="Can I duplicate a widget?">
-Not directly, but you can drag a new widget of the same type from the sidebar and configure it with the same settings.
-</Accordion>
-<Accordion title="Is there a limit to how many widgets I can add?">
-There's no hard limit, but dashboard performance may decrease with very large numbers of widgets.
-</Accordion>
-<Accordion title="Can I resize widgets?">
-Yes, drag the edges or corners of any widget to resize it on the canvas.
-</Accordion>
+  <Accordion title="Can I duplicate a widget?">
+    Not directly. Drag a new widget of the same type from the sidebar and configure it with the same settings.
+  </Accordion>
+  <Accordion title="Is there a limit to how many widgets I can add?">
+    There's no hard limit, but dashboard performance may decrease with very large numbers of widgets.
+  </Accordion>
 </AccordionGroup>
 
-## Getting Help
+Additional widgets are available for Revit, Tekla, CAD, and other connectors; use the widget panel in the app to explore them. For validation rules and rulesets (including the Property Checker and Model Validation widgets), see [Data Validation](/analytics/data-validation/overview).
+
+## Common tasks
+
+<AccordionGroup>
+  <Accordion title="What can I do with dashboards?">
+    Dashboards let you analyze model data through charts, tables, and 3D visualizations. You can track properties, compare model versions, identify changes, and create visual reports for your team.
+  </Accordion>
+  <Accordion title="Do I need special access to use dashboards?">
+    No. Dashboards are available to all users on your plan. You need access to the workspace and projects you want to analyze.
+  </Accordion>
+  <Accordion title="Can I share dashboards with my team?">
+    Yes. Dashboards are shared at the workspace level. Anyone with access to your workspace can view and edit dashboards according to their role.
+  </Accordion>
+</AccordionGroup>
+
+## Getting help
 
 For questions about dashboards, visit the [Speckle Community](https://speckle.community/).
