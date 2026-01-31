@@ -133,6 +133,7 @@ optional widget-level filters. You can also colorize the 3D viewer from widget d
 In this section:
 
 - [Filter levels](#filter-levels) — Page-level vs widget-level
+- [How page-level filters interact](#how-page-level-filters-interact) — OR within a chip, AND across chips
 - [Operators and data types](#operators-and-data-types) — Text, number, list, and special operators
 - [Properties and the data model](#properties-and-the-data-model) — Nested properties, type coercion, and edge cases
 - [Model viewer features](#model-viewer-features) — Colorizing the model
@@ -161,6 +162,19 @@ one category, one floor).
 widgets or the model viewer. Use widget-level filters when one chart or table should show a different slice of the
 same data.
 
+### How page-level filters interact
+
+Clicking a value in a chart or table adds a **page-level filter** (shown as a chip at the top of the dashboard). How
+filters combine:
+
+- **Within one filter (one chip)**: If you select multiple values for the same property (e.g. Category = Walls and
+  Floors), they combine as **OR**—objects matching any of those values are included.
+- **Across filters (multiple chips)**: Each chip is a separate filter (e.g. one for Category, one for Level). Multiple
+  chips combine as **AND**—only objects that match every active filter are included.
+
+Example: a chip "Category: Walls, Floors" and a chip "Level: 01" together show only elements that are (Walls or
+Floors) **and** on Level 01. Widget-level filters apply on top of page-level filters for that widget only.
+
 <AccordionGroup>
   <Accordion title="When should I use widget filters vs page filters?">
     Use page filters when you want to focus the entire dashboard on specific data. Use widget filters when you want
@@ -168,6 +182,18 @@ same data.
   </Accordion>
   <Accordion title="Can I save filter combinations?">
     Filters are part of the dashboard state. When you save or share a dashboard, the active filters are saved with it.
+  </Accordion>
+  <Accordion title="Why isn't a filter affecting a widget?">
+    The widget may be set to opt out of page-level filters. Check the widget settings for "Apply page filters."
+  </Accordion>
+  <Accordion title="Can I filter by properties that don't exist in all models?">
+    Yes. The filter applies only to objects that have that property; objects without it are excluded.
+  </Accordion>
+  <Accordion title="Can I define a negative or exclusive filter?">
+    Yes, but only via the filter UI, not by clicking a chart. Use **Does not contain**, **Not equal to**, or **Not in
+    list** in a widget's filter settings to exclude values (e.g. "Category **Not equal to** Walls"). Chart-triggered
+    filters (clicking a value in a chart to add a chip) are always inclusive—they restrict to the clicked value(s).
+    You cannot click a chart slice to exclude it; use the filter UI for "show everything except X."
   </Accordion>
 </AccordionGroup>
 
@@ -292,6 +318,10 @@ All widgets share common controls: **Remove**, **Change Data Source**, **Full Sc
 widgets also offer **Chart Style** and **Local Filters**. You can drag widget edges or corners to resize. Use **Section**
 widgets to group parts of the dashboard and improve navigation.
 
+To remove a widget in editor mode, select the widget (click it), then open the menu (⋮) in the widget sidebar and
+choose **Delete**, or press **Delete** (Del) on the keyboard. Confirm in the dialog. The widget is removed from the
+dashboard.
+
 Layout, widget positions, filter state, and pinned versions are saved with the dashboard. When you share the
 dashboard, others see the same layout and state.
 
@@ -309,6 +339,16 @@ dashboard, others see the same layout and state.
   </Step>
 </Steps>
 
+<AccordionGroup>
+  <Accordion title="Can I duplicate a widget?">
+    Yes. Select the widget (click it), open the menu (⋮) in the widget sidebar, and choose **Duplicate**. A copy of
+    the widget is added to the canvas with the same settings.
+  </Accordion>
+  <Accordion title="Is there a limit to how many widgets I can add?">
+    There's no hard limit, but dashboard performance may decrease with very large numbers of widgets.
+  </Accordion>
+</AccordionGroup>
+
 ### Themes
 
 Dashboard UI (light/dark) follows your workspace or system preference. Use the theme toggle in the dashboard or
@@ -323,6 +363,10 @@ selected theme is saved with the dashboard.
 Dashboards are shared at the workspace level. Anyone with access to your workspace can view and edit dashboards
 according to their [workspace role](/workspaces/roles-and-seats). To control who can view or edit, manage
 [roles and permissions](/workspaces/roles-and-seats) for your workspace.
+
+You can duplicate an existing dashboard (from the dashboard list or dashboard menu). Duplicating a dashboard copies
+its layout, widgets, and settings so you can use it as a template—for example, create a standard dashboard once and
+duplicate it for new projects or teams.
 
 <Steps>
   <Step title="Save the dashboard">
