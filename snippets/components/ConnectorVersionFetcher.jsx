@@ -8,6 +8,25 @@ const ConnectorVersionFetcher = ({
   artifactPath,
   filenamePattern,
 }) => {
+  const DownloadIcon = ({ size = 16, strokeWidth = 2 }) => (
+    <svg
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" x2="12" y1="3" y2="15" />
+    </svg>
+  );
+
   // Utility to format connector names for display
   const formatConnectorName = (connectorName) => {
     const specialCases = {
@@ -130,7 +149,9 @@ const ConnectorVersionFetcher = ({
         target="_blank"
         rel="noopener noreferrer"
         style={{
-          display: 'inline-block',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
           backgroundColor: buttonColor,
           color: 'white',
           padding: '8px 16px',
@@ -142,6 +163,7 @@ const ConnectorVersionFetcher = ({
           cursor: 'pointer'
         }}
       >
+        <DownloadIcon />
         {defaultButtonText}
       </a>
     </div>
