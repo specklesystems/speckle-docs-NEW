@@ -57,6 +57,7 @@ For self-hosted instances, replace the domain with your server's address.
 
 Here's a simple example query to get started:
 
+#### Query user data:
 ```graphql
 query {
   activeUser {
@@ -66,6 +67,187 @@ query {
   }
 }
 ```
+---
+
+#### Query workspace projects data:
+```graphql
+query($workspaceId: String!) {
+  workspace(id: $workspaceId) {
+    projects {
+      totalCount
+      items {
+        id
+        name
+        createdAt
+      }
+    }
+  }
+}
+```
+```JSON
+{
+  "workspaceId": "your-workspace-id"
+}
+```
+The Variables: Workspace ID.
+You can find the Workspace ID under Workspace Settings > General.
+
+<Accordion title="Response Example">
+   ```JSON
+    "data": {
+      "workspace": {
+        "projects": {
+          "totalCount": 4,
+          "items": [
+            {
+              "id": "ad9c9929e6",
+              "name": "Speckle First Project",
+              "createdAt": "2025-10-15T12:06:46.315Z"
+            },
+            {
+              "id": "6399c298d",
+              "name": "Speckle Tower",
+              "createdAt": "2026-02-04T16:30:57.240Z"
+            },
+            {
+              "id": "e98ab96c9e",
+              "name": "Speckle Demo Project",
+              "createdAt": "2026-01-29T17:17:07.451Z"
+            },
+            {
+              "id": "0387c91dvb",
+              "name": "My amazing project",
+              "createdAt": "2026-01-29T13:49:59.154Z"
+            },
+          ]
+        }
+      }
+    }
+  
+  ```
+</Accordion>
+
+---
+
+#### Query object data:
+
+In this example, we query the children of a specific object, using the GraphQL arguments select and query to filter and return specific fields. We filter for objects with the category "Structural Columns" and retrieve the following information for each child: ```category```, ```level```, ```name```, ```element ID```, ```length dimension```
+```graphql
+query Query($projectId: String!, $objectId: String!, $select: [String], $query: [JSONObject!]) {
+  project(id: $projectId) {
+    object(id: $objectId) {
+      children(select: $select, query: $query) {
+        objects {
+          data
+        }
+      }
+    }
+  }
+}
+```
+```JSON
+{
+  "projectId": "your-project-id",
+  "objectId": "your-object-id",
+  "select": [
+    "category",
+    "level",
+    "name",
+    "properties.elementId",
+    "properties.Parameters.Instance\\ Parameters.Dimensions.Length.value"
+  ],
+  "query": [
+    {
+      "field": "category",
+      "value": "Structural Columns",
+      "operator": "="
+    }
+  ]
+}
+```
+Variables: **Project ID** & **Object ID**
+
+- Project ID: This identifies your project. You can find it in the URL of your project, for example: https://app.speckle.systems/projects/{projectId}/...
+- Object ID: This is the unique identifier of the object you want to query. To find it: 
+
+  1. Open Dev Mode in the Speckle Web App.
+
+  2. Inspect the object’s data to locate its ID.
+
+<Tip>Tip: if you want to query the full model, you can use the root object ID. Is the very first ID you see when you open the Dev Mode.</Tip>
+
+<Accordion title="Response example">
+   ```json
+      "data": {
+        "project": {
+          "object": {
+            "children": {
+              "objects": [
+                {
+                  "data": {
+                    "category": "Structural Columns",
+                    "level": "Level 14",
+                    "name": "Structural Columns - Circular-Column",
+                    "properties": {
+                      "elementId": "382271",
+                      "Parameters": {
+                        "Instance\\ Parameters": {
+                          "Dimensions": {
+                            "Length": {
+                              "value": 7529.999999999986
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "data": {
+                    "category": "Structural Columns",
+                    "level": "Level 6",
+                    "name": "Structural Columns - Circular-Column",
+                    "properties": {
+                      "elementId": "382321",
+                      "Parameters": {
+                        "Instance\\ Parameters": {
+                          "Dimensions": {
+                            "Length": {
+                              "value": 469.9999999999971
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "data": {
+                    "category": "Structural Columns",
+                    "level": "Level 12",
+                    "name": "Structural Columns - Circular-Column",
+                    "properties": {
+                      "elementId": "382131",
+                      "Parameters": {
+                        "Instance\\ Parameters": {
+                          "Dimensions": {
+                            "Length": {
+                              "value": 3529.999999999986
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                ....more objects
+              ]
+            }
+          }
+        }
+      }
+  ```
+</Accordion>
 
 ## Additional Resources
 
