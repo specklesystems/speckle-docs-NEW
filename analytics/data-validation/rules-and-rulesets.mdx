@@ -72,7 +72,7 @@ Validation supports the following predicates for comparing property values:
 | `does not contain` | Property doesn't contain substring | `name does not contain temp` |
 | `is true` | Boolean property is true | `is_structural is true` |
 | `is false` | Boolean property is false | `is_placeholder is false` |
-| `is like` | Loose text matching (pattern matching) | `name is like Wall` matches "Walls", "Wall-01", etc. |
+| `is like` | Pattern matching with wildcards or regex (case-insensitive) | `name is like Wall%` or `name is like /^Wall\d+$/` |
 
 ## Rule Types
 
@@ -84,7 +84,19 @@ Check whether specific properties exist on model elements. Useful for ensuring r
 ### Pattern Matching
 Validate that property values match specific patterns or formats. For example, ensure element names follow a naming convention.
 
-**Example**: Use `is like` for pattern matching or `contains` for substring matching.
+The `is like` predicate supports two modes:
+
+**Wildcard mode (default)**:
+
+- `%` — matches any sequence of characters (including none)
+- `_` — matches a single character (when supported)
+
+**Regex mode**:
+
+- Wrap your pattern in forward slashes: `/pattern/`
+- Supports full regular expression syntax (character classes, anchors, alternation, quantifiers, etc.)
+
+Matching is case-insensitive in both modes. Use `is like` with wildcards for simple pattern matching, or use `/regex/` for complex validation. For substring matching without patterns, use `contains`.
 
 ### Numeric Comparisons
 Compare numeric property values against thresholds or ranges. Check that dimensions, areas, or other measurements meet requirements.
@@ -170,11 +182,20 @@ CHECK Width in range 200,400
 ```
 
 ### Door Naming Convention
+
+**Using wildcards**:
 ```
 WHERE Category = Doors
-CHECK name is like ^D\d{3}$
+CHECK name is like D%
 ```
-This rule ensures all doors follow a naming convention (e.g., "D001", "D123").
+This matches door names that start with "D" (e.g. "D001", "D123", "Door-01").
+
+**Using regex**:
+```
+WHERE Category = Doors
+CHECK name is like /^D\d{3}$/
+```
+This strictly matches "D" followed by exactly three digits (e.g. "D001", "D123", but not "Door-01" or "D12").
 
 ### Structural Column Height Range
 ```

@@ -121,24 +121,37 @@ operator.
 
 #### Matches pattern
 
-**Matches pattern** (sometimes shown as "Is like") uses wildcards for text matching. Common placeholders:
+**Matches pattern** (sometimes shown as "Is like") supports two modes: **wildcard** matching and **regex** matching.
+
+##### Wildcard mode (default)
+
+Use SQL-style wildcards for simple pattern matching:
 
 - `%` — matches any sequence of characters (including none)
-- `_` — matches a single character
+- `_` — matches a single character (when supported)
 
 Examples:
 
-- `door_*` or `door%` — matches "door_01", "door_a", "doorway"
-- `*window*` or `%window%` — matches any value containing "window"
+- `door%` — matches "door_01", "door_a", "doorway"
+- `%window%` — matches any value containing "window"
 - `Wall%` — matches values that start with "Wall"
 
-Pattern matching is case-sensitive in most cases. Use it when you need to match a family of values (e.g. all doors,
-all elements on a level) without listing each one.
+##### Regex mode
+
+Wrap your pattern in forward slashes to use full regular expression matching:
+
+- `/pattern/` — treats the content between slashes as a regular expression
+
+Examples:
+
+- `/^D\d{3}$/` — matches "D001", "D123" (exactly D followed by three digits)
+- `/^(Wall|Door)/` — matches values starting with "Wall" or "Door"
+- `/\d{4}-\d{2}-\d{2}/` — matches date format "YYYY-MM-DD"
+
+Matching is **case-insensitive** in both modes. Use pattern matching when you need to match a family of values (e.g. all doors, all elements on a level) without listing each one.
 
 <Note>
-Full regex is not yet supported for **Matches pattern**. Only the wildcard placeholder `%` (any sequence) is
-supported in the current implementation. Matching is case-independent. Regex-style syntax (e.g. character classes,
-anchors, alternation) may not behave as expected.
+To use regex mode, the pattern value must start and end with `/`. Without the slashes, the value is treated as a wildcard pattern with `%` and `_` placeholders.
 </Note>
 
 ### Operator availability by data type
