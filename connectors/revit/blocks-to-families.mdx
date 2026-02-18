@@ -1,0 +1,76 @@
+---
+title: Receiving blocks as families in Revit
+sidebarTitle: Blocks to Families
+description: 'Load blocks and instances from Rhino, SketchUp, AutoCAD, and other applications as Revit families.'
+---
+
+When you load a Speckle model that contains blocks or instances from another application (such as Rhino, SketchUp, or AutoCAD) the Revit connector can convert them into Revit families instead of flat direct shapes. This preserves the block structure and lets you manage instances and materials from within Revit.
+
+## Enabling blocks to families
+
+This feature is a load setting and is **off by default**.
+
+To enable it:
+
+1. In the Revit connector, open the model you want to load.
+2. Expand the **Settings** section at the bottom of the load dialog.
+3. Toggle **Receive blocks as families** on.
+
+<Frame>
+  <img src="/images/connectors/revit_blocks_to_families_setting.jpg" alt="Blocks to families load setting" />
+</Frame>
+
+<Note>
+  Enabling this setting only affects the current load operation. Toggle it before each load if you want consistent results.
+</Note>
+
+## How blocks are converted
+
+Each block definition from the source model becomes a Revit family. Block instances in the scene become instances of that family placed in your project.
+
+**Geometry support**
+
+The following geometry types are supported. Each is converted to the most capable Revit representation available:
+
+| Source geometry | Revit element |
+|---|---|
+| Solids | Freeform element |
+| Meshes | Freeform element (falls back to DirectShape if creation fails) |
+| Surfaces | Freeform element |
+| SubDs | DirectShape |
+| Curves | DirectShape |
+| Points | DirectShape |
+
+**Layers become subcategories**
+
+Layers assigned to geometries inside a block definition are created as subcategories within the family. This lets you control visibility per layer from Revit's Visibility/Graphics settings.
+
+**Materials**
+
+Materials from the source model are applied to the created geometry inside the family. A type parameter is also created on the family so you can override the material directly from the project without editing the family definition.
+
+**Nested blocks**
+
+Nested blocks are supported and are converted as nested families. Each level of nesting requires Revit to create an additional family file, which is an expensive operation.
+
+<Warning>
+  Deeply nested block structures (common in SketchUp models) will significantly increase load time. As a rule of thumb, avoid receiving models with more than two or three levels of nesting.
+</Warning>
+
+## FAQ
+
+<AccordionGroup>
+
+  <Accordion title="Does this work with nested blocks?">
+    Yes. Nested blocks are converted as nested families, preserving the original hierarchy. However, each nesting level adds to load time because Revit must create a separate family for each unique block definition. Deeply nested models (such as those from SketchUp) can be slow to process.
+  </Accordion>
+
+  <Accordion title="My blocks are scaled or skewed in the source model, but they look different in Revit. Why?">
+    Revit's geometry engine only supports transformations that preserve angles — specifically, uniform scale, rotation, and reflection. Non-uniform scaling (where X, Y, and Z scale independently) and shearing (skewing) are not supported by the Revit API at the family instance level.
+
+    When a block instance in your source model has been non-uniformly scaled or skewed, Speckle will place the family at the correct position and rotation, but the scaling or skew cannot be applied. The family will appear at its original undeformed proportions.
+
+    To work around this, bake or explode the affected instances in the source application before publishing to Speckle, so the geometry is already deformed and no longer relies on a transform.
+  </Accordion>
+
+</AccordionGroup>
