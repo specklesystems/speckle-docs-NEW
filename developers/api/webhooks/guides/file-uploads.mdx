@@ -6,11 +6,7 @@ description: Guide to uploading IFC, DWG, OBJ, and other file types using GraphQ
 
 There is no dedicated REST endpoint for uploading IFC, DWG, OBJ, or any other file types.
 
-The legacy `/api/file/...` path has been deprecated and removed.
-
-The supported programmatic workflow is a hybrid REST + S3 + GraphQL flow.
-
-It is the same flow used by the Speckle web app and connectors.
+The supported programmatic workflow is a hybrid GraphQL + REST (or S3) flow.
 
 This section documents the entire mechanism so developers do not have to reverse engineer the server.
 
@@ -30,36 +26,38 @@ Authorization: Bearer YOUR_TOKEN
 ```
 
 <Note>
-This guide requires a Speckle server with the new file import enabled. This is available by default on [app.speckle.systems](https://app.speckle.systems). For self-hosted instances, ensure the `FF_NEXT_GEN_FILE_IMPORTER_ENABLED` feature flag is enabled.
+This guide requires a Speckle server with the new file importer feature flag enabled. This is available by default on [app.speckle.systems](https://app.speckle.systems). For self-hosted instances, please ensure the `FF_NEXT_GEN_FILE_IMPORTER_ENABLED` and `FF_LARGE_FILE_IMPORTS_ENABLED` feature flags are enabled.
 </Note>
 
 ## Overview
 
-Uploading a file and triggering Speckle's automatic import pipeline is a multi-step process:
+Uploading a file and triggering Speckle's automatic ingestion pipeline is a multi-step process:
 
 1. **Ask Speckle Server for a presigned upload URL**
    (GraphQL mutation: `fileUploadMutations.generateUploadUrl`)
 
-2. **Upload the file directly to S3**
+2. **Upload the file directly to blob storage**
    (simple HTTP PUT to the presigned URL)
 
 3. **Create a model (if needed)**
    (GraphQL mutation: `modelMutations.create` - optional if you already have a model)
 
-4. **Tell Speckle to parse and import the file**
-   (GraphQL mutation: `fileUploadMutations.startFileImport`)
+4. **Tell Speckle to parse and ingest the file**
+   (GraphQL mutation: `fileUploadMutations.startFileIngestion`)
 
-5. **Check the import status**
-   (GraphQL query to monitor the import progress)
+5. **Check the ingestion status**
+   (GraphQL query for the ingestion progress)
 
 **Important notes:**
 
 - Large files are never sent through the Speckle Server REST endpoints.
-- The upload URL points to your server's configured S3 or S3 compatible storage.
-- The ETag returned from S3 is required for step 4 (file import).
-- Import results appear as a new Model Version.
+- The upload URL points to your server's configured blob storage (S3, S3 compatible, or Azure).
+- The ETag returned from Blob storage is required for step 4 (file ingestion).
+- Successful ingestion results in a new Model Version.
 
 ## Step 1: Generate an upload URL
+
+We start by notifying the Speckle Server of our intent to upload a file. The server responds with a URL, which we will use to upload the file in a subsequent step, and an unique ID for the expected file.
 
 **POST** `/graphql`
 
@@ -94,7 +92,7 @@ mutation GenerateFileUploadUrl($input: GenerateFileUploadUrlInput!) {
   "data": {
     "fileUploadMutations": {
       "generateUploadUrl": {
-        "url": "https://your-s3-endpoint/presigned-upload-url",
+        "url": "https://your-s3-endpoint.example.org/presigned-upload-url",
         "fileId": "file-id-to-use-in-step-3"
       }
     }
@@ -102,7 +100,7 @@ mutation GenerateFileUploadUrl($input: GenerateFileUploadUrlInput!) {
 }
 ```
 
-**Important:** Save the `fileId` from the response - you **must** use this exact value in Step 4 when triggering the file import. Do not use the filename; use the `fileId` returned here.
+**Important:** Save the `fileId` from the response - you **must** use this exact value in Step 4 when triggering the file ingestion. Do not use the filename; use the `fileId` returned here.
 
 ## Step 2: Upload the file to the presigned URL
 
@@ -122,9 +120,9 @@ Content-Type: application/octet-stream   # or appropriate type
 
 **Important:**
 
-- S3 returns an ETag header.
+- Blob storage returns an ETag in the headers of the response.
+- The ETag is an unique identifier for the uploaded file content, which Speckle uses to verify the file integrity before ingesting the file.
 - The ETag is required for the final step.
-- The ETag needs to be a double-quoted string. Make sure to escape the quote marks if needed when passing it to the GraphQL mutation.
 
 **Example curl:**
 
@@ -132,7 +130,7 @@ Content-Type: application/octet-stream   # or appropriate type
 curl -X PUT \
   -H "Content-Type: application/octet-stream" \
   --data-binary @MyModel.ifc \
-  "https://your-s3-presigned-url"
+  "https://your-s3-endpoint.example.org/presigned-upload-url"
 ```
 
 If the response is a successful `200` status code, the response headers will contain an `ETag` header. Record this value:
@@ -145,7 +143,7 @@ Note: When using this ETag in Step 4, it must be passed as a double-quoted strin
 
 ## Step 3: Create a model (if needed)
 
-This step requires a target model, where the file data should be imported to. If you don't have a model yet, you can create one programmatically:
+This step requires a target model, where the file data should be ingested to. If you don't have a model yet, you can create one programmatically:
 
 **POST** `/graphql`
 
@@ -188,7 +186,7 @@ mutation CreateModel($input: CreateModelInput!) {
 
 Store the `model.id` as it will be used as `modelId` in the next step.
 
-## Step 4: Trigger the file import
+## Step 4: Trigger the file ingestion
 
 Once the file is uploaded, tell Speckle to parse, convert, index and create a new model version.
 
@@ -197,11 +195,13 @@ Once the file is uploaded, tell Speckle to parse, convert, index and create a ne
 **Mutation:**
 
 ```graphql
-mutation StartFileImport($input: StartFileImportInput!) {
+mutation StartFileIngestion($input: StartFileImportInput!) {
   fileUploadMutations {
-    startFileImport(input: $input) {
+    startFileIngestion(input: $input) {
       id
-      convertedStatus
+      statusData {
+        status
+      }
     }
   }
 }
@@ -228,35 +228,50 @@ mutation StartFileImport($input: StartFileImportInput!) {
 {
   "data": {
     "fileUploadMutations": {
-      "startFileImport": {
-        "id": "import-process-id",
-        "convertedStatus": 0
+      "startFileIngestion": {
+        "id": "your-file-ingestion-id",
+        "statusData": {
+          "status": "queued"
+        }
       }
     }
   }
 }
 ```
 
-**Note:** The `convertedStatus` enum signals the job status where `0=queued`, `1=processing`, `2=success`, `3=error`.
+**Note:** The `status` enum signals the job status where `queued`, `processing`, `success`, `failed`, and `cancelled` are possible values.
 
-Your file is now in the import pipeline. Once parsed, a new Version will appear under the referenced Model.
+Your file is now in the ingestion pipeline. Once ingested, a new Version will appear under the referenced Model.
 
-## Step 5: Getting the import status
+## Step 5: Getting the ingestion status
 
-Once the import has been started, the file import job gets an id at `fileUploadMutations.startFileImport.id`. This id can be used to get the status of the file import job.
+Once the ingestion has been started, the file ingestion job receives an ingestion id from `fileUploadMutations.startFileIngestion.id`. This id can be used to get the status of the file ingestion job.
 
 **POST** `/graphql`
 
 **Query:**
 
 ```graphql
-query ($projectId: String!, $modelId: String!) {
+query Ingestion($ingestionId: ID!, $projectId: String!) {
   project(id: $projectId) {
-    model(id: $modelId) {
-      pendingImportedVersions {
-        id
-        convertedStatus
-        convertedMessage
+    ingestion(id: $ingestionId) {
+      statusData {
+        ... on ModelIngestionQueuedStatus {
+          status
+          progressMessage
+        }
+        ... on ModelIngestionSuccessStatus {
+          status
+          versionId
+        }
+        ... on ModelIngestionProcessingStatus {
+          status
+          progressMessage
+        }
+        ... on ModelIngestionFailedStatus {
+          status
+          errorReason
+        }
       }
     }
   }
@@ -267,7 +282,7 @@ query ($projectId: String!, $modelId: String!) {
 
 ```json
 {
-  "modelId": "the-target-model-id",
+  "ingestionId": "your-file-ingestion-id",
   "projectId": "your-project-id"
 }
 ```
@@ -278,29 +293,33 @@ query ($projectId: String!, $modelId: String!) {
 {
   "data": {
     "project": {
-      "model": {
-        "pendingImportedVersions": [
-          {
-            "id": "import-process-id",
-            "convertedStatus": 2,
-            "convertedMessage": null
-          }
-        ]
+      "ingestion": {
+        "statusData": {
+          "status": "success",
+          "versionId": "the-new-version-id-created-from-the-import"
+        }
       }
     }
   }
 }
 ```
 
-The pending imported version id matches the file upload id generated in Step 4.
+In case of an error, the error response would look like:
 
-The `convertedStatus` enum signals the job status:
-- `0` = queued
-- `1` = processing
-- `2` = success
-- `3` = error
-
-In case of an error, the error message is referenced at `convertedMessage`.
+```json
+{
+  "data": {
+    "project": {
+      "ingestion": {
+        "statusData": {
+          "status": "failed",
+          "errorReason": "the reason for the failure"
+        }
+      }
+    }
+  }
+}
+```
 
 ## What developers need to know
 
@@ -308,29 +327,36 @@ In case of an error, the error message is referenced at `convertedMessage`.
   <Accordion title="File formats supported">
     For [app.speckle.systems](https://app.speckle.systems): IFC, DWG, DXF, OBJ, STL, 3DM, and others depending on server version.
 
-    For self-hosted servers: IFC, STL, and OBJ only.
+    For self-hosted servers, IFC only.
   </Accordion>
 
   <Accordion title="Why are different formats supported in self-hosted vs cloud?">
     Self-hosted servers use open-source code dependencies, which limits the file formats that can be supported. Formats like DWG, DXF, and 3DM require proprietary libraries that are not available in open-source distributions, so they are only available on [app.speckle.systems](https://app.speckle.systems).
   </Accordion>
 
+  <Accordion title="Where did the StartFileImport mutation go?">
+    The `StartFileImport` mutation has been deprecated and replaced with `StartFileIngestion`. The new mutation provides more granular status updates, and allows subscribing to real-time updates. The Ingestion queries are common across all ingestion processes, whether initiated by the file import service or by other Speckle integrations.
+
+    Please update your code to use `StartFileIngestion` and the new Ingestion status queries.
+  </Accordion>
+
   <Accordion title="Why is this not REST?">
     Because:
 
     - Files should go direct to blob storage for performance and scale.
-    - Restoration of legacy multipart REST endpoints would break S3-first ingestion.
     - GraphQL mutations model "actions" better than REST for asynchronous workflows.
+    - GraphQL subscriptions allow real-time updates on the ingestion status, which is not possible with REST.
   </Accordion>
 
   <Accordion title="Should I ever use the old REST upload?">
-    For [app.speckle.systems](https://app.speckle.systems), no. The old REST upload is gone for v3 and beyond.
+    For [app.speckle.systems](https://app.speckle.systems), no. The old REST upload is gone.
 
     For self-hosted instances, the old REST upload may still be necessary if:
     - Your server does not have a publicly available S3 service configured
     - The feature flag `FF_LARGE_FILE_IMPORTS_ENABLED` is not enabled
 
-    In these cases, you may need to use the legacy REST endpoints. However, we recommend configuring S3 storage and enabling the feature flag to use the modern file upload workflow described above.
+    In these cases, you may need to use the legacy REST endpoints (`/api/file/...`).
+    However, we recommend configuring S3 storage and enabling the feature flag to use the modern file upload workflow described above.
   </Accordion>
 </AccordionGroup>
 
