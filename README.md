@@ -2,6 +2,8 @@
 
 This repository contains the official documentation for Speckle. The goal is to make our docs **clear, consistent, and useful** for both new and experienced users.
 
+Canonical doc rules for AI assistants live in `.universal-ai-config/instructions/*.md`. Run `uac generate` to emit tool-specific config (see **Generating universal-ai-config instructions** below).
+
 ## Structure & Style
 
 * **Quick Reference**
@@ -19,10 +21,10 @@ This repository contains the official documentation for Speckle. The goal is to 
   We deliberately describe this section as **Publishing & Loading** rather than "Connectors." This keeps the docs user-first and purpose-driven: users think in terms of publishing data into Speckle or loading it into another tool, not in terms of underlying plumbing. It frames the outcome (why) rather than the mechanism (how).
 
   **Connector Documentation Structure:**
-  - Use main page sections for step-by-step guides (e.g., "Setting up Data Gateway")
-  - Use accordions for FAQs and troubleshooting questions
-  - Import and use standard components: `<Setup>`, `<Load>`, `<Publish>`, `<SetupFaq>`, `<LoadFaq>`, `<PublishFaq>`
-  - Avoid "How to do X" accordion titles that contain step-by-step instructions—these should be main sections instead
+  * Use main page sections for step-by-step guides (e.g., "Setting up Data Gateway")
+  * Use accordions for FAQs and troubleshooting questions
+  * Import and use standard components: `<Setup>`, `<Load>`, `<Publish>`, `<SetupFaq>`, `<LoadFaq>`, `<PublishFaq>`
+  * Avoid "How to do X" accordion titles that contain step-by-step instructions—these should be main sections instead
 
 ## Tone
 
@@ -37,8 +39,9 @@ This repository contains the official documentation for Speckle. The goal is to 
 * **Tips & Tricks**: Small, optional enhancements or shortcuts. Presented as quick callouts, not workflows, and always optional to the main path.
 
 **When to use accordions vs. main sections:**
-- **Accordions**: For FAQs, troubleshooting questions, and quick reference information
-- **Main sections**: For step-by-step guides, detailed procedures, and comprehensive workflows
+
+* **Accordions**: For FAQs, troubleshooting questions, and quick reference information
+* **Main sections**: For step-by-step guides, detailed procedures, and comprehensive workflows
 
 ## Guardrails
 
@@ -56,7 +59,6 @@ Connector pages are naturally more detailed because they must cover multiple hos
 * Are FAQs current and accurate?
 * Are best practices and tips useful without being prescriptive?
 
-
 ## Note for Contributors
 
 ### Development
@@ -64,6 +66,41 @@ Connector pages are naturally more detailed because they must cover multiple hos
 * Ensure you have node 19 or above.
 * `npm i` to install dependencies
 * `npm run dev` to start the local dev server
+
+### Generating universal-ai-config instructions
+
+Doc rules for AI assistants (Cursor, Copilot, Claude) are maintained as templates in `.universal-ai-config/instructions/`. To emit tool-specific config (e.g. `.cursor/rules/*.mdc` for Cursor), run:
+
+```bash
+npx universal-ai-config generate
+```
+
+Or use the project’s package manager: `npm run uac generate`, `pnpm uac generate`, or `yarn uac generate` (if a `uac` script is defined in `package.json`).
+
+* **All targets (default):** generates for Claude, Copilot, and Cursor.
+* **Specific targets:** `npx universal-ai-config generate -t cursor,claude`
+* **Preview only:** `npx universal-ai-config generate --dry-run`
+* **Clean then generate:** `npx universal-ai-config generate --clean`
+
+Edit only the source templates in `.universal-ai-config/instructions/*.md`; do not edit the generated files by hand.
+
+### Using doc rules in AI tools
+
+* **Cursor:** After `uac generate`, rules are in `.cursor/rules/*.mdc` and attach automatically.
+* **ChatGPT / Claude:** Paste the prompt seed below into Custom Instructions or your first message; or attach this README and point to the seed.
+* **Copilot (Chat):** Say “Use the AI authoring prompt seed in README as guidance for all doc edits in this session.” Optionally add at the top of the page you’re editing: `<!-- style: mintlify components; FAQs=AccordionGroup; steps=no nested components -->`
+
+**Prompt seed** (paste once per session for non-Cursor tools):
+
+> You are writing docs for Speckle. Follow the canonical rules in `.universal-ai-config/instructions/` (docs-general, docs-authoring, docs-steps, docs-faqs, docs-asides, docs-titles-nav-seo). After `uac generate`, Cursor users get these as `.cursor/rules/*.mdc`; other tools should use this seed or attach README.
+>
+> **Global:** Mintlify components only; approachable, precise tone; short, imperative sentences; task-first; show outcomes; keep pages brief; visuals when they clarify; compact FAQ + best practices + 1–3 Tips; no tutorials in core docs; cross-link by user intent.
+>
+> **Steps:** use `<Steps>` / `<Step>` for short sequences; verb-first titles; do **not** nest complex components; render callouts adjacent; fallback to `###` + ordered list if needed.
+>
+> **FAQs:** use `<AccordionGroup>` + `<Accordion title="…">`; answers are atomic; link out if longer; include an edge case.
+>
+> **Connectors:** frame by purpose (publish/load), not connector names; H2 order = Install → Open and sign in → Publish → Load → Common tasks → FAQ → Troubleshooting → Known issues; add a header panel (versions, download, changelog); always show the web-app handoff.
 
 ### Publishing Changes
 
