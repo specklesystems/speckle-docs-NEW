@@ -84,6 +84,8 @@ Or use the project’s package manager: `npm run uac generate`, `pnpm uac genera
 
 Edit only the source templates in `.universal-ai-config/instructions/*.md`; do not edit the generated files by hand.
 
+To generate only the targets you use, add an overrides file (e.g. `universal-ai-config.overrides.config.ts`) in the repo root and set `targets` (and optionally `variables`, `exclude`, etc.). That file is usually gitignored so each developer can choose their own targets without affecting the shared config.
+
 ### Using doc rules in AI tools
 
 * **Cursor:** After `uac generate`, rules are in `.cursor/rules/*.mdc` and attach automatically.
