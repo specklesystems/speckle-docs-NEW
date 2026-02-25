@@ -1,6 +1,6 @@
 ---
 title: How to use Speckle for Revit
-sidebarTitle: Revit
+sidebarTitle: Quickstart
 description: 'Step-by-step guide for using the Revit connector'
 ---
 
@@ -121,9 +121,11 @@ import LoadFaq from '/snippets/connectors/load-faq.mdx';
 <AccordionGroup>
 
     <Accordion title="How are Speckle models loaded in Revit?">
-      All objects in Speckle models are loaded as Direct Shapes (generic models) with a default category in Revit. If your model contains block instances, each instance will be loaded as its own generic model. Each object will be loaded with:
+      All objects in Speckle models are loaded as Direct Shapes (generic models) with a default category in Revit. Each object will be loaded with:
       - render material (if any)
       - `Mesh`, `Curve`, or `Solid` (only from Rhino and Grasshopper) geometry.
+
+      If your model contains block instances, each instance is loaded as its own generic model by default. You can instead load them as Revit families by enabling the **Receive Blocks as Families** setting. See [Blocks as Families](/connectors/revit/blocks-to-families) for details.
     </Accordion>
 
     <Accordion title="Can I load custom properties in Revit, like parameters?">
@@ -143,10 +145,10 @@ import LoadFaq from '/snippets/connectors/load-faq.mdx';
     </Accordion>
 
     <Accordion title="How do I change the material of a Speckle model object I loaded in Revit?">
-      If your Speckle model was published from Rhino or Grasshopper, it will contain
-      solid geometry and you can edit the material of the created direct shape as
-      you'd like. For any other Speckle model, currently it is not possible to
-      change the applied material.
+      It depends on how the model was loaded:
+      - **Loaded as direct shapes from Rhino or Grasshopper:** the object contains solid geometry, so you can edit the material directly on the direct shape.
+      - **Loaded as families using Receive Blocks as Families:** a material type parameter is created on each family, so you can change the material from the project without editing the family definition.
+      - **All other cases:** changing the applied material is not currently supported.
     </Accordion>
 
     <Accordion title="What happens when there is a material in the  document with the same name?">
