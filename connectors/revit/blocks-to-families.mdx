@@ -39,19 +39,29 @@ The following geometry types are supported. Each is converted to the most capabl
 | Source geometry | Revit element |
 |---|---|
 | Solids | Freeform element |
-| Meshes | Freeform element (falls back to DirectShape if creation fails) |
+| Meshes | Freeform element |
 | Surfaces | Freeform element |
 | SubDs | DirectShape |
 | Curves | DirectShape |
 | Points | DirectShape |
 
+If creating a freeform element fails, the connector falls back to DirectShape.
+
 **Layers become subcategories**
 
 Layers assigned to geometries inside a block definition are created as subcategories within the family. This lets you control visibility per layer from Revit's Visibility/Graphics settings.
 
+<Frame>
+  <img src="/images/connectors/revit_layers to subcategories.png" alt="Layers to subcategories in Revit" />
+</Frame>
+
 **Materials**
 
 Materials from the source model are applied to the created geometry inside the family. A type parameter is also created on the family so you can override the material directly from the project without editing the family definition.
+
+<Frame>
+  <img src="/images/connectors/revit_materials type parameter.png" alt="Materials type parameter in Revit" />
+</Frame>
 
 **Nested blocks**
 
@@ -60,6 +70,18 @@ Nested blocks are supported and are converted as nested families. Each level of 
 <Warning>
   Deeply nested block structures (common in SketchUp models) will significantly increase load time. As a rule of thumb, avoid receiving models with more than two or three levels of nesting.
 </Warning>
+
+<Frame>
+  <img src="/images/connectors/revit_nested blocks to nested families.png" alt="Nested blocks to nested families in Revit" />
+</Frame>
+
+**Family Categories**
+
+By default, all families created from blocks are assigned to the "Generic Models" category. If you use [Revit Categorization tool](../rhino/rhino-revit.mdx) to assign Revit categories to your blocks, the connector will attempt to create the family in the specified category. If the category is not supported, it will fall back to a default category.
+
+<Frame>
+  <img src="/images/connectors/revit_category mapper.png" alt="Category assignment from Rhino into Revit" />
+</Frame>
 
 ## FAQ
 
