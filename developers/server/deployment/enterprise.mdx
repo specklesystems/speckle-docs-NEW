@@ -1,0 +1,216 @@
+---
+title: Configuring Speckle Server Enterprise
+description: Configure Speckle Server Enterprise for your organization.
+---
+
+# Configuring Speckle Server Enterprise
+
+<Note>
+
+This guide is not relevant to the open source version of Speckle Server. It is specifically for users who have a commercial license for the Enterprise edition and need to configure it for their organization.
+
+Please refer to our documentation page for instructions on [deploying the open source Speckle Server on Kubernetes](/developers/server/deployment/kubernetes) for more details.
+
+</Note>
+
+## Prerequisites
+
+Before you can configure Speckle Server Enterprise, your organization will have already completed the following steps:
+1. **Deployment**: Deployed Speckle Server on Kubernetes using the provided Helm charts. See our instructions for [deploying on Kubernetes](/developers/server/deployment/kubernetes) for more details.
+2. **License Acquisition**: Acquired a commercial license for Speckle Server Enterprise from Speckle Systems.
+3. **Package Registry Token**: Obtained a package registry token from Speckle Systems to access the private Helm charts & Docker images for Enterprise features.
+4. **Package Registry URL**: Received the URL for the private package registry hosting the Enterprise Helm charts and Docker images.
+
+## Configuration Steps
+
+### Retrieving the Helm Chart
+
+To access the private Helm charts for Speckle Server Enterprise, you need to add the Speckle Enterprise package registry to your Helm repositories:
+
+    ```bash
+    helm login <PACKAGE_REGISTRY_URL> --username <PACKAGE_REGISTRY_USERNAME> --password <PACKAGE_REGISTRY_TOKEN>
+    helm repo add speckle-enterprise <PACKAGE_REGISTRY_URL>
+    helm repo update
+    ```
+
+### Image Pull Secrets
+
+1. Create a Kubernetes Secret of type dockerconfigjson
+
+    ```bash
+    kubectl create secret docker-registry speckle-enterprise-registry \
+    --docker-server=<PACKAGE_REGISTRY_URL> \
+    --docker-username=<PACKAGE_REGISTRY_USERNAME> \
+    --docker-password=<PACKAGE_REGISTRY_TOKEN> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Confirm the secret is available in the same namespace as your Speckle Server deployment.
+1. Update the Helm values.yaml file to include the image pull secret:
+
+    ```yaml
+    imagePullSecrets:
+      - name: speckle-enterprise-registry
+    ```
+
+### License Key
+
+1. Obtain your Speckle Server Enterprise license key from Speckle Systems.
+1. Create a Kubernetes Secret to store the license key:
+
+    ```bash
+    kubectl create secret generic license \
+    --from-literal=license_token=<YOUR_LICENSE_KEY> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Update the Helm values.yaml file to reference the license secret:
+
+    ```yaml
+    server:
+      licenseTokenSecret:
+        secretName: 'license'
+        secretKey: 'license_token'
+    ```
+
+### Enable Workspaces
+
+To enable workspaces in Speckle Server Enterprise we need to configure some feature flags.
+We need to enable the Gatekeeper module, which is responsible for validating the license.
+We can then enable the Workspaces module.
+
+1. Update the Helm values.yaml file to enable workspaces:
+
+    ```yaml
+    featureFlags:
+      gatekeeperModuleEnabled: true
+      workspacesModuleEnabled: true
+    ```
+
+### (Optional) Server administration support tools
+
+Speckle Server Enterprise includes additional tools to help with server administration and support of your users.
+
+1. These tools can be enabled by configuring the following feature flags in the Helm values.yaml file:
+
+    ```yaml
+    featureFlags:
+      adminSupportTools: true
+    ```
+
+2. Verify that the admin support tools are available in the server UI, go to Server Settings and look for the "Admin Support Tools" section.
+
+### (Optional) Saved Views
+
+[Saved Views](/3d-viewer/saved-views) is a feature which enables users to markup their models with annotations, save those views for later, or share with others.
+
+1. To enable Saved Views, update the Helm values.yaml file to include the following feature flag:
+
+    ```yaml
+    featureFlags:
+      savedViewsEnabled: true
+    ```
+
+2. Verify that the Saved Views feature is available by following our [documentation](/3d-viewer/saved-views).
+
+### (Optional) Issues
+
+The [Issues](/3d-viewer/issues) feature allows users to create and manage issues directly within the Speckle Server interface, providing a streamlined way to track and resolve problems related to their models.
+
+1. To enable Issues, update the Helm values.yaml file to include the following feature flag:
+
+    ```yaml
+    featureFlags:
+      issuesModuleEnabled: true
+    ```
+
+1. Verify that the Issues feature is available by following our [documentation](/3d-viewer/issues).
+
+### (Optional) Multi-regional Deployment
+
+Multi-regional deployments allow you to provide [data residency](/workspaces/data-residency) options for your users.
+
+### Pre-requisites
+
+For each region you wish to support, you will need to deploy a Postgres and Blob Storage instance in that region. Depending on your networking requirements, you may need to set up a VPN or VPC peering connection between your Kubernetes cluster and the database/storage instances.
+
+
+
+### (Optional) Automate
+
+Automate allows users to create and manage automated workflows within the Speckle Server interface. It provides a way to automate repetitive tasks, such as data processing and analysis, by creating custom workflows that can be triggered based on specific events.
+
+Automate requires additional infrastructure - including databases, caches, and kubernetes clusters or namespaces - to enable for Speckle Server Enterprise.
+
+We provide a separate guide for enabling Automate, which can be found in our documentation under [Enabling Automate for Speckle Server Enterprise](/developers/server/deployment/automate).
+
+### (Optional) Intelligence
+
+<Note>
+Intelligence features can be enabled on their own, but are limited without the Automate module, which provides the necessary backend support for them. For a full experience, we recommend enabling both features together.
+</Note>
+
+1. To enable Intelligence features, update the Helm values.yaml file to include the following feature flag:
+
+    ```yaml
+    featureFlags:
+      dashboardsModuleEnabled: true
+    ```
+
+### (Optional) ACC Integration
+
+<Note>
+ACC Integration requires Automate to be enabled.
+</Note>
+
+1. You will need an ACC API key from Autodesk to enable ACC Integration. Please contact your Autodesk representative to obtain the necessary credentials.
+
+1. You will need ODA license credentials to enable ACC Integration. Please contact your ODA representative to obtain the necessary credentials.
+
+1. Once you have the necessary ACC credentials, create a Kubernetes secret:
+
+    ```bash
+    kubectl create secret generic acc-integration \
+    --from-literal=clientSecret=<YOUR_ACC_CLIENT_SECRET> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Once you have the necessary ODA credentials, create a Kubernetes secret:
+
+    ```bash
+    kubectl create secret generic oda-user-secret \
+    --from-literal=userSecret=<YOUR_ODA_USER_SECRET> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Configure the Helm values.yaml file to reference the ACC and ODA secrets:
+
+    ```yaml
+    accIntegration:
+      clientId: <YOUR_ACC_CLIENT_ID>
+      clientSecret:
+        secretName: 'acc-integration'
+        secretKey: 'clientSecret'
+    oda:
+      userId: <YOUR_ODA_USER_ID>
+      userSecret:
+        secretName: 'oda-user-secret'
+        secretKey: 'userSecret'
+    ```
+
+1. To enable ACC Integration, update the Helm values.yaml file to include the following feature flag:
+
+    ```yaml
+    featureFlags:
+      accIntegrationEnabled: true
+    ```
+
+1. Follow our [documentation to configure ACC Integration](/connectors/cloud-integrations/acc).
