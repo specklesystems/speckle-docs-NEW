@@ -326,63 +326,6 @@ Intelligence features can be enabled on their own, but are limited without the A
 ACC Integration requires Automate to be enabled.
 </Note>
 
-1. You will need an ACC API key from Autodesk to enable ACC Integration. Please contact your Autodesk representative to obtain the necessary credentials.
-
-1. You will need ODA license credentials to enable ACC Integration. Please contact your ODA representative to obtain the necessary credentials.
-
-1. Once you have the necessary ACC credentials, create a Kubernetes secret:
-
-    ```bash
-    kubectl create secret generic acc-integration \
-    --from-literal=clientSecret=<YOUR_ACC_CLIENT_SECRET> \
-    -n <NAMESPACE> \
-    --dry-run=client \
-    -o yaml | kubectl apply -f -
-    ```
-
-1. Once you have the necessary ODA credentials, create a Kubernetes secret:
-
-    ```bash
-    kubectl create secret generic oda-user-secret \
-    --from-literal=userSecret=<YOUR_ODA_USER_SECRET> \
-    -n <NAMESPACE> \
-    --dry-run=client \
-    -o yaml | kubectl apply -f -
-    ```
-
-1. Configure the Helm values.yaml file to reference the ACC and ODA secrets:
-
-    ```yaml
-    accIntegration:
-      clientId: <YOUR_ACC_CLIENT_ID>
-      clientSecret:
-        secretName: 'acc-integration'
-        secretKey: 'clientSecret'
-    oda:
-      userId: <YOUR_ODA_USER_ID>
-      userSecret:
-        secretName: 'oda-user-secret'
-        secretKey: 'userSecret'
-    ```
-
-1. To enable ACC Integration, update the Helm values.yaml file to include the following feature flag:
-
-    ```yaml
-    featureFlags:
-      accIntegrationEnabled: true
-    ```
-
-1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
-
-1. If making further changes to the credentials, note that Kubernetes does not automatically restart deployments when changes are made to secrets. Restart the 'speckle-server' and 'speckle-objects' deployments to apply the changes.
-
-    ```bash
-    kubectl rollout restart deployment speckle-server -n <NAMESPACE>
-    kubectl rollout restart deployment speckle-objects -n <NAMESPACE>
-    ```
-
-1. Follow the [documentation to complete configuration of ACC Integration](/connectors/cloud-integrations/acc).
-
 At present, this feature requires a commercial licenses with third party vendors. We are actively working on streamlining this process to make it easier for our Enterprise customers to set up and configure, but in the meantime please contact your Speckle representative if you are interested in enabling this feature.
 
 ### (Optional) Supporting additional file types in Direct Uploads
