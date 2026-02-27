@@ -1,0 +1,128 @@
+---
+title: Deploying Speckle Automate Enterprise
+description: Hosting Speckle Automate Enterprise in your organization.
+---
+
+<Note>
+
+This guide is for organisations who have a commercial license for the Enterprise edition, including Automate, and are deploying on their own infrastructure.
+
+If you are looking for guidance on how to use Speckle Automate features, please refer to our [Automate documentation](/developers/automate/introduction).
+
+</Note>
+
+# Speckle Automate Enterprise Deployment Guide
+
+## Prerequisites
+
+Before you can configure Speckle Automate Enterprise, your organization will have already completed the following steps:
+1. **Deployment**: Deployed Speckle Server Enterprise on Kubernetes. See our instructions for [deploying on Kubernetes](/developers/server/deployment/kubernetes) and configuring [Speckle Server Enterprise](/developers/server/deployment/enterprise) for more details.
+2. **License Acquisition**: Acquired a commercial license for Speckle Automate Enterprise from Speckle Systems.
+3. **Package Registry Token**: Obtained a package registry token from Speckle Systems to access the private Helm charts & Docker images for Enterprise features.
+4. **Package Registry URL**: Received the URL for the private package registry hosting the Automate Helm charts and Docker images.
+
+## Infrastructure
+
+Speckle Automate Enterprise requires the following infrastructure components:
+
+- **Kubernetes Cluster**: A Kubernetes cluster to host the Automate components. This can be a managed service (e.g., EKS, AKS, GKE) or a self-hosted cluster.
+- **Container Registry**: Access to a container registry which will store Automate Functions which are published as Docker images. We recommend a separate registry for Automate, as it programatically writes and reads images.
+  - Once the registry is created, you will need to create two API tokens/credentials for Automate to authenticate with the registry. The first should have read-only access, and the other should have read-write access. These credentials will be used in the Helm Chart configuration.
+- **Postgres**: Two separate Postgres databases are required for Automate; one for the Automate server and one for storing results of Automations. These can be hosted within the same server cluster as the Speckle Server database, or in a different server cluster.
+
+
+## Configuration Steps
+
+### Retrieving the Helm Chart
+
+To access the private Helm charts for Speckle Automate Enterprise, you need to log in to the Speckle Enterprise package registry:
+
+    ```bash
+    helm login <PACKAGE_REGISTRY_URL> --username <PACKAGE_REGISTRY_USERNAME> --password <PACKAGE_REGISTRY_TOKEN>
+    ```
+
+### Deploying the Helm Chart
+
+Please follow the instructions in our [Kubernetes deployment guide](/developers/server/deployment/kubernetes) to deploy the Speckle Server Helm chart, making sure to specify the Enterprise version of the chart:
+
+    ```bash
+    helm install speckle-server <PACKAGE_REGISTRY_URL>/speckle-server-chart \
+    --namespace <NAMESPACE> \
+    -f values.yaml
+    ```
+
+### Image Pull Secrets
+
+The Helm Chart references Docker Images that are hosted in the same private registry as the Helm Chart.
+You will need to create an Image Pull secret in Kubernetes to allow your cluster to authenticate with the registry and pull the necessary images.
+
+1. Create a Kubernetes Secret of type dockerconfigjson:
+
+    ```bash
+    kubectl create secret docker-registry speckle-enterprise-registry \
+    --docker-server=<PACKAGE_REGISTRY_URL> \
+    --docker-username=<PACKAGE_REGISTRY_USERNAME> \
+    --docker-password=<PACKAGE_REGISTRY_TOKEN> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Confirm the secret is deployed successfully in the same namespace as your Speckle Server deployment.
+
+    ```bash
+    kubectl get secret speckle-enterprise-registry -n <NAMESPACE>
+    ```
+
+1. Update the Helm values.yaml file to reference the image pull secret:
+
+    ```yaml
+    imagePullSecrets:
+      - name: speckle-enterprise-registry
+    ```
+
+1. Upgrade your existing open source Speckle Server deployment, using the new Helm Chart:
+
+    ```bash
+    helm upgrade speckle-server speckle-enterprise/speckle-server \
+    --namespace <NAMESPACE> \
+    -f values.yaml
+    ```
+
+### License Key
+
+1. Obtain your Speckle Server Enterprise license key from Speckle Systems.
+1. Create a Kubernetes Secret to store the license key:
+
+    ```bash
+    kubectl create secret generic license \
+    --from-literal=license_token=<YOUR_LICENSE_KEY> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Update the Helm values.yaml file to reference the license secret:
+
+    ```yaml
+    server:
+      licenseTokenSecret:
+        secretName: 'license'
+        secretKey: 'license_token'
+    ```
+
+1. Update the Helm values.yaml file to enable the Gatekeeper module, which is responsible for validating the license:
+
+    ```yaml
+    featureFlags:
+      gatekeeperModuleEnabled: true
+    ```
+
+1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
+
+1. If making any further changes to the license, note that Kubernetes does not automatically restart deployments when changes are made to secrets. Restart the 'speckle-server' and 'speckle-objects' deployments to apply the changes.
+
+    ```bash
+    kubectl rollout restart deployment speckle-server -n <NAMESPACE>
+    kubectl rollout restart deployment speckle-objects -n <NAMESPACE>
+    ```
