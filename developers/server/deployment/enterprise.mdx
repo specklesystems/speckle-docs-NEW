@@ -1,0 +1,335 @@
+---
+title: Deploying Speckle Enterprise Server
+description: Hosting Speckle Enterprise Server in your organization.
+---
+
+<Note>
+
+This guide is for organisations who have a commercial license for the Enterprise edition and are deploying on their own infrastructure.
+
+If you are not using Speckle Enterprise Server, please refer to our documentation page for instructions on [deploying the open source Speckle Server on Kubernetes](/developers/server/deployment/kubernetes).
+
+</Note>
+
+# Speckle Enterprise Server Deployment Guide
+
+## Prerequisites
+
+Before you can configure Speckle Enterprise Server, your organization will have already completed the following steps:
+1. **Deployment**: Deployed the Open Source Speckle Server on Kubernetes. See our instructions for [deploying on Kubernetes](/developers/server/deployment/kubernetes) for more details.
+2. **License Acquisition**: Acquired a commercial license for Speckle Enterprise Server from Speckle Systems.
+3. **Package Registry Token**: Obtained a package registry token from Speckle Systems to access the private Helm charts & Docker images for Enterprise features.
+4. **Package Registry URL**: Received the URL for the private package registry hosting the Enterprise Helm charts and Docker images.
+
+## Configuration Steps
+
+### Retrieving the Helm Chart
+
+To access the private Helm charts for the Speckle Enterprise Server, you need to add the Speckle Enterprise package registry to your Helm repositories:
+
+    ```bash
+    helm login <PACKAGE_REGISTRY_URL> --username <PACKAGE_REGISTRY_USERNAME> --password <PACKAGE_REGISTRY_TOKEN>
+    ```
+
+### Deploying the Helm Chart
+
+Please follow the instructions in our [Kubernetes deployment guide](/developers/server/deployment/kubernetes) to deploy the Speckle Enterprise Server Helm chart, making sure to specify the Enterprise version of the chart:
+
+    ```bash
+    helm install speckle-server <PACKAGE_REGISTRY_URL>/speckle-server-chart \
+    --namespace <NAMESPACE> \
+    -f values.yaml
+    ```
+
+### Image Pull Secrets
+
+The Helm Chart references Docker Images that are hosted in the same private registry as the Helm Chart.
+You will need to create an Image Pull secret in Kubernetes to allow your cluster to authenticate with the registry and pull the necessary images.
+
+1. Create a Kubernetes Secret of type dockerconfigjson:
+
+    ```bash
+    kubectl create secret docker-registry speckle-enterprise-registry \
+    --docker-server=<PACKAGE_REGISTRY_URL> \
+    --docker-username=<PACKAGE_REGISTRY_USERNAME> \
+    --docker-password=<PACKAGE_REGISTRY_TOKEN> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Confirm the secret is deployed successfully in the same namespace as your Speckle Server deployment.
+
+    ```bash
+    kubectl get secret speckle-enterprise-registry -n <NAMESPACE>
+    ```
+
+1. Update the Helm values.yaml file to reference the image pull secret:
+
+    ```yaml
+    imagePullSecrets:
+      - name: speckle-enterprise-registry
+    ```
+
+1. Upgrade your existing open source Speckle Server deployment, using the new Helm Chart:
+
+    ```bash
+    helm upgrade speckle-server speckle-enterprise/speckle-server \
+    --namespace <NAMESPACE> \
+    -f values.yaml
+    ```
+
+### License Key
+
+1. Obtain your Speckle Enterprise license key from Speckle.
+1. Create a Kubernetes Secret to store the license key:
+
+    ```bash
+    kubectl create secret generic license \
+    --from-literal=license_token=<YOUR_LICENSE_KEY> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Update the Helm values.yaml file to reference the license secret:
+
+    ```yaml
+    server:
+      licenseTokenSecret:
+        secretName: 'license'
+        secretKey: 'license_token'
+    ```
+
+1. Update the Helm values.yaml file to enable the Gatekeeper module, which is responsible for validating the license:
+
+    ```yaml
+    featureFlags:
+      gatekeeperModuleEnabled: true
+    ```
+
+1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
+
+1. If making any further changes to the license, note that Kubernetes does not automatically restart deployments when changes are made to secrets. Restart the 'speckle-server' and 'speckle-objects' deployments to apply the changes.
+
+    ```bash
+    kubectl rollout restart deployment speckle-server -n <NAMESPACE>
+    kubectl rollout restart deployment speckle-objects -n <NAMESPACE>
+    ```
+
+### Enable Workspaces
+
+[Workspaces](/workspaces/introduction) is a core feature of Speckle Enterprise Server that provides enhanced data management and collaboration capabilities for your users.
+
+To enable workspaces in Speckle Enterprise Server we need to configure some feature flags.
+We need to enable the Gatekeeper module, which is responsible for validating the license.
+We can then enable the Workspaces module.
+
+1. Update the Helm values.yaml file to enable workspaces:
+
+    ```yaml
+    featureFlags:
+      workspacesModuleEnabled: true
+    ```
+
+1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
+
+### (Optional) Server administration support tools
+
+Speckle Enterprise Server includes additional tools to help with server administration and support of your users.
+
+1. These tools can be enabled by configuring the following feature flags in the Helm values.yaml file:
+
+    ```yaml
+    featureFlags:
+      adminSupportTools: true
+    ```
+
+1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
+
+1. Verify that the admin support tools are available in the server UI, go to Server Settings and look for the "Admin Support Tools" section.
+
+### (Optional) Saved Views
+
+[Saved Views](/3d-viewer/saved-views) is a feature which enables users to markup their models with annotations, save those views for later, or share with others.
+
+1. To enable Saved Views, update the Helm values.yaml file to include the following feature flag:
+
+    ```yaml
+    featureFlags:
+      savedViewsEnabled: true
+    ```
+
+1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
+
+1. Verify that the Saved Views feature is available by following our [documentation](/3d-viewer/saved-views).
+
+### (Optional) Issues
+
+The [Issues](/3d-viewer/issues) feature allows users to create and manage issues directly within the Speckle Server interface, providing a streamlined way to track and resolve problems related to their models.
+
+1. To enable Issues, update the Helm values.yaml file to include the following feature flag:
+
+    ```yaml
+    featureFlags:
+      issuesModuleEnabled: true
+    ```
+
+1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
+
+1. Verify that the Issues feature is available by following our [documentation](/3d-viewer/issues).
+
+### (Optional) Multi-regional Deployment
+
+Multi-regional deployments allow you to provide [data residency](/workspaces/data-residency) options for your users.
+
+#### Pre-requisites
+
+For each region you wish to support, you will need to deploy a Postgres and Blob Storage instance in that region. Depending on your networking requirements, you may need to set up a VPN or VPC peering connection between your Kubernetes cluster and the database/storage instances.
+
+#### Configuration
+
+1. Create a json file containing the connection details for your existing 'main' region, as follows:
+
+    ```json
+    {
+      "defaultProjectRegionKey": null,
+      "main": {
+        "blobStorage": {
+          "accessKey": "<YOUR_BLOB_STORAGE_ACCESS_KEY>",
+          "bucket": "<YOUR_BLOB_STORAGE_BUCKET>",
+          "createBucketIfNotExists": true,
+          "endpoint": "<YOUR_BLOB_STORAGE_ENDPOINT>",
+          "s3Region": "<YOUR_BLOB_STORAGE_REGION>",
+          "secretKey": "<YOUR_BLOB_STORAGE_SECRET_KEY>"
+        },
+        "postgres": {
+          "connectionUri": "<YOUR_POSTGRES_CONNECTION_URI>",
+          "databaseName": "<YOUR_DATABASE_NAME>",
+          "publicTlsCertificate": "<YOUR_PUBLIC_TLS_CERTIFICATE>"
+        }
+      },
+      "regions": {
+      }
+    }
+    ```
+
+    These details should match the connection details you provided when deploying your existing open source Speckle server instance. The `main` region is a required region.
+
+    The `connectionUri` for Postgres should be in the following format:
+
+    ```text
+    postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>:<DB_PORT>/<DB_NAME>?sslmode=require
+    ```
+
+    The `null` value for default project region key means that the `main` region will be used as the default region for new projects. This can be updated later as we add support for additional regions.
+
+1. Update the same json file with the connection details for each additional region you wish to support. Each region should be given an unique region id. Each region is appended to the `regions` object as follows:
+
+    ```json
+    "regions": {
+      "<REGION_ID>": {
+        "blobStorage": {
+          "accessKey": "<YOUR_BLOB_STORAGE_ACCESS_KEY>",
+          "bucket": "<YOUR_BLOB_STORAGE_BUCKET>",
+          "createBucketIfNotExists": true,
+          "endpoint": "<YOUR_BLOB_STORAGE_ENDPOINT>",
+          "s3Region": "<YOUR_BLOB_STORAGE_REGION>",
+          "secretKey": "<YOUR_BLOB_STORAGE_SECRET_KEY>"
+        },
+        "postgres": {
+          "connectionUri": "<YOUR_POSTGRES_CONNECTION_URI>",
+          "databaseName": "<YOUR_DATABASE_NAME>",
+          "publicTlsCertificate": "<YOUR_PUBLIC_TLS_CERTIFICATE>"
+        }
+      }
+    }
+    ```
+
+    If you wish to set a different default region, update the `defaultProjectRegionKey` value to match the region id of the region you wish to set as default.
+
+1. Create a Kubernetes secret to store the multi-region configuration:
+
+    ```bash
+    kubectl create secret generic multi-region-config \
+    --from-file=multi-region-config.json=<PATH_TO_JSON_FILE> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Update the Helm values.yaml file to reference the multi-regional configuration secret:
+
+    ```yaml
+    multiRegion:
+      config:
+        secretName: 'multi-region-config'
+        secretKey: 'multi-region-config.json'
+    ```
+
+1. To enable multi-regional support, update the Helm values.yaml file to include the following feature flag:
+
+    ```yaml
+    featureFlags:
+      workspacesMultiRegionEnabled: true
+    ```
+
+1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
+
+1. If adding further regions, note that Kubernetes does not automatically restart deployments when changes are made to secrets. Restart the 'speckle-server' and 'speckle-objects' deployments to apply the changes.
+
+    ```bash
+    kubectl rollout restart deployment speckle-server -n <NAMESPACE>
+    kubectl rollout restart deployment speckle-objects -n <NAMESPACE>
+    ```
+
+#### Giving access to regions in Speckle Server UI
+
+The region is not yet selectable by users in the Speckle Server's UI. You first need to create the region via Speckle Server's UI.
+
+1. Ensure you are logged in to Speckle server with an account that has server admin privileges.
+1. Navigate to Server Settings > Regions.
+1. Select `Create` to add a new region.
+1. Select the region id that corresponds to the region details you added in the multi-regional configuration json file.
+1. Fill in the required details for the new region, including the region name. This is the name that will be displayed to users.
+1. Save the new region.
+1. Once the region is created, users can select it when creating a new workspace. Please refer to [the workspace guide](/workspaces/data-residency) for further details.
+
+### (Optional) Automate
+
+Automate allows users to create and manage automated workflows within the Speckle Server interface. It provides a way to automate repetitive tasks, such as data processing and analysis, by creating custom workflows that can be triggered based on specific events.
+
+Automate requires additional infrastructure - including databases, caches, and kubernetes clusters or namespaces - to enable for Speckle Enterprise Server.
+
+We provide a separate guide for enabling Automate, which can be found in our documentation under [Self-hosting Automate for Speckle Enterprise](/developers/server/deployment/automate).
+
+### (Optional) Intelligence
+
+<Note>
+Intelligence features can be enabled on their own, but are limited without the Automate module, which provides the necessary backend support for them. For a full experience, we recommend enabling both features together.
+
+Intelligence currently requires access to an external Content Delivery Network (CDN) for the feature to work. If your cluster is in an environment without access to external networks, please contact your Speckle representative to discuss options for enabling this feature.
+</Note>
+
+1. To enable Intelligence features, update the Helm values.yaml file to include the following feature flag:
+
+    ```yaml
+    featureFlags:
+      dashboardsModuleEnabled: true
+    ```
+
+1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
+
+### (Optional) ACC Integration
+
+<Note>
+ACC Integration requires Automate to be enabled.
+</Note>
+
+At present, this feature requires a commercial licenses with third party vendors. We are actively working on streamlining this process to make it easier for our Enterprise customers to set up and configure, but in the meantime please contact your Speckle representative if you are interested in enabling this feature.
+
+### (Optional) Supporting additional file types in Direct Uploads
+
+The open source Speckle Server allows users to upload [IFC files directly to Speckle Server for processing](/connectors/direct-uploads/introduction). We have extended this functionality in Speckle's publicly available version (https://app.speckle.systems) to support additional file types, including RVT, SKP, OBJ, and DWG files.
+
+At present, this feature requires running a separate Windows Virtual Machine and commercial licenses with third party vendors. We are actively working on streamlining this process to make it easier for our Enterprise customers to set up and configure, but in the meantime please contact your Speckle representative if you are interested in enabling this feature.
