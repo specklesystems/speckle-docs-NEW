@@ -8,11 +8,11 @@ To ease new deployments, we are maintaining [a Kubernetes Helm chart](https://hu
 <Note>
 This setup is not recommended for use as-is in production for a few reasons, namely:
 
-- application level updates: we tend to move quite fast, and if things get busy, blink twice and you’re on an outdated server. This has security implications too.
-- database backups: again this is up to you mostly on what’s your risk appetite when it comes to dealing with live data. We’re a bit more on the paranoid side, so we’ve set up replication, failover nodes and PITR.
-- automatic scalability: for example, the preview service can be quite a monster; that setup can eat up all a vm’s resources, and starve other processes causing general system wide instability. Cloud providers can provide horizontal VM auto-scaling and Kubernetes can provide horizontal pod auto-scaling but these are not discussed in this guide.
-- monitoring: this setup does not describe integrations for telemetry, metrics, tracing, or logging. Nor does it describe alerting or response actions.
-- firewall and network hardening: running in production requires additional security hardening measures, particularly protecting the network from intrusion or data exfiltration.
+- Application-level updates: We tend to move quite fast, and if things get busy, blink twice, and you’re on an outdated server. This has security implications, too.
+- Database backups: Again, this is up to you, mostly based on your risk appetite when it comes to dealing with live data. We’re healthily paranoid, so we’ve set up replication, failover nodes, and PITR.
+- Automatic scalability: for example, the preview service can be quite a monster; that setup can eat up all a vm’s resources, and starve other processes, causing general system-wide instability. Cloud providers can provide horizontal VM auto-scaling, and Kubernetes can provide horizontal pod auto-scaling, but these are not discussed in this guide.
+- Monitoring: this setup does not describe integrations for telemetry, metrics, tracing, or logging. Nor does it describe alerting or response actions.
+- Firewall and network hardening: running in production requires additional security hardening measures, particularly protecting the network from intrusion or data exfiltration.
 
 If you need help deploying a production server, [we can help](https://speckle.systems/pricing/)!
 
@@ -20,19 +20,19 @@ If you need help deploying a production server, [we can help](https://speckle.sy
 
 ## Prerequisites
 
-- [Required] A [DigitalOcean](https://www.digitalocean.com/) account. Please note that this guide will create resources which may incur a charge on DigitalOcean.
+- [Required] A [DigitalOcean](https://www.digitalocean.com/) account. Please note that this guide will create resources that may incur a charge on DigitalOcean.
 - [Required] [Helm CLI](https://helm.sh/docs/intro/install/) installed.
 - [Required] [Kubernetes CLI client](https://kubernetes.io/docs/tasks/tools/#kubectl) installed.
 - [Required] A domain name, or a sub-domain to which a DNS A Record can be added.
 - [Optional] An email service provider account of your choice (to allow the server to send emails)
 - [Optional] An authentication service of your choice (to allow the server to authenticate users), otherwise username & password authentication will be used.
-- [Optional] The [DigitalOcean CLI client](https://docs.digitalocean.com/reference/doctl/how-to/install/) installed.
+- [Optional] The [DigitalOcean CLI client](https://docs.digitalocean.com/reference/doctl/how-to/install/) is installed.
 
 <Steps>
 <Step>
 ## Create the Kubernetes Cluster
 
-Go to your DigitalOcean dashboard and [create a new Kubernetes cluster](https://cloud.digitalocean.com/kubernetes/clusters/new). We provided the cluster a name, but otherwise left configuration as per DigitalOcean's recommended defaults. When prompted to select the node count and size, we selected four nodes. Each node has the default 2 vcpu and 4Gb (`s-2vcpu-4gb`). While this is a minimum, your usage may vary and we recommend testing under your typical loads and adjusting by deploying new nodes or larger sized machines in new node-pools.
+Go to your DigitalOcean dashboard and [create a new Kubernetes cluster](https://cloud.digitalocean.com/kubernetes/clusters/new). We gave the cluster a name but left the configuration as per DigitalOcean's recommended defaults. When prompted to select the node count and size, we selected four nodes. Each node has the default 2 vCPU and 4 GB (`s-2vcpu-4gb`). While this is a minimum, your usage may vary, and we recommend testing under your typical loads and adjusting by deploying new nodes or larger-sized machines in new node-pools.
 
 <Frame>
   <img src="/images/developers/server/kubernetes/01_select_node_size.png" />
@@ -41,7 +41,7 @@ Go to your DigitalOcean dashboard and [create a new Kubernetes cluster](https://
 </Step>
 <Step>
 
-Configure other options for your Kubernetes cluster and click the `Create Cluster` button. After the cluster is created and initialized, you should see it in your list of kubernetes clusters:
+Configure the other options for your Kubernetes cluster, then click the `Create Cluster` button. After the cluster is created and initialized, you should see it in your list of kubernetes clusters:
 
 <Frame>
   <img src="/images/developers/server/kubernetes/02_kubernetes_clusters.png" />
@@ -50,7 +50,7 @@ Configure other options for your Kubernetes cluster and click the `Create Cluste
 </Step>
 <Step>
 
-To log into the cluster, follow the getting started guide on the DigitalOcean dashboard for your cluster. We recommend the automated option of updating your local Kubernetes configuration (kubeconfig) using the [DigitalOcean client, `doctl`](https://docs.digitalocean.com/reference/doctl/how-to/install/).
+To log in to the cluster, follow the getting-started guide on the DigitalOcean dashboard for your cluster. We recommend using the automated option to update your local Kubernetes configuration (kubeconfig) with the [DigitalOcean client, `doctl`](https://docs.digitalocean.com/reference/doctl/how-to/install/).
 
 <Frame>
   <img src="/images/developers/server/kubernetes/03_get_kubeconfig.png" />
@@ -59,7 +59,7 @@ To log into the cluster, follow the getting started guide on the DigitalOcean da
 </Step>
 <Step>
 
-After downloading the kubernetes config, you can verify that your kubernetes client has the cluster configuration by running the following command. A list of kubernetes clusters will be printed, your cluster context should have the prefix `do-`. Make a note of the name, you will use this in place of `${YOUR_CLUSTER_CONTEXT_NAME}` in most of the following steps of this guide.
+After downloading the kubernetes config, you can verify that your kubernetes client has the cluster configuration by running the following command. A list of kubernetes clusters will be printed; your cluster context should have the prefix `do-`. Make a note of the name, you will use this in place of `${YOUR_CLUSTER_CONTEXT_NAME}` in most of the following steps of this guide.
 
 ```shell
 kubectl config get-contexts
@@ -89,16 +89,16 @@ You should see something like the following:
 
 ### (Optional): Configure Valkey
 
-Speckle requires a Valkey cache to function. You can provide your own if you have an existing database. Otherwise, follow the following steps to create a new Valkey database in DigitalOcean.
+Speckle requires a Valkey cache to function. You can provide your own if you have an existing database. Otherwise, follow the steps below to create a new Valkey database on DigitalOcean.
 
 - We will deploy a managed Valkey provided by DigitalOcean. Go to the [new Database creation page](https://cloud.digitalocean.com/databases/new). Firstly, select the same region and VPC as you used when deploying your Kubernetes cluster, and select Valkey. Provide a name, and click `Create Database Cluster`.
-  Again we used the default sizes, but your usage will vary and we recommend testing under your typical loads and adjusting by the database size as necessary.
+  Again, we used the default sizes, but your usage will vary, and we recommend testing under your typical loads and adjusting as needed based on the database size.
 
   <Frame>
     <img src="/images/developers/server/kubernetes/06_redis_configuration.png" />
   </Frame>
 
-- From the overview, click on `Secure this database cluster by restricting access.`. This will take you to the Trusted Sources panel in the Settings tab. Here we will improve the security of your database by only allowing connections from your Kubernetes cluster. Type the name of your Kubernetes cluster and add it as a Trusted Source.
+- From the overview, click on `Secure this database cluster by restricting access.` This will take you to the Trusted Sources panel in the Settings tab. Here, we will improve the security of your database by only allowing connections from your Kubernetes cluster. Type the name of your Kubernetes cluster and add it as a Trusted Source.
 
   <Frame>
     <img src="/images/developers/server/kubernetes/07_redis_trusted_source.png" />
@@ -117,7 +117,7 @@ Speckle requires a Valkey cache to function. You can provide your own if you hav
 Speckle requires a Postgres database to function. You can provide your own if you have an existing database. Otherwise, follow the following steps to create a new Postgres database in DigitalOcean.
 
 - We will now deploy a managed Postgres provided by DigitalOcean. Go to the [new Database creation page](https://cloud.digitalocean.com/databases/new). Firstly, select the same region and VPC as you used when deploying your Kubernetes cluster, and then select Postgres. Provide a name, and click `Create Database Cluster`.
-  Again we used the default sizes, but your usage will vary and we recommend testing under your typical loads and adjusting by the database size as necessary.
+  Again, we used the default sizes, but your usage will vary, and we recommend testing under your typical loads and adjusting as needed based on the database size.
 
   <Frame>
     <img src="/images/developers/server/kubernetes/09_postgres_configuration.png" />
@@ -126,7 +126,7 @@ Speckle requires a Postgres database to function. You can provide your own if yo
     <img src="/images/developers/server/kubernetes/09_postgres_configuration_02.png" />
   </Frame>
 
-- From the overview page for your Postgres database, click on `Secure this database cluster by restricting access`. This will take you to the Trusted Sources panel in the Settings tab. Here we will improve the security of your database by only allowing connections from your Kubernetes cluster. Type the name of your Kubernetes cluster and add it as a Trusted Source.
+- From the overview page for your Postgres database, click on `Secure this database cluster by restricting access`. This will take you to the Trusted Sources panel in the Settings tab. Here, we will improve the security of your database by only allowing connections from your Kubernetes cluster. Type the name of your Kubernetes cluster and add it as a Trusted Source.
 
   <Frame>
     <img src="/images/developers/server/kubernetes/10_postgres_trusted_source_edit.png" />
@@ -142,9 +142,9 @@ Speckle requires a Postgres database to function. You can provide your own if yo
 
 ### (Optional): Configure Blob Storage (DigitalOcean Spaces)
 
-Speckle requires blob storage to save files and other similar data. You can provide your own if you have an existing blob storage which is compatible with the [Amazon S3 API](https://docs.aws.amazon.com/AmazonS3/latest/API/Welcome.html). Otherwise follow the following steps to create a new S3-compatible blob storage on DigitalOcean.
+Speckle requires Blob Storage to store files and other data. You can provide your own if you have an existing blob storage which is compatible with the [Amazon S3 API](https://docs.aws.amazon.com/AmazonS3/latest/API/Welcome.html). Otherwise, follow the following steps to create a new S3-compatible blob storage on DigitalOcean.
 
-- Navigate to the [Create a Space page](https://cloud.digitalocean.com/spaces/new). Please select a region of your choice, we recommend the same region as you have deployed the cluster. We did not enable the CDN and we restricted the file listing for security purposes. Please provide a name for your Space, this has to be unique in the region so please use a different name than our example. Make a note of this name, this is the `bucket` value which we will require when configuring your deployment in subsequent steps. Click on `Create Space`.
+- Navigate to the [Create a Space page](https://cloud.digitalocean.com/spaces/new). Please select a region of your choice, we recommend the same region as you have deployed the cluster. We did not enable the CDN, and we restricted the file listing for security purposes. Please provide a name for your Space, this has to be unique in the region so please use a different name than our example. Make a note of this name; this is the `bucket` value, which we will require when configuring your deployment in subsequent steps. Click on `Create Space`.
 
   <Frame>
     <img src="/images/developers/server/kubernetes/12_blob_storage_configuration.png" />
@@ -202,7 +202,7 @@ kubectl get namespace --context "${YOUR_CLUSTER_CONTEXT_NAME}"
 
 ### Create Secrets
 
-To securely store the connection details of Speckle's dependencies, we will create a secret in the Kubernetes Cluster in the `speckle` namespace. Replace all the items starting with `${YOUR_...}` with the appropriate value. `${YOUR_SECRET}` should be replaced with a value unique to this cluster, we recommend creating a random value of at least 10 characters long.
+To securely store the connection details for Speckle's dependencies, we will create a secret in the Kubernetes Cluster's `speckle` namespace. Replace all the items starting with `${YOUR_...}` with the appropriate value. `${YOUR_SECRET}` should be replaced with a value unique to this cluster. We recommend creating a random value of at least 10 characters long.
 
 ```shell
 kubectl create secret generic server-vars \
@@ -225,7 +225,7 @@ kubectl describe secret server-vars --namespace speckle --context "${YOUR_CLUSTE
   <img src="/images/developers/server/kubernetes/17_secrets.png" />
 </Frame>
 
-To view the contents of an individual secret, you can run the following replacing `redis_url` with the key you require and replacing `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.:
+To view the contents of an individual secret, you can run the following, replacing `redis_url` with the key you require and replacing `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.:
 
 ```shell
 kubectl get secret server-vars --context "${YOUR_CLUSTER_CONTEXT_NAME}" \
@@ -244,7 +244,7 @@ kubectl edit secrets server-vars --namespace speckle --context "${YOUR_CLUSTER_C
 
 ### Priority Classes
 
-If Kubernetes ever begins to run out of resources (such as processor or memory) on a node then Kubernetes will have to terminate some of the processes. Kubernetes decides which processes will be terminated based on their priority. Here we will tell Kubernetes which priority that Speckle will have.
+If Kubernetes ever begins to run out of resources (such as processor or memory) on a node, then Kubernetes will have to terminate some of the processes. Kubernetes decides which processes to terminate based on their priority. Here we will specify the priority that Speckle will have.
 
 Run the following command. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.:
 
@@ -256,7 +256,7 @@ metadata:
   name: high-priority
 value: 100
 globalDefault: false
-description: "High priority (100) for business-critical services"
+description: "High priority (100) for business-critical services."
 ---
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
@@ -264,7 +264,7 @@ metadata:
   name: medium-priority
 value: 50
 globalDefault: true
-description: "Medium priority (50) - dev/test services"
+description: "Medium priority (50) - dev/test services."
 ---
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
@@ -272,7 +272,7 @@ metadata:
   name: low-priority
 value: -100
 globalDefault: false
-description: "Low priority (-100) - Non-critical microservices"
+description: "Low priority (-100) - Non-critical microservices."
 EOF
 ```
 
@@ -285,7 +285,7 @@ EOF
 
 ### Certificate Manager
 
-To allow secure (https) access to your Speckle server from the internet, we have to provide a means of creating a TLS (X.509) certificate. This certificate will have to be renewed and kept up to date. To automate this, we will install CertManager and connect it to a Certificate Authority. CertManager will create a new certificate, request the Certificate Authority signs it and any renewals when required. The Certificate Authority in our case will be [Let's Encrypt](https://letsencrypt.org/). If you are interested, you can read more about how Let's Encrypt knows to trust your server with an [HTTP-01 challenge](https://letsencrypt.org/docs/challenge-types/#http-01-challenge), in our case CertManager acts as the ACME client.
+To enable secure (https) access to your Speckle server from the internet, we need to provide a means to create a TLS (X.509) certificate. This certificate must be renewed and kept up to date. To automate this, we will install CertManager and connect it to a Certificate Authority. CertManager will create a new certificate, request that the Certificate Authority sign it, and renew it when required. The Certificate Authority in our case will be [Let's Encrypt](https://letsencrypt.org/). If you are interested, you can read more about how Let's Encrypt knows to trust your server with an [HTTP-01 challenge](https://letsencrypt.org/docs/challenge-types/#http-01-challenge), in our case, CertManager acts as the ACME client.
 
 We first need to let Helm know where CertManager can be found:
 
@@ -300,7 +300,7 @@ helm repo add jetstack https://charts.jetstack.io
 </Step>
 <Step>
 
-Then update Helm so it knows what the newly added repo contains
+Then update Helm, so it knows what the newly added repo contains
 
 ```shell
 helm repo update
@@ -322,7 +322,7 @@ helm upgrade cert-manager jetstack/cert-manager --namespace cert-manager --versi
 </Step>
 <Step>
 
-We can verify that this deployed to Kubernetes with the following command. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.:
+We can verify that this was deployed to Kubernetes with the following command. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.:
 
 ```shell
 kubectl get pods --namespace cert-manager --context "${YOUR_CLUSTER_CONTEXT_NAME}"
@@ -386,7 +386,7 @@ EOF
 </Step>
 <Step>
 
-We can verify that this worked by running the following command. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster. Within the response it should state that the message was "_The ACME account was registered with the ACME server_".
+We can verify that this worked by running the following command. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster. The response should state that the message was "_The ACME account was registered with the ACME server_".
 
 ```shell
 kubectl describe clusterissuer.cert-manager.io/letsencrypt-staging \
@@ -400,7 +400,7 @@ kubectl describe clusterissuer.cert-manager.io/letsencrypt-staging \
 </Step>
 <Step>
 
-We repeat this command to verify the production certificate was also created. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster. Again, within the response it should state that the message was "_The ACME account was registered with the ACME server_".
+We repeat this command to verify that the production certificate was created as well. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster. Again, the response should state that the message was "_The ACME account was registered with the ACME server_".
 
 ```shell
 kubectl describe clusterissuer.cert-manager.io/letsencrypt-prod \
@@ -412,7 +412,7 @@ kubectl describe clusterissuer.cert-manager.io/letsencrypt-prod \
 
 ### Ingress
 
-To allow access from the internet to your kubernetes cluster, Speckle will deploy a [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) which defines how that external traffic should be managed. The component that manages the traffic per Speckle's ingress definition is known as an Ingress Controller. In this step we will deploy our Ingress Controller, [NGINX](https://www.nginx.com/).
+To allow access from the internet to your kubernetes cluster, Speckle will deploy a [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/), which defines how that external traffic should be managed. The component that manages the traffic per Speckle's ingress definition is known as an Ingress Controller. In this step, we will deploy our Ingress Controller, [NGINX](https://www.nginx.com/).
 
 - We first let Helm know where NGINX ingress can be found:
 
@@ -440,7 +440,7 @@ helm repo update
 </Step>
 <Step>
 
-Now we can deploy NGINX to our kubernetes cluster. The additional annotation allows CertManager, deployed in the [previous step](#3d-certificate-manager), to advise NGINX as to the certificate to use for https connections. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.
+Now we can deploy NGINX to our kubernetes cluster. The additional annotation allows CertManager, deployed in the [previous step](#3d-certificate-manager), to advise NGINX which certificate to use for https connections. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.
 
 ```shell
 cat <<'EOF' | helm upgrade ingress-nginx ingress-nginx/ingress-nginx \
@@ -474,23 +474,23 @@ EOF
 
 ## Configure your Deployment
 
-[Download the `values.yaml` file from the Speckle server GitHub repository](https://raw.githubusercontent.com/specklesystems/speckle-server/refs/heads/main/utils/helm/speckle-server/values.yaml) and save it as `values.yaml` to the current directory on your local machine. We will be editing and using this file in the following steps.
+[Download the `values.yaml` file from the Speckle server GitHub repository](https://raw.githubusercontent.com/specklesystems/speckle-server/refs/heads/main/utils/helm/speckle-server/values.yaml) and save it as `values.yaml` to the current directory on your local machine. We will edit and use this file in the following steps.
 
 </Step>
 <Step>
 
 - Fill in the requested fields and save the file:
-  - `namespace`: required, we are using `speckle` in this guide so change this value
+  - `namespace`: required, we are using `speckle` in this guide, so change this value
   - `domain`: required, this is the domain name at which your Speckle server will be available.
   - `db.useCertificate`: required, this should be set to true and will force Speckle to use the certificate for Postgres we shall provide in `db.certificate`.
   - `db.certificate`: required, this can be found by clicking `Download CA certificate` in your database's overview page on DigitalOcean. You can find your Postgres database by selecting it from the [Database page on DigitalOcean](https://cloud.digitalocean.com/databases). When entering the data, please use Helm's pipe operator for multiline strings and be careful with indentation. We recommend reading [Helm's guide on formatting multiline strings](https://helm.sh/docs/chart_template_guide/yaml_techniques/#strings-in-yaml), and refer to the image below for an example of this format.
   - `s3.endpoint`: required, the endpoint can be found in the Settings Page of your DigitalOcean Space. You can find your Space by selecting it from the [Spaces page on DigitalOcean](https://cloud.digitalocean.com/spaces?i=b49c54). This value must be prepended with `https://`.
   - `s3.bucket`: required, this is the name of your DigitalOcean space.
   - `s3.access_key`: required, this is the `Key` of your Spaces API key. You can find this by viewing it from the [Spaces API Key page on DigitalOcean](https://cloud.digitalocean.com/account/api/tokens)
-  - `s3.auth.local.enabled`: this is enabled by default. This requires users to register on your Speckle cluster with a username and password. If you wish to use a different authorization provider, such as Azure AD, Github, or Google, then set this value to `false`, and amend the relevant section below by enabling that and providing the relevant details where necessary.
+  - `s3.auth.local.enabled`: this is enabled by default. This requires users to register on your Speckle cluster with a username and password. If you wish to use a different authorization provider, such as Azure AD, GitHub, or Google, set this value to `false` and amend the relevant section below by enabling it and providing the necessary details.
   - `server.email`: optional, enabling emails will enable extra features like sending invites.
     - You will need to set `server.email.enabled` to `true`.
-    - Please set `server.email.host`, `server.email.username`, and optionally depending on your email server `server.email.port`
+    - Please set `server.email.host`, `server.email.username`, and optionally, depending on your email server, `server.email.port`
     - This also requires the `email_password` secret to have been set in [Step 3](#step-3b-create-secrets).
   - `cert_manager_issuer`: optional, the default is set for Let's Encrypt staging api `letsencrypt-staging`. For production, or if you encounter an issue with certificates, change the value to `letsencrypt-prod`.
 
@@ -524,7 +524,7 @@ After configuration is done, you should see this success message:
 </Step>
 <Step>
 
-Verify all of the deployed Helm charts were successful by checking their deployed status. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.:
+Verify that all deployed Helm charts were successful by checking their deployment status. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.:
 
 ```shell
 helm list --all-namespaces --kube-context "${YOUR_CLUSTER_CONTEXT_NAME}"
@@ -541,12 +541,12 @@ You should see something similar to the following:
 
 ## Update your Domain
 
-Initially accessing Speckle may take some time as DigitalOcean has to create a load balancer and Let's Encrypt sign the Certificate. The DigitalOcean load balancer was automatically requested from the Infrastructure provider (DigitalOcean) by the Ingress controller we deployed earlier. You can see the progress of the load balancer's deployment on the [Networking page](https://cloud.digitalocean.com/networking/load_balancers) of your DigitalOcean dashboard.
+Initially, accessing Speckle may take some time as DigitalOcean must create a load balancer and Let's Encrypt must sign the Certificate. The DigitalOcean load balancer was automatically requested from the Infrastructure provider (DigitalOcean) by the Ingress controller we deployed earlier. You can see the progress of the load balancer's deployment on the [Networking page](https://cloud.digitalocean.com/networking/load_balancers) of your DigitalOcean dashboard.
 
 </Step>
 <Step>
 
-Once the load balancer has finished creating DigitalOcean will display an externally-accessible IP address for it. Please make a note of the IP address.
+Once the load balancer has finished creating, DigitalOcean will display an externally-accessible IP address for it. Please make a note of the IP address.
 
 <Frame>
   <img src="/images/developers/server/kubernetes/31_get_IP_address.png" />
@@ -555,7 +555,7 @@ Once the load balancer has finished creating DigitalOcean will display an extern
 </Step>
 <Step>
 
-Navigate to your domain registrar's website for your domain name and add a DNS A record. This will allow web browsers to resolve your domain name to the IP of the load balancer. The domain must match the domain name provided to Speckle in the `values.yaml` file you edited previously. If DigitalOcean manages your Domain Names, adding a DNS A record using [DigitalOcean's Domain page](https://cloud.digitalocean.com/networking/domains) will look something like the following:
+Navigate to your domain registrar's website for your domain name and add a DNS A record. This will allow web browsers to resolve your domain name to the load balancer's IP address. The domain must match the domain name provided to Speckle in the `values.yaml` file you edited previously. If DigitalOcean manages your Domain Names, adding a DNS A record using [DigitalOcean's Domain page](https://cloud.digitalocean.com/networking/domains) will look something like the following:
 
 <Frame>
   <img src="/images/developers/server/kubernetes/32_domain_a_record.png" />
@@ -564,7 +564,7 @@ Navigate to your domain registrar's website for your domain name and add a DNS A
 </Step>
 <Step>
 
-It may take a moment for the domain name and A Record to be propagated to all relevant DNS servers, and then for Let's Encrypt to be able to reach your domain and generate a certificate. Please be patient while this is updated.
+It may take a moment for the domain name and A Record to be propagated to all relevant DNS servers, and then for Let's Encrypt to reach your domain and generate a certificate. Please be patient while this is updated.
 
 </Step>
 <Step>
@@ -573,7 +573,7 @@ It may take a moment for the domain name and A Record to be propagated to all re
 
 You should be able to now visit your domain name and see the same Speckle welcome page.
 
-Finally, you should now register the first user. The first user that registers will be the administrator account for that server.
+Finally, register the first user. The first user who registers will be the administrator account for that server.
 
 <Frame>
   <img src="/images/developers/server/kubernetes/33_registration_page.png" />
@@ -584,9 +584,9 @@ Finally, you should now register the first user. The first user that registers w
 
 ## That's it
 
-You have deployed a Speckle Server on Kubernetes that you have full control over.
+You have deployed a Speckle Server on a fully controlled Kubernetes cluster.
 
-To reconfigure the server, you can change the values in values.yaml, and run the following command. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.:
+To reconfigure the server, you can change the values in `values.yaml` and run the following command. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.:
 
 ```shell
 helm upgrade my-speckle-server --values values.yaml --kube-context "${YOUR_CLUSTER_CONTEXT_NAME}"
@@ -611,7 +611,7 @@ You can verify that the certificate was generated correctly by inspecting the Ce
   <img src="/images/developers/server/kubernetes/36_certificate_details.png" />
 </Frame>
 
-In this case, our deployment is correct but our browser rightly does not trust Let's Encrypt's staging environment. To resolve this issue, we recommend amending the Certificate to a production certificate. Please refer above for notes on how to amend your Speckle deployment to use Let's Encrypt's Production environment.
+In this case, our deployment is correct, but our browser rightly does not trust Let's Encrypt's staging environment. To resolve this issue, we recommend amending the Certificate to a production certificate. Please refer to the notes above on how to amend your Speckle deployment to use Let's Encrypt's Production environment.
 
 More information about Let's Encrypt's Staging Environment can be found on [Let's Encrypt's website](https://letsencrypt.org/docs/staging-environment/#root-certificates).
 
