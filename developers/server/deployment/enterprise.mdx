@@ -49,74 +49,74 @@ You will need to create an Image Pull secret in Kubernetes to allow your cluster
 
 1. Create a Kubernetes Secret of type dockerconfigjson:
 
-    ```bash
-    kubectl create secret docker-registry speckle-enterprise-registry \
-    --docker-server=<PACKAGE_REGISTRY_URL> \
-    --docker-username=<PACKAGE_REGISTRY_USERNAME> \
-    --docker-password=<PACKAGE_REGISTRY_TOKEN> \
-    -n <NAMESPACE> \
-    --dry-run=client \
-    -o yaml | kubectl apply -f -
-    ```
+   ```bash
+   kubectl create secret docker-registry speckle-enterprise-registry \
+   --docker-server=<PACKAGE_REGISTRY_URL> \
+   --docker-username=<PACKAGE_REGISTRY_USERNAME> \
+   --docker-password=<PACKAGE_REGISTRY_TOKEN> \
+   -n <NAMESPACE> \
+   --dry-run=client \
+   -o yaml | kubectl apply -f -
+   ```
 
 1. Confirm the secret is deployed successfully in the same namespace as your Speckle Server deployment.
 
-    ```bash
-    kubectl get secret speckle-enterprise-registry -n <NAMESPACE>
-    ```
+   ```bash
+   kubectl get secret speckle-enterprise-registry -n <NAMESPACE>
+   ```
 
 1. Update the Helm values.yaml file to reference the image pull secret:
 
-    ```yaml
-    imagePullSecrets:
-      - name: speckle-enterprise-registry
-    ```
+   ```yaml
+   imagePullSecrets:
+     - name: speckle-enterprise-registry
+   ```
 
 1. Upgrade your existing open source Speckle Server deployment, using the new Helm Chart:
 
-    ```bash
-    helm upgrade speckle-server speckle-enterprise/speckle-server \
-    --namespace <NAMESPACE> \
-    -f values.yaml
-    ```
+   ```bash
+   helm upgrade speckle-server speckle-enterprise/speckle-server \
+   --namespace <NAMESPACE> \
+   -f values.yaml
+   ```
 
 ### License Key
 
 1. Obtain your Speckle Enterprise license key from Speckle.
 1. Create a Kubernetes Secret to store the license key:
 
-    ```bash
-    kubectl create secret generic license \
-    --from-literal=license_token=<YOUR_LICENSE_KEY> \
-    -n <NAMESPACE> \
-    --dry-run=client \
-    -o yaml | kubectl apply -f -
-    ```
+   ```bash
+   kubectl create secret generic license \
+   --from-literal=license_token=<YOUR_LICENSE_KEY> \
+   -n <NAMESPACE> \
+   --dry-run=client \
+   -o yaml | kubectl apply -f -
+   ```
 
 1. Update the Helm values.yaml file to reference the license secret:
 
-    ```yaml
-    server:
-      licenseTokenSecret:
-        secretName: 'license'
-        secretKey: 'license_token'
-    ```
+   ```yaml
+   server:
+     licenseTokenSecret:
+       secretName: 'license'
+       secretKey: 'license_token'
+   ```
 
 1. Update the Helm values.yaml file to enable the Gatekeeper module, which is responsible for validating the license:
 
-    ```yaml
-    featureFlags:
-      gatekeeperModuleEnabled: true
-    ```
+   ```yaml
+   featureFlags:
+     gatekeeperModuleEnabled: true
+   ```
 
 1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
 
 1. If making any further changes to the license, note that Kubernetes does not automatically restart deployments when changes are made to secrets. Restart the 'speckle-server' and 'speckle-objects' deployments to apply the changes.
 
-    ```bash
-    kubectl rollout restart deployment speckle-server -n <NAMESPACE>
-    kubectl rollout restart deployment speckle-objects -n <NAMESPACE>
-    ```
+   ```bash
+   kubectl rollout restart deployment speckle-server -n <NAMESPACE>
+   kubectl rollout restart deployment speckle-objects -n <NAMESPACE>
+   ```
 
 ### Enable Workspaces
 
@@ -192,97 +192,96 @@ For each region you wish to support, you will need to deploy a Postgres and Blob
 
 1. Create a json file containing the connection details for your existing 'main' region, as follows:
 
-    ```json
-    {
-      "defaultProjectRegionKey": null,
-      "main": {
-        "blobStorage": {
-          "accessKey": "<YOUR_BLOB_STORAGE_ACCESS_KEY>",
-          "bucket": "<YOUR_BLOB_STORAGE_BUCKET>",
-          "createBucketIfNotExists": true,
-          "endpoint": "<YOUR_BLOB_STORAGE_ENDPOINT>",
-          "s3Region": "<YOUR_BLOB_STORAGE_REGION>",
-          "secretKey": "<YOUR_BLOB_STORAGE_SECRET_KEY>"
-        },
-        "postgres": {
-          "connectionUri": "<YOUR_POSTGRES_CONNECTION_URI>",
-          "databaseName": "<YOUR_DATABASE_NAME>",
-          "publicTlsCertificate": "<YOUR_PUBLIC_TLS_CERTIFICATE>"
-        }
-      },
-      "regions": {
-      }
-    }
-    ```
+   ```json
+   {
+     "defaultProjectRegionKey": null,
+     "main": {
+       "blobStorage": {
+         "accessKey": "<YOUR_BLOB_STORAGE_ACCESS_KEY>",
+         "bucket": "<YOUR_BLOB_STORAGE_BUCKET>",
+         "createBucketIfNotExists": true,
+         "endpoint": "<YOUR_BLOB_STORAGE_ENDPOINT>",
+         "s3Region": "<YOUR_BLOB_STORAGE_REGION>",
+         "secretKey": "<YOUR_BLOB_STORAGE_SECRET_KEY>"
+       },
+       "postgres": {
+         "connectionUri": "<YOUR_POSTGRES_CONNECTION_URI>",
+         "databaseName": "<YOUR_DATABASE_NAME>",
+         "publicTlsCertificate": "<YOUR_PUBLIC_TLS_CERTIFICATE>"
+       }
+     },
+     "regions": {}
+   }
+   ```
 
-    These details should match the connection details you provided when deploying your existing open source Speckle server instance. The `main` region is a required region.
+   These details should match the connection details you provided when deploying your existing open source Speckle server instance. The `main` region is a required region.
 
-    The `connectionUri` for Postgres should be in the following format:
+   The `connectionUri` for Postgres should be in the following format:
 
-    ```text
-    postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>:<DB_PORT>/<DB_NAME>?sslmode=require
-    ```
+   ```text
+   postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>:<DB_PORT>/<DB_NAME>?sslmode=require
+   ```
 
     The `null` value for the default project region key means that the `main` region will be used as the default region for new projects. This can be updated later as we add support for additional regions.
 
 1. Update the same json file with the connection details for each additional region you wish to support. Each region should be given a unique region id. Each region is appended to the `regions` object as follows:
 
-    ```json
-    "regions": {
-      "<REGION_ID>": {
-        "blobStorage": {
-          "accessKey": "<YOUR_BLOB_STORAGE_ACCESS_KEY>",
-          "bucket": "<YOUR_BLOB_STORAGE_BUCKET>",
-          "createBucketIfNotExists": true,
-          "endpoint": "<YOUR_BLOB_STORAGE_ENDPOINT>",
-          "s3Region": "<YOUR_BLOB_STORAGE_REGION>",
-          "secretKey": "<YOUR_BLOB_STORAGE_SECRET_KEY>"
-        },
-        "postgres": {
-          "connectionUri": "<YOUR_POSTGRES_CONNECTION_URI>",
-          "databaseName": "<YOUR_DATABASE_NAME>",
-          "publicTlsCertificate": "<YOUR_PUBLIC_TLS_CERTIFICATE>"
-        }
-      }
-    }
-    ```
+   ```json
+   "regions": {
+     "<REGION_ID>": {
+       "blobStorage": {
+         "accessKey": "<YOUR_BLOB_STORAGE_ACCESS_KEY>",
+         "bucket": "<YOUR_BLOB_STORAGE_BUCKET>",
+         "createBucketIfNotExists": true,
+         "endpoint": "<YOUR_BLOB_STORAGE_ENDPOINT>",
+         "s3Region": "<YOUR_BLOB_STORAGE_REGION>",
+         "secretKey": "<YOUR_BLOB_STORAGE_SECRET_KEY>"
+       },
+       "postgres": {
+         "connectionUri": "<YOUR_POSTGRES_CONNECTION_URI>",
+         "databaseName": "<YOUR_DATABASE_NAME>",
+         "publicTlsCertificate": "<YOUR_PUBLIC_TLS_CERTIFICATE>"
+       }
+     }
+   }
+   ```
 
-    If you wish to set a different default region, update the `defaultProjectRegionKey` value to match the region id of the region you wish to set as default.
+   If you wish to set a different default region, update the `defaultProjectRegionKey` value to match the region id of the region you wish to set as default.
 
 1. Create a Kubernetes secret to store the multi-region configuration:
 
-    ```bash
-    kubectl create secret generic multi-region-config \
-    --from-file=multi-region-config.json=<PATH_TO_JSON_FILE> \
-    -n <NAMESPACE> \
-    --dry-run=client \
-    -o yaml | kubectl apply -f -
-    ```
+   ```bash
+   kubectl create secret generic multi-region-config \
+   --from-file=multi-region-config.json=<PATH_TO_JSON_FILE> \
+   -n <NAMESPACE> \
+   --dry-run=client \
+   -o yaml | kubectl apply -f -
+   ```
 
 1. Update the Helm values.yaml file to reference the multi-regional configuration secret:
 
-    ```yaml
-    multiRegion:
-      config:
-        secretName: 'multi-region-config'
-        secretKey: 'multi-region-config.json'
-    ```
+   ```yaml
+   multiRegion:
+     config:
+       secretName: 'multi-region-config'
+       secretKey: 'multi-region-config.json'
+   ```
 
 1. To enable multi-regional support, update the Helm values.yaml file to include the following feature flag:
 
-    ```yaml
-    featureFlags:
-      workspacesMultiRegionEnabled: true
-    ```
+   ```yaml
+   featureFlags:
+     workspacesMultiRegionEnabled: true
+   ```
 
 1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
 
 1. If adding further regions, note that Kubernetes does not automatically restart deployments when changes are made to secrets. Restart the 'speckle-server' and 'speckle-objects' deployments to apply the changes.
 
-    ```bash
-    kubectl rollout restart deployment speckle-server -n <NAMESPACE>
-    kubectl rollout restart deployment speckle-objects -n <NAMESPACE>
-    ```
+   ```bash
+   kubectl rollout restart deployment speckle-server -n <NAMESPACE>
+   kubectl rollout restart deployment speckle-objects -n <NAMESPACE>
+   ```
 
 #### Giving access to regions in Speckle Server UI
 
