@@ -8,6 +8,10 @@ RUN apt-get update \
     && apt-get install -y zsh git curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Set pnpm global bin to a shared location on PATH
+ENV PNPM_HOME=/usr/local/share/pnpm
+ENV PATH="$PNPM_HOME:$PATH"
+
 # Install Mintlify CLI
 RUN corepack enable && corepack prepare pnpm@10.30.3 --activate && pnpm add -g mint@latest
 

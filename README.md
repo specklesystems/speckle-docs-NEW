@@ -63,7 +63,7 @@ Connector pages are naturally more detailed because they must cover multiple hos
 
 ### Development
 
-* Ensure you have node 19 or above.
+* Ensure you have Node.js 22.17.1 or newer within the 22.x line installed (matching the `engines` field in `package.json`).
 * `pnpm install` to install dependencies
 * `pnpm dev` to start the local dev server
 
