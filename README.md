@@ -64,8 +64,8 @@ Connector pages are naturally more detailed because they must cover multiple hos
 ### Development
 
 * Ensure you have node 19 or above.
-* `npm i` to install dependencies
-* `npm run dev` to start the local dev server
+* `pnpm install` to install dependencies
+* `pnpm dev` to start the local dev server
 
 ### Generating universal-ai-config instructions
 
@@ -75,7 +75,7 @@ Doc rules for AI assistants (Cursor, Copilot, Claude) are maintained as template
 npx universal-ai-config generate
 ```
 
-Or use the project’s package manager: `npm run uac generate`, `pnpm uac generate`, or `yarn uac generate` (if a `uac` script is defined in `package.json`).
+Or use the project’s package manager: `pnpm uac generate`, `npm run uac generate`, or `yarn uac generate` (if a `uac` script is defined in `package.json`).
 
 * **All targets (default):** generates for Claude, Copilot, and Cursor.
 * **Specific targets:** `npx universal-ai-config generate -t cursor,claude`

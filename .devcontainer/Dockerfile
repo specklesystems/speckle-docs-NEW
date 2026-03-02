@@ -9,7 +9,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Mintlify CLI
-RUN npm install -g mint@latest
+RUN corepack enable && corepack prepare pnpm@10.30.3 --activate && pnpm add -g mint@latest
 
 # Because Jonathon likes to use ZSH
 ENV ZSH=/home/node/.oh-my-zsh
