@@ -23,8 +23,23 @@ alwaysApply: true
 ## Content Separation
 
 - User-facing pages (`workspaces/`, `connectors/`, `3d-viewer/`) describe what a feature does and how to use it in the UI.
-- Feature flags, Helm values, env vars, and docker-compose config belong exclusively in `developers/server/deployment/`.
+- Feature flags, Helm values, env vars, and docker-compose config never appear in user-facing pages.
 - If a feature requires server-side setup, the user-facing page states availability and links to the deployment guide — never reproduces the setup instructions.
+
+## Where to Document Server Configuration
+
+Speckle has two source repos:
+- [speckle-server-internal](https://github.com/specklesystems/speckle-server-internal) — private; latest features for Speckle cloud and enterprise deployments.
+- [speckle-server](https://github.com/specklesystems/speckle-server) — public; features merged here when ready for public release.
+
+Where config goes depends on which repo contains the feature:
+- **Public (merged to speckle-server)**:
+  - `developers/server/getting-started` — env vars, feature flags, docker-compose config.
+  - `developers/server/deployment/kubernetes-with-helm` — Helm chart values.
+- **Enterprise-only (speckle-server-internal only)**: document in `developers/server/deployment/enterprise-license` only.
+- **Both repos** (public feature with Enterprise additions):
+  - Document the base config in the open-source guides as above.
+  - The Enterprise guide should also cover the feature's setup, but if the Helm values are identical to what's already in `kubernetes-with-helm`, link there instead of duplicating.
 
 ## Enterprise-Only Features
 
