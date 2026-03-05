@@ -5,4 +5,4 @@ SAVEHIST=10000
 setopt INC_APPEND_HISTORY   # write each command as you go
 setopt SHARE_HISTORY        # pull in commands from other sessions
 
-alias mintdev='CHOKIDAR_USEPOLLING=true mint dev --verbose'
+alias mintdev='CHOKIDAR_USEPOLLING=true pnpm dev'
