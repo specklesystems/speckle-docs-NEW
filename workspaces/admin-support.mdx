@@ -1,0 +1,139 @@
+---
+title: "Admin Support Mode"
+description: "Enable and manage temporary admin access to workspaces for support purposes"
+noindex: true
+---
+
+When a workspace issue requires support, your server admin may need to inspect or fix data. Admin support mode gives them controlled access while workspace admins stay in control. Server admins can read workspace data by default; write access requires an explicit support session approved by a workspace admin.
+
+<Note>
+Admin support mode is available only on Speckle Enterprise Server and is visible only to server administrators. For deployment and feature flag configuration, see the [Enterprise Licensed Server guide](/developers/server/deployment/enterprise-license#optional-admin-support-mode).
+</Note>
+
+## Read vs write access
+
+When admin support mode is enabled, server admins have different levels of access depending on whether a support session is active:
+
+| Access level | Support session required? | What server admins can do |
+| --- | --- | --- |
+| **Read** | No | View workspace projects, models, and versions to investigate issues |
+| **Write** | Yes (approved by workspace admin) | Edit projects, modify data, and make changes within the workspace |
+
+<Note>
+For self-hosted deployments: when resources (projects and everything under them) are not tied to a workspace, server admins have full read and write access without a support session. If you self-host without an Enterprise license, there are no workspaces — server admins have full access in that case.
+</Note>
+
+## How support sessions work
+
+Support sessions follow a request-and-approve lifecycle:
+
+1. **Pending** — Server admin requests access; workspace admins are notified by email
+2. **Active** — Workspace admin approves; server admin gains write access
+3. **Expired** — Session passes its expiration time and access is automatically removed
+4. **Revoked** — Either party manually ends the session
+
+Multiple concurrent sessions are possible. A server admin can have active sessions for different workspaces, and a workspace can have active sessions from multiple server admins.
+
+## As a workspace admin
+
+### Approve a support request
+
+<Steps>
+  <Step title="Open the Support settings page">
+    Open the email notification link, or go to **Workspace Settings > Support** for the relevant workspace. You see the sessions table with pending, active, and past sessions.
+  </Step>
+  <Step title="Review the pending request">
+    Find the pending request you want to review in the sessions table.
+  </Step>
+  <Step title="Approve the request">
+    Click the actions menu (**...**) on the session row and select **Approve**. The session status changes to **Active** and the server admin receives an email confirmation and gains write access.
+  </Step>
+</Steps>
+
+<Frame>
+  <img src="/images/workspaces/admin-support/approve-session.png" alt="Workspace Settings Support page showing the Approve and Revoke options in the actions menu" />
+</Frame>
+
+You should see the session status change to **Active** and the server admin receive an email confirmation.
+
+<Frame>
+  <img src="/images/workspaces/admin-support/active-session.png" alt="Active support session showing approval details" />
+</Frame>
+
+### Revoke a session
+
+Click the actions menu (**...**) on the session row in **Workspace Settings > Support** and select **Revoke**. Expired sessions appear with an **Expired** status in the sessions table.
+
+## As a server admin
+
+<Note>
+Admin support mode is available only on Speckle Enterprise Server and is visible only to server administrators. For deployment and feature flag configuration, see the [Enterprise Licensed Server guide](/developers/server/deployment/enterprise-license#optional-admin-support-mode).
+</Note>
+
+### Request support access
+
+<Steps>
+  <Step title="Open workspace details">
+    Go to **Server Settings > Workspaces** and select the workspace you need to access. You see the workspace details page with the Support Access section.
+  </Step>
+  <Step title="Request access">
+    In the **Support Access** section, click **Request Support Access**. The Request Support Access dialog opens.
+  </Step>
+  <Step title="Set an expiration (optional)">
+    In the dialog, optionally set an expiration date and time. The minimum is 10 minutes from now. If left empty, the session will not expire and must be revoked manually.
+  </Step>
+  <Step title="Submit the request">
+    Click **Request Access**. The request status shows **Pending** in the Support Access section and all workspace admins receive an email notification with a link to review the request.
+  </Step>
+</Steps>
+
+<Frame>
+  <img src="/images/workspaces/admin-support/request-support-access.png" alt="Support Access section in Server Settings showing the Request Support Access button" />
+</Frame>
+
+<Frame>
+  <img src="/images/workspaces/admin-support/request-dialog.png" alt="Request Support Access dialog with optional expiration date" />
+</Frame>
+
+You should see the request status as **Pending** in the Support Access section until a workspace admin approves or you revoke it.
+
+<Frame>
+  <img src="/images/workspaces/admin-support/pending-session.png" alt="Pending support session showing status and expiration" />
+</Frame>
+
+### Working in support mode
+
+When you have an active support session and navigate to the supported workspace, the interface changes to indicate support mode:
+
+- The navigation bar shows a red border and a red **Support mode** label
+- A session details icon appears in the navbar; clicking it shows the workspace name, who approved the session, the expiration, and an **End Support Session** button
+
+<Frame>
+  <img src="/images/workspaces/admin-support/support-mode-navbar.png" alt="Navigation bar in support mode with red border and Support mode label" />
+</Frame>
+
+<Frame>
+  <img src="/images/workspaces/admin-support/session-details-dropdown.png" alt="Session details dropdown showing workspace name, approval info, and End Support Session button" />
+</Frame>
+
+Support sessions apply to all authentication tokens for the server admin, including connector sessions (Revit, Rhino, etc.).
+
+### End or revoke a session
+
+Click **Revoke** in the Support Access section on the workspace's server settings page, or click **End Support Session** in the navbar dropdown while in support mode. Sessions also end automatically when the expiration time passes.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="What happens when a session expires?">
+    The server admin loses write access immediately. The session appears as **Expired** in the sessions table. The admin retains read-only access (no session required). To regain write access, the admin must request a new session.
+  </Accordion>
+
+  <Accordion title="Can multiple server admins have active sessions for the same workspace?">
+    Yes. Multiple server admins can have concurrent active sessions for the same workspace, and a single server admin can have active sessions across different workspaces.
+  </Accordion>
+
+  <Accordion title="Do support sessions work with connectors?">
+    Yes. Support sessions are tied to the user, not to a specific token or application. Any authenticated session for the server admin (including connectors like Revit, Rhino, and Archicad) will have support access while the session is active.
+  </Accordion>
+</AccordionGroup>

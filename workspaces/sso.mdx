@@ -64,6 +64,56 @@ Admins can enable SSO under Workspace Settings → Security.
   If your organization uses SSO, you don't need to enable [domain protection](/workspaces/domain-protection) as SSO provides equivalent security controls.
 </Info>
 
+### Update SSO provider configuration
+
+If you need to update the provider details for some reason ie.: the client secrets is about to expire, currently the graphql api needs to be used.
+
+1. Open the api explorer at https://app.speckle.systems/graphql
+2. Query the existing SSO provider details with the query below, it will return the details of the existing provider.
+```gql
+query ($slug: String!) {
+  workspaceBySlug(slug: $slug) {
+    id
+    sso {
+      provider {
+        id
+        clientId
+        issuerUrl
+        name
+      }
+    }
+  }
+}
+```
+3. update the provider details with the mutation and the input structure detailed below.
+
+<Warning>
+  Incorrectly updating the provider details may make your workspace inaccessible for your users. Make sure to double check the new values. 
+</Warning>
+
+Mutation
+```gql
+mutation($input: WorkspaceSsoProviderUpdateInput!) {
+  workspaceMutations {
+    updateSsoProvider(input: $input)
+  }
+}
+```
+Input
+```json
+{
+  "input": {
+    "clientId": "",
+    "clientSecret": "",
+    "issuerUrl": "",
+    "providerId": "",
+    "providerName": "",
+    "workspaceId": ""
+  }
+}
+```
+4. the sso provider details should be updated if the mutation was successful.
+
 ## FAQ
 
 <AccordionGroup>
