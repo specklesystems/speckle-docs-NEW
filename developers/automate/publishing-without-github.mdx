@@ -1,0 +1,209 @@
+---
+title: Publishing Automate Functions without the GitHub App
+description: Publish Automate Functions without using the GitHub App integration.
+sidebarTitle: Publish without GitHub
+noindex: true
+---
+
+# Publishing Automate Functions Without the GitHub App
+
+If you're running a dedicated enterprise deployment and can't use the GitHub App integration, you can register and publish Automate functions directly through the Speckle server and the Automate API. This guide walks you through the full process: registering a function, building and pushing a Docker image, publishing a version, and making the function available to workspaces.
+
+## Prerequisites
+
+- **Server admin access** — Function registration is restricted to users with the `server:admin` role, since it affects server-wide function availability.
+- **Docker** installed in your build environment.
+- Network access to your Speckle server and Automate host.
+
+---
+
+## Step 1: Register the Function
+
+Send the following GraphQL mutation to your **Speckle server** (e.g. `https://app.speckle.systems`) to create a new function entry. This does not publish any runnable code yet — it just registers the function and returns credentials you'll use in subsequent steps.
+
+**Mutation:**
+
+```graphql
+mutation ($input: CreateAutomateFunctionWithoutVersionInput!) {
+  automateMutations {
+    createFunctionWithoutVersion(input: $input) {
+      functionId
+      functionToken
+    }
+  }
+}
+```
+
+**Variables:**
+
+```json
+{
+  "input": {
+    "name": "example function",
+    "description": "example function"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "automateMutations": {
+      "createFunctionWithoutVersion": {
+        "functionId": "<your-function-id>",
+        "functionToken": "<your-function-token>"
+      }
+    }
+  }
+}
+```
+
+> **Important:** Save both `functionId` and `functionToken` somewhere safe. **The token is only shown once.** If you lose it, you'll need to generate a new one.
+
+---
+
+## Step 2: Build and Push the Docker Image
+
+Automate runs functions as Docker containers. The Automate execution engine also acts as a private container registry, so you push your image directly to it.
+
+> For a reference implementation, see how we handle this in our [GitHub composite action](https://github.com/specklesystems/speckle-automate-github-composite-action).
+
+### 2.1 — Set environment variables
+
+Replace the placeholder values with your actual credentials and release tag. The `RELEASE_TAG` should identify this version of your function (e.g. a git tag like `v1.0.0`).
+
+```shell
+export AUTOMATE_HOST=automate.speckle.dev
+export AUTOMATE_URL=https://${AUTOMATE_HOST}
+export FUNCTION_ID=<your-function-id>
+export FUNCTION_TOKEN=<your-function-token>
+export RELEASE_TAG=<your-release-tag>
+```
+
+### 2.2 — Authenticate Docker with the Automate registry
+
+Use your function token as both the username and password:
+
+```shell
+docker login -u ${FUNCTION_TOKEN} -p ${FUNCTION_TOKEN} ${AUTOMATE_HOST}
+```
+
+### 2.3 — Write your Dockerfile
+
+Your image only needs to contain your application code and its dependencies. **Do not specify a `CMD` or `ENTRYPOINT`** — the execution command is provided separately when registering the version (see Step 3).
+
+```dockerfile
+FROM python:3.13-slim
+# Add your application-specific build steps here
+```
+
+### 2.4 — Build the image
+
+Tag the image using your Automate host, function ID, and release tag:
+
+```shell
+docker build . -t ${AUTOMATE_HOST}/${FUNCTION_ID}:${RELEASE_TAG}
+```
+
+### 2.5 — Push the image to the Automate registry
+
+```shell
+docker push ${AUTOMATE_HOST}/${FUNCTION_ID}:${RELEASE_TAG}
+```
+
+---
+
+## Step 3: Register the New Version
+
+After pushing the image, notify the Automate API that a new version is available. This is where you specify the entry point command and resource requirements.
+
+- `commitId` — The first 7 characters of the git commit SHA for this release.
+- `command` — The command the execution engine will run inside your container.
+- `inputSchema` — A JSON Schema string describing the function's inputs, or `null` if there are none.
+- `recommendedCPUm` — Recommended CPU in millicores (e.g. `1000` = 1 vCPU).
+- `recommendedMemoryMi` — Recommended memory in mebibytes (e.g. `512` = 512 MiB).
+
+```shell
+curl -X POST \
+  "${AUTOMATE_URL}/api/v1/functions/${FUNCTION_ID}/versions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${FUNCTION_TOKEN}" \
+  -d '{
+    "commitId": "<first-7-chars-of-commit-sha>",
+    "versionTag": "'"${RELEASE_TAG}"'",
+    "command": ["python", "-c", "import sys; print(sys.argv)"],
+    "inputSchema": null,
+    "recommendedCPUm": 1000,
+    "recommendedMemoryMi": 512
+  }'
+```
+
+A successful response returns the new version ID:
+
+```json
+{ "versionId": "<your-new-version-id>" }
+```
+
+---
+
+## Step 4: Make the Function Available to Workspaces
+
+At this point the function is registered and has a published version, but it isn't visible to any workspace yet. Run the following mutation against your Speckle server to associate the function with one or more workspaces:
+
+**Mutation:**
+
+```graphql
+mutation ($input: UpdateAutomateFunctionInput!) {
+  automateMutations {
+    updateFunction(input: $input) {
+      workspaceIds
+    }
+  }
+}
+```
+
+**Variables:**
+
+```json
+{
+  "input": {
+    "id": "<your-function-id>",
+    "workspaceIds": ["<workspace-id>"]
+  }
+}
+```
+
+Once this is done, the function will appear in project automation for all listed workspaces and is ready to use.
+
+---
+
+## Learn More
+
+For a deeper dive into building Automate functions, check out the [Automate documentation](https://docs.speckle.systems/developers/automate/making-your-function).
+
+---
+
+# Regenerate function token
+
+If the function token needs to be regenerated for some reason the mutation below with create a new token.
+Keep in mind, only the original function author user is authorized to run this mutation.
+
+**Mutation:**
+
+```graphql
+mutation($functionId: String!) {
+  automateMutations {
+    regenerateFunctionToken(functionId: $functionId)
+  }
+}
+```
+
+**Variables:**
+
+```json
+{
+  "functionId": "<your-function-id>"
+}
+```
