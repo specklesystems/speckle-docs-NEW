@@ -1,0 +1,217 @@
+---
+title: "Model Validation Workflows"
+sidebarTitle: "Model Validation"
+description: "Validate models with Property Checker and Model Validation widgets, then iterate on fixes."
+---
+
+Use this guide when you want a repeatable way to check model data quality in Speckle using Intelligence dashboards. All validation in this workflow is dashboard‑based: **Property Checker** and **Model Validation** widgets, with results in the dashboard, 3D viewer, and connectors. For BIM coordinators and modellers who define and run quality rules.
+
+<Note>
+**Before you start:** You need a Speckle project with at least one model and access to **Intelligence dashboards**. Open your project and click **Intelligence** in the project navigation to reach the dashboard editor.
+</Note>
+
+## Choose Your Validation Approach
+
+**When to use:** Before setting up any widgets or rules.
+
+<Steps>
+  <Step title="Decide what you need to validate">
+    List the questions you need to answer, such as "Do all doors have fire rating?", "Are floor names following our naming standard?", or "Are all elements on valid levels?". Group them by discipline or
+    project phase.
+  </Step>
+  <Step title="Pick between quick checks and full rulesets">
+    Use **Property Checker** for one‑off or exploratory checks on a single property. Use **Model Validation** when you want a reusable ruleset that checks many properties at once. See
+    [Validation overview](/analytics/data-validation/overview) for capabilities and limits.
+  </Step>
+  <Step title="Plan where results will be consumed">
+    Decide whether people will mainly see validation results in dashboards, in the 3D viewer, or in desktop connectors. This affects which approaches you prioritise and how much detail you include in rule
+    messages.
+  </Step>
+</Steps>
+
+Outcome: A clear idea of which validation questions you need to answer and whether you need quick checks, full rulesets, or both.
+
+## Run Quick Checks With Property Checker
+
+**When to use:** You want to test a single property or rule quickly, or explore model health without building a full ruleset.
+
+<Steps>
+  <Step title="Create or open an Intelligence dashboard">
+    In your Speckle project, click **Intelligence** in the project navigation, then create a new dashboard or open an existing one. Ensure the dashboard has a **Model Viewer** widget with your target model. See
+    [Dashboards](/analytics/intelligence-dashboards) for setup details.
+
+    <Frame>
+      <img src="/images/analytics/speckle_intelligence_nav_01.jpg" alt="Intelligence dashboards navigation and dashboard editor" />
+    </Frame>
+  </Step>
+  <Step title="Add a Property Checker widget">
+    In the dashboard editor, open the **widget panel** (left sidebar) and add **Property checker**. Connect it to the Model Viewer or data sources that contain the elements you want to validate.
+  </Step>
+  <Step title="Define the property and rule">
+    In the Property Checker settings, choose the property to check (e.g. `fireRating`, `Level`, `Type Name`) and the predicate (e.g. "exists", "equals", "matches pattern"). Set the reference value where
+    required. See [Data Validation overview](/analytics/data-validation/overview) for supported predicates.
+  </Step>
+  <Step title="Interpret the results and colorize the model">
+    The widget shows pass/fail counts and percentages. Enable colorization to see passing and failing elements in the 3D viewer. Click on segments of the chart to highlight subsets of elements.
+
+    <Frame>
+      <img src="/images/model-checker/widget-results.png" alt="Property Checker or Model Validation widget showing pass/fail results" />
+    </Frame>
+  </Step>
+  <Step title="Decide whether this rule belongs in a ruleset">
+    If the quick check proves useful, note the rule logic (property, predicate, value, severity, and message). You will reuse it when building a full ruleset in Model Validation.
+  </Step>
+</Steps>
+
+Outcome: A fast, visual check of one property at a time, helping you discover which rules are worth codifying in a full ruleset.
+
+## Build A Ruleset With Model Validation
+
+**When to use:** You want a reusable set of rules that can be applied consistently to one model.
+
+<Steps>
+  <Step title="Add a Model Validation widget to your dashboard">
+    In the dashboard editor, add a **Model Validation** widget from the widget panel and connect it to a Model Viewer that loads the model you want to validate. This widget will show the status of a whole ruleset for that model.
+  </Step>
+  <Step title="Create or select a ruleset">
+    Open the ruleset configuration from the widget (e.g. via the widget’s settings or menu). Create a new ruleset for this project or select an existing one. Give it a descriptive name and description so others know what it checks (e.g. "Fire
+    strategy – core and escape routes").
+  </Step>
+  <Step title="Define rules using WHERE, AND, and CHECK">
+    For each validation requirement, add one or more rules. Use `WHERE` conditions to select the elements to consider (e.g. all doors), `AND` conditions to refine that set, and `CHECK` conditions to assert
+    what must be true (e.g. fire rating exists and meets a threshold). See [Rules and Rulesets](/analytics/data-validation/rules-and-rulesets) for rule structure and examples.
+  </Step>
+  <Step title="Set severity and messages">
+    For each rule, set a severity (ERROR, WARNING, INFO) that matches its impact. Use clear, actionable messages so that someone fixing the model understands what to do when they see a failure.
+  </Step>
+  <Step title="Save and run the ruleset">
+    Save your changes and run the ruleset against the model. The Model Validation widget will update to show how many elements passed, failed, or were not applicable for each rule.
+
+    <Frame>
+      <img src="/images/model-checker/widget-results.png" alt="Model Validation widget with ruleset breakdown and pass/fail counts" />
+    </Frame>
+  </Step>
+</Steps>
+
+Outcome: A reusable ruleset that captures your data quality requirements and can be re‑run on demand against a specific model.
+
+## Understand And Explore Validation Results
+
+**When to use:** After running a ruleset and before asking model authors to fix anything.
+
+<Steps>
+  <Step title="Use the breakdown view for an overview">
+    In the Model Validation widget, start with the breakdown or overview tab to see passes, failures, and not‑applied counts per rule. Identify which rules cause the most failures or affect the most
+    elements. See [Viewing results](/analytics/data-validation/viewing-results) for more details.
+  </Step>
+  <Step title="Drill into individual rules">
+    Select a rule to see which elements failed and why. Use filters in the widget or dashboard to slice by level, category, or other properties. Check that failures match your expectations and that the rule
+    logic is correct.
+  </Step>
+  <Step title="Inspect failing elements in the 3D viewer">
+    Click through failing rows or categories and use colorization to highlight them in the 3D viewer. Confirm that they are genuinely problematic and not edge cases or intentional exceptions.
+
+    <Frame>
+      <img src="/images/model-checker/results.png" alt="Validation results in the 3D viewer with failing elements highlighted" />
+    </Frame>
+  </Step>
+  <Step title="Refine rules if the logic is off">
+    If you see many false positives or negatives, adjust the WHERE/AND/CHECK conditions, severity, or messages. Rerun the ruleset until the failures reflect meaningful issues rather than noise.
+  </Step>
+</Steps>
+
+Outcome: A validated ruleset whose failures represent real quality issues, with a clear understanding of their impact and location.
+
+## Fix Issues And Iterate On Validation
+
+**When to use:** Once you trust the ruleset and want to improve the model.
+
+<Steps>
+  <Step title="Share results with model authors">
+    Share the dashboard and explain which rules need attention. Point authors to the most critical rules first and confirm which projects, models, and versions are in scope for the current validation round.
+  </Step>
+  <Step title="Use connectors to find and fix failing elements">
+    In desktop applications such as Revit or Rhino, use the Speckle connectors to locate elements that failed validation. Where available, use validation‑related filters and highlighting to focus on problem
+    areas. Fix properties, naming, and assignments directly in the authoring tool.
+  </Step>
+  <Step title="Publish updated versions and re-run validation">
+    After making changes, publish new model versions to Speckle. Re‑run the Model Validation ruleset or refresh the dashboard to see updated pass/fail counts. Verify that previously failing elements now pass
+    and that no new failures were introduced.
+  </Step>
+  <Step title="Repeat until the ruleset passes at an acceptable level">
+    Continue iterating until failure counts are within acceptable limits for the current phase of work. You may decide that some warnings are acceptable if they represent known exceptions.
+  </Step>
+</Steps>
+
+Outcome: Models improve over time as validation failures are resolved and regression checks become part of the normal publishing workflow.
+
+## Manage And Share Rulesets
+
+**When to use:** You want to reuse rules across projects or keep a durable record of them.
+
+<Steps>
+  <Step title="Organise rulesets by purpose and scope">
+    Create separate rulesets for different purposes (e.g. "Fire safety", "Naming conventions", "Level assignments") and, if needed, for different model types or disciplines. Use names that make scope obvious.
+  </Step>
+  <Step title="Export and import rulesets as TSV">
+    When you need a backup or want to move rules between workspaces, export a ruleset as a TSV file. Store these in version‑controlled repositories alongside your project documentation. See
+    [Rules and Rulesets](/analytics/data-validation/rules-and-rulesets) for columns and format.
+  </Step>
+  <Step title="Share rules across projects">
+    If multiple projects share the same standards, either reuse the same ruleset where appropriate or import from a canonical TSV that your team maintains as the source of truth.
+  </Step>
+  <Step title="Update rulesets safely">
+    When you change rules, communicate what is changing and why. Prefer adding new rules or adjusting messages and severities over deleting rules, so historical results remain interpretable.
+  </Step>
+</Steps>
+
+Outcome: Rulesets become shared assets that encode your standards and can be applied consistently across projects and time.
+
+## Best Practices
+
+- **Start small**: Begin with a few high‑value rules and add more as teams build confidence, rather than starting with an exhaustive but noisy ruleset.
+- **Separate checks by intent**: Group rules into rulesets that share a goal, such as safety, naming, or documentation; this keeps results easier to interpret.
+- **Treat rules as living standards**: Update rules as your standards evolve, but communicate changes clearly so teams understand new failures.
+- **Use severity consistently**: Reserve ERROR for blocking issues, WARNING for problems that should be fixed, and INFO for helpful hints.
+- **Document assumptions**: When a rule encodes an assumption (e.g. level naming or parameter usage), capture that assumption in the message text.
+
+## FAQ
+
+<AccordionGroup>
+<Accordion title="When should I use Property Checker instead of Model Validation?">
+Use Property Checker when you want to explore one property quickly or test a new idea without managing a full ruleset. Use Model Validation when the rule is stable, important, and should be reused across
+versions or projects.
+</Accordion>
+<Accordion title="Can one ruleset be used across multiple projects?">
+Yes, as long as the models share similar structure and properties. For shared standards, maintain a central ruleset or TSV file and import it where needed. Adjust only where project‑specific differences
+require it.
+</Accordion>
+<Accordion title="What happens if I change a rule in a ruleset?">
+Future validations use the updated rule, but past results reflect the logic at the time they were run. If you need a clear break, create a new ruleset version and reference it separately in your dashboards.
+</Accordion>
+<Accordion title="How do I handle exceptions without changing the rule?">
+Use labels or comments in authoring tools to mark intentional exceptions, and adjust your WHERE conditions to exclude them where practical. For rare exceptions, you may decide to tolerate specific failures
+instead of weakening the rule.
+</Accordion>
+<Accordion title="Can I validate across multiple models at once?">
+Model Validation checks one model at a time, but dashboards can aggregate results from multiple models. Use multiple widgets or dashboards to see how rulesets perform across a project or portfolio.
+</Accordion>
+<Accordion title="How do I know if a rule is too strict?">
+If a rule produces many failures that are not actionable or realistic to fix, revisit its scope and severity. Consider splitting it into smaller rules or downgrading severity so teams can focus on the most
+important issues.
+</Accordion>
+<Accordion title="How can I track validation trends over time?">
+Use dashboards to compare failure counts per rule and per version. You can also connect dashboard or project data to external tools such as Power BI to chart trends; see [Intelligence Dashboards](/analytics/intelligence-dashboards) for data and sharing options.
+</Accordion>
+<Accordion title="Who should own rulesets in a large organisation?">
+Typically, BIM managers, information managers, or discipline leads own rulesets. They coordinate changes, review new rules, and ensure that project teams understand how validation fits into their workflows.
+</Accordion>
+</AccordionGroup>
+
+## See Also
+
+- [Validate your data in Speckle](/analytics/data-validation/overview)
+- [Rules and Rulesets](/analytics/data-validation/rules-and-rulesets)
+- [Viewing Results](/analytics/data-validation/viewing-results)
+- [Intelligence Dashboards](/analytics/intelligence-dashboards)
+
