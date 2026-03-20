@@ -9,18 +9,22 @@ Speckle supports multiple authentication mechanisms for different use cases. Cho
 
 <Steps>
   <Step title="Log into Speckle">
-    Go to your Speckle Server (e.g., [app.speckle.systems](https://app.speckle.systems))
+    Go to your Speckle Server (e.g.,
+    [app.speckle.systems](https://app.speckle.systems))
   </Step>
   <Step title="Access Your Profile">
     Click your avatar → Settings → Profile → Developer → Access Tokens
   </Step>
   <Step title="Create Token">
-    Click "New Token", give it a name, select the required scopes, then copy the token.
+    Click "New Token", give it a name, select the required scopes, then copy the
+    token.
   </Step>
 </Steps>
 
 <Warning>
-**Store tokens securely!** Treat them like passwords—never commit them to version control or share them publicly. Use environment variables or secret management systems in production.
+  **Store tokens securely!** Treat them like passwords—never commit them to
+  version control or share them publicly. Use environment variables or secret
+  management systems in production.
 </Warning>
 
 ## Authentication Methods
@@ -30,6 +34,7 @@ Speckle supports multiple authentication mechanisms for different use cases. Cho
 **Best for:** Single-user tools, server-side applications, scripts, and automation
 
 Personal Access Tokens allow users to authenticate and interact with the Speckle API on their own behalf. They're ideal for:
+
 - Command-line tools
 - Server-side applications
 - Automation scripts
@@ -44,7 +49,8 @@ PATs can be used with any Speckle SDK or API:
 - **JavaScript/TypeScript** - Use tokens in API client configuration
 
 <Warning>
-**Never use PATs in client-side code.** They provide full access to the user's account and should only be used in secure, server-side environments.
+  **Never use PATs in client-side code.** They provide full access to the user's
+  account and should only be used in secure, server-side environments.
 </Warning>
 
 ### OAuth2 Authorization Code Flow with PKCE
@@ -70,10 +76,9 @@ Before using OAuth2, you need to register your application:
     Go to your Speckle Server → Avatar → Settings → Profile → Developer → Apps
   </Step>
   <Step title="Create New App">
-    Click "New App" and provide:
-    - **App Name**: Display name for your application
-    - **Redirect URIs**: Valid redirect URIs (e.g., `https://yourapp.com/callback`)
-    - **Scopes**: Permissions your app needs
+    Click "New App" and provide: - **App Name**: Display name for your
+    application - **Redirect URIs**: Valid redirect URIs (e.g.,
+    `https://yourapp.com/callback`) - **Scopes**: Permissions your app needs
   </Step>
   <Step title="Save Credentials">
     Copy your **App ID** and **App Secret** (keep secret secure!)
@@ -81,7 +86,8 @@ Before using OAuth2, you need to register your application:
 </Steps>
 
 <Info>
-**Redirect URIs**: Must match exactly. For development, you can use `http://localhost:3000/callback`. For production, use your actual domain.
+  **Redirect URIs**: Must match exactly. For development, you can use
+  `http://localhost:3000/callback`. For production, use your actual domain.
 </Info>
 
 #### Implementing OAuth2 with PKCE
@@ -93,18 +99,69 @@ The community-maintained [speckle-auth](https://www.npmjs.com/package/speckle-au
 **Manual Implementation:**
 
 If implementing OAuth2 manually, you'll need to:
+
 1. Generate PKCE code verifier and challenge (SHA256 hash)
 2. Redirect users to Speckle's authorization endpoint with the challenge
 3. Handle the callback and exchange the authorization code for an access token
 4. Store the token securely for subsequent API calls
 
 <Warning>
-**App Secret Security**: Never expose your app secret in client-side code. The token exchange should happen on your backend server.
+  **App Secret Security**: Never expose your app secret in client-side code. The
+  token exchange should happen on your backend server.
 </Warning>
 
 <Info>
-For complete OAuth2 implementation examples, see the [Building Custom Apps guide](/developers/building-apps) or the [speckle-auth package documentation](https://www.npmjs.com/package/speckle-auth).
+  For complete OAuth2 implementation examples, see the [Building Custom Apps
+  guide](/developers/building-apps) or the [speckle-auth package
+  documentation](https://www.npmjs.com/package/speckle-auth).
 </Info>
+
+**Integrating with a SSO-enabled Workspace:**
+
+Your app can still authenticate users in a workspace that has Single Sign-On (SSO) enabled. When accessing a protected resource (for example, a project within the workspace), if the user does not have a valid session, the request will fail with a **SSO_SESSION_MISSING_OR_EXPIRED_ERROR**.
+
+Query where the projectId is under a workspace with SSO enabled, and the user does not have a valid session:
+
+```gql
+query GetProjectName($projectId: String!) {
+  project(id: $projectId) {
+    name
+  }
+}
+```
+
+Will result in this error:
+
+```json
+{
+  "errors": [
+    {
+      "message": "Your workspace SSO session is expired or it does not exist",
+      "path": ["project"],
+      "extensions": {
+        "code": "SSO_SESSION_MISSING_OR_EXPIRED_ERROR",
+        "workspaceSlug": "{workspace-short-id}",
+        "stacktrace": ["..."],
+        "statusCode": 401
+      }
+    }
+  ],
+  "data": null
+}
+```
+
+To resolve this, the user must authenticate with SSO to obtain a valid session. Redirect the user to:
+
+`app.speckle.systems/api/v1/workspaces/{workspace-short-id}/sso/auth?challenge=${challenge}&appId={appId}&finalPath={finalPath}`
+
+Where:
+
+- **worksapce-short-id**: The unique short id of the workspace, provided in the error response
+- **challenge**: Random string generated by your app
+- **appId**: ID of your registered application given by Speckle. This value is optional, but if provided, the user will be redirected back to the registered domain once authenticated.
+- **finalPath**: is the path within your app where the user should be redirected after authenticating with SSO. This value is optional, but if provided, the user will be redirected to this path after authenticating with SSO.
+
+Once, the user successfully authenticates with SSO, they will be redirected back to your app with a valid session, and the original request will succeed.
 
 ## App Registration and Management
 
@@ -114,15 +171,16 @@ Once registered, your application can request specific scopes that define the le
 
 **Common Scopes:**
 
-| Scope | Description | Use Case |
-|-------|-------------|----------|
-| `streams:read` | Read project data | View-only applications |
-| `streams:write` | Create and modify projects | Data management apps |
-| `profile:read` | Read user profile | Display user information |
-| `profile:email` | Access user email | User identification |
+| Scope           | Description                | Use Case                 |
+| --------------- | -------------------------- | ------------------------ |
+| `streams:read`  | Read project data          | View-only applications   |
+| `streams:write` | Create and modify projects | Data management apps     |
+| `profile:read`  | Read user profile          | Display user information |
+| `profile:email` | Access user email          | User identification      |
 
 <Info>
-Users can review and revoke app permissions at any time: Avatar → Settings → Profile → Developer → Authorized Apps
+  Users can review and revoke app permissions at any time: Avatar → Settings →
+  Profile → Developer → Authorized Apps
 </Info>
 
 ### Updating App Settings
@@ -138,21 +196,14 @@ You can update your app's settings at any time:
 
 <CardGroup cols={2}>
   <Card title="Use Personal Access Tokens" icon="key">
-    **When:**
-    - Single-user tools or scripts
-    - Server-side applications
-    - Automation and CI/CD
-    - Personal development projects
+    **When:** - Single-user tools or scripts - Server-side applications -
+    Automation and CI/CD - Personal development projects
   </Card>
   <Card title="Use OAuth2 with PKCE" icon="shield">
-    **When:**
-    - Multi-user web applications
-    - Public-facing apps
-    - Third-party integrations
-    - Apps requiring user consent
+    **When:** - Multi-user web applications - Public-facing apps - Third-party
+    integrations - Apps requiring user consent
   </Card>
 </CardGroup>
-
 
 ## Security Best Practices
 
@@ -161,11 +212,9 @@ You can update your app's settings at any time:
 When creating tokens or registering applications, request only the minimum necessary scopes. This principle of least privilege reduces potential security risks.
 
 <Check>
-**Do:**
-- Request only scopes you actually need
-- Review and audit requested scopes regularly
-- Document why each scope is required
-- Use read-only scopes when possible
+  **Do:** - Request only scopes you actually need - Review and audit requested
+  scopes regularly - Document why each scope is required - Use read-only scopes
+  when possible
 </Check>
 
 ### Token Management
@@ -173,25 +222,18 @@ When creating tokens or registering applications, request only the minimum neces
 Treat all tokens as sensitive information. Proper token management is critical for security.
 
 <Check>
-**Do:**
-- Store tokens in environment variables
-- Use `.gitignore` to exclude `.env` files
-- Rotate tokens periodically
-- Use scoped tokens with minimal permissions
-- Revoke tokens when no longer needed
-- Use secure storage (keychain, secret managers) in production
-- Implement token refresh for OAuth2 tokens
+  **Do:** - Store tokens in environment variables - Use `.gitignore` to exclude
+  `.env` files - Rotate tokens periodically - Use scoped tokens with minimal
+  permissions - Revoke tokens when no longer needed - Use secure storage
+  (keychain, secret managers) in production - Implement token refresh for OAuth2
+  tokens
 </Check>
 
 <Warning>
-**Don't:**
-- Commit tokens to version control
-- Share tokens between team members
-- Use PATs in client-side code (use OAuth instead)
-- Store tokens in plain text files
-- Use overly permissive scopes
-- Expose app secrets in client-side code
-- Log tokens in application logs
+  **Don't:** - Commit tokens to version control - Share tokens between team
+  members - Use PATs in client-side code (use OAuth instead) - Store tokens in
+  plain text files - Use overly permissive scopes - Expose app secrets in
+  client-side code - Log tokens in application logs
 </Warning>
 
 ### Token Compromise Response
@@ -218,3 +260,6 @@ The package handles PKCE generation, state management, and token exchange automa
 - [GraphQL API](/developers/api/graphql) - Learn how to use tokens with GraphQL
 - [Getting Started](/developers/getting-started) - Continue with your first integration
 
+```
+
+```
