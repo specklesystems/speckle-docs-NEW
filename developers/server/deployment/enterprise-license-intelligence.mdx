@@ -21,10 +21,10 @@ We recommend that you first [familiarise yourself with Intelligence](/analytics/
 
 Before you can configure Speckle Enterprise Intelligence, your organization will have already completed the following steps:
 1. **Speckle Server**: Deployed Speckle Enterprise Server on Kubernetes. See our instructions for [deploying on Kubernetes](/developers/server/deployment/kubernetes-with-helm) and configuring [Speckle Enterprise Server](/developers/server/deployment/enterprise) for more details.
-2. **Speckle Automate**: Deployed Speckle Automate on Kubernetes. See our instructions for [deploying Speckle Automate](/developers/server/deployment/enterprise-license-automate) for more details.
-2. **License Acquisition**: Acquired a commercial license for Speckle Enterprise from Speckle Systems. This license should include permissions for deploying Intelligence.
-3. **Package Registry Token**: Obtained a package registry token from Speckle Systems to access the private Helm charts & Docker images for Enterprise features.
-4. **Package Registry URL**: Received the URL for the private package registry hosting the Intelligence Helm charts and Docker images.
+1. **Speckle Automate**: Deployed Speckle Automate on Kubernetes. See our instructions for [deploying Speckle Automate](/developers/server/deployment/enterprise-license-automate) for more details.
+1. **License Acquisition**: Acquired a commercial license for Speckle Enterprise from Speckle Systems. This license should include permissions for deploying Intelligence.
+1. **Package Registry Token**: Obtained a package registry token from Speckle Systems to access the private Helm charts & Docker images for Enterprise features.
+1. **Package Registry URL**: Received the URL for the private package registry hosting the Intelligence Helm charts and Docker images.
 
 Speak to your Speckle representative if you need assistance with any of the prerequisites.
 
@@ -81,7 +81,7 @@ You will need to create an Image Pull secret in Kubernetes to allow your cluster
    -o yaml | kubectl apply -f -
    ```
 
-1. Confirm the secret is deployed successfully in the same namespace as your Speckle Server deployment.
+1. Confirm the secret is deployed successfully.
 
    ```bash
    kubectl get secret speckle-enterprise-registry -n <NAMESPACE>
@@ -121,7 +121,7 @@ Speckle Intelligence is designed to be embedded within an iframe within pages ho
 
 The frameAncestors directives in the CSP settings specify which domains are allowed to embed the Intelligence dashboard within an iframe. If no frameAncestors directives are specified, the default is to restrict embedding from only the same domain as the Intelligence dashboard.
 
-The frameSource directives specify which domains the Intelligence dashboard is allowed to be embedded from. This is important to prevent clickjacking attacks and ensure that the dashboard is only embedded in trusted contexts. This should be the domain of your Speckle Server deployment, which is hosting the pages that will embed the Intelligence dashboard.
+The frameSource directives specify which domains the Intelligence dashboard is allowed to load javascript, styles, image blobs and other resources from. They do not control which sites may embed the dashboard itself (that is governed by the frameAncestors directives). Typically, this should include the domain of your Speckle Intelligence deployment.
 
 The trustedProxies settings specify which proxies are trusted to forward requests to the Intelligence dashboard. This is used by the Intelligence server to log the original client IP address for requests. This is optional, if you are not using any proxies or do not need to log client IP addresses, you can leave this empty.
 
@@ -135,13 +135,13 @@ The trustedProxies settings specify which proxies are trusted to forward request
        - 'yourSpeckleIntelligenceDomain.example.com'
      trustedProxies:
        - 'IP_ADDRESS' # e.g. your ingress controller IP address or CIDR range
-    ```
+  ```
 
 ### Ingress Configuration
 
 To access the Intelligence dashboard, you need to either configure an Ingress resource in Kubernetes or the Gateway API HttpRoute to route traffic to the Intelligence service. The exact configuration will depend on your cluster setup and the ingress strategy you are using.
 
-1. Update the Helm values.yaml file to include the appropriate security settings for your deployment:
+1. Update the Helm values.yaml file to include the appropriate ingress settings for your deployment:
 
     ```yaml
     ingress:
