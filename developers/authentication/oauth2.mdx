@@ -1,0 +1,244 @@
+---
+title: Building with OAuth2
+sidebarTitle: OAuth2 and PKCE
+description: Understanding OAuth and creating a Speckle app
+---
+
+## Registering Your Application
+
+Before using OAuth2, you need to register your application:
+
+<Steps>
+  <Step title="Access Developer Settings">
+    Go to your Speckle Server → Avatar → Settings → Profile → Developer → Apps
+  </Step>
+  <Step title="Create New App">
+    Click "New App" and provide: - **App Name**: Display name for your
+    application - **Redirect URIs**: Valid redirect URIs (e.g.,
+    `https://yourapp.com/callback`) - **Scopes**: Permissions your app needs
+  </Step>
+  <Step title="Save Credentials">
+    Copy your **App ID** and **App Secret** (keep secret secure!)
+  </Step>
+</Steps>
+
+<Info>
+  **Redirect URIs**: Must match exactly. For development, you can use
+  `http://localhost:3000/callback`. For production, use your actual domain.
+</Info>
+
+### Managing App Permissions
+
+Once registered, your application can request specific scopes that define the level of access to user data. Users can review and revoke these permissions at any time through their account settings.
+
+**Common Scopes:**
+
+| Scope           | Description                | Use Case                 |
+| --------------- | -------------------------- | ------------------------ |
+| `streams:read`  | Read project data          | View-only applications   |
+| `streams:write` | Create and modify projects | Data management apps     |
+| `profile:read`  | Read user profile          | Display user information |
+| `profile:email` | Access user email          | User identification      |
+
+<Info>
+  Users can review and revoke app permissions at any time: Avatar → Settings →
+  Profile → Developer → Authorized Apps
+</Info>
+
+### Updating App Settings
+
+You can update your app's settings at any time:
+
+- **Redirect URIs**: Add or modify allowed redirect URIs
+- **Scopes**: Update requested permissions (requires re-authorization)
+- **App Name**: Change the display name
+- **Revoke Access**: Users can revoke access to your app
+
+
+## Getting a token throuw PKCE
+
+PKCE (Proof Key for Code Exchange) is an extension to the OAuth2 Authorization Code flow that provides enhanced security for public clients, such as single-page applications (SPAs) and mobile apps. It prevents authorization code interception attacks by requiring the client to generate a unique code verifier and challenge during the authentication process.
+
+**Best for:** Multi-user web applications, public-facing apps, third-party integrations
+
+<Info>
+At the moment Speckle only supports PKCE for browser-based applications. If you're building a server-side application reach out to us on the [Speckle Community Forum](https://speckle.community).
+</Info>
+
+### Implementing OAuth2 with PKCE
+
+THe whole flow consists of the following steps:
+
+1. **Generate Code Verifier & Challenge**: Your website generates a random code verifier and its SHA256 hash (code challenge)
+2. **Redirect to Authorization**: User is redirected to Speckle's authorization endpoint
+3. **User Authorizes**: User logs in and grants permissions to your app
+4. **Receive Authorization Code**: Speckle redirects back with an authorization code
+5. **Exchange for Token**: Your app exchanges the code + verifier for an access token
+
+**Using the speckle-auth package (Recommended):**
+
+The community-maintained [speckle-auth](https://www.npmjs.com/package/speckle-auth) package simplifies OAuth2 implementation by handling PKCE generation, state management, and token exchange automatically.
+
+**Manual Implementation:**
+
+The following is a complete step-by-step browser implementation of Speckle's OAuth2 PKCE flow. It uses the dedicated `/oauth/token` endpoint, which enforces full RFC 7636 PKCE: the server stores the `codeChallenge` (`BASE64URL(SHA256(codeVerifier))`) during authorization and verifies the raw `codeVerifier` on token exchange.
+
+<Steps>
+  <Step title="Generate the PKCE Code Verifier and Code Challenge">
+    Generate a cryptographically random `codeVerifier`, then derive the
+    `codeChallenge` from it using SHA-256 and base64url encoding (RFC 7636 §4.1–4.2).
+    Store the `codeVerifier` in `sessionStorage` — it is needed again after the
+    redirect.
+
+    ```javascript
+    // base64url encoding without padding (RFC 4648 §5)
+    function base64urlEncode(bytes) {
+      return btoa(String.fromCharCode(...bytes))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+    }
+
+    async function generatePKCEPair() {
+      // 32 random bytes → 43-char base64url string (within RFC 7636's 43–128 char range)
+      const verifierBytes = new Uint8Array(32);
+      crypto.getRandomValues(verifierBytes);
+      const codeVerifier = base64urlEncode(verifierBytes);
+
+      // code_challenge = BASE64URL(SHA256(ASCII(codeVerifier)))
+      const challengeBytes = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(codeVerifier)
+      );
+      const codeChallenge = base64urlEncode(new Uint8Array(challengeBytes));
+
+      return { codeVerifier, codeChallenge };
+    }
+    ```
+
+  </Step>
+
+  <Step title="Redirect to Speckle's Authorization Endpoint">
+    Build the authorization URL using the `codeChallenge` as the path parameter
+    and include `code_challenge_method=S256` so the server knows to hash-verify
+    it. Persist the `codeVerifier` before navigating away.
+
+    ```javascript
+    async function initiateAuth(serverUrl, appId) {
+      const { codeVerifier, codeChallenge } = await generatePKCEPair();
+
+      // Store the verifier – it must be sent back during token exchange
+      sessionStorage.setItem('speckle_pkce_verifier', codeVerifier);
+
+      const authUrl =
+        `${serverUrl}/authn/verify/${appId}/${codeChallenge}` +
+        `&code_challenge_method=S256`;
+
+      window.location.href = authUrl;
+    }
+    ```
+
+    After the user authenticates, Speckle redirects them to the `redirectUrl` that is registered
+    during the application registration with an `access_code` query parameter appended.
+
+  </Step>
+
+  <Step title="Read the Authorization Code from the Callback URL">
+    On the page your `redirectUrl` points to, extract the `access_code` that
+    Speckle appended.
+
+    ```javascript
+    // Run this on your /callback page
+    function getAccessCode() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('access_code');
+
+      if (!code) throw new Error('No access_code found in callback URL');
+      return code;
+    }
+    ```
+
+  </Step>
+
+  <Step title="Exchange the Authorization Code for an Access Token">
+    POST to `/oauth/token` with the `accessCode` and the original `codeVerifier`.
+    The server computes `SHA256(codeVerifier)` and compares it to the stored
+    `codeChallenge` — if they match, tokens are issued.
+
+    ```javascript
+    async function exchangeCodeForToken(serverUrl, appId) {
+      const accessCode = getAccessCode();
+      const codeVerifier = sessionStorage.getItem('speckle_pkce_verifier');
+
+      if (!accessCode || !codeVerifier) {
+        throw new Error('Missing access code or code verifier');
+      }
+
+      const response = await fetch(`${serverUrl}/oauth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appId, accessCode, codeVerifier }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Token exchange failed: ${response.statusText}`);
+      }
+
+      return response.json(); // { token, refreshToken }
+    }
+    ```
+
+  </Step>
+
+  <Step title="Store the Token and Clean Up">
+    Persist the token for future API calls and remove the one-time `codeVerifier`
+    from storage.
+
+    ```javascript
+    async function handleCallback(serverUrl, appId) {
+      const { token, refreshToken } = await exchangeCodeForToken(
+        serverUrl,
+        appId,
+      );
+
+      // Clean up the one-time verifier
+      sessionStorage.removeItem('speckle_pkce_verifier');
+
+      // sessionStorage clears when the tab closes.
+      // Use localStorage only if you need persistence across sessions.
+      sessionStorage.setItem('speckle_token', token);
+
+      return token;
+    }
+    ```
+
+  </Step>
+
+  <Step title="Use the Token in API Calls">
+    Include the token in the `Authorization` header for all subsequent GraphQL
+    or REST requests.
+
+    ```javascript
+    async function speckleQuery(serverUrl, query, variables = {}) {
+      const token = sessionStorage.getItem('speckle_token');
+
+      const response = await fetch(`${serverUrl}/graphql`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ query, variables }),
+      });
+
+      return response.json();
+    }
+    ```
+
+  </Step>
+</Steps>
+
+<Info>
+  For complete OAuth2 implementation examples, see the [Building Custom Apps
+  guide](/developers/building-apps).
+</Info>
