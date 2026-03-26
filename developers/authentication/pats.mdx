@@ -1,0 +1,70 @@
+---
+title: Building with PATs
+sidebarTitle: PATs
+description: Understanding Personal Access Tokens (PATs).
+---
+
+### Using PATs
+
+**Best for:** Single-user tools, server-side applications, scripts, and automations.
+
+Personal Access Tokens allow users to authenticate and interact with the Speckle API on their own behalf. They're ideal for:
+
+- Command-line tools
+- Server-side applications
+- Automation scripts
+- Single-user integrations
+
+PATs can be used with any Speckle SDK or API:
+
+- **Python SDK** - See [Python SDK Authentication Guide](/developers/sdks/python/getting-started/authentication) for detailed examples
+- **GraphQL API** - Include token in `Authorization: Bearer YOUR_TOKEN` header
+- **JavaScript/TypeScript** - Use tokens in API client configuration
+
+<Warning>
+  **Never use PATs in client-side code.** They provide full access to the user's
+  account and should only be used in secure, server-side environments.
+</Warning>
+
+<Warning>
+  **Store tokens securely!** Treat them like passwords—never commit them to
+  version control or share them publicly. Use environment variables or secret
+  management systems in production.
+</Warning>
+
+## Getting a Personal Access Token
+
+<Steps>
+  <Step title="Log into Speckle">
+    Go to your Speckle Server (e.g.,
+    [app.speckle.systems](https://app.speckle.systems))
+  </Step>
+  <Step title="Access Your Profile">
+    Click your avatar → Settings → Profile → Developer → Access Tokens
+  </Step>
+  <Step title="Create Token">
+    Click "New Token", give it a name, select the required scopes, then copy the
+    token.
+  </Step>
+</Steps>
+
+When creating tokens or registering applications, request only the minimum necessary scopes. This principle of least privilege reduces potential security risks. 
+
+## Using the Token
+
+When making API requests, include the token in the `Authorization` header:
+
+```javascript
+fetch('https://app.speckle.systems/api/graphql', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer YOUR_TOKEN`,
+  },
+  body: JSON.stringify({ query: YOUR_GRAPHQL_QUERY }),
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+This request will act on behalf of the user who owns the token, with permissions defined by the selected scopes. This means if you have a token with `streams:read` scope, you can read project data but cannot modify it.
