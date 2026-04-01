@@ -94,27 +94,6 @@ You will need to create an Image Pull secret in Kubernetes to allow your cluster
      - name: speckle-enterprise-registry
    ```
 
-### License Key
-
-1. Obtain your Speckle Enterprise license key from Speckle.
-1. Create a Kubernetes Secret to store the license key:
-
-   ```bash
-   kubectl create secret generic license \
-   --from-literal=license_token=<YOUR_LICENSE_KEY> \
-   -n <NAMESPACE> \
-   --dry-run=client \
-   -o yaml | kubectl apply -f -
-   ```
-
-1. Update the Helm values.yaml file to reference the license secret:
-
-   ```yaml
-   speckleLicense:
-     secretName: 'license'
-     secretKey: 'license_token'
-   ```
-
 ### Security settings
 
 Speckle Intelligence is designed to be embedded within an iframe within pages hosted by Speckle server. To ensure the security of this setup, you need to configure [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP) (CSP) settings to allow embedding the Intelligence dashboard.
@@ -197,4 +176,15 @@ The Helm Chart only provides the relevant HttpRoute configuration for the Intell
     helm install speckle-intelligence <PACKAGE_REGISTRY_URL>/speckle-intelligence-chart \
     --namespace <NAMESPACE> \
     -f values.yaml
+    ```
+
+## Updating Speckle Server Configuration
+
+After deploying Speckle Enterprise Intelligence, you need to update your Speckle Server configuration to point to the new Intelligence deployment.
+
+1. Update the Speckle Server configuration (`values.yaml`) file to include the URL (including `https` protocol)of your Intelligence deployment:
+
+    ```yaml
+    dashboards:
+      origin: 'https://yourSpeckleIntelligenceDomain.example.com'
     ```
