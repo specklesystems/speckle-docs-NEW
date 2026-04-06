@@ -3,14 +3,13 @@ title: "Single Sign-On (SSO)"
 description: "Secure who can access your workspace"
 ---
 
-<Note>SSO is available on the Enterprise plan.</Note>
-
 Single Sign-On (SSO) allows users to access Speckle using your organization's existing identity provider. Speckle supports any OIDC identity provider.
 
 ### How do you enable SSO?
 
 Admins can enable SSO under Workspace Settings → Security.
 
+<Note>SSO is available on the Enterprise plan.</Note>
 <Info>
   Need help setting up SSO? We're happy to jump on a call to walk you through
   the process. [Contact us](mailto:support@speckle.systems) to schedule a
@@ -30,17 +29,17 @@ Admins can enable SSO under Workspace Settings → Security.
 
     Set the application grant type to "authorization_code" and configure these scopes:
 
-    | Scope | Resultant claims |
-    |-------|------------------|
-    | openid | - |
+    | Scope   | Resultant claims              |
+    |---------|-------------------------------|
+    | openid  | -                             |
     | profile | name, given_name, family_name |
-    | email | email |
+    | email   | email                         |
 
     <Warning>
       You may need to explicitly configure your identity provider to provide user emails with the `email` claim. Some providers, like Azure AD, will omit or obscure this information by default.
     </Warning>
 
-</Step>
+  </Step>
   <Step title="Configure SSO in Speckle">
     Fill in the SSO configuration form with details from your identity provider:
     - **Provider**: The label displayed on the login button in Speckle
@@ -69,6 +68,20 @@ Admins can enable SSO under Workspace Settings → Security.
   protection](/workspaces/domain-protection) as SSO provides equivalent security
   controls.
 </Info>
+
+### Configure backchannel logout
+
+Your Identity Provider (IdP) can automatically notify Speckle when a specific user session terminates. Upon receiving this notification, Speckle immediately logs the user out of the associated workspace.
+
+This feature helps enforce strict security policies by ensuring immediate access revocation in scenarios where a user leaves your organization or a session is compromised.
+
+To enable this feature, configure the backchannel logout URL within your IdP settings using the following endpoint:
+
+```
+  https://app.speckle.systems/api/v1/workspaces/{workspace-short-id}/sso/oidc/backchannel-logout
+```
+
+**Note:** Replace `{workspace-short-id}` with the unique short identifier for your specific Speckle workspace.
 
 ### Update SSO provider configuration
 
@@ -134,5 +147,12 @@ Input
     No. With SSO enabled, organizational users can access the workspace
     automatically through your identity provider. You do not need to send
     individual invitations to users within your organization.
+  </Accordion>
+  <Accordion title="For how long will users be logged in with SSO?">
+    The maximum duration of a user SSO session is 7 days in Speckle. After this,
+    users will be required to re-authenticate through your identity provider.
+    However, the actual session duration may be shorter if your provider
+    terminates sessions sooner or if users log out manually (backchannel
+    loggout). For custom session durations, you can contact us.
   </Accordion>
 </AccordionGroup>
