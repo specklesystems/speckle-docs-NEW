@@ -4,7 +4,7 @@ sidebarTitle: "Revit Room Data Extraction"
 description: "Extract room data from Revit models using SpecklePy."
 ---
 
-In this workflow, we will demonstrate how to extract room data from Revit models using SpecklePy SDK.
+In this workflow, we will demonstrate how to extract room data from Revit models using SpecklePy SDK to a Pandas DataFrame.
 
 ## Prerequisites
 Before you begin, ensure you have the following:
@@ -24,18 +24,29 @@ pip install specklepy pandas
 First, import the required libraries and authenticate with Speckle.
 
 ```python
-from specklepy.api.client import SpeckleClient
-import pandas as pd
-from specklepy.transports.server import ServerTransport
-from specklepy.api import operations
-from collections.abc import Iterable
-from specklepy.objects import Base
 
-client = SpeckleClient(host="https://app.speckle.systems") # here add your custom server URL 
-client.authenticate_with_token("Developer Token") # you can generate a new token from the DEVELOPER SETTINGS
+import os
+
+from dotenv import load_dotenv
+from specklepy.api.client import SpeckleClient
+from specklepy.api import operations
+from specklepy.objects import Base
+from specklepy.transports.server import ServerTransport
+import pandas as pd
+
+load_dotenv()
+
+SPECKLE_TOKEN = os.getenv("SPECKLE_TOKEN")# you can generate a new token from the DEVELOPER SETTINGS
+SPECKLE_SERVER_URL = os.getenv("SPECKLE_SERVER_URL", "https://app.speckle.systems")
+
+if not SPECKLE_TOKEN:
+    raise EnvironmentError("SPECKLE_TOKEN is not set. Add it to your .env file.")
+
+client = SpeckleClient(host=SPECKLE_SERVER_URL)# here add your custom server URL 
+client.authenticate_with_token(SPECKLE_TOKEN)
 ```
 ## Step 3: Retrieve the full object graph
-Next, we will retrieve the full object graph of the Revit model that contains the room data. To do this, we need the project ID and version ID of the model we sent to Speckle. You can find these IDs in the URL of your project and version in the Speckle web interface. Learn more about the core concepts [here](https://docs.speckle.systems/core/concepts/).(https://docs.speckle.systems/developers/sdks/python/concepts/overview#2-projects-models-and-versions)
+Next, we will retrieve the full object graph of the Revit model that contains the room data. To do this, we need the project ID and version ID of the model we sent to Speckle. You can find these IDs in the URL of your project and version in the Speckle web interface. Learn more about the core concepts [here](https://docs.speckle.systems/core/concepts/).
 
 ```python
 project_id = "your_project_id" # here add your project ID, you can find it in the URL of your project, after "projects/", for example in "https://app.speckle.systems/projects/e23d2d5041/models/ab02b98507" the project ID is "e23d2d5041"
@@ -48,7 +59,7 @@ referenced_object_id = version.referenced_object
 # next create a server transport - this is the vehicle through which you will send and receive
 transport = ServerTransport(stream_id=project_id, client=client)
 
-# Download the full object graph
+# Download the full object graph. Note that this is an expensive operation, as it retrieves all objects in the model, so it may take some time for large models.
 received_base = operations.receive(referenced_object_id, transport)
 ```
 
@@ -130,7 +141,7 @@ def get_nested_value(data, path, extract_value=True):
             return None
         current = current.get(key)
         if current is None:
-            return None
+            return None # If any key is missing, return NaN in the DataFrame
     if extract_value and isinstance(current, dict) and 'value' in current:
         return current['value']
     return current
@@ -139,19 +150,6 @@ def get_nested_value(data, path, extract_value=True):
 def extract_object_data(objects, field_paths, include_defaults=True):
     """
     Extract data from a list of DataObjects using flexible nested field paths.
-
-    Parameters:
-    objects (list): List of DataObjects (Speckle Base objects).
-    field_paths (dict): Mapping of output column name -> path list within obj.properties.
-        Each path is a list of dict keys to traverse, e.g.:
-            {
-                'Number':       ['Parameters', 'Instance Parameters', 'Identity Data', 'Number'],
-                'Name':         ['Parameters', 'Instance Parameters', 'Identity Data', 'Name'],
-                'Occupant':     ['Parameters', 'Instance Parameters', 'Identity Data', 'Occupant'],
-                'Floor Finish': ['Parameters', 'Instance Parameters', 'Identity Data', 'Floor Finish'],
-                'Level':        ['Parameters', 'Instance Parameters', 'Constraints', 'Level'],
-            }
-    include_defaults (bool): If True, prepend id, applicationId, and object name columns.
 
     Returns:
     list[dict]: One dict per object with the resolved values.
@@ -162,7 +160,7 @@ def extract_object_data(objects, field_paths, include_defaults=True):
         row = {}
 
         if include_defaults:
-            row['id'] = getattr(obj, 'id', None)
+            row['id'] = getattr(obj, 'id', None) # Include the object ID by default, or other parameters like 'type' if needed.
 
         for col_name, path in field_paths.items():
             row[col_name] = get_nested_value(properties, path)
