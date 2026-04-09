@@ -55,36 +55,73 @@ You can add multiple `AND` conditions between `WHERE` and `CHECK` to create more
 - `AND` Material = Steel
 - `CHECK` Length > 5000
 
-## Supported Predicates
+## Predicates in the UI
 
-Validation supports the following predicates for comparing property values:
-| Predicate | Description | Example |
+Property Checker, Model Validation, and dashboard filters share the **same predicate picker**. Labels match what you
+see in the dropdown; they depend on **property type** (text, number, or boolean).
+
+For **text** properties, predicates are grouped as **Existence**, **Comparison**, and **Text**:
+
+| Group | UI label | Meaning |
 | --- | --- | --- |
-| `exists` | Checks if a property exists | `height exists` |
-| `equal to` | Exact value match | `width equal to 300` |
-| `not equal to` | Value doesn't match | `material not equal to Concrete` |
-| `identical to` | Exact match (case-sensitive) | `name identical to Wall-01` |
-| `less than` | Value below threshold | `thickness less than 50` |
-| `greater than` | Value exceeds threshold | `height greater than 3000` |
-| `in range` | Value within bounds | `elevation in range 0,10000` |
-| `in list` | Value in allowed set | `type in list W1,W2,W3` |
-| `contains` | Property contains substring | `name contains Beam` |
-| `does not contain` | Property doesn't contain substring | `name does not contain temp` |
-| `is true` | Boolean property is true | `is_structural is true` |
-| `is false` | Boolean property is false | `is_placeholder is false` |
-| `is like` | Pattern matching with wildcards or regex (case-insensitive) | `name is like Wall%` or `name is like /^Wall\d+$/` |
+| Existence | **Exists** | The property is present |
+| Existence | **Does not exist** | The property is not present |
+| Existence | **Has value** | The property is present and not empty |
+| Comparison | **Equals** | Exact match (one value) |
+| Comparison | **Does not equal** | Not equal to one value |
+| Comparison | **Is one of** | Matches any of the chosen values |
+| Comparison | **Is not one of** | Matches none of the chosen values |
+| Text | **Matches pattern** | Wildcards or regex (case-insensitive) |
+| Text | **Contains** | Substring match |
+| Text | **Does not contain** | Excludes substring |
+
+For **number** properties, the picker adds numeric comparisons (**greater than**, **less than**, **in range** / between
+min and max, plus equality). For **boolean** properties, use **Is true** and **Is false**.
+
+See [Filters — Operators and data types](/analytics/dashboards/filters#operators-and-data-types) for pattern syntax
+(**Matches pattern** / wildcards and regex) and filtering behaviour.
+
+### TSV predicate strings
+
+Legacy TSV rulesets use a fixed **Predicate** column. The strings in the table match what appears in that column and
+map to the UI labels above.
+
+<Note>
+TSV is an older interchange format for rulesets. Prefer defining and editing rules in Intelligence. Keep this table
+when you still import, export, or maintain existing TSV files.
+</Note>
+
+| TSV `Predicate` value | Typical UI label |
+| --- | --- |
+| `exists` | **Exists** |
+| `not exists` | **Does not exist** |
+| `has value` | **Has value** |
+| `equal to` | **Equals** |
+| `not equal to` | **Does not equal** |
+| `in list` | **Is one of** |
+| `not in list` | **Is not one of** |
+| `is like` | **Matches pattern** |
+| `contains` | **Contains** |
+| `does not contain` | **Does not contain** |
+| `greater than` | **Greater than** |
+| `less than` | **Less than** |
+| `in range` | **Between** min and max (range) |
+| `is true` | **Is true** |
+| `is false` | **Is false** |
+
+Some imported files may use `identical to`; it is treated like `equal to` when loading rules.
 
 ## Rule Types
 
 ### Property Existence
 Check whether specific properties exist on model elements. Useful for ensuring required data is present.
 
-**Example**: `CHECK` acoustic rating exists
+**Example**: `CHECK` that **acoustic rating** uses **Exists** (TSV predicate `exists`).
 
 ### Pattern Matching
 Validate that property values match specific patterns or formats. For example, ensure element names follow a naming convention.
 
-The `is like` predicate supports two modes:
+**Matches pattern** in the UI (TSV predicate `is like`) supports two modes:
 
 **Wildcard mode (default)**:
 
