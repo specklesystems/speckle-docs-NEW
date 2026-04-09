@@ -79,49 +79,54 @@ Floors) **and** on Level 01. Widget-level filters apply on top of page-level fil
 
 ### Operators and data types
 
-The operators available depend on the property's data type. Use the filter UI on a widget to choose a property and
-operator.
+The **predicate** menu is the same in **dashboard filters** and in **validation rules** (Property Checker and Model
+Validation). Which predicates appear depends on the property type (text, number, or boolean). Use the filter or rule UI
+to choose a property first; invalid predicates for that type are not offered.
 
-#### Text operators
+#### Text (string) properties
 
-| Operator         | Description                          |
-| ---------------- | ------------------------------------ |
-| Contains         | Value contains the given text        |
-| Does not contain | Value does not contain the text      |
-| Matches pattern  | Value matches a pattern (see below)  |
-| Begins with      | Value starts with the given text     |
-| Ends with        | Value ends with the given text       |
-| Equal to         | Exact match                          |
-| Not equal to     | Exclude exact matches                |
+For string properties, the picker groups predicates like this:
 
-#### Numeric operators
+<Frame>
+  <img
+    src="/images/analytics/intelligence-predicate-picker.png"
+    alt="Predicate dropdown with Existence, Comparison, and Text sections listing Exists, Does not exist, Has value, Equals, Does not equal, Is one of, Is not one of, Matches pattern, Contains, and Does not contain"
+  />
+</Frame>
 
-| Operator         | Description                         |
-| ---------------- | ----------------------------------- |
-| Equal to         | Exact match                         |
-| Not equal to     | Exclude exact matches               |
-| `Greater than`   | Value above the threshold           |
-| `Less than`      | Value below the threshold           |
-| In range         | Value between two numbers          |
+| Group            | Predicate          | Description                                         |
+| ---------------- | ------------------ | --------------------------------------------------- |
+| **Existence**    | Exists             | The property is present on the object               |
+| **Existence**    | Does not exist     | The property is not present                         |
+| **Existence**    | Has value          | The property is present and not empty               |
+| **Comparison**   | Equals             | Exact match to one value                            |
+| **Comparison**   | Does not equal     | Excludes one exact match                            |
+| **Comparison**   | Is one of          | Matches any of the selected values                  |
+| **Comparison**   | Is not one of      | Matches none of the selected values                 |
+| **Text**         | Matches pattern    | Wildcard or regex pattern (see below)               |
+| **Text**         | Contains           | Value contains the given text                       |
+| **Text**         | Does not contain   | Value does not contain the text                     |
 
-#### List operators
+<Note>
+Ruleset **TSV** is a legacy interchange format; Speckle is moving away from it. If you still use TSV files, their
+**Predicate** column uses different wording than the UI (for example `equal to` instead of **Equals**, `in list` instead
+of **Is one of**, `is like` instead of **Matches pattern**). See
+[Rules and Rulesets — TSV predicate strings](/analytics/data-validation/rules-and-rulesets#tsv-predicate-strings).
+</Note>
 
-| Operator      | Description                                 |
-| ------------- | ------------------------------------------- |
-| In list       | Value matches any in a comma-separated list |
-| Not in list   | Value does not match any in the list        |
+#### Numeric properties
 
-#### Special operators
+For number properties, the picker includes equality, inequality, **greater than**, **less than**, and a **between**
+(minimum and maximum) condition. Enter numeric values in the fields the UI shows for the predicate you chose.
 
-| Operator             | Description                            |
-| -------------------- | -------------------------------------- |
-| Exists               | The property is present on the object  |
-| Has value            | The property is not empty              |
-| Is true / Is false   | For boolean properties                 |
+#### Boolean properties
+
+For boolean properties, use **Is true** or **Is false**.
 
 #### Matches pattern
 
-**Matches pattern** (sometimes shown as "Is like") supports two modes: **wildcard** matching and **regex** matching.
+**Matches pattern** supports two modes: **wildcard** matching and **regex** matching. In **TSV** ruleset files, the same
+predicate is written as `is like` in the Predicate column.
 
 ##### Wildcard mode (default)
 
@@ -154,15 +159,13 @@ Matching is **case-insensitive** in both modes. Use pattern matching when you ne
 To use regex mode, the pattern value must start and end with `/`. Without the slashes, the value is treated as a wildcard pattern with `%` and `_` placeholders.
 </Note>
 
-### Operator availability by data type
+### Quick reference by property type
 
-- **Text**: Contains, Does not contain, Matches pattern, Begins with, Ends with, Equal to, Not equal to
-- **Number**: Equal to, Not equal to, `Greater than`, `Less than`, In range
-- **List**: In list, Not in list
-- **Boolean**: Is true, Is false, Equal to
-- **Any**: Exists, Has value
+- **Text**: Existence (**Exists**, **Does not exist**, **Has value**), comparison (**Equals**, **Does not equal**, **Is one of**, **Is not one of**), and text (**Matches pattern**, **Contains**, **Does not contain**)
+- **Number**: Equality, inequality, greater than, less than, and between min and max
+- **Boolean**: **Is true**, **Is false**
 
-The filter UI may restrict operators based on the selected property so you only see options that apply.
+The UI only shows predicates that apply to the selected property type.
 
 ### Properties and the data model
 
