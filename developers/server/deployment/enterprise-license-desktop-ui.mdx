@@ -1,0 +1,161 @@
+---
+title: Deploying a Speckle Enterprise licensed Desktop UI server
+description: Hosting Speckle Enterprise Desktop UI in your organization.
+sidebarTitle: Enterprise licensed Desktop UI
+noindex: true
+---
+
+<Note>
+
+This guide is for organisations who have a commercial license for Speckle Enterprise, including Desktop UI, and are deploying on their own infrastructure.
+
+</Note>
+
+# Speckle Enterprise Desktop UI deployment guide
+
+## Prerequisites
+
+Before you can configure Speckle Enterprise Desktop UI, your organization will have already completed the following steps:
+1. **License Acquisition**: Acquired a commercial license for Speckle Enterprise from Speckle Systems. This license should include permissions for deploying Desktop UI.
+1. **Package Registry Token**: Obtained a package registry token from Speckle Systems to access the private Helm charts & Docker images for Enterprise features.
+1. **Package Registry URL**: Received the URL for the private package registry hosting the Desktop UI Helm charts and Docker images.
+
+Speak to your Speckle representative if you need assistance with any of the prerequisites.
+
+## Infrastructure
+
+Speckle Enterprise Desktop UI requires the following infrastructure components:
+
+- **Kubernetes Cluster**: A Kubernetes cluster to host the Desktop UI components. This can be a managed service (e.g., EKS, AKS, GKE) or a self-hosted cluster.
+  - It is possible to host Desktop UI in the same cluster as your Speckle Enterprise Server deployment.
+  - We recommend using a separate namespace for isolation, resource management, and security.
+- **Domain**: A domain name for accessing the Desktop UI. This must be a different domain from your Speckle Server deployment as there may be path routing conflicts if hosted on the same domain.
+
+
+## Configuration Steps
+
+### Retrieving the Helm Chart
+
+1. To access the private Helm charts for Speckle Enterprise Desktop UI, you need to log in to the Speckle Enterprise package registry:
+
+    ```bash
+    helm login <PACKAGE_REGISTRY_URL> --username <PACKAGE_REGISTRY_USERNAME> --password <PACKAGE_REGISTRY_TOKEN>
+    ```
+
+1. Once authenticated, you can pull the Desktop UI Helm chart and investigate its contents:
+
+    ```bash
+    helm pull <PACKAGE_REGISTRY_URL>/speckle-dui-chart --untar
+    ```
+
+1. We recommend reading the `values.yaml` file included in the Helm chart to understand all the configuration options available for Desktop UI. A `json.schema` file is also included to provide validation and documentation for each configuration option.
+
+1. We also recommend understanding the architecture of the Kubernetes resources deployed by the Helm chart. Please contact your Speckle representative if you have further questions.
+
+1. Create an empty `values.yaml` file which we will use to configure our deployment:
+
+    ```bash
+    touch values.yaml
+    ```
+
+### Image Pull Secrets
+
+The Helm Chart references Docker Images that are hosted in the same private registry as the Helm Chart.
+You will need to create an Image Pull secret in Kubernetes to allow your cluster to authenticate with the registry and pull the necessary images.
+
+1. Create a Kubernetes Secret of type dockerconfigjson:
+
+   ```bash
+   kubectl create secret docker-registry speckle-enterprise-registry \
+   --docker-server=<PACKAGE_REGISTRY_URL> \
+   --docker-username=<PACKAGE_REGISTRY_USERNAME> \
+   --docker-password=<PACKAGE_REGISTRY_TOKEN> \
+   -n <NAMESPACE> \
+   --dry-run=client \
+   -o yaml | kubectl apply -f -
+   ```
+
+1. Confirm the secret is deployed successfully.
+
+   ```bash
+   kubectl get secret speckle-enterprise-registry -n <NAMESPACE>
+   ```
+
+1. Update the Helm values.yaml file to reference the image pull secret:
+
+   ```yaml
+   imagePullSecrets:
+     - name: speckle-enterprise-registry
+   ```
+
+### Security settings
+
+### Ingress Configuration
+
+To access the Desktop UI, you need to either configure an Ingress resource in Kubernetes or the Gateway API HttpRoute to route traffic to the Desktop UI service. The exact configuration will depend on your cluster setup and the ingress strategy you are using.
+
+1. Update the Helm values.yaml file to include the appropriate ingress settings for your deployment:
+
+    ```yaml
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations:
+        # Add any necessary annotations for your ingress controller here, e.g. for cert-manager integration:
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+      hosts:
+        - host: yourSpeckleDUIDomain.example.com
+          paths:
+            # Please retain this path, the dashboards expect to serve all paths under the root.
+            - path: /
+              pathType: ImplementationSpecific
+      tls:
+        - secretName: speckle-dui-tls
+          hosts:
+            - yourSpeckleDUIDomain.example.com
+    ```
+
+### Gateway API HttpRoute Configuration
+
+If you are using the Gateway API instead of Ingress, you can configure an HttpRoute to route traffic to the Desktop UI service. The exact configuration will depend on your cluster setup and the Gateway API implementation you are using.
+
+The Helm Chart only provides the relevant HttpRoute configuration for the Desktop UI service, you will need to ensure a Gateway and Gateway class exist in your cluster and update the HttpRoute configuration to reference the correct Gateway and hostnames for your deployment.
+
+1. Update the Helm values.yaml file to include the appropriate configuration for your deployment:
+
+    ```yaml
+    httpRoute:
+      enabled: true
+      annotations: {}
+      parentRefs:
+      - name: gateway
+        sectionName: http
+      hostnames:
+      - yourSpeckleDUIDomain.example.com
+      rules:
+      - matches:
+        # Please retain this path, the dashboards expect to serve all paths under the root.
+        - path:
+            type: PathPrefix
+            value: /
+    ```
+
+### Deploying the Helm Chart
+
+1. The Kubernetes RBAC user deploying the Desktop UI will require permissions to create namespaces, deployments, services, configmaps, secrets, and other resources required by the Helm Chart. Please ensure your user has the necessary permissions before proceeding.
+
+1. Use Helm to deploy Speckle Enterprise Desktop UI:
+
+    ```bash
+    helm install speckle-dui <PACKAGE_REGISTRY_URL>/speckle-dui-chart \
+    --namespace <NAMESPACE> \
+    -f values.yaml
+    ```
+
+## Updating Connectors configuration
+
+After deploying Speckle Enterprise Desktop UI, you need to update the configuration of all installed Connectors to point to the new Desktop UI deployment.
+
+We recommend a centralized deployment system for your Enterprise, and following Speckle's Connectors [manual deployment guide](/connectors/manual-installation/introduction) to ensure all Connectors are configured correctly and securely.
+
+As part of this process, you will need to update the relevant registry entry for each Connector to point to the new Desktop UI deployment. Please contact your Speckle representative for further assistance with this step.
