@@ -1,0 +1,154 @@
+---
+title: "Bloques de carga como familias en Revit"
+sidebarTitle: "Bloques como familias"
+description: "Carga bloques e instancias de Rhino, SketchUp, AutoCAD y otras aplicaciones como familias de Revit."
+---
+Cuando cargas un modelo Speckle que contiene bloques o instancias de otra aplicación, el conector de Revit puede convertirlos en familias de Revit en lugar de formas planas directas. Esto conserva la estructura de bloques y te permite gestionar las instancias y los materiales desde Revit. Los bloques del modelo provienen de la aplicación utilizada para su publicación (por ejemplo, bloques de Rhino, componentes de SketchUp o bloques de AutoCAD). Consulta las preguntas frecuentes a continuación para saber qué aplicaciones son compatibles y cómo se importan los bloques a Speckle.
+
+## Bloques habilitados para familias
+
+Esta función es una configuración de carga y está **desactivada por defecto**.
+
+Para habilitarlo:
+
+1. En el conector de Revit, abra el modelo que desea cargar.
+
+2. Expanda la sección **Configuración** en la parte inferior del cuadro de diálogo de carga.
+
+3. Active la opción **Recibir bloques como familias**.
+
+<Warning>
+Prepárese para tiempos de carga más largos. Revit debe crear y cargar un documento de familia independiente
+para cada definición de bloque única, lo que es mucho más lento que una carga de forma directa estándar.
+</Warning>
+
+<Frame>
+  <img
+    src="/images/connectors/revit_blocks_to_families_setting.png"
+    alt="Bloques para familias cargar configuración"
+  />
+</Frame>
+
+<Note>
+Habilitar esta configuración solo afecta la operación de carga actual. Actívala
+
+antes de cada carga si deseas resultados consistentes.
+</Note>
+
+## Cómo se convierten los bloques
+
+Cada definición de bloque del modelo de origen se convierte en una familia de Revit. Las instancias de bloque en la escena se convierten en instancias de esa familia colocadas en su proyecto.
+
+### Soporte de geometría
+
+Se admiten los siguientes tipos de geometría. Cada uno se convierte a la representación de Revit más adecuada disponible:
+
+| Geometría de origen | Elemento de Revit |
+
+| --------------- | ---------------- |
+
+| Sólidos | Elemento de forma libre |
+
+| Mallas | Elemento de forma libre |
+
+| Superficies | Elemento de forma libre |
+
+| Subdivisión | DirectShape |
+
+| Curvas | DirectShape |
+
+| Puntos | DirectShape |
+
+Si falla la creación de un elemento de forma libre, el conector recurre a DirectShape.
+
+### Las capas se convierten en subcategorías
+
+Las capas asignadas a las geometrías dentro de la definición de un bloque se crean como subcategorías dentro de la familia. Esto permite controlar la visibilidad de cada capa desde la configuración de Visibilidad/Gráficos de Revit.
+
+<Frame>
+  <img
+    src="/images/connectors/revit_layers to subcategories.png"
+    alt="Capas a subcategorías en Revit"
+  />
+</Frame>
+
+### Materiales
+
+Los materiales del modelo original se aplican a la geometría creada dentro de la familia. También se crea un parámetro de tipo en la familia para que pueda sobrescribir el material directamente desde el proyecto sin editar la definición de la familia.
+
+<Frame>
+  <img
+    src="/images/connectors/revit_materials type parameter.png"
+    alt="Parámetro de tipo de material en Revit"
+  />
+</Frame>
+
+### Bloques anidados
+
+Se admiten bloques anidados, que se convierten en familias anidadas. Cada nivel de anidamiento requiere que Revit cree un archivo de familia adicional, lo cual es una operación costosa.
+
+<Warning>
+Las estructuras de bloques anidadas en profundidad (comunes en los modelos de SketchUp) aumentarán significativamente
+el tiempo de carga. Como regla general, evite recibir modelos con más de
+dos o tres niveles de anidamiento.
+</Warning>
+
+<Frame>
+  <img
+    src="/images/connectors/revit_nested blocks to nested families.png"
+    alt="Bloques anidados a familias anidadas en Revit"
+  />
+</Frame>
+
+### Categorías familiares
+
+Por defecto, todas las familias creadas a partir de bloques se asignan a la categoría "Modelos genéricos".
+Si utiliza la herramienta de categorización de Revit para asignar categorías de Revit a sus bloques, el conector intentará crear la familia en la categoría especificada. Si la categoría no es compatible, utilizará una categoría predeterminada.
+
+<Frame>
+  <img
+    src="/images/connectors/revit_category mapper.png"
+    alt="Asignación de categorías de Rhino a Revit"
+  />
+</Frame>
+
+## Preguntas frecuentes
+
+<AccordionGroup>
+
+<Accordion title="¿Qué aplicaciones pueden crear bloques que funcionen con esta función?">Cualquier aplicación cuyo conector Speckle envíe estructuras de bloques o instancias funcionará.
+Esto incluye Rhino (bloques), SketchUp (componentes y grupos) y
+AutoCAD (bloques). Si publica desde una de estas aplicaciones y su modelo contiene
+definiciones de bloques con instancias, el conector de Revit puede recibirlas como
+familias. Otros conectores que admitan bloques en el futuro funcionarán de la misma manera.</Accordion>
+
+<Accordion title="¿Cómo se introducen los bloques en mi modelo Speckle?">Los bloques provienen de la aplicación que uses para publicar. Crea bloques (o
+
+componentes o grupos, según la aplicación) en esa aplicación y luego publica
+el modelo en Speckle. Speckle almacena cada definición de bloque una sola vez y cada
+ubicación como una instancia. Cuando cargas el modelo en Revit con la opción **Recibir bloques como
+
+familias** activada, esas definiciones se convierten en familias de Revit y las instancias
+se convierten en instancias de familia en el proyecto.</Accordion>
+
+<Accordion title="¿Esto funciona con bloques anidados?">Sí. Los bloques anidados se convierten en familias anidadas, conservando la jerarquía original.
+Sin embargo, cada nivel de anidamiento aumenta el tiempo de carga, ya que Revit debe
+crear una familia independiente para cada definición de bloque única. Los modelos con anidamiento profundo
+(como los de SketchUp) pueden tardar en procesarse.</Accordion>
+
+  <Accordion title="Mis bloques aparecen escalados o distorsionados en el modelo original, pero se ven diferentes en Revit. ¿Por qué?">El motor de geometría de Revit solo admite transformaciones que conservan los ángulos:
+
+específicamente, escalado uniforme, rotación y reflexión. El escalado no uniforme
+
+donde X, Y y Z se escalan de forma independiente) y la deformación (inclinación) no son compatibles
+
+con la API de Revit a nivel de instancia de familia.
+
+Cuando una instancia de bloque en el modelo de origen se ha escalado o inclinado de forma no uniforme,
+Speckle colocará la familia en la posición y rotación correctas,
+pero no se podrá aplicar el escalado ni la inclinación. La familia aparecerá con sus proporciones originales sin deformar.
+
+Para solucionar esto, hornee o explote las instancias afectadas en la aplicación de origen
+antes de publicarlas en Speckle, de modo que la geometría ya esté deformada y no dependa de una transformación.
+</Accordion>
+</AccordionGroup>
