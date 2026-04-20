@@ -1,0 +1,202 @@
+---
+title: "Filtros"
+sidebarTitle: "Filtros"
+description: "Filtra los niveles, los operadores y el comportamiento de las propiedades para los paneles de control de inteligencia."
+---
+Los filtros permiten centrarse en partes específicas de los datos. Esta página abarca los niveles de filtro, los operadores y el comportamiento de las propiedades. Los widgets de gráficos y tablas controlan tanto los filtros a nivel de página como los filtros opcionales a nivel de widget.
+
+En esta sección:
+
+- [Niveles de filtrado](#filter-levels) — Nivel de página vs. nivel de widget
+- [Cómo interactúan los filtros de nivel de página](#how-page-level-filters-interact) — OR dentro de un chip, AND entre chips
+- [Operadores y tipos de datos](#operators-and-data-types) — Operadores de texto, numéricos, de lista y especiales
+- [Propiedades y el modelo de datos](#properties-and-the-data-model) — Propiedades anidadas, coerción de tipos y casos límite
+
+### Filtros a nivel de página
+
+Cuando se aplica un filtro desde un widget (por ejemplo, haciendo clic en un valor de un gráfico), este se convierte en un **filtro a nivel de página** que afecta a todos los widgets del panel de control.
+
+- Se pueden activar varios filtros simultáneamente.
+- Los filtros activos aparecen como iconos en la parte superior del panel; haz clic en la X de un icono para eliminarlo.
+- Los widgets individuales pueden desactivar los filtros de página en su configuración.
+
+### Filtros a nivel de widget
+
+Muchos widgets tienen **filtros locales** que afectan solo a ese widget. Úselos para enfocar un solo widget en un subconjunto de datos sin modificar el resto del panel.
+
+### Niveles de filtro
+
+Los filtros a nivel de página (o a nivel de fuente de datos) afectan a los datos que se utilizan en todo el panel. Se aplican a todos los widgets, a menos que un widget desactive esta opción. Utilice los filtros a nivel de página cuando desee que todo el panel se centre en el mismo subconjunto (por ejemplo, una categoría, una planta).
+
+Los filtros a nivel de widget solo afectan a los resultados que se muestran en ese widget. No modifican los datos que se envían a otros widgets ni al visor del modelo. Utilice filtros a nivel de widget cuando un gráfico o tabla deba mostrar una parte diferente de los mismos datos.
+
+### Cómo interactúan los filtros a nivel de página
+
+Al hacer clic en un valor de un gráfico o tabla, se agrega un **filtro a nivel de página** (que se muestra como un icono en la parte superior del panel). Cómo se combinan los filtros:
+
+- **Dentro de un filtro (un chip)**: Si selecciona varios valores para la misma propiedad (p. ej., Categoría = Paredes y
+
+Pisos), se combinan como **O**: se incluyen los objetos que coinciden con cualquiera de esos valores.
+
+- **Entre filtros (varios chips)**: Cada chip es un filtro independiente (p. ej., uno para Categoría, otro para Nivel). Varios
+chips se combinan como **Y**: solo se incluyen los objetos que coinciden con todos los filtros activos.
+
+Ejemplo: un chip "Categoría: Paredes, Suelos" y un chip "Nivel: 01" juntos muestran solo los elementos que son (Paredes o Suelos) **y** están en el Nivel 01. Los filtros a nivel de widget se aplican además de los filtros a nivel de página solo para ese widget.
+
+<AccordionGroup>
+  <Accordion title="¿Cuándo debo usar filtros de widget en lugar de filtros de página?">Utilice los filtros de página cuando desee centrar todo el panel en datos específicos. Utilice los filtros de widget cuando desee que un widget muestre datos diferentes al resto del panel.</Accordion>
+  <Accordion title="¿Puedo guardar combinaciones de filtros?">Los filtros forman parte del estado del panel de control. Al guardar o compartir un panel de control, los filtros activos se guardan con él.</Accordion>
+  <Accordion title="¿Por qué un filtro no afecta a un widget?">Es posible que el widget esté configurado para desactivar los filtros de página. Compruebe la configuración del widget para "Aplicar filtros de página".</Accordion>
+  <Accordion title="¿Puedo filtrar por propiedades que no existen en todos los modelos?">Sí. El filtro se aplica solo a los objetos que tienen esa propiedad; los objetos que no la tienen quedan excluidos.</Accordion>
+  <Accordion title="¿Puedo definir un filtro negativo o exclusivo?">Sí, pero solo a través de la interfaz de filtro, no haciendo clic en un gráfico. Utilice **No contiene**, **No es igual a** o **No es uno de** en la configuración de filtro de un widget para excluir valores (por ejemplo, «Categoría **No es igual a** Muros»). Los filtros activados por gráficos (al hacer clic en un valor de un gráfico para agregar un elemento) siempre son inclusivos: se limitan al valor o valores seleccionados. No puede hacer clic en una sección del gráfico para excluirla; utilice la interfaz de filtro para «mostrar todo excepto X».</Accordion>
+  <Accordion title="¿Puedo borrar todos los filtros de página a la vez?">No. Elimine cada chip de filtro que tenga una X. No existe la opción de "borrar todo" para los filtros de nivel de página en la
+interfaz de usuario actual.</Accordion>
+</AccordionGroup>
+
+### Operadores y tipos de datos
+
+El menú de **predicados** es el mismo en los **filtros del panel de control** y en las **reglas de validación** (Verificador de propiedades y Validación de modelos). Los predicados que aparecen dependen del tipo de propiedad (texto, número o booleano). Utilice la interfaz de usuario del filtro o de la regla para seleccionar primero una propiedad; no se ofrecen predicados no válidos para ese tipo.
+
+#### Propiedades de texto (cadena)
+
+Para las propiedades de cadena, el selector agrupa los predicados de esta manera:
+
+<Frame>
+  <img
+    src="/images/analytics/intelligence-predicate-picker.png"
+    alt="Menú desplegable de predicados con secciones de Existencia, Comparación y Texto que enumeran Existe, No existe, Tiene valor, Es igual a, No es igual a, Es uno de, No es uno de, Coincide con el patrón, Contiene y No contiene"
+  />
+</Frame>
+
+| Grupo | Predicado | Descripción |
+
+| ---------------- | ------------------ | --------------------------------------------------- |
+
+| **Existencia** | Existe | La propiedad está presente en el objeto |
+
+| **Existencia** | No existe | La propiedad no está presente |
+
+| **Existencia** | Tiene valor | La propiedad está presente y no está vacía |
+
+| **Comparación** | Igual a | Coincidencia exacta con un valor |
+
+| **Comparación** | No es igual a | Excluye una coincidencia exacta |
+
+| **Comparación** | Es uno de | Coincide con cualquiera de los valores seleccionados |
+
+| **Comparación** | No es uno de | No coincide con ninguno de los valores seleccionados |
+
+| **Texto** | Coincide con el patrón | Patrón comodín o de expresión regular (ver más abajo) |
+
+| **Texto** | Contiene | El valor contiene el texto dado |
+
+| **Texto** | No contiene | El valor no contiene el texto |
+
+<Note>
+El formato **TSV** es un formato de intercambio obsoleto; Speckle está dejando de usarlo. Si aún utiliza archivos TSV, tenga en cuenta que la columna **Predicado** utiliza una terminología diferente a la de la interfaz de usuario (por ejemplo, «igual a» en lugar de «Igual a», «en la lista» en lugar de
+«Es uno de» y «es como» en lugar de «Coincide con el patrón»). Consulte
+[Reglas y conjuntos de reglas: cadenas de predicado TSV](/analytics/data-validation/rules-and-rulesets#tsv-predicate-strings).
+</Note>
+
+#### Propiedades numéricas
+
+Para las propiedades numéricas, el selector agrupa los predicados de esta manera:
+
+<Frame>
+  <img
+    src="/images/analytics/intelligence-predicate-picker-numeric.png"
+    alt="Menú desplegable de predicados numéricos con secciones de Existencia, Comparación y Rango."
+  />
+</Frame>
+
+| Grupo | Predicado | Descripción |
+
+| ---------------- | ------------------- | -------------------------------------------------- |
+
+| **Existencia** | Existe | La propiedad está presente en el objeto |
+
+| **Existencia** | No existe | La propiedad no está presente |
+
+| **Existencia** | Tiene valor | La propiedad está presente y no está vacía |
+
+| **Comparación** | Igual a | Coincidencia exacta con un valor |
+
+| **Comparación** | Distinto de | No es igual a un valor |
+
+| **Comparación** | Es uno de | Coincide con cualquiera de los valores elegidos |
+
+| **Comparación** | No es uno de | No coincide con ninguno de los valores elegidos |
+
+| **Comparación** | Es igual a | Coincidencia exacta con un valor numérico |
+
+| **Comparación** | Distinto de | No es igual a un valor numérico |
+
+| **Comparación** | Es mayor que | El valor está estrictamente por encima del umbral |
+
+| **Comparación** | Es menor que | El valor está estrictamente por debajo del umbral | | **Rango** | Está entre | El valor está entre el mínimo y el máximo (inclusive) |
+
+<Note>
+Para números, el menú muestra **Igual a** / **Distinto de** y **Es igual a** / **Distinto de**. Todas son comprobaciones de igualdad; utilice la opción que coincida con la forma en que la interfaz de usuario solicita los valores para su regla o filtro.
+</Note>
+
+#### Propiedades booleanas
+
+Para propiedades booleanas, utilice **Es verdadero** o **Es falso**.
+
+#### Coincide con el patrón
+
+**Coincide con patrones** admite dos modos: coincidencia con **comodines** y coincidencia con **expresiones regulares**. En los archivos de reglas **TSV**, el mismo predicado se escribe como `is like` en la columna Predicado.
+
+##### Modo comodín (predeterminado)
+
+Utilice caracteres comodín al estilo SQL para la coincidencia de patrones simples:
+
+- `%` — coincide con cualquier secuencia de caracteres (incluso sin ninguna)
+- `_` — coincide con un solo carácter (cuando sea compatible)
+
+Ejemplos:
+
+- `door%` — coincide con "door_01", "door_a", "doorway"
+- `%window%` — coincide con cualquier valor que contenga "window"
+- `Wall%` — coincide con valores que comienzan con "Wall"
+
+##### Modo de expresiones regulares
+
+Envuelve tu patrón entre barras diagonales para usar la coincidencia completa de expresiones regulares:
+
+- `/pattern/` — trata el contenido entre barras diagonales como una expresión regular
+
+Ejemplos:
+
+- `/^D\d{3}$/` — coincide con "D001" o "D123" (exactamente D seguida de tres dígitos)
+- `/^(Wall|Door)/` — coincide con valores que comienzan con "Wall" o "Door"
+- `/\d{4}-\d{2}-\d{2}/` — coincide con el formato de fecha "AAAA-MM-DD"
+
+La coincidencia no distingue entre mayúsculas y minúsculas en ambos modos. Utilice la coincidencia de patrones cuando necesite hacer coincidir una familia de valores (por ejemplo, todas las puertas, todos los elementos de un nivel) sin tener que enumerarlos uno por uno.
+
+<Note>
+Para usar el modo de expresiones regulares, el valor del patrón debe comenzar y terminar con `/`. Sin las barras diagonales, el valor se trata como un patrón comodín con marcadores de posición `%` y `_`.
+</Note>
+
+### Referencia rápida por tipo de propiedad
+
+- **Texto**: Existencia (**Existe**, **No existe**, **Tiene valor**), comparación (**Es igual a**, **No es igual a**, **Es uno de**, **No es uno de**) y texto (**Coincide con el patrón**, **Contiene**, **No contiene**)
+- **Número**: **Existencia** (mismas etiquetas que el texto), **Comparación** (igualdad, opciones de lista, **Es mayor que**, **Es menor que**) y **Rango** (**Está entre**)
+- **Booleano**: **Es verdadero**, **Es falso**
+
+La interfaz de usuario solo muestra los predicados que se aplican al tipo de propiedad seleccionado.
+
+### Propiedades y modelo de datos
+
+**Propiedades anidadas**: Puede filtrar por campos anidados o calculados cuando el widget los exponga (por ejemplo, una ruta como `elemento.material.nombre`). Seleccione la propiedad en el menú desplegable de filtro del widget; la ruta exacta depende de cómo el modelo y el widget expongan las propiedades. Si una propiedad no existe en algunos objetos, estos se excluirán al aplicar el filtro.
+
+**Coerción de tipos**: Los valores se comparan utilizando el tipo de propiedad. Si un número se almacena como cadena, el filtro puede tratarlo como texto (por ejemplo, **Contiene** o **Es igual a**). Para comparaciones numéricas (**Es mayor que**, **Es menor que**,
+**Está entre**), el valor se interpreta como un número cuando es posible. Las propiedades booleanas utilizan **Es verdadero** y **Es falso**.
+
+**Comparación de múltiples valores**: **Es uno de** y **No es uno de** permiten seleccionar varios valores para la misma propiedad.
+
+Se aplican únicamente a esa propiedad. Añada varias reglas de filtro si necesita combinar condiciones entre diferentes propiedades.
+
+<Note>
+**Cuando el filtrado se convierte en reglas**: Si necesita reglas reutilizables, comprobaciones de aprobación/rechazo o conjuntos de reglas (por ejemplo, «todas las puertas deben tener una clasificación de resistencia al fuego»), utilice los widgets **Verificador de propiedades** o **Validación de modelos** y defina las reglas en el widget o en un conjunto de reglas. Para obtener información sobre la sintaxis de las reglas, los conjuntos de reglas y la validación automatizada, consulte la sección [Validación de datos](/analytics/data-validation/overview).
+</Note>
