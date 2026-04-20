@@ -1,0 +1,145 @@
+---
+title: "Valida tus datos en Speckle."
+sidebarTitle: "Descripción general"
+description: "Valide sus modelos con respecto a reglas personalizadas utilizando el Verificador de propiedades, la Validación de modelos o la Validación automatizada."
+---
+Speckle ofrece múltiples maneras de validar tus modelos según reglas personalizadas, garantizando que cumplan con los requisitos específicos del proyecto. La validación se centra en las propiedades de los datos y las comprobaciones de calidad, lo que te ayuda a mantener la coherencia y detectar problemas en las primeras etapas de tu flujo de trabajo.
+
+<Note>
+¿Quieres contribuir al desarrollo de esta función? Únete al estudio de pruebas de usuario para la validación del modelo en
+
+la página [Oportunidades de pruebas de usuario](/get-involved/user-testing#model-validation).
+</Note>
+
+## ¿Qué es la validación?
+
+La validación en Speckle comprueba los datos del modelo según las reglas que usted defina. A diferencia de la detección de colisiones basada en la geometría, la validación se centra en:
+
+- **Validación de propiedades** - Comprueba si las propiedades existen, tienen valores o coinciden con patrones.
+- **Calidad de los datos** - Garantiza que los datos cumplan con los estándares y requisitos del proyecto.
+- **Pruebas automatizadas** - Ejecuta comprobaciones automáticamente al publicar los modelos.
+- **Visualización de resultados** - Consulta los resultados de la validación en el visor 3D.
+
+## Opciones de validación
+
+En Speckle existen tres formas de validar modelos:
+
+<Tabs>
+  <Tab title="Property Checker">
+    The **Property Checker** is an Intelligence widget that provides spot checking of one property at a time:
+
+- Crea reglas de validación directamente en el widget del panel de control.
+
+- Visualiza los resultados en un gráfico circular con porcentajes de aprobación/rechazo.
+
+- Personaliza el color del visor 3D según los resultados de la validación.
+
+- Configuración rápida para obtener información visual inmediata.
+
+- Valida con las fuentes de datos del panel de control.
+
+**Cuándo usarlo:** Utilice Property Checker para realizar comprobaciones de validación rápidas y puntuales de propiedades individuales dentro de un panel de control. Añádalo desde el panel de widgets en [Paneles de control de inteligencia](/analytics/intelligence-dashboards).
+
+  </Tab>
+
+  <Tab title="Model Validation">
+    **Model Validation** is an Intelligence widget that checks a single model against a ruleset defined as many Property Checks:
+
+- Proporciona una interfaz para definir conjuntos de reglas.
+
+- Los conjuntos de reglas son portátiles y se pueden importar desde otros formatos (p. ej., IDS, COBie).
+
+- Valida un único modelo con un conjunto de reglas completo.
+
+- Permite visualizar resultados de validación completos en paneles de control.
+
+- Permite propagar conjuntos de reglas a la validación automatizada (función Enterprise).
+
+**Cuándo usar:** Utilice la validación de modelos cuando necesite validar un único modelo contra un conjunto completo de reglas dentro de [Paneles de control de inteligencia](/analytics/intelligence-dashboards).
+
+  </Tab>
+
+  <Tab title="Automated Validation">
+    **Automated Validation** is a Speckle Automate-powered facility that allows validation testing on any model change, deployed across all your models. *Under development.*
+
+- Validación automática en cada publicación de modelo
+
+- Se puede implementar en todos los modelos de su proyecto
+
+- Visualice los resultados en el visor 3D
+
+- Visualice los resultados en los paneles de control de Intelligence
+
+- Visualice los resultados en la interfaz del conector en aplicaciones de escritorio (Revit, Rhino, etc.)
+
+- Funcionalidad empresarial (requiere Automate)
+
+**Cuándo usarlo:** Utilice la validación automatizada cuando necesite una validación automatizada que se ejecute con cada cambio de modelo en todos sus modelos, con retroalimentación tanto en la interfaz de usuario como en los conectores.
+
+Estamos resolviendo el problema de la implementación a gran escala de la validación. [Contáctanos](https://specke.community/) para compartir tus requisitos.
+
+  </Tab>
+</Tabs>
+
+Las tres utilizan la misma estructura de reglas, por lo que las reglas creadas en una se pueden adaptar a las demás. La validación de modelos utiliza la validación automatizada para permitir la validación a gran escala y es una función de la versión Enterprise.
+
+## Conceptos clave
+
+### Conjuntos de reglas
+
+Un **conjunto de reglas** es una colección de reglas de validación para un proyecto específico. Puedes crear varios conjuntos de reglas para diferentes propósitos de validación (por ejemplo, uno para el cumplimiento del código de compilación, otro para las convenciones de nomenclatura).
+
+Los conjuntos de reglas se pueden exportar e importar como archivos TSV, lo que facilita compartir las reglas de validación entre proyectos o equipos.
+
+### Normas
+
+Cada **regla** consta de una o más **condiciones** que trabajan juntas para validar los elementos del modelo. Las reglas utilizan un sistema de lógica estructurada con condiciones `WHERE`, `AND` y `CHECK`.
+
+### Condiciones
+
+**Las condiciones** definen qué comprobar:
+
+- **Lógica**: Cómo se combinan las condiciones (`WHERE` para filtrar, `AND` para refinar, `CHECK` para validar)
+- **Nombre de la propiedad**: La propiedad del objeto que se va a comprobar
+- **Predicado**: La comparación (p. ej., **Igual a**, **Existe**, **Coincide con el patrón**; el intercambio TSV heredado utiliza frases como `igual a`). Consulte [Reglas y conjuntos de reglas](/analytics/data-validation/rules-and-rulesets#predicates-in-the-ui).
+
+- **Valor**: El valor de referencia para la comparación
+- **Gravedad**: `ERROR`, `ADVERTENCIA` o `INFO`
+- **Mensaje**: Descripción que se muestra en los resultados de la validación (generada automáticamente para ayudar a validar la lógica, pero se puede sobrescribir)
+
+## Preguntas frecuentes
+
+<AccordionGroup>
+  <Accordion title="¿Qué tipos de reglas puedo crear?">Puedes crear reglas que comprueben la existencia de propiedades, la coincidencia de patrones,
+
+comparaciones numéricas y la validación de valores. Las reglas se definen mediante la
+interfaz de reglas de validación en
+
+[model-checker.speckle.systems](https://model-checker.speckle.systems).
+</Accordion>
+  <Accordion title="¿Necesito ejecutar la validación automatizada manualmente?">No, la validación automatizada se ejecuta automáticamente cuando
+publicas modelos en Speckle. Una vez configurada, comprobará cada nueva versión
+según tus reglas.</Accordion>
+  <Accordion title="¿Qué ocurre si falla una regla?">Los elementos que no cumplen las reglas de validación se marcan en el visor 3D con
+advertencias o errores. Puede ver qué reglas fallaron y los mensajes asociados.
+</Accordion>
+  <Accordion title="¿Puedo consultar propiedades que no existen en el modelo?">Sí, la validación automatizada puede añadir pruebas a las propiedades. Los resultados de estas pruebas pueden utilizarse como filtros en el visor 3D, incluso si la propiedad no existe en el modelo original.</Accordion>
+  <Accordion title="¿Puedo tener varios conjuntos de reglas para un mismo proyecto?">Sí, puedes crear varios conjuntos de reglas para un mismo proyecto. Esto resulta útil
+para organizar diferentes tipos de comprobaciones de validación (por ejemplo, cumplimiento de códigos de construcción, convenciones de nomenclatura, estándares de materiales).</Accordion>
+  <Accordion title="¿Cómo funcionan los mensajes de reglas?">Los mensajes de las reglas se generan automáticamente para ayudar a validar la lógica que se está probando,
+pero se pueden reemplazar con mensajes personalizados. Esto ayuda a garantizar que
+los mensajes de validación sean claros y útiles.</Accordion>
+  <Accordion title="¿Puedo exportar e importar conjuntos de reglas?">Sí, los conjuntos de reglas se pueden exportar e importar como archivos TSV. Esto facilita
+compartir reglas de validación entre proyectos o equipos, o realizar copias de seguridad de sus
+reglas.</Accordion>
+  <Accordion title="¿Importa qué proyecto de Speckle seleccione?">Por el momento, no hay nada particularmente especial en seleccionar un
+proyecto Speckle en particular. Estamos considerando utilizar los datos del proyecto
+al definir las reglas en futuras actualizaciones.</Accordion>
+  <Accordion title="¿Qué se necesita para su validación?">La validación de modelos ya está disponible en los paneles de Speckle Intelligence,
+lo que permite una validación a gran escala mediante la validación automatizada. Estamos trabajando en
+la compatibilidad con la importación de IDS y COBie para la definición de conjuntos de reglas.</Accordion>
+</AccordionGroup>
+
+## Obtener ayuda
+
+Si tienes preguntas sobre la validación automatizada, visita la [Comunidad Speckle](https://speckle.community/) o consulta la [documentación de Automate](/developers/automate/introduction) para obtener más información sobre cómo configurar las automatizaciones.

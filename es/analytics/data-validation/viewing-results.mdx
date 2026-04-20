@@ -1,0 +1,115 @@
+---
+title: "Visualización de resultados"
+sidebarTitle: "Visualización de resultados"
+description: "Aprenda a visualizar y analizar los resultados de validación de Property Checker y Model Validation en los paneles de Intelligence."
+---
+## En Paneles de Inteligencia
+
+En los paneles de inteligencia hay dos widgets de validación disponibles:
+
+### Verificador de propiedades
+
+El **Verificador de Propiedades** es un widget de Inteligencia que proporciona comprobaciones puntuales de una propiedad a la vez:
+
+- **Crea reglas de validación** directamente en el widget del panel de control.
+- **Visualiza los resultados de aprobación/rechazo** en un gráfico circular con porcentajes.
+- **Consulta los pasos de validación** para ver cuántos elementos cumplen cada condición WHERE, AND y CHECK.
+- **Colorea el visor 3D** según los resultados de aprobación/rechazo.
+- **Obtén validación en tiempo real** con respecto a las fuentes de datos del panel de control.
+- **Visualiza el desglose por propiedad** para analizar los resultados de validación en diferentes valores de propiedad.
+
+<Frame>
+  <img src="/images/model-checker/widget-results.png" alt="ver los resultados" />
+</Frame>
+
+El verificador de propiedades muestra el resultado de cada regla que configure:
+- **Porcentaje de aprobación** que se muestra en el centro del gráfico circular.
+- **Recuento de elementos aprobados y fallidos** para los elementos que llegaron al paso de VERIFICACIÓN.
+- **Pasos de la cadena de validación** que muestran cuántos elementos cumplen cada condición de filtro.
+- **Descripción de la regla en lenguaje sencillo** que explica qué verifica la regla.
+
+Esto resulta especialmente útil para **comprobaciones de validación rápidas y puntuales** de propiedades individuales dentro de un panel de control.
+
+<Tip>
+Property Checker realiza validaciones con las fuentes de datos de su panel de control, lo que lo hace ideal para comprobaciones de validación puntuales de propiedades individuales. Para validaciones a gran escala con integración de automatización, utilice [Validación de modelos](/analytics/data-validation/overview) (Enterprise) o [Validación automatizada](/analytics/data-validation/overview) (Enterprise).
+</Tip>
+
+### Validación del modelo
+
+**Validación de modelos** es un widget de inteligencia que comprueba un único modelo con respecto a un conjunto de reglas definido como varias comprobaciones de propiedades. Utiliza la validación automatizada (Automate) internamente para permitir la validación a gran escala y es una función empresarial.
+
+- Valida un modelo individual con un conjunto completo de reglas.
+- Las reglas se pueden definir como ERROR, ADVERTENCIA o INFORMACIÓN, las cuales contribuirán proporcionalmente a la puntuación general de validación.
+- Visualiza los resultados completos de la validación en paneles de control.
+- Utiliza la validación automatizada para una validación completa.
+- Funcionalidad empresarial (requiere Automate).
+
+#### Pestaña de desglose
+
+La pestaña **Desglose** permite analizar los resultados de la validación agrupándolos según las propiedades de los objetos del modelo. Esto ayuda a identificar patrones en los fallos de validación en diferentes categorías, tipos u otros valores de propiedades.
+
+**Para usar la pestaña Desglose:**
+
+1. Asegúrese de que la validación se haya ejecutado y que los resultados estén disponibles (consulte la pestaña Resumen).
+2. Vaya a la pestaña **Desglose**.
+3. Seleccione una propiedad en el menú desplegable para ver los resultados de la validación agrupados por los valores de esa propiedad.
+4. El gráfico se actualizará para mostrar las tasas de aprobación/rechazo para cada valor de la propiedad.
+
+**Requisitos para la selección de la propiedad:**
+
+El menú desplegable de propiedades en la pestaña Desglose solo estará disponible cuando:
+- Se hayan configurado y ejecutado las reglas de validación.
+- Se disponga de los resultados de la validación (consulte la pestaña Resumen para confirmarlo).
+- Se pueda acceder a los objetos del modelo con resultados de validación.
+- Existen propiedades en los objetos del modelo que contienen resultados de validación.
+
+Si el menú desplegable de propiedades está deshabilitado a pesar de que se ha ejecutado la validación:
+- Verifique que el origen del modelo esté correctamente conectado y cargado.
+- Compruebe que los resultados de la validación incluyan referencias a objetos.
+- Asegúrese de que los objetos del modelo tengan propiedades que se puedan usar para el desglose.
+- Intente actualizar los resultados de la validación o volver a ejecutarla.
+
+#### Pestaña Reglas
+
+Para cada regla en un conjunto de reglas de validación de modelo, puede revisar los resultados según el widget Verificador de propiedades.
+
+## Comprensión de los resultados
+
+### Estado de la regla
+
+Cada regla de tu conjunto de reglas mostrará:
+- **Aprobado** - Todos los elementos superaron la validación
+- **Fallido** - Algunos elementos no superaron la validación
+- **No aplicado** - La regla no pudo evaluarse (p. ej., no se encontraron elementos coincidentes)
+
+### Estado del elemento
+
+Cada elemento del modelo mostrará:
+- Qué reglas cumplió o no cumplió
+- La gravedad de los fallos
+- El mensaje asociado a cada fallo
+
+## Mejores prácticas
+
+### Revisión periódica
+Configure revisiones periódicas de los resultados de validación para detectar problemas en las primeras etapas de su flujo de trabajo.
+
+### Colaboración en equipo
+Comparte los resultados con tu equipo para asegurarte de que todos estén al tanto de los problemas de validación y puedan solucionarlos rápidamente.
+
+## Preguntas frecuentes
+
+<AccordionGroup>
+<Accordion title="¿Qué significa 'No aplicado'?">Una regla aparece como "No aplicada" cuando no se pudo evaluar, normalmente porque ningún elemento coincidía con la condición `WHERE`. Esto es normal y no indica ningún error.</Accordion>
+<Accordion title="¿Puedo ver los resultados de las reglas individuales en un panel de control?">Sí, la herramienta Verificador de propiedades en los paneles de Inteligencia permite crear reglas de validación directamente en el panel y ver los resultados de cada regla. El Verificador de propiedades muestra los porcentajes de aprobación/rechazo, el número de pasos de validación y puede colorear el visor 3D según los resultados. Esto es ideal para realizar comprobaciones de validación rápidas y puntuales de propiedades individuales dentro de un panel.
+
+Para validar un único modelo con un conjunto completo de reglas, utilice la Validación de modelos (función Enterprise), que utiliza la Validación automatizada internamente.
+</Accordion>
+<Accordion title="¿Por qué está deshabilitado el menú desplegable de selección de propiedades en la pestaña Desglose?">El menú desplegable de selección de propiedades en la pestaña Desglose requiere que:
+- Se haya ejecutado la validación y estén disponibles los resultados.
+- Los objetos del modelo con resultados de validación sean accesibles y tengan propiedades.
+- El origen del modelo esté correctamente conectado al widget de validación.
+
+Si el menú desplegable permanece deshabilitado después de ejecutar la validación, puede indicar que es necesario cargar los objetos del modelo o que las propiedades no están disponibles en los objetos validados. Intente actualizar los resultados de la validación o asegúrese de que el widget del visor de modelos esté correctamente conectado como origen de datos.
+</Accordion>
+</AccordionGroup>

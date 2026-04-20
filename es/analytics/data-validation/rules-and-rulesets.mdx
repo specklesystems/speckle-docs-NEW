@@ -1,0 +1,369 @@
+---
+title: "Reglas y conjuntos de reglas"
+sidebarTitle: "Reglas y conjuntos de reglas"
+description: "Aprenda a crear reglas de validación y a estructurar conjuntos de reglas para Property Checker y Model Validation."
+---
+## Comprensión de la estructura de las reglas
+
+Cada **regla** consta de una o más **condiciones** que trabajan juntas para validar los elementos del modelo. Las reglas utilizan un sistema lógico estructurado:
+
+| Componente | Descripción |
+
+| --- | --- |
+
+| **Lógica** | Cómo se combinan las condiciones: `WHERE` (filtro), `AND` (filtro adicional), `CHECK` (validación final) |
+
+| **Nombre de la propiedad** | La propiedad del objeto a comprobar (p. ej., `category`, `width`, `baseline.length`) |
+
+| **Predicado** | La comparación (etiquetas de la interfaz de usuario como **Igual a** y **Existe**; los archivos TSV utilizan frases como `igual a` y `existe`) |
+
+| **Valor** | El valor de referencia para la comparación |
+
+| **Mensaje** | Descripción que se muestra en los resultados de la validación (generada automáticamente, pero se puede sobrescribir) |
+
+| **Gravedad del informe** | Define la importancia: `ERROR`, `ADVERTENCIA` o `INFO` |
+
+<Warning>
+**Estructura de reglas importante**: Cada regla debe seguir este patrón:
+- Comienza con una condición `WHERE` para filtrar objetos.
+- Agrega condiciones `AND` para refinar aún más el filtro (opcional).
+- Finaliza con una condición `CHECK` que realiza la validación.
+
+Cada regla debe tener solo una condición `CHECK` al final. Si necesitas varias validaciones, crea reglas separadas.
+</Advertencia>
+
+## Creando tu primera regla
+
+### Ejemplo: Comprobación del espesor de la pared
+
+Vamos a crear una regla que compruebe si las paredes tienen un grosor mínimo de 200 unidades:
+
+1. **Condición WHERE**: Filtrar por paredes
+
+- Propiedad: `Categoría`
+
+- Predicado: **Igual a** (en TSV: `igual a`)
+
+- Valor: `Paredes`
+
+2. **Condición de verificación**: Validar espesor
+
+- Propiedad: `Ancho`
+
+- Predicado: **Menor que** (en TSV: `menor que`)
+
+- Valor: `200`
+
+- Gravedad: `ERROR`
+
+- Mensaje: "El espesor de la pared debe ser de al menos 200" (generado automáticamente, pero personalizable)
+
+Esta regla marcará como error cualquier pared con un espesor inferior a 200 unidades.
+
+### Agregar múltiples condiciones
+
+Puedes añadir varias condiciones `AND` entre `WHERE` y `CHECK` para crear filtros más complejos:
+
+**Ejemplo**: Comprobar vigas de acero demasiado largas
+- `DONDE` Categoría = Vigas
+- `Y` Material = Acero
+- `COMPROBAR` Longitud > 5000
+
+## Predicados en la interfaz de usuario
+
+El verificador de propiedades, la validación del modelo y los filtros del panel comparten el **mismo selector de predicados**. Las etiquetas coinciden con lo que se ve en el menú desplegable; dependen del **tipo de propiedad** (texto, número o booleano).
+
+Para las propiedades de **texto**, los predicados se agrupan como **Existencia**, **Comparación** y **Texto**:
+
+| Grupo | Etiqueta de la interfaz de usuario | Significado |
+
+| --- | --- | --- |
+
+| Existencia | **Existe** | La propiedad está presente |
+
+| Existencia | **No existe** | La propiedad no está presente |
+
+| Existencia | **Tiene valor** | La propiedad está presente y no está vacía |
+
+| Comparación | **Es igual a** | Coincidencia exacta (un valor) |
+
+| Comparación | **No es igual a** | No es igual a un valor |
+
+| Comparación | **Es uno de** | Coincide con cualquiera de los valores elegidos |
+
+| Comparación | **No es uno de** | No coincide con ninguno de los valores elegidos |
+
+| Texto | **Coincide con el patrón** | Comodines o expresiones regulares (sin distinción de mayúsculas y minúsculas) |
+
+| Texto | **Contiene** | Coincidencia de subcadena |
+
+| Texto | **No contiene** | Excluye la subcadena |
+
+Para las propiedades **numéricas**, los predicados se agrupan como **Existencia**, **Comparación** y **Rango**:
+
+| Grupo | Etiquetas de la interfaz de usuario |
+
+| --- | --- |
+
+| Existencia | **Existe**, **No existe**, **Tiene valor** |
+
+| Comparación | **Es igual a**, **No es igual a**, **Es uno de**, **No es uno de**, **Es igual a**, **No es igual a**, **Es mayor que**, **Es menor que** |
+
+| Rango | **Está entre** |
+
+Consulte [Filtros — Propiedades numéricas](/analytics/dashboards/filters#numeric-properties) para obtener descripciones y una captura de pantalla del menú.
+
+Para propiedades **booleanas**, utilice **Es verdadero** y **Es falso**.
+
+Consulte [Filtros: Operadores y tipos de datos](/analytics/dashboards/filters#operators-and-data-types) para obtener información sobre la sintaxis de patrones (**Coincide con el patrón** / comodines y expresiones regulares) y el comportamiento de filtrado.
+
+### Cadenas de predicado TSV
+
+Las reglas TSV heredadas utilizan una columna **Predicado** fija. Las cadenas de la tabla coinciden con lo que aparece en esa columna y se corresponden con las etiquetas de la interfaz de usuario anteriores.
+
+<Note>
+TSV es un formato de intercambio antiguo para conjuntos de reglas. Se recomienda definir y editar las reglas en Intelligence. Conserve esta tabla si aún importa, exporta o mantiene archivos TSV existentes.
+</Note>
+
+| Valor del predicado TSV | Etiqueta típica de la interfaz de usuario |
+
+| --- | --- |
+
+| `existe` | **Existe** |
+
+| `no existe` | **No existe** |
+
+| `tiene valor` | **Tiene valor** |
+
+| `igual a` | **Es igual a** |
+
+| `distinto de` | **No es igual a** |
+
+| `en la lista` | **Es uno de** |
+
+| `no está en la lista` | **No es uno de** |
+
+| `es como` | **Coincide con el patrón** |
+
+| `contiene` | **Contiene** |
+
+| `no contiene` | **No contiene** |
+
+| `mayor que` | **Es mayor que** |
+
+| `menor que` | **Es menor que** |
+
+| `en el rango` | **Está entre** (mínimo y máximo) |
+
+| `es verdadero` | **Es verdadero** |
+
+`es falso` | **Es falso** |
+
+Algunos archivos importados pueden usar `idéntico a`; se trata como `igual a` al cargar las reglas.
+
+## Tipos de reglas
+
+### Existencia de propiedades
+Comprueba si existen propiedades específicas en los elementos del modelo. Útil para asegurar que los datos necesarios estén presentes.
+
+**Ejemplo**: `COMPROBAR` que la **calificación acústica** utiliza **Existe** (predicado TSV `exists`).
+
+### Coincidencia de patrones
+Validar que los valores de las propiedades coincidan con patrones o formatos específicos. Por ejemplo, asegurar que los nombres de los elementos sigan una convención de nomenclatura.
+
+**Coincide con el patrón** en la interfaz de usuario (el predicado TSV `es como`) admite dos modos:
+
+**Modo comodín (predeterminado)**:
+
+- `%` — coincide con cualquier secuencia de caracteres (incluso sin ninguna)
+- `_` — coincide con un solo carácter (cuando sea compatible)
+
+**Modo de expresiones regulares**:
+
+- Encierra tu patrón entre barras diagonales: `/patrón/`
+- Admite la sintaxis completa de expresiones regulares (clases de caracteres, anclas, alternancia, cuantificadores, etc.)
+
+La coincidencia no distingue entre mayúsculas y minúsculas en ambos modos. Para la coincidencia de patrones simples, utilice **Coincide con el patrón** / `es similar a` con comodines, o bien, utilice `/regex/` para una validación compleja. Para la coincidencia de subcadenas sin patrones, utilice **Contiene** / `contiene`.
+
+### Comparaciones numéricas
+Compara los valores de las propiedades numéricas con umbrales o rangos. Verifica que las dimensiones, áreas u otras medidas cumplan con los requisitos.
+
+En la interfaz de usuario, utilice **Es mayor que**, **Es menor que** o **Está entre**. En TSV heredado, las mismas comprobaciones utilizan `mayor que`, `menor que` y `dentro del rango`.
+
+### Validación de valores
+Verifique que las propiedades contengan los valores esperados o que se encuentren dentro de los rangos aceptables.
+
+**Ejemplos** (UI → TSV):
+- **Igual a** → `igual a`
+- **Es uno de** → `en la lista` (valores separados por comas en la columna Valor TSV)
+- **Distinto de** → `distinto de`
+
+## Mensajes de reglas
+
+Los mensajes de las reglas se generan automáticamente para ayudar a validar la lógica que se está probando. El mensaje generado automáticamente describe qué comprueba la regla, lo que facilita la comprensión de la lógica de validación.
+
+Puedes **sobrescribir** el mensaje generado automáticamente con un mensaje personalizado si deseas proporcionar una guía o un contexto más específico.
+
+<Tip>
+Los mensajes generados automáticamente ayudan a garantizar que tus reglas sean claras y comprensibles. Considera personalizarlos cuando necesites brindar instrucciones o contexto específicos a tu equipo.
+</Tip>
+
+## Mejores prácticas
+
+### Usar rutas de propiedades específicas
+Utilice rutas de propiedades exactas para una validación precisa. Las reglas se aplican a las propiedades de los objetos Speckle independientemente del esquema:
+
+- **Propiedades directas**: `categoría`, `nombre`, `id`
+- **Propiedades anidadas**: `línea base.longitud`, `parámetros.ANCHO.valor`
+- **Parámetros de Revit**: Utilice nombres de parámetros como `Marca`, `Ancho`, `Código de ensamblaje`
+
+<Tip>
+Si una propiedad como `Length` existe en varias ubicaciones dentro de las propiedades de un objeto, especificar `baseline.length` garantiza que se compruebe el valor correcto.
+</Tip>
+
+### Establecer niveles de gravedad adecuados
+- **ERROR**: Problemas críticos que deben corregirse (p. ej., "El espesor de la pared debe ser de al menos 200")
+- **ADVERTENCIA**: Problemas moderados que deben revisarse (p. ej., "La altura no debe superar los 3000")
+- **INFORMACIÓN**: Notificaciones informativas (p. ej., "El material es hormigón")
+
+### Redacta mensajes claros
+Al personalizar los mensajes, asegúrate de que sean específicos y que permitan llevar a la acción. Evita términos vagos como "Verificación del espesor de la pared" y, en su lugar, indica "El espesor de la pared debe ser de al menos 200 mm".
+
+### Ejemplos de mensajes buenos y malos
+
+| Condición de la regla | Mensaje incorrecto ❌ | Mensaje correcto ✅ |
+
+| --- | --- | --- |
+
+| `Ancho menor que 200` y `ERROR` | "Verificación del espesor de la pared" | "El espesor de la pared debe ser de al menos 200" |
+
+| `Altura mayor que 3000` y `ADVERTENCIA` | "Verificación de altura" | "La altura no debe ser mayor que 3000" |
+
+| `Material igual a "Hormigón"` e `INFO` | "Información del material" | "El material es hormigón" |
+
+## Patrones de reglas comunes
+
+### Filtrar por categoría
+```
+DONDE Categoría = Paredes
+VERIFICAR [condición de validación]
+```
+
+### Múltiples filtros
+```
+Donde Categoría = Vigas
+Y Material = Acero
+Verificar Longitud > 5000
+```
+
+### Verificación de existencia de la propiedad
+```
+Donde Categoría = Ventanas
+Verificar que exista la calificación acústica
+```
+
+### Comprobación de rango de valores
+```
+Donde Categoría = Muros
+Comprobar Ancho en el rango 200,400
+```
+
+### Convención para nombrar las puertas
+
+**Uso de comodines**:
+```
+WHERE Category = Doors
+CHECK name is like D%
+```
+Esto coincide con los nombres de puertas que empiezan por "D" (p. ej., "D001", "D123", "Door-01").
+
+**Usando expresiones regulares**:
+```
+WHERE Category = Doors
+CHECK name is like /^D\d{3}$/
+```
+Esto coincide estrictamente con "D" seguido de exactamente tres dígitos (por ejemplo, "D001", "D123", pero no con "Door-01" ni "D12").
+
+### Rango de altura de columnas estructurales
+```
+DONDE Categoría = Columnas
+Y es_estructural es verdadero
+COMPROBAR altura no está en el rango 2400,4000
+```
+Esta regla comprueba que las columnas estructurales tengan alturas entre 2400 y 4000 unidades.
+
+## Exportación e importación de conjuntos de reglas
+
+### Exportación
+
+Los conjuntos de reglas se pueden exportar como archivos para realizar copias de seguridad o compartirlos:
+
+1. Abre los conjuntos de reglas de tu proyecto.
+2. Selecciona el conjunto de reglas que deseas exportar.
+3. Usa la opción de exportación para descargar el conjunto de reglas.
+
+<Info>
+Exported files use the TSV (Tab-Separated Values) format. TSV files can be imported back into your project or shared with other projects or teams.
+</Info>
+
+### Reglas de importación
+
+Si ya tienes reglas en un archivo, puedes importarlas:
+
+1. Abre las reglas de tu proyecto.
+2. Haz clic en **Importar**.
+3. Proporciona un nombre y una descripción para el conjunto de reglas importado.
+4. Sube tu archivo.
+
+<Info>
+Imported files should use the TSV (Tab-Separated Values) format. The file should have the following columns:
+</Info>
+
+### Formato de archivo
+
+El formato del archivo debe incluir las siguientes columnas:
+- **Número de regla**: Agrupa las condiciones en una sola regla
+- **Lógica**: WHERE, AND o CHECK
+- **Nombre de la propiedad**: Propiedad del objeto a comprobar
+- **Predicado**: Operación de comparación
+- **Valor**: Valor de referencia para la comparación
+- **Gravedad del informe**: ERROR, WARNING o INFO
+- **Mensaje**: Descripción que se muestra en los resultados de la validación
+
+### Archivo de ejemplo
+
+```
+Rule Number	Logic	Property Name	Predicate	Value	Report Severity	Message
+1	WHERE	Category	equal to	Walls		
+1	CHECK	Width	less than	200	ERROR	Wall thickness must be at least 200
+2	WHERE	Category	equal to	Beams		
+2	AND	Material	equal to	Steel		
+2	CHECK	Length	greater than	5000	WARNING	Steel beams should not exceed 5000 in length
+```
+
+## Gestión de múltiples conjuntos de reglas
+
+Puedes crear varios conjuntos de reglas para un mismo proyecto. Esto resulta útil para organizar diferentes tipos de comprobaciones de validación:
+
+- **Cumplimiento del Código de Construcción** - Normas para los requisitos del código
+- **Convenciones de Nomenclatura** - Normas para los estándares de nomenclatura de elementos
+- **Estándares de Materiales** - Normas para las especificaciones de materiales
+- **Verificaciones Dimensionales** - Normas para la validación de tamaño y dimensiones
+
+Cada conjunto de reglas puede utilizarse de forma independiente para diferentes fines de validación.
+
+## Preguntas frecuentes
+
+<AccordionGroup>
+<Accordion title="¿Puedo usar el mensaje generado automáticamente tal cual?">Sí, los mensajes generados automáticamente están diseñados para ser claros y útiles. Puedes usarlos tal cual o personalizarlos para brindar una guía más específica a tu equipo.</Accordion>
+<Accordion title="¿Qué ocurre si necesito comprobar varias propiedades en una misma regla?">Puedes añadir varias condiciones `AND` entre `WHERE` y `CHECK` para filtrar por múltiples propiedades. Sin embargo, la condición `CHECK` debe validar una sola propiedad. Si necesitas verificar varias propiedades, crea reglas independientes.</Accordion>
+<Accordion title="¿Cómo sé qué ruta de propiedad debo usar?">Utilice la ruta de propiedad exacta tal como aparece en los datos de su modelo. Si tiene dudas, explore las propiedades de su modelo en el visor 3D o utilice la búsqueda de propiedades en la interfaz de validación para encontrar la ruta correcta.</Accordion>
+<Accordion title="¿Puedo compartir los archivos exportados con otros equipos?">Sí, los archivos exportados se pueden compartir con otros equipos o importar a otros proyectos. Esto facilita la estandarización de las reglas de validación entre proyectos.</Accordion>
+<Accordion title="¿Cómo se relaciona la validación con la especificación de entrega de información (IDS)?">IDS (Information Delivery Specification) está diseñado para la verificación de modelos IFC, pero las reglas de IDS se pueden aplicar a todos los modelos Speckle, independientemente de su formato de origen. Existen diferencias importantes:
+
+- **IDS verifica las reglas relacionadas con la pertenencia a ensamblajes.** - IDS puede validar las relaciones entre elementos y sus ensamblajes.
+- **La validación de propiedades y modelos se centra en los datos dentro de un elemento.** - Validan las propiedades y los datos dentro de elementos individuales, no las relaciones entre elementos.
+
+Las futuras actualizaciones incluirán compatibilidad con la importación de IDS y COBie para la definición de conjuntos de reglas.
+</Accordion>
+</AccordionGroup>
