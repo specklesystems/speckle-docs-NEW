@@ -1,0 +1,243 @@
+---
+title: "Propiedades"
+description: "Trabajar con las propiedades de los objetos Speckle en Grasshopper."
+---
+
+<Note>
+En Rhino y Grasshopper, las **propiedades de moteado** corresponden al **texto de usuario**
+
+en los objetos de Rhino.
+</Note>
+
+<Note>
+¿Quieres ayudar a probar los flujos de trabajo de edición de parámetros? Únete al estudio del actualizador de parámetros
+
+en la página [Oportunidades de pruebas de usuario](/get-involved/user-testing#parameter-updater).
+</Note>
+
+Las propiedades de Speckle son **diccionarios de pares clave-valor** donde los valores son **tipos simples** u **otras propiedades**.
+
+Todos los objetos de Speckle pueden contener propiedades utilizadas para flujos de trabajo basados en datos, como análisis, inteligencia empresarial y cálculos.
+
+La agrupación específica de propiedades depende de la aplicación de origen; por ejemplo, los objetos de modelo de Speckle para Revit contienen propiedades como parámetros y cantidades de material.
+
+En Grasshopper, puedes personalizar tus propiedades en grupos significativos, de modo que se puedan navegar fácilmente al inspeccionar tu objeto de modelo Speckle en línea o al utilizarlos en otras aplicaciones.
+
+Las propiedades Speckle pueden tener un único valor, una lista de valores u otra propiedad Speckle como valor. Los tipos de valores admitidos para las propiedades Speckle son:
+
+- Cadenas de caracteres
+- Números
+- Valores booleanos
+- Vectores y planos
+
+## Creación y modificación de propiedades
+
+Si trabajas con objetos de modelo de Rhino, puedes crear fácilmente propiedades de moteado a partir del texto de usuario del objeto de modelo mediante conversión de tipos. Para crear o modificar propiedades de moteado personalizadas, existen dos opciones según la complejidad y el tamaño de tus conjuntos de propiedades.
+
+**Opción 1: Utilizar el nodo Crear propiedades para crear pequeños conjuntos de propiedades**
+
+<Frame>
+  <img src="/images/connectors/grasshopper/node_createproperties.jpg" />
+</Frame>
+
+**Entradas**
+
+1. Añada un campo de entrada **Propiedad** predeterminado con el valor de dicha propiedad (consulte los tipos compatibles arriba).
+
+Haga clic con el botón derecho para cambiar el nombre del campo de entrada Propiedad predeterminado por la clave de propiedad que desee.
+
+Haga clic con el botón derecho y seleccione **Acceso a lista** si el valor del campo de entrada es una lista en lugar de un solo elemento.
+
+2. Se crea un **parámetro de entrada adicional** cada vez que se completa el campo de entrada anterior.
+
+Haga clic en el icono «+» debajo del parámetro de entrada para añadir varios campos de entrada nuevos.
+
+Los parámetros de entrada vacíos no se incluirán en las propiedades de salida.
+
+<Tip>
+Si tus parámetros de Grasshopper tienen nombre, puedes mantener pulsada la tecla `TAB` al pasar tu
+parámetro a una entrada de propiedad para usar automáticamente el alias del parámetro de entrada como
+nombre de la propiedad (heredar nombre).
+</Tip>
+
+**Resultados**
+
+1. La salida **Propiedades** contiene un conjunto de Propiedades que tiene una Propiedad clave-valor para cada entrada no vacía.
+
+**Configuración adicional**
+
+Haz clic con el botón derecho en el nodo para acceder a la configuración adicional:
+
+- Configura tu nodo para que **herede automáticamente todos los nombres** al pasar parámetros de entrada.
+
+- Configura tu nodo para que **cree propiedades vacías** si deseas eliminar por completo un conjunto de propiedades existente de tu objeto Speckle.
+
+Si su equipo tiene un estándar para los conjuntos de propiedades en los objetos, puede crear un [nodo reutilizable](/connectors/grasshopper/grasshopper-recommendations#create-reusable-project-components-with-grasshopper-user-objects) con sus nodos Crear propiedades que definan un conjunto de propiedades específico para su modelo de proyecto.
+
+**Opción 2: Utilizar el nodo de paso directo de Speckle Properties para la creación y modificación de propiedades mediante pares clave-valor**
+
+<Note>
+Esta opción se recomienda para conjuntos de propiedades más grandes donde desee
+almacenar las claves de las propiedades en su propia lista, o si desea modificar las
+entradas de un conjunto de propiedades existente.
+</Note>
+
+El nodo de paso directo **Propiedades de Speckle** permite crear, inspeccionar y modificar propiedades. Este nodo tiene tres modos, que se pueden cambiar haciendo clic con el botón derecho en el nodo y seleccionando el modo deseado:
+
+- Modo **Combinar** (predeterminado): cualquier par clave-valor se añadirá a las propiedades de entrada.
+
+- Modo **Eliminar**: cualquier par clave-valor coincidente se eliminará de las propiedades de entrada.
+
+- Modo **Reemplazar**: cualquier par clave-valor reemplazará por completo las propiedades de entrada.
+
+<Frame>
+  <img src="/images/connectors/grasshopper/node_properties.jpg" />
+</Frame>
+
+**Entradas**
+
+1. Añada un campo de entrada **Propiedades** solo si desea modificar o inspeccionar un conjunto de propiedades de Speckle existente.
+
+2. Añada un campo de entrada **Claves** con una lista de cadenas de texto para las claves de sus propiedades.
+
+3. Añada un campo de entrada **Valores** con una lista de valores que correspondan a cada clave (no es necesario para el modo **Eliminar**).
+
+**Resultados**
+
+1. La salida **Propiedades** contiene el conjunto resultante de propiedades de Speckle.
+
+2. La salida **Claves** contiene una lista de todas las claves en (1).
+
+3. La salida **Valores** contiene una lista de todos los valores en (1).
+
+## Obtención de valores de propiedades en objetos Speckle
+
+Dado que las propiedades pueden estar anidadas, existen dos maneras de recuperar los valores de las propiedades, dependiendo de cómo desee recorrer la jerarquía de propiedades.
+
+**Opción 1: Uso del nodo de paso directo de Speckle Properties para acceso de un solo nivel**
+
+<Note>
+Esta opción se recomienda para propiedades de estructura simple que no
+contengan propiedades anidadas en profundidad.
+</Note>
+
+El nodo de paso directo **Speckle Properties** permite recuperar rápidamente las claves y los valores de un conjunto de propiedades. Tenga en cuenta que los valores de las propiedades pueden contener otras propiedades Speckle si están anidadas.
+
+<Frame>
+  <img src="/images/connectors/grasshopper/node_properties.jpg" />
+</Frame>
+
+**Entradas**
+
+1. Agregue un campo de entrada **Propiedades** con las propiedades de Speckle que desea inspeccionar.
+
+**Resultados**
+
+1. La salida **Propiedades** contiene la entrada **Propiedades**.
+
+2. La salida **Claves** contiene una lista de todas las claves directas en (1).
+
+3. La salida **Valores** contiene una lista de todos los valores directos en (1).
+
+**Opción 2: Uso de los nodos Propiedades de consulta y Selector de propiedades para propiedades anidadas en profundidad**
+
+<Note>
+Esta opción se recomienda para flujos de trabajo basados en datos que utilizan modelos Speckle de
+
+Revit, IFC, Navisworks, Civil 3D, Archicad, Tekla y Etabs, que a menudo
+
+Contiene propiedades altamente estructuradas.
+</Note>
+
+El nodo **Selector de propiedades** le permite inspeccionar visualmente todas las claves de propiedad que corresponden a valores de propiedades que no son de Speckle dentro de sus propiedades de Speckle, incluidas las claves concatenadas de cualquier propiedad de Speckle anidada.
+
+<Frame>
+  <img src="/images/connectors/grasshopper/node_propertiesselector.jpg" />
+</Frame>
+
+<Tip>
+Se pueden agregar prefijos de patrón de búsqueda al inicio de la cadena de búsqueda:
+**?** mostrará solo los elementos que **contengan** la cadena de búsqueda.
+**&lt;** mostrará solo los elementos que **comiencen con** la cadena de búsqueda.
+**>** mostrará solo los elementos que **terminen con** la cadena de búsqueda.
+**;** indicará una [expresión regular](https://docs.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference\).
+</Tip>
+
+**Entradas**
+
+1. Añada un campo de **Propiedades** para ver todas las claves concatenadas de las propiedades anidadas dentro de ese conjunto de propiedades.
+
+2. Utilice la **barra de búsqueda con patrones de búsqueda** para filtrar las claves mostradas si es necesario.
+
+3. Haga clic para seleccionar cualquier clave o pulse Mayús + clic para seleccionar varias claves.
+
+**Resultados**
+
+1. La lista de cadenas que se seleccionan.
+
+**Configuración adicional**
+
+Haz clic con el botón derecho en el nodo para acceder a la configuración adicional:
+
+- Configure su nodo para que siempre **seleccione automáticamente todos los elementos** que se muestran en el panel del nodo.
+
+El nodo **Consultar propiedades** recuperará los valores de las propiedades a partir de claves específicas.
+
+<Frame>
+  <img src="/images/connectors/grasshopper/node_queryproperties.jpg" />
+</Frame>
+
+**Entradas**
+
+1. Añada una entrada **Propiedades** con las propiedades de Speckle de las que desea obtener los valores.
+
+2. Añada una entrada **Claves** con la lista de claves de las que desea obtener los valores.
+
+Esta lista puede ser la salida del nodo **Selector de propiedades** o cadenas de claves específicas de propiedades conocidas.
+
+**Resultados**
+
+1. La salida **Valores** contiene todos los valores dentro de la entrada Propiedades que coinciden con las claves dadas.
+
+<Tip>
+Si accedes con frecuencia a las mismas claves de propiedad en varios objetos o
+modelos, puedes crear un [nodo reutilizable](/connectors/grasshopper/grasshopper-recommendations#create-reusable-project-components-with-grasshopper-user-objects)
+
+con tus nodos Selector de propiedades y Consulta de propiedades para recuperar propiedades específicas.
+</Sugerencia>
+
+**Opción 3: Usar el nodo Expandir propiedades para acceder fácilmente a la lista**
+
+<Note>
+Esta opción se recomienda para acceder fácilmente a los valores de las propiedades individuales,
+
+especialmente a los valores de tipo lista.
+</Note>
+
+El nodo **Expandir propiedades** permite recuperar rápidamente los valores de un conjunto de propiedades creando una salida por cada propiedad. Los valores de las propiedades pueden contener otras propiedades de Speckle si están anidadas; en ese caso, deberá usar otro nodo Expandir propiedades para acceder a los valores anidados.
+
+<Frame>
+  <img src="/images/connectors/grasshopper/node_expandproperties.jpg" />
+</Frame>
+
+**Entradas**
+
+1. Agregue un campo de entrada **Propiedades** con las propiedades de Speckle que desea inspeccionar.
+
+**Resultados**
+
+1. Un parámetro de salida para cada entrada en las **Propiedades** de entrada. Los valores de lista se podrán usar como listas.
+
+**Configuración adicional**
+
+Haga clic con el botón derecho en un parámetro de salida para ver configuraciones adicionales:
+
+- Seleccione **extraer parámetro** para crear automáticamente un nuevo nodo de parámetro con el valor y el nombre del parámetro de salida.
+
+## Propiedades de moteado de fundición
+
+El parámetro **Speckle Properties** permite realizar conversiones desde otros tipos nativos de Grasshopper, lo que permite utilizarlos indistintamente:
+
+- (Rhino 8+) **Objetos de modelo de Rhino**. La conversión a partir de objetos de modelo crea un conjunto de propiedades de moteado a partir del texto del usuario.
+
+- (Rhino 8+) **Contenido de usuario de Rhino**. La conversión a partir de contenido de usuario crea un conjunto de propiedades de moteado a partir del texto del usuario.

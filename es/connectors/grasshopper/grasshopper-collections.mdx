@@ -1,0 +1,158 @@
+---
+title: "Colecciones"
+description: "Trabajar con colecciones de moteado en Grasshopper."
+---
+
+<Note>
+En Rhino y Grasshopper, una **Colección de Moteados** corresponde a una **capa de Rhino**.
+</Note>
+
+Todos los modelos Speckle se organizan por colecciones, que pueden contener objetos Speckle u otras colecciones.
+
+Esta organización suele ser fija según la aplicación de origen; por ejemplo, los modelos Speckle de Revit se estructuran por nivel, categoría y tipo.
+
+En Grasshopper, puedes personalizar la estructura de tu colección de modelos para crear grupos de objetos significativos, de modo que se pueda navegar fácilmente por ellos al visualizar tu modelo Speckle en línea o al cargarlos en otras aplicaciones.
+
+## Creación de colecciones
+
+Utilice el nodo **Crear colección** para colocar sus objetos Grasshopper en colecciones antes de publicar su modelo.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_createcollection.jpg" />
+</Frame>
+
+**Entradas**
+1. Añada una entrada de **subcolección** predeterminada de un elemento o lista de **objetos de datos**, **geometría** o **colecciones**. Haga clic con el botón derecho para cambiar el nombre de la entrada de subcolección predeterminada al nombre de colección que desee.
+
+2. Se crea un parámetro de **entrada adicional** cada vez que complete la entrada anterior. Haga clic en el icono `+` debajo del parámetro de entrada para añadir varias entradas nuevas. Los parámetros de entrada vacíos no se incluirán en la colección de salida.
+
+<Tip>
+Si los parámetros de Grasshopper tienen nombre, puede mantener pulsada la tecla `TAB` al pasar el parámetro a la entrada de una subcolección para usar automáticamente el apodo del parámetro de entrada como nombre de la subcolección (heredar nombre).
+</Tip>
+
+**Resultados**
+1. La salida **Colección** contiene una Colección que tiene una subcolección por cada entrada no vacía.
+
+**Configuración adicional**
+
+Haz clic con el botón derecho en el nodo para acceder a la configuración adicional:
+- Configura el nodo para que herede automáticamente todos los nombres al pasar parámetros de entrada.
+
+Si su equipo tiene un estándar para la organización de modelos o capas, puede crear un [nodo reutilizable](/connectors/grasshopper/grasshopper-recommendations#create-reusable-project-components-with-grasshopper-user-objects) con sus nodos Create Collection que definen la estructura de subcolecciones para el modelo de su proyecto.
+
+## Obtención de objetos de modelo a partir de colecciones
+
+Tras cargar un modelo Speckle, existen varias opciones para recuperar los objetos que se encuentran dentro de las colecciones del modelo, dependiendo de su flujo de trabajo y de la estructura del modelo Speckle de entrada.
+
+**Opción 1: Uso del nodo Consultar objetos para flujos de trabajo basados en geometría**
+
+<Note>
+Esta opción se recomienda para flujos de trabajo basados en geometría que utilizan modelos Speckle de Grasshopper, Rhino y AutoCAD, los cuales contienen principalmente objetos geométricos.
+</Note>
+
+El nodo **Consultar objetos** permite recuperar rápidamente una lista plana de todos los objetos dentro de una colección, incluidos los objetos dentro de cualquier subcolección.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_queryobjects.jpg" />
+</Frame>
+
+**Entradas**
+1. Agregue una entrada **Colección** para obtener una lista plana de todos los objetos dentro de esa Colección.
+
+**Resultados**
+1. El resultado **Objetos** contiene todos los objetos de la colección de entrada, incluidos los de las subcolecciones.
+
+2. Amplíe la imagen y haga clic en el signo `+` debajo de (1) para añadir **resultados adicionales** que filtran (1) por tipo de geometría: instancias de bloque, extrusiones, curvas, puntos y más.
+
+**Configuración adicional**
+
+Haz clic con el botón derecho en un parámetro de salida para acceder a configuraciones adicionales: - Selecciona **Extraer parámetro** para crear automáticamente un nuevo nodo de parámetro con el valor y el nombre del parámetro de salida.
+
+**Opción 2: Uso de los nodos de consulta de objetos y selector de colecciones para flujos de trabajo BIM, civiles y estructurales**
+
+<Note>
+Esta opción se recomienda para flujos de trabajo basados en datos que utilizan modelos Speckle de Revit, IFC, Navisworks, Civil 3D, Archicad, Tekla y Etabs, que están altamente estructurados por colecciones y contienen objetos de datos.
+</Note>
+
+El nodo **Selector de colecciones** le permite inspeccionar visualmente todas las colecciones dentro de su modelo Speckle, mostrando las rutas completas de todas las subcolecciones.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_collectionselector.jpg" />
+</Frame>
+
+<Tip>
+Se pueden agregar prefijos de patrón de búsqueda al inicio de la cadena de búsqueda:
+**?** mostrará solo los elementos que **contengan** la cadena de búsqueda.
+**&lt;** mostrará solo los elementos que **comiencen con** la cadena de búsqueda.
+**>** mostrará solo los elementos que **terminen con** la cadena de búsqueda.
+**;** indicará una [expresión regular](https://docs.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference\).
+</Tip>
+
+**Entradas**
+1. Añada una entrada de **Colección** para ver todas las rutas de todas las subcolecciones dentro de esa colección.
+
+2. Utilice la **barra de búsqueda con patrones de búsqueda** para filtrar las subcolecciones mostradas si es necesario.
+
+3. Haga clic para seleccionar una ruta o pulse `SHIFT` + clic para seleccionar varias rutas.
+
+**Resultados**
+1. La lista de cadenas seleccionadas.
+
+**Configuración adicional**
+
+Haz clic con el botón derecho en el nodo para acceder a la configuración adicional:
+- Configura el nodo para que siempre **seleccione automáticamente** todos los elementos que se muestran en el panel del nodo.
+
+A continuación, utilice el nodo **Consultar objetos** para recuperar los objetos que contiene la colección desde rutas específicas.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_queryobjects.jpg" />
+</Frame>
+
+**Entradas**
+1. Añada una entrada **Colección** con la colección Speckle de la que desea recuperar los objetos.
+
+2. Añada una entrada **Rutas** con la lista de cadenas de ruta de la que desea recuperar los objetos. Esta suele ser la salida del nodo Selector de colección.
+
+**Resultados**
+1. La salida **Objetos** contiene todos los objetos Speckle dentro de la entrada Colección que se encuentran en las rutas de subcolección especificadas.
+
+Si accedes con frecuencia a las mismas subcolecciones en varios modelos, puedes crear un [nodo reutilizable](/connectors/grasshopper/grasshopper-recommendations#create-reusable-project-components-with-grasshopper-user-objects) con tus nodos Selector de colecciones y Objetos de consulta para recuperar objetos específicos.
+
+**Opción 3: Utilizar el nodo Expandir colección para obtener subcolecciones y objetos de forma secuencial**
+
+Si desea recorrer su colección nivel por nivel, utilice el nodo **Expandir colección**.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_expandcollection.jpg" />
+</Frame>
+
+**Entradas**
+1. Añada una entrada **Colección** de la colección que desea expandir.
+
+**Resultados**
+1. Se generará un resultado para cada subcolección directa de la colección de entrada que contenga elementos. Los valores de salida serán los elementos dentro de cada subcolección: objetos o colecciones. Si la colección de entrada contiene tanto objetos como subcolecciones, los objetos se mostrarán en el parámetro `_objects`.
+
+**Configuración adicional**
+
+Haz clic con el botón derecho en un parámetro de salida para acceder a configuraciones adicionales: - Selecciona **Extraer parámetro** para crear automáticamente un nuevo nodo de parámetro con el valor y el nombre del parámetro de salida.
+
+## Colecciones de horneado y fundición
+
+El parámetro **Collection** permite generar y convertir tipos a otros tipos nativos de Grasshopper. Estas conversiones se pueden realizar tanto desde el nodo del parámetro como desde el parámetro de salida de otro componente.
+
+### Colecciones de repostería
+
+En cualquier parámetro de Colección, haga clic con el botón derecho > seleccione Hornear para hornear las Colecciones en el documento Rhino actual como capas, con:
+
+- Ruta completa (las colecciones principales se generarán como capas principales)
+- Nombre
+- Color
+- Material (si corresponde)
+- Elementos contenidos, incluyendo objetos y subcolecciones (si las hay)
+
+### Colecciones de casting
+
+Las colecciones se pueden conectar a cualquiera de los siguientes parámetros o recibir de ellos, lo que permite utilizarlos indistintamente:
+
+- (Rhino 8+) Capas de modelo de Rhino. El proceso de fundición conserva el nombre, el color, el material y el GUID.
