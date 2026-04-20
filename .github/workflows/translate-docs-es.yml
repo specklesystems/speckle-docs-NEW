@@ -1,0 +1,132 @@
+# Machine-translate English MDX into es/ mirror paths (Google Cloud Translation API v2).
+# - Manual: workflow_dispatch with explicit paths.
+# - On merge to main: only .mdx files *added* in that merge (diff-filter=A vs first parent).
+#
+# Output is draft quality — human review before merging translation PRs.
+
+name: Translate docs to Spanish (draft)
+
+on:
+  workflow_dispatch:
+    inputs:
+      paths:
+        description: Space-separated page paths without .mdx (e.g. beta/new-frontend-beta quickstart/welcome)
+        required: true
+        default: beta/new-frontend-beta
+      branch_name:
+        description: Branch name for the PR
+        required: true
+        default: i18n/es-machine-draft
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: translate-docs-es
+  cancel-in-progress: true
+
+jobs:
+  translate:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+        github.event.pull_request.merged == true &&
+        github.event.pull_request.base.ref == 'main')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (manual)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+
+      - name: Checkout (merged PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+
+      - name: Resolve page paths to translate
+        id: resolve
+        shell: bash
+        run: |
+          set -eo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "paths=${{ inputs.paths }}" >> "$GITHUB_OUTPUT"
+            echo "empty=false" >> "$GITHUB_OUTPUT"
+            echo "mode=manual" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+          PARENT1="$(git rev-parse "${MERGE_SHA}^1")"
+          added="$(git diff --name-only --diff-filter=A "$PARENT1" "$MERGE_SHA" \
+            | grep -E '\.mdx$' \
+            | grep -vE '^es/' \
+            || true)"
+
+          paths=()
+          while IFS= read -r f || [[ -n "${f:-}" ]]; do
+            [[ -z "${f:-}" ]] && continue
+            paths+=("${f%.mdx}")
+          done <<< "${added}"$'\n'
+
+          if [[ ${#paths[@]} -eq 0 ]]; then
+            echo "paths=" >> "$GITHUB_OUTPUT"
+            echo "empty=true" >> "$GITHUB_OUTPUT"
+            echo "mode=pr_merge" >> "$GITHUB_OUTPUT"
+            echo "No new English .mdx files in this merge; skipping translation."
+            exit 0
+          fi
+
+          joined="$(printf '%s ' "${paths[@]}")"
+          joined="${joined%% }"
+          echo "paths=${joined}" >> "$GITHUB_OUTPUT"
+          echo "empty=false" >> "$GITHUB_OUTPUT"
+          echo "mode=pr_merge" >> "$GITHUB_OUTPUT"
+          echo "Will translate: ${joined}"
+
+      - name: Translate MDX files
+        if: steps.resolve.outputs.empty != 'true' && steps.resolve.outputs.paths != ''
+        env:
+          GOOGLE_CLOUD_TRANSLATE_API_KEY: ${{ secrets.GOOGLE_CLOUD_TRANSLATE_API_KEY }}
+        run: node scripts/translate-mdx-to-es.mjs ${{ steps.resolve.outputs.paths }}
+
+      - name: Create pull request (manual)
+        if: github.event_name == 'workflow_dispatch'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: ${{ inputs.branch_name }}
+          title: 'i18n(es): machine translation draft'
+          body: |
+            Automated draft Spanish (`es/`) using Google Cloud Translation API.
+
+            **Before merge**
+            - [ ] Latin American Spanish review (glossary, UI terms)
+            - [ ] MDX / Mint components render (`pnpm dev` or Mintlify preview)
+
+            Triggered paths: `${{ inputs.paths }}`
+          commit-message: 'i18n(es): machine translation draft'
+
+      - name: Create pull request (new docs from merged PR)
+        if: github.event_name == 'pull_request' && steps.resolve.outputs.empty != 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: i18n/es-auto-pr-${{ github.event.pull_request.number }}
+          title: 'i18n(es): translate new pages from PR #${{ github.event.pull_request.number }}'
+          body: |
+            Automated draft Spanish (`es/`) for **new** English `.mdx` files introduced when [PR #${{ github.event.pull_request.number }}](${{ github.event.pull_request.html_url }}) merged into `main`.
+
+            **Before merge**
+            - [ ] Latin American Spanish review (glossary, UI terms)
+            - [ ] MDX / Mint components render
+            - [ ] Add new `es/…` entries to `docs.json` navigation if these pages are not yet linked (see `.github/TRANSLATE_ES.md`)
+
+            Paths: `${{ steps.resolve.outputs.paths }}`
+          commit-message: 'i18n(es): translate new pages from PR #${{ github.event.pull_request.number }}'
