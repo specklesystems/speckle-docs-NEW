@@ -1,0 +1,121 @@
+---
+title: "Navisworks"
+noindex: true
+---
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx'
+import LegacyVersions from '/snippets/es/legacy-versions.mdx'
+
+<LegacyWarning connector="Navisworks" /> 
+<LegacyVersions app="Navisworks" versions="2020, 2021, 2022, 2023 & 2024" />
+
+## Empezando
+
+Para instalar Navisworks Connector y agregar su cuenta Speckle, proceda siguiendo las instrucciones en [Speckle Manager](/legacy/user/manager).
+
+Una vez instalado, puede encontrar el conector de Navisworks en el menú de la cinta, en la pestaña **Speckle**, de la siguiente manera:
+
+<Frame>
+<img src="https://user-images.githubusercontent.com/760691/231277506-a539c3e0-17e2-43a7-8b1e-2d01909ec77b.png" alt="cinta moteada-navisworks" />
+</Frame>
+
+### Filtros de selección
+
+Para ayudarte a seleccionar qué elementos se enviarán a Speckle, hemos integrado varios filtros en nuestro conector de Navisworks. Una vez configurado un filtro, solo tienes que hacer clic en **Enviar** y todos los objetos que cumplan con dicho filtro se enviarán a tu proyecto de Speckle.
+
+_Nota: Los elementos solo se envían si son visibles._
+
+<Frame>
+<img src="https://user-images.githubusercontent.com/760691/231277784-667e4899-e1f8-4753-a23c-96d9e5557c9a.png" alt="filtros de selección de Navisworks" />
+</Frame>
+
+Al abrir una tarjeta de flujo, los objetos seleccionados se convierten por defecto en los elementos destinados a ser enviados. Esto se puede restablecer.
+
+<Frame>
+  <img src="https://user-images.githubusercontent.com/760691/231278189-3a228391-d16b-4048-b383-3d8d4b784674.png" alt="Selección de conjuntos de Navisworks" />
+</Frame>
+
+#### Filtro de vista guardada
+
+El filtro de vista funciona de forma similar al de categoría y permite incluir todos los elementos visibles en una o más vistas.
+
+<Frame>
+  <img src="https://user-images.githubusercontent.com/760691/231277894-c74ecec6-c18b-41eb-8758-be42aeac2c56.png" alt="Filtro de vista guardada de Navisworks" />
+</Frame>
+
+Esto solo será visible si su modelo tiene vistas guardadas con la opción Ocultar/Requerido seleccionada.
+
+<Frame>
+  <img src="https://user-images.githubusercontent.com/760691/231278551-50625f13-4a2f-467e-a638-526c3b07497f.png" alt="Vista guardada válida de Navisworks" />
+</Frame>
+
+#### Filtro de conjunto de selección
+
+El filtro de conjunto de selección le permite seleccionar uno o más conjuntos de selección o búsquedas guardadas del modelo actual.
+
+Esto solo será visible si su modelo tiene conjuntos de selección o búsquedas guardadas.
+
+<Frame>
+  <img src="https://user-images.githubusercontent.com/760691/231278069-23ad3ec5-429d-46fb-bd53-54459b39aa5a.png" alt="Filtro de selección de Navisworks" />
+</Frame>
+
+### Modos de recepción
+
+Actualmente, no se admite la recepción de geometría en Navisworks. Sin embargo, puede recibir datos en un modelo de Revit o Rhino y luego abrir el modelo en Navisworks.
+
+### Limitaciones actuales
+
+Navisworks genera gran cantidad de datos, y el conector Speckle Navisworks aún se encuentra en sus primeras etapas. Por lo tanto, existen algunas limitaciones que debe tener en cuenta:
+- Es posible que el envío no se complete al primer intento. Si esto sucede, inténtelo de nuevo.
+
+- Solo se puede enviar una vista a la vez.
+
+- No se admite el envío con un solo clic. Debe seleccionar un filtro primero.
+
+### Niveles y colecciones
+
+Cuando un modelo de Navisworks tiene niveles diferenciados, estos se encontrarán en las confirmaciones de Speckle como una colección, al igual que cualquier otro tipo de colección. No se realiza ninguna fusión de niveles entre colecciones. Esto se debe a que Navisworks no tiene un concepto de niveles bien definido. Básicamente, la jerarquía de los datos de Speckle coincidirá con la jerarquía de los elementos seleccionados.
+
+## Datos de Navisworks y BIM
+
+Al enviar datos desde Navisworks, Speckle convertirá todas las propiedades BIM integradas junto con los metadatos generados durante la conversión de formatos nativos a Navisworks. Esto incluye rutas de archivo, identificadores de elementos, tipos de elementos, etc.
+
+La información BIM de los objetos se almacena en la propiedad `properties` del objeto. Esta es un diccionario de pares clave-valor, donde la clave es el nombre del parámetro y el valor es el valor del parámetro. No existe ningún concepto más allá de Objeto+Datos en los datos enviados.
+
+<Note>
+Todos los parámetros se almacenan utilizando sus <b>Nombres de visualización de usuario</b>.
+</Note>
+
+Para explorar fácilmente los datos y parámetros de un objeto, nuestra interfaz web Speckle puede ser de gran ayuda. Lo mismo ocurre con cualquier otra aplicación que permita explorar los metadatos del objeto (por ejemplo, Grasshopper, Dynamo, Unity, etc.).
+
+<Frame>
+  <img src="https://user-images.githubusercontent.com/51519350/186416982-15eb496a-18fc-4782-b1d2-a6df01e9a5ed.png" alt="datos web-bim" />
+</Frame>
+
+## Configuración avanzada
+
+La página de "Configuración avanzada" le permite personalizar el comportamiento de Speckle "para cada flujo".
+
+<Frame>
+  <img src="https://user-images.githubusercontent.com/760691/231278734-bd54c648-eef5-456d-a035-ddb046e896eb.png" alt="Configuración avanzada de Navisworks" />
+</Frame>
+
+### Punto de referencia
+
+Permite al usuario especificar qué punto de referencia debe utilizarse al enviar datos.
+
+Las opciones disponibles son:
+
+- **Origen del modelo** (opción predeterminada)
+- **Coordenadas de la base del proyecto**
+- **Origen del cuadro delimitador**
+
+Los datos de entrada de coordenadas XY son válidos para definir la opción de coordenadas base del proyecto.
+
+### Unidades de coordenadas
+
+Permite al usuario especificar las unidades de las coordenadas enviadas a Speckle.
+
+### Incluir vista
+
+Permite al usuario especificar si la vista activa actual debe incluirse en los datos que se envían a Speckle.

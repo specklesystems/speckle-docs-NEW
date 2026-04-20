@@ -1,0 +1,137 @@
+---
+title: "Unidad"
+noindex: true
+---
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx'
+
+Nuestro conector Unity se diferencia de los demás conectores descritos en nuestra Guía del Usuario;
+Tiene una interfaz de usuario sencilla y carece de algunas de las comodidades presentes en otros conectores.
+Sin embargo, ofrece varios componentes Unity para enviar y recibir datos de Speckle, y permite a los desarrolladores crear fácilmente sus propios componentes y funcionalidades.
+
+Además de esta página, también deberías consultar nuestra documentación para desarrolladores.
+
+<Frame>
+  <img src="/images/legacy/unity/unity-example.gif" alt="Ejemplo de unidad" />
+</Frame>
+
+## Empezando
+
+Antes de usar este conector, deberá seguir nuestras instrucciones de configuración estándar para instalar Speckle Manager y agregar una cuenta de Speckle. Después de esto, puede proceder a clonar el repositorio de Speckle Unity en GitHub (https://github.com/specklesystems/speckle-unity).
+
+El repositorio contiene una escena de ejemplo llamada `SpecklePlayground` que muestra un ejemplo dentro del juego de cómo enviar y recibir datos desde tu cuenta Speckle predeterminada.
+
+El ejemplo es mínimo, pero demuestra lo que se puede lograr usando el conector Speckle para Unity.
+
+## Instalación del paquete
+
+Para instalar el conector en tu propio proyecto de Unity, en lugar de usar el proyecto de ejemplo (ver más arriba), abre el Administrador de paquetes (`Windows -> Administrador de paquetes`) y selecciona **Agregar paquete desde URL de Git**.
+
+<Frame>
+  <img src="/images/legacy/unity/unity_install_git.png" width="50%" alt="Unity instala Git" />
+</Frame>
+
+Pega la siguiente URL:
+``` https://github.com/specklesystems/speckle-unity.git?path=/Packages/systems.speckle.speckle-unity
+```
+
+Una vez instalado el paquete, debe seguir los pasos que se indican en [Configuración del proyecto](legacy/user/unity#project-setup) para poder compilar su proyecto correctamente.
+
+## Tiempo de edición: envío y recepción
+
+### Recepción
+Para recibir datos directamente del editor, simplemente añade el componente `SpeckleReceiver.cs` a un GameObject; en el inspector podrás seleccionar cuentas, flujos, ramas y confirmaciones.
+
+<Frame>
+  <img src="/images/legacy/unity/unity_stream_manager_inspector.png" width="50%" alt="Captura de pantalla del inspector de componentes SpeckleReceiver" />
+</Frame>
+
+Cuando se activa la opción `Generar recurso`, se generan recursos de malla, material y prefab en la carpeta `Recursos`.
+
+### Enviando
+
+Para enviar datos directamente desde el editor, simplemente añade el componente `SpeckleSender.cs` a un GameObject.
+
+<Frame>
+  <img src="/images/legacy/unity/unity_stream_manager_inspector_sender.png" width="50%" alt="Captura de pantalla del inspector de componentes SpeckleSender" />
+</Frame>
+
+Con el menú desplegable Selección, puedes alternar entre enviar:
+- **Hijos**: Todos los hijos de este GameObject.
+
+- **Selección**: Selección del editor (quizás quieras bloquear el inspector para evitar que cambie).
+
+- **Todos (excepto los deshabilitados)**: Todos los objetos habilitados en la escena actual.
+
+- **Todos (incluidos los deshabilitados)**: Todos los objetos en la escena actual.
+
+## Envío y recepción de tiempo de juego
+
+### Recepción
+
+Para recibir datos, consulte la clase [`Receiver.cs`](https://github.com/specklesystems/speckle-unity/blob/main/Packages/systems.speckle.speckle-unity/Runtime/Components/Deprecated/Receiver.cs) en `Assets\Speckle Connector`. Esta es simplemente una envoltura de métodos en Core; a continuación se muestra un ejemplo de uso:
+
+```csharp
+var receiver = myGameObject.AddComponent<Receiver>();
+receiver.Init(projectId);
+receiver.Receive();
+```
+
+El método `Init()` acepta argumentos opcionales adicionales para usar diferentes cuentas, recibir actualizaciones automáticamente, eliminar objetos antiguos, informar sobre el progreso y los errores, etc. Consulte el [código fuente](https://github.com/specklesystems/speckle-unity/blob/main/Packages/systems.speckle.speckle-unity/Runtime/Components/Deprecated/Receiver.cs) para obtener una lista completa.
+
+### Enviando
+
+Para enviar datos, consulte la clase [`Sender.cs`](https://github.com/specklesystems/speckle-unity/blob/c567228c4d5ad71b48f4911cfae3cada5c2e1c70/Packages/systems.speckle.speckle-unity/Runtime/Components/Deprecated/Sender.cs) en `Assets\Speckle Connector`. Esta es simplemente una envoltura de métodos en Core; a continuación se muestra un ejemplo de uso:
+
+```csharp
+var sender = myGameObject.AddComponent<Sender>();
+sender.Send(projectId, objs);
+```
+
+El método `Send()` acepta argumentos opcionales adicionales para usar diferentes cuentas, informar sobre el progreso y los errores, etc. Consulte el [código fuente](https://github.com/specklesystems/speckle-unity/blob/c567228c4d5ad71b48f4911cfae3cada5c2e1c70/Packages/systems.speckle.speckle-unity/Runtime/Components/Deprecated/Sender.cs) para obtener una lista completa.
+
+### Metadatos y propiedades personalizadas
+
+La geometría por sí sola no es muy divertida, por eso hemos facilitado la transferencia de datos BIM y personalizados junto con tus objetos.
+
+Al recibir datos, se adjunta un componente `SpeckleProperties` a cada objeto. Dentro de este componente hay un `Dictionary<string,object>` llamado `Data` que contiene todos los metadatos provenientes de Speckle. El proceso es similar al enviar datos: si algún objeto tiene un componente `SpeckleProperties` adjunto, este se utilizará.
+
+Estos datos son visibles desde el inspector (solo lectura).
+Estos datos son totalmente accesibles desde el código (lectura/escritura), como se muestra a continuación:
+```cs
+SpeckleProperties props = myGameObject.GetComponent<SpeckleProperties>();
+
+// props.Data es un IDictionary<string, object>
+
+// Puedes comprobar una propiedad de esta manera:
+if(pros.Data.ContainsKey("area")
+
+&& Data["area"] is int area)
+{
+Debug.Log(area);
+}
+
+//Y añade una propiedad como esta:
+pros.Data.Add("area", 250);
+
+```
+
+### Materiales
+
+Hemos incluido soporte básico para materiales en Speckle y en algunos de nuestros conectores.
+
+Al recibir datos, los conectores de Unity primero comprueban si existe en la escena un sombreador que coincida con el material del objeto entrante (por nombre). Si no se encuentra ninguna coincidencia, Speckle intentará crear un material básico con el mismo color y transparencia. Si un objeto entrante no tiene ningún material configurado, se aplicará un material predeterminado.
+
+## Configuración del proyecto
+
+Para compilar correctamente un proyecto utilizando el conector de Unity, asegúrese de lo siguiente:
+
+* Incluye los sombreadores `Estándar` y `Difuso` en la configuración del proyecto. Para ello, agrégalos en `Configuración del proyecto → Gráficos → Configuración de sombreadores integrados → Sombreadores siempre incluidos`.
+
+<Frame>
+
+<img src="/images/legacy/unity/shader.png" width="50%" alt="sombreador" />
+
+</Frame>
+
+Ten en cuenta que estos pasos ya se han aplicado al proyecto de ejemplo **Speckle Playground**.

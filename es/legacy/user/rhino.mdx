@@ -1,0 +1,191 @@
+---
+title: "Rinoceronte"
+noindex: true
+---
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx'
+
+<LegacyWarning connector="Rhino" />
+
+<Note>
+Hemos renombrado algunos conceptos clave en Speckle para que sean más fáciles de entender.
+
+- Los flujos se han renombrado a proyectos.
+- Las ramas se han renombrado a modelos.
+- Las confirmaciones se han renombrado a versiones.
+</Note>
+
+## Empezando
+
+Para instalar este conector y añadir tu cuenta de Speckle, sigue las instrucciones de la sección Gestor de Speckle.
+
+Actualmente, Speckle es compatible con Rhino 6 y Rhino 7.
+
+Una vez instalado, puede encontrar el conector ejecutando el comando `Speckle` en Rhino. Esto debería abrir una nueva ventana emergente con la interfaz de usuario de escritorio (la versión anterior de Speckle utilizaba el comando `SpecklePanel` para esto).
+
+<Frame>
+  <img src="/images/legacy/rhino/rhino-speckle-command.png" alt="Comando de moteado" />
+</Frame>
+
+## Interfaz de usuario
+
+Este conector utiliza nuestra interfaz de usuario de escritorio compartida.
+
+Una vez abierto el panel de la interfaz de usuario de escritorio, cree un nuevo proyecto (o añada uno existente) al archivo actual. Al guardar el archivo `.3dm` de Rhino, también se guardarán los proyectos asociados.
+
+### Enviando
+
+El envío de objetos a Speckle se puede realizar de varias maneras.
+
+- El método predeterminado envía «Todo» desde Rhino. Esto incluye todos los objetos del documento y la información del proyecto.
+
+<Frame>
+
+<img src="https://user-images.githubusercontent.com/51519350/187154289-8bbb5ff6-8e86-4adc-bd16-110025e2b78a.gif" alt="Enviar todo" />
+
+</Frame> - La opción «Capas» enviará los objetos de las capas seleccionadas.
+<Frame>
+
+<img src="https://user-images.githubusercontent.com/51519350/187154488-db2a5a2c-ee20-46cc-b115-5bd5c4732622.gif" alt="Enviar capas" />
+
+</Frame> - `Información del proyecto` agrega la información del proyecto seleccionado como vistas al proyecto.
+
+<Frame>
+
+<img src="https://user-images.githubusercontent.com/51519350/187154964-a3d05c4d-2f94-4133-8aac-691d62cf8674.gif" alt="Enviar información del proyecto" />
+
+</Frame>
+- `Selección` envía solo los objetos seleccionados.
+<Marco>
+    <img src="https://user-images.githubusercontent.com/51519350/187155192-2c85a908-ffba-4e14-8d46-ec4653a92c00.gif" alt="Enviar selección" />
+  </Marco>
+
+Para los amantes de los detalles, observarán que la estructura de capas de Rhino se replica como propiedades de objeto `Base`, que se pueden recrear en el extremo receptor.
+
+### Recepción
+
+Para recibir datos de un proyecto de Speckle, primero debes agregarlo a tu documento activo. Si el proyecto ya existe en el servidor, aparecerá automáticamente en la lista. También puedes usar la barra de búsqueda para encontrar el proyecto que buscas.
+
+<Frame>
+  <img src="https://user-images.githubusercontent.com/51519350/187166411-6759734d-6335-4134-92ad-06010d1af36f.png" alt="proyecto de búsqueda de rinocerontes" />
+</Frame>
+
+Una vez añadido el proyecto, cambie al modo `Recibir`.
+
+<Frame>
+  <img src="https://user-images.githubusercontent.com/51519350/187166530-974e37fb-dcc4-48a0-a739-6a134cc94e4f.gif" alt="Cambiar al modo de recepción" />
+</Frame>
+
+Desde aquí, puede seleccionar el modelo y la versión que desea recibir. Una vez que haya terminado la selección, haga clic en el botón «Recibir». Esto mostrará una barra de progreso (igual que en la operación de envío) y, si todo sale bien, los objetos recibidos se añadirán al documento actual.
+
+<Frame>
+  <img src="https://user-images.githubusercontent.com/51519350/187166647-a18dd449-faff-4806-a4c4-e59b8a6c57a7.gif" alt="Recibir objetos" />
+</Frame>
+
+Para evitar sobrescribir capas u objetos existentes en el archivo, todos los objetos recibidos se colocarán en una estructura de capas anidadas. Esta estructura contendrá todas las capas en las que se colocaron los objetos enviados, con una capa principal cuyo nombre tendrá el formato `<NOMBRE_DEL_PROYECTO>: <NOMBRE_DEL_MODELO> @ <VERSIÓN>`.
+
+<Frame>
+  <img src="/images/legacy/rhino/rhino-stream-receive-nested-layers.png" alt="Capas de versión" />
+</Frame>
+
+En la captura de pantalla anterior, puedes ver la diferencia entre:
+
+1. Las capas originales de los objetos enviados.
+2. Las capas creadas por Speckle al recibir los datos.
+
+También podrá observar la superposición de los objetos recibidos (en gris) con los objetos originales (en azul y rojo).
+
+<Frame>
+  <img src="/images/legacy/rhino/rhino-stream-receive-layers.png" alt="Patrón de capas recibidas" />
+</Frame>
+
+## Rhino Mapper
+
+Speckle 2.0 te permite etiquetar la geometría de Rhino como elementos BIM de Speckle, ¡así que puedes enviar objetos como líneas y superficies como vigas y forjados! Esto significa que puedes importar tu geometría de Rhino directamente como elementos de familia nativos de Revit 💥
+
+<Frame>
+  <img src="https://user-images.githubusercontent.com/51519350/187174018-fe346d28-3ab2-49ec-b9e6-c3c3d193cfa9.gif" alt="RhinoMapper" />
+</Frame>
+
+### Empezando
+
+Abra el panel Rhino Mapper haciendo clic en el botón Speckle Mapper de la barra de herramientas Speckle, o utilizando el comando `SpeckleMappings`.
+
+<Frame>
+  <img src="/images/legacy/rhino/BIM/toolbar.png" alt="barra de herramientas" />
+</Frame>
+
+<Tip>
+Si es la primera vez que instala el conector Speckle, es posible que deba cargar la barra de herramientas accediendo a Opciones > Barras de herramientas > SpeckleConnectorRhino y, a continuación, asegurándose de que la casilla de verificación Speckle2 esté seleccionada.
+</Tip>
+
+### Características
+
+Asignar o eliminar etiquetas BIM de Speckle a objetos geométricos es sencillo:
+
+1. Seleccione la geometría que desea asignar a un elemento BIM.
+2. (Opcional) Haga clic en «Elegir proyecto» para seleccionar el modelo del proyecto Speckle que contiene sus familias y niveles de Revit. Si no se selecciona ninguno, se utilizará una asignación predeterminada, si está disponible.
+
+3. Haga clic en «Aplicar asignaciones».
+
+<Frame>
+  <img src="/images/legacy/rhino/BIM/ui.png" alt="interfaz de usuario" />
+</Frame>
+
+Rhino Mapper gestiona las asignaciones BIM asignando a los objetos geométricos la propiedad `Attribute User Text` si se han marcado como elementos BIM al enviarlos a un proyecto. Puedes ver qué objetos de tu modelo se han asignado en la parte inferior de la interfaz de usuario de Speckle Mapper.
+
+Para eliminar una asignación, haga clic en la casilla de verificación junto a la asignación existente y, a continuación, haga clic en «Borrar asignaciones».
+
+<Frame>
+  <img src="/images/legacy/rhino/BIM/remove-mapping.png" alt="eliminar" />
+</Frame>
+
+<Note>
+Si al seleccionar un objeto geométrico no aparecen opciones de mapeo, significa que actualmente no hay mapeos compatibles para ese objeto. Si cree que debería haberlos, envíenos sus comentarios mediante el botón de comentarios situado en la esquina superior derecha.
+</Note>
+
+##### **Creando muros**
+
+Las paredes se pueden mapear con tres opciones diferentes, dependiendo del tipo de geometría de superficie que haya seleccionado:
+
+- Para superficies individuales planas verticalmente, puede mapear una pared mediante su curva de perfil o su curva base.
+
+- Para superficies individuales no planas, puede mapear una pared como una `FaceWall`.
+
+- La opción de pared predeterminada generará un esquema de pared mediante la curva base de la superficie.
+
+##### **Creación de pisos**
+
+Los suelos se pueden mapear a superficies planas _xy_. Cualquier moldura interior en estas superficies se mapeará como un hueco en el suelo.
+
+##### **Creando columnas**
+
+Las columnas se pueden asignar a cualquier curva lineal.
+
+##### **Creación de haces**
+
+Los haces se pueden asignar a cualquier _curva_.
+
+##### **Creación de tuberías**
+
+Las tuberías se pueden asignar a cualquier curva lineal.
+
+##### **Creación de conductos**
+
+Los conductos se pueden mapear a cualquier curva lineal.
+
+##### **Creación de topografía**
+
+La topografía se puede mapear a _mallas abiertas_.
+
+##### **Creación de DirectShapes**
+
+Las DirectShapes se pueden asignar a _breps_ y _meshes_.
+
+##### **Creación de elementos de forma libre**
+
+Los elementos de forma libre se pueden asignar a _breps_ y _meshes_.
+
+##### **Creación de instancias familiares**
+
+Las instancias de familia se pueden asignar a instancias de bloque, utilizando su punto de inserción y transformación para la instancia de familia de Revit recibida.

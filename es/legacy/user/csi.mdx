@@ -1,0 +1,128 @@
+---
+title: "Productos CSI (ETABS, CSiBridge, SAP2000, SAFE)"
+sidebarTitle: "Productos CSI"
+noindex: true
+---
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx'
+
+<LegacyWarning connector="CSI" />
+
+import LegacyVersions from '/snippets/es/legacy-versions.mdx'
+
+<LegacyVersions app="CSI" versions="2019, 2020, 2021, 2022, 2023" />
+
+## Empezando
+
+Para instalar cualquier versión de CSI Connector y agregar su cuenta de Speckle, proceda siguiendo las instrucciones en [Speckle Manager](/legacy/user/manager).
+
+Una vez instalado, puede encontrar el conector Speckle en el menú PlugIn, en la pestaña **Herramientas**, de la siguiente manera:
+
+<Frame>
+  <img src="/images/legacy/csi/toolbar.png" alt="Barra de herramientas" />
+</Frame>
+
+<Warning>
+Si el plugin no se instaló correctamente, puede encontrar la ruta al plugin en la ruta relativa aquí: Este es un ejemplo para SAP2000, pero verá carpetas de instalación similares para otras rutas.
+
+<br />
+<code>%AppData%\Local\Computers and Structures\SAP2000\Speckle2ETABS</code>
+</Warning>
+
+### Recepción de productos CSI
+
+Primero, guarde el modelo CSI como un archivo antes de intentar recibir proyectos en su modelo CSI.
+
+## Interfaz de usuario
+
+<Note>
+🙌 <b>IMPORTANTE:</b> Este conector utiliza nuestra interfaz de usuario compartida Desktop UI2. Consulta las directrices generales de uso en la sección [Desktop UI2](https://speckle.community/t/new-desktopui-in-alpha-testing/1851/2).
+
+<br />
+<b>Los proyectos se guardan en un archivo de texto que aparecerá en tu carpeta de modelos con el nombre "Speckle". No elimines esta carpeta.</b>
+</Note>
+
+### Filtros
+
+Para ayudarte a seleccionar qué elementos se enviarán a Speckle, hemos integrado varios filtros en nuestro conector CSI. Una vez configurado un filtro, solo tienes que hacer clic en **Enviar** y todos los objetos que cumplan con el filtro se enviarán a tu proyecto. Las propiedades de sección y los materiales definidos en el modelo siempre se enviarán.
+
+<Note>
+Los elementos se envían independientemente de si son visibles o si se crearon después de configurar el filtro.
+</Note>
+
+<Frame>
+  <img src="/images/legacy/csi/etabs-ui.png" alt="ETABS" />
+</Frame>
+
+#### Filtros de selección
+
+Los filtros de selección enviarán todo lo que esté seleccionado dentro de la pantalla CSI.
+
+#### Filtros de grupo
+
+Puede crear grupos predefinidos de elementos geométricos dentro de los productos CSI para enviarlos ya dentro del grupo CSI y seleccionarlos en función de esas agrupaciones de elementos.
+
+#### Filtro de categoría
+
+El filtro de categoría le permite seleccionar una o más de las categorías CSI compatibles actualmente. Este es el filtro más detallado y también le permitirá enviar resultados. Nota: Otros filtros no le permitirán enviar resultados ni elementos y propiedades no geométricos.
+
+#### Todos los filtros
+
+Este sencillo filtro permite seleccionar todos los elementos compatibles con el conector CSI. De esta forma, se enviarán todos los elementos geométricos y sus propiedades asociadas.
+
+### Configuración avanzada
+
+Puede enviar resultados de análisis desde ETABS, y el conector ofrece un conjunto de filtros que le permiten compartir todos los resultados o solo una parte. Todos los filtros son de selección múltiple para un control flexible y granular:
+
+- **Resultados de casos de carga a enviar:** Carga muerta, Carga viva, Carga modal
+- **Resultados de nodos a enviar:** Desplazamientos, Fuerzas, Velocidades, Aceleraciones
+- **Resultados de elementos 1D a enviar:** Fuerzas en vigas, Fuerzas en arriostramientos, Fuerzas en columnas, Otras fuerzas
+- **Resultados de elementos 2D a enviar:** Fuerzas, Tensiones
+
+<Frame>
+  <img src="/images/legacy/csi/advanced-settings.png" alt="ETABS" />
+</Frame>
+
+El objeto `AnalyticalResults` está adjunto a un elemento y contiene una lista de `resultsByLoadCombination` que son representaciones de los resultados analíticos que corresponden a los diferentes casos/combinaciones de carga que un usuario desea enviar.
+
+<Frame>
+  <img src="/images/legacy/csi/analytical-results.png" alt="ETABS" />
+</Frame>
+
+## Actualizando elementos
+
+El conector no se encarga de actualizar los elementos existentes dentro del proyecto. Sin embargo, los productos CSI sí reconocen si se generan elementos coincidentes y no generarán nuevos elementos que se superpongan.
+
+## Datos de Revit y BIM para productos CSI
+
+Al enviar elementos desde Revit, Speckle se encarga de convertir los datos a un formato compatible con Speckle. Si le interesa saber cómo se estructuran estos datos, consulte las definiciones de las clases del kit de objetos (https://github.com/specklesystems/speckle-sharp/tree/master/Objects/Objects/BuiltElements).
+
+Para enviar elementos de Revit específicamente a un modelo estructural, utilice los modelos analíticos generados dentro del modelo de Revit. Actualmente no existe conversión entre los kits de objetos BuiltElement y Structural, lo que significa que solo los modelos analíticos de Revit son compatibles con la conversión a CSI. Agradecemos sus comentarios sobre este flujo de trabajo.
+
+<Frame>
+  <img src="/images/legacy/csi/analytical-model.png" alt="Modelo analítico de Revit" />
+</Frame>
+
+## Productos Grasshopper a CSI
+
+El esquema para los objetos estructurales se basa en nuestra pirámide estructural de objetos. Si aún no lo ha hecho, consulte la publicación en Discourse aquí (https://speckle.community/t/introducing-structural-classes-for-speckle/1824/8) para obtener toda la información sobre este kit. Existen componentes de Grasshopper específicos para la aplicación CSI. Consúltelos y utilícelos para crear propiedades específicas, como secciones de cubierta. Si no hay un componente CSI específico, utilice el esquema estructural general para definirlas.
+
+<Frame>
+  <img src="/images/legacy/csi/structural-tool.png" alt="Esquema ETABS" />
+</Frame>
+
+Al final, todo queda encapsulado en el objeto modelo del esquema. Por lo tanto, asegúrese de definir el objeto modelo.
+
+<Frame>
+  <img src="/images/legacy/csi/model.png" alt="Modelo Grasshopper de ETABS" />
+</Frame>
+
+<Tip>
+Conviene crear un modelo CSI y practicar el envío y la recepción de ese objeto en el software antes de intentar crear un modelo directamente desde Grasshopper.
+</Tip>
+
+La creación de modelos paramétricos en Grasshopper con el esquema de objetos estructurales es compatible con CSI. Para crear perfiles de sección a partir del catálogo e importar definiciones de materiales a CSI desde cero, deberá utilizar la misma ortografía que aparece en el catálogo, como si lo estuviera importando. A continuación, encontrará un ejemplo de la ortografía utilizada.
+
+<Frame>
+  <img src="/images/legacy/csi/grasshopper-sections.png" alt="Propiedad de ETABS" />
+</Frame>

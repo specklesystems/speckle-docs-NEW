@@ -1,0 +1,930 @@
+---
+title: "Saltamontes"
+noindex: true
+---
+
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx'
+import LegacyVersions from '/snippets/es/legacy-versions.mdx'
+
+<LegacyWarning connector="Grasshopper" /> 
+<LegacyVersions app="Rhino Grasshopper" versions="v6, v7 & v8" />
+
+<Note>
+Hemos renombrado algunos conceptos clave en Speckle para que sean más fáciles de entender.
+
+- Los flujos se han renombrado a proyectos.
+- Las ramas se han renombrado a modelos.
+- Las confirmaciones se han renombrado a versiones.
+</Note>
+
+## Empezando
+
+Speckle actualmente es compatible con Grasshopper para McNeel Rhino 6 y 7. Para instalar este conector y vincular su cuenta de Speckle, asegúrese de seguir las instrucciones en [Speckle Manager](/legacy/user/manager).
+
+<img src="/images/legacy/gh/speckle-gh-main-tab.png" alt="Componentes del conector GH" />
+
+Una vez instalado, el **Grasshopper Connector** aparecerá en la pestaña `Speckle 2`, o si utiliza los iconos de las pestañas, verá nuestro nuevo logotipo de Speckle.
+
+Las siguientes categorías de componentes están destinadas a todos los usuarios:
+
+- Nodos de envío/recepción
+- Categoría Cuenta, que contiene todos los nodos relacionados con la cuenta.
+
+- Categoría Transmisión, que contiene todos los nodos relacionados con la transmisión.
+
+También hemos creado algunos componentes diseñados para usuarios avanzados y desarrolladores:
+
+- Desarrollo/Conversión: Nodos de conversión y serialización.
+
+- Desarrollo/Transportes: Los transportes se utilizan para enviar y recibir datos desde Speckle.
+
+### Pestañas de la cinta
+
+Además de los nodos en la pestaña `Speckle 2`, el conector Speckle Grasshopper también incluye una variedad de nodos específicos para crear objetos para estándares industriales específicos (como `BIM` y `Structural`) o aplicaciones específicas (como `ETABS`, `Revit` o `GSA`). Estos nodos están organizados en pestañas independientes:
+
+- **Speckle 2 BIM**
+- **Speckle 2 Revit**
+- **Speckle 2 Estructural**
+- **Speckle 2 ETABS**
+- **Speckle 2 GSA**
+
+<Tip>
+¿Demasiadas pestañas?
+
+Sabemos que el espacio de pestañas en tu cinta de opciones es valioso (ya que Grasshopper no permite el desplazamiento horizontal de pestañas...) y que, probablemente, solo necesites un par de nodos disponibles en un momento dado.
+
+Puedes elegir qué pestañas quieres mostrar en tu instancia de Grasshopper usando el menú superior `Speckle 2`.
+
+Simplemente ve a `Speckle 2 -> Pestañas` y habilita las que necesites. Por defecto, todas estas pestañas adicionales estarán desactivadas.
+
+<img src="/images/legacy/gh/gh-speckleMenu-tabs.png" alt="Menú de pestañas de Grasshopper" />
+
+**Los cambios en esta configuración surtirán efecto después de reiniciar Rhino**.
+</Sugerencia>
+
+## Transmisiones y URL
+
+En entornos de programación visual, los Speckle Streams se identifican por sus URL. En nuestros conectores Dynamo y Grasshopper verá URL en 4 formatos diferentes:
+
+- `https://app.speckle.systems/streams/3073b96e86` apunta a la rama `main` del flujo `3073b96e86`.
+- `https://app.speckle.systems/streams/3073b96e86/branches/dev` apunta a una rama llamada `dev` del flujo `3073b96e86`.
+- `https://app.speckle.systems/streams/3073b96e86/commits/604bea8cc6` apunta a una confirmación específica, `604bea8cc6`, del flujo `3073b96e86`.
+
+<Tip>
+¿No sabes qué son los _commits_ y las _branches_? 🤔
+
+¡No te preocupes! No necesitas saber qué son para usar Speckle.
+</Sugerencia>
+
+En las siguientes secciones veremos cómo se utilizan las URL de rama y de confirmación.
+
+## Envío de datos
+
+Veamos cómo enviaríamos algunos datos en Grasshopper. Primero, comencemos creando un nuevo nodo `Send`.
+
+<img src="/images/legacy/gh/image-20210322180706379.png" alt="Creación de un nuevo nodo Send en Grasshopper" />
+
+Para seleccionar la transmisión a la que desea enviar datos, simplemente pase su URL como una cadena de texto al puerto de transmisión.
+
+<img src="/images/legacy/gh/image-20210322181425413.png" alt="Agregar URL de transmisión al nodo Enviar" />
+
+Como alternativa, también puede utilizar uno de los siguientes nodos para crear o recuperar flujos existentes:
+
+- [Crear flujo](/legacy/user/grasshopper#create-stream)
+- [Obtener flujo](/legacy/user/grasshopper#get-stream)
+- [Listar flujos](/legacy/user/grasshopper#list-streams)
+
+<Note>
+Si bien puedes enviar datos a flujos y ramas, no puedes enviarlos a una confirmación específica. Esto se debe a que las confirmaciones representan tu flujo en un momento determinado. Por lo tanto, todo lo que se envía a Speckle ya es una confirmación.
+
+¿Quieres editar una confirmación antigua? Simplemente vuelve a enviar los datos y usa la nueva confirmación.
+</Note>
+
+#### Agregar objetos
+
+Para seleccionar los objetos que se enviarán en Grasshopper, basta con conectar los nodos deseados a la entrada `Data` del nodo `Send`. El remitente admite cualquier tipo de datos, en cualquier estructura (elemento, lista, árbol de datos), y convertirá cualquier objeto Rhino compatible a un formato compatible con Speckle cuando sea necesario.
+
+#### Añadiendo un mensaje de confirmación
+
+Aunque no es obligatorio, es recomendable añadir un mensaje de confirmación al enviar datos, especialmente si se trabaja en equipo. Este mensaje debe describir brevemente los cambios realizados.
+
+Puedes añadir un mensaje de confirmación enviando un texto al puerto `message`.
+
+El mensaje de confirmación será visible en Speckle Web (donde también podrás editarlo).
+
+#### Enviando
+
+Una vez que hayas alineado tus objetos (y opcionalmente hayas escrito un mensaje de confirmación), lo único que queda por hacer es presionar el botón **Enviar**.
+
+![gh-send](/images/legacy/gh/gh-send.gif)
+
+<Tip>
+Para ver los datos que acabas de enviar en Grasshopper, haz clic derecho en el nodo «Enviar» y selecciona la opción «Ver confirmación...». Esto abrirá una nueva ventana del navegador cargando la URL del flujo. Puedes compartir esa URL con tus colaboradores para que reciban los datos.
+
+<img src="/images/legacy/gh/image-20210322182801307.png" alt="Ver confirmación en el menú contextual del nodo Enviar" />
+</Tip>
+
+### Envío automático
+
+Al hacer clic con el botón derecho en el nodo, puede activar o desactivar el envío automático. Si está activado, los datos se enviarán automáticamente cada vez que cambien.
+
+![imagen](https://user-images.githubusercontent.com/2679513/139331715-86d102dd-fa0b-4854-bc75-764e005b0559.png)
+
+### Envío a una rama específica
+
+Cuando se hace referencia a una transmisión mediante su URL, la rama `main` se utiliza para enviar y recibir datos de forma predeterminada.
+
+Para seleccionar una rama específica, simplemente utilice la URL de la rama, como por ejemplo: `https://app.speckle.systems/streams/3073b96e86/branches/dev`.
+
+## Recepción de datos
+
+Recibir datos es muy sencillo. Solo necesitas un nodo `Receive` y una URL de transmisión.
+
+![gh-receive](/images/legacy/gh/gh-receive.gif)
+
+Cuando se envían nuevos datos a este flujo, aparecerá una notificación en el nodo receptor que destacará este hecho.
+
+### Recepción automática
+
+Al hacer clic con el botón derecho en el nodo, puede activar o desactivar la recepción automática. Si está activada, los nuevos datos que se envíen a este flujo se descargarán automáticamente en cuanto estén disponibles.
+
+<img src="/images/legacy/gh/image-20210322183400126.png" alt="Activar/desactivar la recepción automática en el menú contextual del nodo Recibir." />
+
+### Recibiendo una rama específica
+
+Cuando se hace referencia a una transmisión mediante su URL, la rama `main` se utiliza para enviar y recibir datos de forma predeterminada.
+
+Para recibir datos de una rama específica, simplemente utilice la URL de la rama, como por ejemplo: `https://app.specke.systems/streams/3073b96e86/branches/dev`.
+
+### Recibir una confirmación específica
+
+Como hemos visto, puedes recuperar datos tanto del nivel de "flujo" como del nivel de "rama". Incluso es posible recuperar datos de confirmaciones específicas. Para ello, simplemente usa la URL de la confirmación, como por ejemplo: `https://app.speckle.systems/streams/3073b96e86/commits/604bea8cc6`.
+
+<Note>
+Al recibir una confirmación, el nodo dejará de mostrar notificaciones sobre nueva actividad en dicho flujo y se desactivará la opción de recepción automática.
+</Note>
+
+### Recibir un objeto específico
+
+Finalmente, también puedes recibir un objeto específico en una confirmación. Para ello, simplemente usa la URL de la confirmación, por ejemplo: `https://app.speckle.systems/streams/3073b96e86/objects/df7b8bafccefa791d82939dd36541189`. Los objetos no se pueden editar, por lo que los datos recibidos mediante esta URL siempre serán consistentes.
+
+Puedes encontrar el ID de un objeto en la interfaz web de Speckle:
+
+<img src="/images/legacy/dyn/image-20210322185007725.png" />
+
+## Creación de objetos personalizados
+
+Un objeto personalizado es un objeto base con propiedades personalizadas asignadas. Básicamente, es una estructura de datos personalizada que puedes crear para enviar datos en un formato específico que tú definas.
+
+Existen varias formas diferentes de crear objetos de moteado personalizados utilizando Grasshopper. Una de ellas es mediante el nodo `Create Speckle Object`.
+
+<img src="/images/legacy/gh/nodes-create-object.png" />
+
+Este nodo es de tipo parámetro variable, lo que significa que si amplías la sección de entradas, verás un signo +/- que te permitirá añadir o eliminar propiedades del objeto. Cada entrada que definas representará una nueva propiedad del objeto. También puedes modificar el nombre de estas propiedades, así como su tipo de acceso.
+
+#### Modificación del tipo de acceso
+
+El tipo de acceso funciona de la misma manera que los componentes de script de `Python` y `C#`. En este caso, puede especificar si desea que una propiedad específica del objeto sea una lista o un solo elemento.
+
+<img src="/images/legacy/gh/menu-listAccess.gif" alt="Menú de tipo de acceso" />
+
+<Warning>
+Elegir el tipo de acceso incorrecto para sus datos puede dar lugar a la generación de datos duplicados.
+</Warning>
+
+#### Desconectar/No desconectar
+
+Cada propiedad también puede especificarse como _desvinculada_ o no desvinculada_. Cuando una propiedad es _desvinculada_, significa que los objetos que contiene se guardarán como entidades independientes en la base de datos de Speckle. Todas las propiedades están desvinculadas por defecto por motivos de rendimiento, pero puede optar por no hacerlo seleccionando `No desvincular` en el menú contextual. Los tipos primitivos (int/double/bool, etc.) nunca se desvinculan, incluso si están marcados como tales.
+
+¿Quieres profundizar en la función Detach/Do Not Detach? Consulta la API de descomposición.
+
+![Desconectar/No desconectar](/images/legacy/gh/menu-DoNotDetach.gif)
+
+#### Opcional
+
+Cada propiedad también puede marcarse como _opcional_. Esto le permitirá crear nuevos objetos con datos _incompletos_.
+
+Nota: Este comportamiento tiene una limitación. Al menos una de las entradas del nodo debe ser obligatoria.
+
+![Menú opcional](/images/legacy/gh/menu-Optional.gif)
+
+<Tip>
+Al activar cualquiera de las opciones anteriores, se mostrará el icono correspondiente en el parámetro, de forma muy similar a las opciones `Injertar/Aplanar/Simplificar`.
+
+<img src="/images/legacy/gh/menu-stateTags.png" alt="Etiquetas de estado" />
+</Tip>
+
+#### Cambiar el nombre de las entradas
+
+Todos los campos de entrada se pueden renombrar siguiendo el procedimiento habitual de Grasshopper. Simplemente haga clic con el botón derecho en el campo que desea renombrar y escriba un nuevo nombre en el primer campo del menú emergente.
+
+![Cambio de nombre de entrada clásica](/images/legacy/gh/gh-cso-rename-classic.gif)
+
+La mayoría de las veces, los usuarios de Grasshopper ya habrán nombrado algunas de sus conexiones de entrada, y puedes heredar esos nombres en tu entrada de varias maneras:
+
+1. Utilice la opción «Heredar nombres» en el menú contextual (clic derecho) de cada entrada.
+
+![Opción «Heredar nombres» del menú contextual](/images/legacy/gh/gh-cso-rename-menu.gif)
+2. Haga doble clic en la entrada mientras mantiene pulsada la tecla «Shift».
+
+![Atajo: Shift + doble clic en «Heredar nombres»](/images/legacy/gh/gh-cso-rename-shiftdoubleclick.gif)
+3. Arrastre una nueva conexión al parámetro mientras mantiene pulsada la tecla «Tab».
+
+![Atajo: Tab + arrastrar la conexión para «Heredar nombres»](/images/legacy/gh/gh-cso-rename-tabdrag.gif)
+
+<Tip>
+Todas las opciones de cambio de nombre y los atajos están disponibles en cualquier otro nodo speckle de "entrada variable", como por ejemplo:
+
+- Nodo de envío
+- Objeto moteado extendido
+</Sugerencia>
+
+## Grasshopper BIM
+
+Speckle 2.0 te permite crear _elementos BIM Speckle_ a partir de la geometría de Rhino, ¡así que puedes enviar objetos como líneas y superficies como vigas y forjados! Esto significa que puedes importar tu geometría de Rhino directamente como elementos de familia nativos de Revit usando Grasshopper 💥
+
+<img src="/images/legacy/gh/gh-bim.png" alt="Grasshopper BIM" />
+
+<Tip>
+Encontrarás la misma funcionalidad para Rhino, que ahora no está cubierta por tipos de objetos sino mediante el uso de [Speckle Mapper](/legacy/user/rhino#rhino-mapper).
+</Tip>
+
+### Características
+
+Acceda a la creación de elementos BIM de Grasshopper a través de las barras de herramientas de Grasshopper, que incluyen un botón para cada elemento BIM compatible.
+
+Actualmente, la funcionalidad se divide en dos categorías distintas: `Speckle 2 BIM` y `Speckle 2 Revit`. Encontrarás una pestaña para cada una de ellas en Grasshopper al instalar el conector GH.
+
+### La pestaña "Speckle 2 BIM"
+
+<img src="/images/legacy/gh/speckle-bim.png" alt="BIM de moteado" />
+
+La pestaña `Speckle 2 BIM` contiene todos los componentes que permiten crear elementos BIM genéricos. Estos son los elementos BIM más básicos compatibles con Speckle y constan de la información mínima necesaria para su funcionamiento.
+
+<img src="/images/legacy/gh/gh-bim-BuiltElements.png" alt="Ejemplo de piso, pared y nivel simples" />
+
+### La pestaña "Speckle 2 Revit"
+
+<img src="/images/legacy/gh/revit-bim.png" alt="Revit-bim" />
+
+La pestaña `Speckle 2 Revit` contiene todos los componentes que permiten crear elementos BIM específicos para Revit. Estos elementos requieren una mayor cantidad de datos específicos de su proyecto de Revit, como el nombre de la familia, el tipo, los parámetros, etc., pero también ofrecen un mayor nivel de control al trabajar con Revit.
+
+<img src="/images/legacy/gh/gh-bim-RevitElements.png" alt="Ejemplo de muro, suelo y nivel en Revit" />
+
+<Tip>
+¿Sabías que...?
+
+Puedes compartir toda la información de tu proyecto de Revit a través de Speckle, incluyendo todas las familias disponibles, ¡así no tendrás que adivinar!
+
+Consulta nuestra [guía de Revit a Grasshopper](https://specke.systems/tutorials/create-revit-bim-models-in-grasshopper/) para obtener más detalles.
+</Sugerencia>
+
+#### Actualización de parámetros de Revit
+
+A veces, es posible que solo desee actualizar los parámetros de Revit desde Grasshopper en lugar de crear nuevos elementos.
+
+Para ello, hemos creado un componente llamado "ParameterUpdater".
+
+![imagen](https://user-images.githubusercontent.com/2679513/142267411-fb9149f9-b878-4dc9-a2ec-2102d1bef90f.png)
+
+Toma como entradas:
+
+- Un ID de elemento de Revit (ElementId o UniqueId)
+- Uno o más **Parámetros**
+
+![imagen](https://user-images.githubusercontent.com/2679513/142267701-2de399b3-8f5c-4b7c-b7a0-d388a7175f7d.png)
+
+Cada parámetro tendrá:
+
+- Un nombre, ya sea el nombre para mostrar en Revit, el nombre de BuiltInParameter o el GUID (para parámetros compartidos).
+- Un valor.
+- (Opcional) Unidades de moteado (mm, cm, m, km, pulg, ft, yd, mi, ninguna).
+
+Así es como se manejan las unidades:
+
+- Si actualiza un parámetro basado en longitud (por ejemplo, Desplazamiento base), no es necesario especificar las unidades. Speckle seleccionará automáticamente las del documento actual de Rhino y las convertirá a Revit (a menos que desee modificarlas).
+- Si actualiza un parámetro que no se basa en longitud (por ejemplo, Flujo de aire), debe establecer las unidades en `none`. Speckle asumirá que el valor utilizado coincide con las unidades de visualización de Revit (por ejemplo, L/s) y no realizará la conversión.
+
+- Actualmente, Speckle no admite la conversión de unidades base que no sean de longitud.
+
+![imagen](https://user-images.githubusercontent.com/2679513/142268627-e3dbf093-e306-4ffb-b4ed-f39014caf6b4.png)
+
+### Uso de Grasshopper BIM
+
+En escenarios sencillos, Grasshopper BIM funciona asignando una nueva propiedad `@speckleSchema` a una geometría determinada, como una línea. Una vez que estos objetos se reciben en un software compatible con BIM (como Revit), nuestro conector de Revit detectará esta propiedad especial y generará el elemento de Revit correspondiente en lugar de una curva del modelo.
+
+El ejemplo que se muestra a continuación crea un `Floor` usando un rectángulo. Si expande las propiedades de la `Polyline` resultante, podrá ver que la propiedad `@speckleSchema` está presente y su tipo es `Objects.BuiltElements.Floor`.
+
+<img src="/images/legacy/gh/gh-bim-be-floor.png" alt="Polilínea con esquema de moteado de suelo adjunto" />
+
+Para escenarios más complejos, donde no sea viable adjuntar un esquema al objeto, el resultado del nodo será directamente el objeto BIM elegido, y este contendrá todos los objetos geométricos en su interior.
+
+El ejemplo que se muestra a continuación crea un `DirectShape` a partir de una lista de esferas. Dado que DirectShape de Revit permite agregar más de una geometría a cada DS, la salida del nodo será un `Objects.BuiltElements.Revit.DirectShape` con la lista de geometrías adjunta a su propiedad `@baseGeometries`.
+
+<img src="/images/legacy/gh/gh-bim-DS.png" alt="Forma directa a partir de una lista de esferas" />
+
+#### Entendiendo la opción de conversión de esquema
+
+Cada nodo `Grasshopper BIM` tiene una opción que permite al usuario seleccionar entre dos tipos diferentes de conversión:
+
+- Convertir como `Objeto Esquema`
+- Convertir como `Geometría (Línea, Curva, Malla...)` con `Esquema (Viga, Suelo...)` adjunto.
+
+El lenguaje preciso de las opciones varía según el elemento BIM que se esté intentando crear; por ejemplo, el nodo `Beam`:
+
+<img src="/images/legacy/gh/speckle-gh-schema-option.png" alt="Opción de conversión de esquema para un Beam" />
+
+Esta opción le permite alternar entre generar elementos `Speckle BIM` directamente o tratarlos como geometría con una propiedad especial adjunta (`@speckleSchema`). La ventaja de seleccionar una opción u otra depende de sus preferencias:
+
+- Cuando se utilizan exclusivamente aplicaciones BIM, conviene usar la configuración predeterminada («Convertir como objeto de esquema»), ya que los datos se organizarán de forma comprensible para los usuarios de BIM (como vigas, columnas, losas, etc.).
+- Si los datos se van a utilizar principalmente como geometría en otras aplicaciones, pero también deben ser compatibles con alguna aplicación BIM, entonces puede ser más conveniente tratar estos objetos como **geometría en primer lugar** y adjuntar la información BIM a dicha geometría.
+
+Ambos se recibirán como **elementos BIM nativos** en cualquier aplicación BIM de destino, por lo que, esencialmente, no hay diferencia entre ambos en la forma en que se comportarán, e incluso se pueden tener ambos tipos de objetos mezclados en la misma confirmación.
+
+Cuando la opción **Convertir `Geometría` con `Esquema` adjunto** está habilitada, la salida mostrará una sugerencia visual para indicar al usuario que se está produciendo este comportamiento y permitirle distinguir entre nodos con diferentes opciones de estado activas:
+
+<img src="/images/legacy/gh/gh-schema-convertOption-nodesSimple.png" alt="Sugerencia visual de salida" />
+
+Puedes expandir aún más los objetos generados para inspeccionar las diferencias:
+
+<img src="/images/legacy/gh/gh-schema-convertOption-nodes.png" alt="Diferencia en los métodos de conversión" />
+
+Como puede observarse, los objetos resultantes son bastante diferentes, pero contienen esencialmente la misma información (uno como `Geometry -> BIM Element` y el otro como `BIM Element -> Geometry`).
+
+##### Estableciendo el comportamiento predeterminado
+
+Por defecto, cualquier nodo `Elemento BIM` utiliza la opción `Convertir a objeto de esquema`. Puede modificar este comportamiento en su instalación de Grasshopper mediante el menú `Speckle 2` en la barra de menú superior.
+
+<img src="/images/legacy/gh/gh-schema-defaultconversion-menu.png" alt="Opción de conversión predeterminada" />
+
+Esta configuración quedará registrada en su instalación de Grasshopper y solo afectará a los nodos que se creen a partir de ahora.
+
+### Creador de esquemas
+
+<Note>
+El _Creador de esquemas_ permite que el conector de Grasshopper lea y cree objetos de esquema a partir de cualquier kit disponible.
+
+Si solo utiliza el **kit de objetos**, le recomendamos usar los nodos individuales en las pestañas `Speckle 2 BIM` y `Speckle 2 Revit`.
+</Note>
+
+<img src="/images/legacy/gh/nodes-schema-builder.png" alt="Nodo del generador de esquemas" />
+
+El nodo **Creador de esquemas** es muy potente. Funciona de forma similar al nodo anterior, ya que permite crear objetos personalizados, pero lo hace siguiendo esquemas preexistentes.
+
+Por defecto, el nodo Schema Builder incluye una serie de tipos, que comprenden principalmente elementos de construcción para mejorar la interoperabilidad entre Rhino/Grasshopper y otras soluciones de software BIM como Revit.
+
+Al crear un nuevo nodo **Creador de esquemas**, aparecerá una ventana emergente que le pedirá al usuario que seleccione un esquema de objeto específico. Este esquema se utilizará para rellenar los puertos de entrada/salida del nodo con los campos correspondientes.
+
+<img src="/images/legacy/gh/nodes-schema-builder-popup.png" alt="Ventana emergente del creador de esquemas" />
+
+<Note>
+¡Consulta nuestro [tutorial sobre cómo enviar datos de Grasshopper a Revit](https://specke.systems/tutorials/process-revit-bim-models-in-grasshopper/)!
+</Note>
+
+## Conversión de objetos
+
+Por defecto, los nodos Speckle intentarán convertir cualquier objeto compatible (como mallas, sólidos, líneas y puntos):
+
+- **Entrada**: formato compatible con Speckle.
+
+- **Salida**: formato nativo de Rhino que Grasshopper reconocerá.
+
+En algunas situaciones, este comportamiento puede no ser el ideal, ya que podría provocar la pérdida involuntaria de datos. Esto es especialmente cierto al trabajar con datos anidados.
+
+Speckle puede manejar objetos Speckle anidados sin problemas, pero debido a las limitaciones de la API de Rhino, solo se puede adjuntar texto a los datos personalizados de un objeto geométrico específico, como una línea.
+
+<img src="/images/legacy/gh/speckle-gh-conversion-createNestedLine.png" alt="Creación de una línea Speckle con datos personalizados adjuntos" />
+
+Dado que cualquier objeto geométrico válido se convertirá automáticamente a su representación de Rhino cuando un nodo lo genere, estos datos no compatibles se perderán.
+
+Para solucionar este problema, todos los nodos que realizan conversiones tienen una opción "No convertir" en el menú contextual (clic derecho), que impedirá que se produzca la conversión en ese nodo específico.
+
+<img src="/images/legacy/gh/speckle-gh-conversion-menuitem.png" alt="No convertir el elemento del menú" />
+
+<Accordion title="Manejo de objetos geométricos con datos anidados">Siguiendo el ejemplo anterior, empaquetamos y enviamos la línea Speckle personalizada.
+
+<img src="/images/legacy/gh/speckle-gh-conversion-send.png" alt="Enviar línea personalizada y línea Rhino normal" />
+
+Tras recibir los datos, al expandir los objetos Speckle, dispondrá de varias opciones:
+
+1. Comportamiento predeterminado al recibir datos: Conversión automática a objetos Rhino
+
+<img src="/images/legacy/gh/speckle-gh-conversion-expandAndConvert.png" alt="Expandir y convertir" />
+2. Comportamiento cuando la opción "No convertir" está activada: La salida es una línea Speckle
+
+<img src="/images/legacy/gh/speckle-gh-conversion-expandAndNoConvert.png" alt="Expandir pero no convertir" />
+
+Ahora puede acceder a los datos personalizados asociados a la línea:
+
+<img src="/images/legacy/gh/speckle-gh-conversion-accessCustomData.png" alt="Acceder" datos personalizados de línea" />
+</Accordion>
+
+<Note>
+No se preocupe, siempre nos aseguramos de que todos los objetos se conviertan al formato Speckle antes de realizar una operación de "Enviar".
+</Note>
+
+<Warning>
+**Cambio de unidades del documento: Si alguna vez cambia las unidades de su documento de Rhino, asegúrese de volver a calcular toda la definición de Grasshopper (presione `F5`) para garantizar que el cambio se propague correctamente a todos los nodos.
+</Warning>
+
+## Uso de los nodos de script C#/Python
+
+Para escenarios más avanzados, también puedes usar las bibliotecas Speckle dentro de tus scripts personalizados de C# o Python en cualquier definición de Grasshopper. Sin embargo, se requiere cierta configuración para que esto funcione correctamente.
+
+<Note>
+Advertencia
+
+Acerca de la creación de objetos propios en nodos de scripting: **No se admite** la creación de objetos con referencias circulares. Si bien no hay ningún impedimento para crear este tipo de relaciones entre objetos en tu código, no se enviarán al servidor (ni a ningún otro medio de transporte).
+
+Dicho esto, sí funcionarán dentro de tu definición de Grasshopper, pero te recomendamos encarecidamente que no lo hagas. Si decide hacerlo (por la razón que sea... 😉), asegúrese de eliminar todas esas referencias circulares antes de enviarlas.
+</Note>
+
+### Script C#
+
+1. Crea un nuevo nodo C# en tu lienzo.
+
+   <img src="/images/legacy/gh/speckle-gh-script-csharpNode.png" alt="Nodo de script C#" />
+
+2. Haga clic con el botón derecho en el nodo y seleccione `Administrar ensamblajes...` en el menú desplegable.
+
+   <img src="/images/legacy/gh/speckle-gh-script-assemblyMenu.png" alt="Menú de montaje" />
+
+3. Aparecerá una nueva ventana. Pulse el enlace «Agregar» para seleccionar una nueva biblioteca. Deberá agregar **dos bibliotecas**:
+
+1. Busque la ubicación del conector Speckle Rhino+Grasshopper. Debería estar en `%appdata%\McNeel\Rhinoceros\7.0\Plug-ins\SpeckleRhino2 (8dd5f30b-a13d-4a24-abdc-3e05c8c87143)` y seleccione `SpeckleCore2.dll` (asegúrese de usar la carpeta de Rhino correcta según su versión instalada).
+
+2. Ahora vaya a `C:\Windows\Microsoft.NET\assembly\GAC_MSIL\netstandard\v4.0_2.0.0.0__cc7b13ffcd2ddd51` y seleccione `netstandard.dll`.
+4. Una vez hecho esto, debería verse así:
+
+   <img src="/images/legacy/gh/speckle-gh-script-assemblies.png" alt="Ensamblajes" />
+
+5. Ahora abre tu script y añade las siguientes líneas de código:
+
+   ```csharp
+   var speckleObject = new Speckle.Core.Models.Base();
+   speckleObject["aProperty"] = "A property value";
+   speckleObject["aListProperty"] = new List<double>{ 1, 2, 3, 4, 5 };
+   A = speckleObject;
+   ```
+
+   <img src="/images/legacy/gh/speckle-gh-script-code.png" alt="Código del script" />
+
+6. Esto generará un objeto `Base`. Para ver las propiedades que contiene, siempre puede usar `Expandir nodo Speckle`.
+
+   <img src="/images/legacy/gh/speckle-gh-script-final.png" alt="Guion final" />
+
+### Script de Python
+
+El proceso para usar Speckle en un script de Python es similar a los pasos del nodo C#, solo que esta vez haremos referencia a los ensamblados directamente en nuestro código usando `clr`.
+
+1. Agrega un nuevo nodo de Python a tu lienzo.
+2. Haz doble clic para abrir el editor y pega este código para agregar las bibliotecas (recuerda reemplazar `USERNAME` por el nombre real de tu usuario).
+
+   ```python
+    import clr
+   clr.AddReferenceToFileAndPath("C:\\Windows\\Microsoft.NET\\assembly\\GAC_MSIL\\netstandard\\v4.0_2.0.0.0__cc7b13ffcd2ddd51\\netstandard.dll")
+   clr.AddReferenceToFileAndPath("C:\\Users\\USERNAME\\AppData\\Roaming\\Grasshopper\\Libraries\\SpeckleGrasshopper2\\SpeckleCore2.dll")
+   import Speckle.Core.Models.Base as Base
+   ```
+
+3. Debajo, añade este código para crear un nuevo objeto Speckle.
+
+   ```python
+   speckleObject = Base()
+   speckleObject["aProperty"] = "A single item value"
+   speckleObject["aListProperty"] = [ 1, 2, 3, 4, 5 ]
+   a = speckleObject
+   ```
+
+4. El resultado final debería verse así:
+
+<img src="/images/legacy/gh/speckle-gh-script-pythoncode.png" alt="Código de script de Python" />
+
+5. ¡Y eso es todo! El resultado será un objeto `Base` con el que podrá operar como con cualquier otro creado con los nodos `Administración de objetos`.
+
+## Nodos
+
+### Enviar nodo
+
+<img src="/images/legacy/gh/nodes-send.png" alt="Enviar nodo" />
+
+El nodo **Send** realiza operaciones de envío, generalmente a un servidor Speckle, pero también admite el envío a un almacenamiento de datos diferente mediante _transportes_. Siempre que sea posible, el nodo _Send_ intentará convertir cualquier objeto compatible con Rhino al formato Speckle.
+
+#### Aporte
+
+- _Stream_: Admite cualquier flujo generado dentro de la categoría de componentes `Stream`, así como URL de flujo en formato de texto.
+
+- _Message_: El mensaje que deseas adjuntar al _commit_ al enviar los datos. Por defecto, es `"Grasshopper push"`.
+
+- _Data_: Este puerto acepta prácticamente cualquier dato que se le proporcione. Si los objetos proporcionados no son objetos `Base`, también realizará la conversión a Speckle automáticamente.
+
+#### Producción
+
+- _Stream_: La _url de confirmación_ que apunta a los objetos en el servidor Speckle.
+
+#### Opciones adicionales
+
+##### Entradas variables
+
+Al igual que en el nodo `Crear objeto Speckle`, puedes añadir tantas entradas como necesites. En el nodo `Enviar`, todas las entradas están configuradas como `árbol` para aceptar cualquier tipo de información y estructura de datos de Grasshopper.
+
+<img src="/images/legacy/gh/gh-send-variableinput.gif" />
+
+##### Enviar automáticamente
+
+También existe la opción de configurar el nodo para que envíe automáticamente una notificación cada vez que haya un cambio en los datos. Encontrará esta opción en el menú contextual (clic derecho) del nodo.
+
+| <img src="/images/legacy/gh/nodes-send-automode-activate.png" alt="Activando el modo automático en el remitente" /> | <img src="/images/legacy/gh/nodes-send-automode-active.png" alt="Modo de envío automático activo en el remitente" /> |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
+
+##### Separar datos de entrada
+
+Esta opción está habilitada de forma predeterminada en todas las entradas, pero se puede desactivar para cada entrada individualmente mediante el menú contextual que aparece al hacer clic con el botón derecho en cada una de ellas.
+
+Puedes encontrar una explicación más detallada de esta opción [aquí](#detachdo-not-detach).
+
+### Nodo receptor
+
+<img src="/images/legacy/gh/nodes-receive.png" alt="Nodo receptor" />
+
+El **Nodo de Recepción** obtiene datos de un `Stream` especificado o de cualquier otro `Transport` válido. Siempre que sea posible, el nodo receptor intentará convertir todos los objetos Speckle en objetos compatibles con Rhino.
+
+#### Entradas
+
+- _Stream_: Admite cualquier flujo generado dentro de la categoría de componentes `Stream`, pero también _urls de flujo_ en formato de texto.
+
+#### Salidas
+
+- _Datos_: Los datos que se recibieron del flujo.
+
+#### Opciones adicionales
+
+##### Expandir objeto recibido
+
+**Activado por defecto**. Esto expandirá el objeto recibido para mostrar sus propiedades. Si el objeto de moteado específico admite una conversión, se convertirá en su lugar (por ejemplo: un punto, una línea o una malla).
+
+Esta opción se puede desactivar en el menú contextual (clic derecho) del nodo Recibir.
+
+Aquí tenéis una breve animación del proceso:
+
+<img src="/images/legacy/gh/gh-receive-variableoutput.gif" />
+
+##### No convertir
+
+De forma similar a la opción `No convertir` del nodo `Crear objeto Speckle`, impedirá cualquier conversión y, en su lugar, generará objetos Speckle.
+
+##### Recibir automáticamente
+
+También existe la opción de configurar el nodo para que envíe automáticamente una notificación cada vez que haya una nueva confirmación en el flujo. Encontrarás esta opción en el menú contextual del nodo.
+
+Esta opción no está disponible cuando la URL del flujo de entrada apunta a un `commit` o un `object` específico.
+
+### Nodo de envío local
+
+<img src="/images/legacy/gh/nodes-send-local.png" alt="Enviar nodo local" />
+
+El nodo **Envío local** realiza operaciones de envío directamente a la base de datos local del usuario.
+
+#### Entradas
+
+- _Datos_: Los datos que se enviarán localmente. Este puerto acepta casi cualquier cosa que se le proporcione. Si los objetos proporcionados no son objetos `Base`, realizará la conversión a Speckle automáticamente.
+
+#### Salidas
+
+- _localDataId_: El `id` único para los datos que se enviaron localmente.
+
+### Nodo de recepción local
+
+<img src="/images/legacy/gh/nodes-receive-local.png" alt="Recibir nodo local" />
+
+El nodo **Recepción local** realiza operaciones de recepción del mismo modo que el nodo [Recepción](#receive-node). La única diferencia es que los datos se reciben localmente desde la base de datos local del usuario de Speckle, en lugar de desde el servidor o cualquier otro medio de transporte.
+
+#### Entradas
+
+- _localDataId_: El `id` único para los datos que desea obtener localmente. Este será proporcionado por un [Nodo de envío local](#local-send-node).
+
+#### Salidas
+
+- _Datos_: Los datos recibidos. Este puerto acepta prácticamente cualquier cosa que se le proporcione. Si los objetos proporcionados no son objetos `Base`, realizará la conversión a Speckle automáticamente.
+
+### Nodo de envío síncrono
+
+<img src="/images/legacy/gh/gh-sendSync.png" alt="Nodo de envío síncrono" />
+
+El nodo **Envío síncrono** realiza operaciones de recepción de la misma manera que el nodo [Enviar](#send-node), pero de forma síncrona y bloqueará el lienzo.
+
+#### Aporte
+
+- _Datos_: Este puerto acepta prácticamente cualquier tipo de dato. Si los objetos proporcionados no son objetos `Base`, también realizará la conversión a Speckle automáticamente.
+
+- _Flujo_: Admite cualquier flujo generado dentro de la categoría de componentes `Flujo`, así como URL de flujo en formato de texto.
+
+- _Mensaje_: El mensaje que se adjuntará al _commit_ al enviar los datos. Por defecto, se utiliza `"Grasshopper push"`.
+
+#### Producción
+
+- _Stream_: La _url de confirmación_ que apunta a los objetos en el servidor Speckle.
+
+### Nodo de recepción síncrono
+
+<img src="/images/legacy/gh/gh-receiveSync.png" alt="Nodo receptor síncrono" />
+
+El nodo **Recepción síncrona** realiza operaciones de recepción de la misma manera que el nodo [Recepción](#receive-node), pero de forma síncrona y bloqueará el lienzo.
+
+#### Entradas
+
+- _Stream_: Admite cualquier flujo generado dentro de la categoría de componentes `Stream`, pero también _urls de flujo_ en formato de texto.
+
+#### Salidas
+
+- _Datos_: Los datos que se recibieron del flujo.
+
+### Crear objeto Speckle
+
+Consulte la sección [Creación de objetos personalizados](/legacy/user/grasshopper#creating-custom-objects).
+
+### Crear objeto Speckle mediante pares clave/valor
+
+<img src="/images/legacy/gh/nodes-create-object-keyval.png" alt="Crear objeto por clave/valor" />
+
+Este nodo creará un nuevo objeto Speckle utilizando una lista de `Keys` que se usarán como propiedades del objeto, y una lista de valores (o lista anidada) para asignar a cada propiedad.
+
+> Al usar este componente, no hay opción para especificar un estado `detached` para las propiedades, por lo que todas las propiedades estarán desvinculadas de forma predeterminada.
+
+<img src="/images/legacy/gh/nodes-create-keyval-item.png" alt="Creación de un objeto con claves y valores como elementos." />
+
+<img src="/images/legacy/gh/nodes-create-keyval-list.png" alt="Creación de un objeto con claves y valores en forma de listas." />
+
+> Tenga en cuenta que al crear elementos de lista, la estructura de datos debe coincidir. Es decir, las claves y los valores de cada objeto deben comenzar con el mismo índice de rama.
+
+### Descomponer el objeto Speckle
+
+<img src="/images/legacy/gh/nodes-expand-object.png" alt="Expandir nodo de objeto" />
+
+> Este nodo solía llamarse `Expandir objeto de moteado`.
+
+La función **Descomponer objeto Speckle** funciona de forma completamente opuesta a la función [Crear objeto Speckle](#create-speckle-object). Cuando se conecta un objeto `Base` a la entrada, se crearán automáticamente las salidas para cada una de las propiedades del objeto `Base`.
+
+#### Entradas
+
+- `Objeto Speckle`: El objeto Speckle del que se extraerán las propiedades.
+
+#### Salidas
+
+Los resultados se generan dinámicamente según los objetos base específicos que deban expandirse.
+
+Todos los resultados aparecerán en orden alfabético, independientemente del orden en que se crearon o agregaron al objeto.
+
+### Obtener claves de objetos Speckle
+
+#### Entradas
+
+- `Objeto Speckle`: El objeto Speckle del que se extraerán las propiedades.
+
+#### Salidas
+
+- `Claves`: La lista de claves disponibles para cada objeto como texto o, si la opción está habilitada, una lista única que contiene todas las claves disponibles en cualquiera de los objetos.
+
+### Extender objeto Speckle
+
+<img src="/images/legacy/gh/nodes-extend-object.png" alt="Nodo de objeto extendido" />
+
+El nodo **Extender objeto Speckle** proporciona una forma de agregar nuevas propiedades a un objeto `Base` ya existente utilizando parámetros variables.
+
+#### Entradas
+
+- _Objeto Speckle_: El objeto Speckle que se va a extender.
+
+<Tip>
+**Entradas variables**: Puede agregar o eliminar entradas de la misma manera que lo haría con el nodo `Crear objeto Speckle`.
+</Tip>
+
+#### Salidas
+
+- _Objeto Speckle_: El objeto `Base` de Speckle extendido/actualizado.
+
+### Extender el objeto Speckle por clave/valor
+
+<img src="/images/legacy/gh/nodes-extend-object-keyval.png" alt="Extiende el objeto mediante un nodo clave/valor." />
+
+La opción **Extender objeto Speckle por clave/valor** proporciona una forma de agregar nuevas propiedades a un objeto `Base` ya existente.
+
+#### Entradas
+
+- _Objeto Speckle_: El objeto Speckle que se extenderá.
+
+- _Claves_: Las claves con las que se extenderá el objeto. Si se sobrescribe una clave existente, se mostrará una advertencia.
+
+- _Valores_: Los valores que se asignarán a cada clave. Funciona de la misma manera que el nodo [Crear objeto por par clave-valor](#create-speckle-object-by-keyvalue-pairs).
+
+#### Salidas
+
+- _Objeto Speckle_: El objeto `Base` de Speckle extendido/actualizado.
+
+### Creador de esquemas
+
+Consulte la sección [Uso del Generador de esquemas](/legacy/user/grasshopper#schema-builder).
+
+#### Entradas
+
+Los datos de entrada se generan dinámicamente en función del esquema seleccionado por el usuario.
+
+#### Salidas
+
+La salida se genera dinámicamente en función del esquema seleccionado por el usuario.
+
+### Nodo de cuentas
+
+<img src="/images/legacy/gh/nodes-accounts.png" alt="Nodo de cuentas" />
+
+El nodo **Cuentas** proporciona una forma rápida de seleccionar diferentes cuentas de Speckle. Utiliza Grasshopper nativo.
+
+Las cuentas deben configurarse en su computadora utilizando el **Speckle Manager**. Si no se muestran cuentas después de configurar la solución
+
+### Crear flujo
+
+<img src="/images/legacy/gh/nodes-create-stream.png" alt="Crear nodo de flujo" />
+
+El nodo **Crear flujo** permite crear rápidamente un nuevo flujo. Este flujo tendrá un nombre y una descripción predeterminados, por lo que conviene editarlos más adelante.
+
+Una vez que se haya proporcionado una cuenta, el nodo generará un nuevo flujo y lo recordará mientras el nodo exista en el lienzo. Esto significa que la única forma de crear otro flujo nuevo es usar un nuevo componente `Create Stream`.
+
+#### Entradas
+
+- _Cuenta_: Una cuenta de Speckle, proporcionada por el **Nodo de Cuentas**.
+
+#### Salidas
+
+- _Stream_: Un objeto `Stream` que apunta al flujo recién creado.
+
+### Obtener transmisión
+
+<img src="/images/legacy/gh/nodes-stream-get.png" alt="Nodo de obtención de flujo" />
+
+El nodo **Obtener flujo** intentará encontrar un `Flujo` existente, dado su `id` único (o su `url del flujo`) y una cuenta específica para acceder a ese flujo.
+
+<Note>
+También puedes usar una URL de transmisión copiada desde tu navegador en lugar de usar este nodo.
+</Note>
+
+#### Entradas
+
+- _Stream_: Admite cualquier flujo generado dentro de la categoría de componentes `Stream`, así como URL de flujo en formato de texto.
+
+- _Account_: Una cuenta de Speckle, proporcionada por el **Nodo Cuentas**. Si no se proporciona ninguna cuenta, se utilizará la cuenta predeterminada.
+
+#### Salidas
+
+- _Stream_: Un objeto `Stream`. Si el flujo no existe, se mostrará un error.
+
+### Listar flujos
+
+<img src="/images/legacy/gh/nodes-stream-list.png" alt="nodo de lista de flujo" />
+
+El nodo **Listar transmisiones** devuelve una cantidad específica de transmisiones disponibles en una cuenta. Por motivos de rendimiento, se ha limitado a obtener un máximo de 20 transmisiones.
+
+<Note>
+También puedes usar una URL de transmisión copiada desde tu navegador en lugar de usar este nodo.
+</Note>
+
+#### Entradas
+
+- _Cuenta_: Una cuenta de Speckle, proporcionada por el **Nodo de Cuentas**. Si no se proporciona ninguna cuenta, se utilizará la cuenta predeterminada.
+
+- _Límite_: El número de transmisiones que se obtendrán del servidor.
+
+#### Salidas
+
+- _Streams_: Lista de objetos `Stream` disponibles para la cuenta especificada.
+
+### Detalles de la transmisión
+
+<img src="/images/legacy/gh/nodes-stream-details.png" alt="nodo de detalles de la transmisión" />
+
+El nodo **Detalles del flujo** devuelve toda la información relevante relacionada con un `Stream` específico.
+
+#### Entradas
+
+- _Stream_: Admite cualquier flujo generado dentro de la categoría de componentes `Stream`, pero también _urls de flujo_ en formato de texto.
+
+#### Producción
+
+- _ID de la transmisión_: El identificador único que identifica la transmisión.
+
+- _Nombre_: El nombre de la transmisión.
+
+- _Descripción_: La descripción de la transmisión.
+
+- _Fecha de creación_: La fecha en que se creó esta transmisión.
+
+- _Fecha de actualización_: La fecha de la última actualización de la transmisión.
+
+- _Público_: Valor booleano que indica si la transmisión tiene habilitada la opción de compartir enlaces.
+
+- _Colaboradores_: Una lista de los colaboradores que tienen acceso a esta transmisión, así como sus roles.
+
+- _Ramas_: Una lista de las ramas disponibles para esta transmisión.
+
+### Actualización de la transmisión
+
+<img src="/images/legacy/gh/nodes-stream-update.png" alt="Nodo de actualización de flujo" />
+
+El nodo **Actualización de flujo** permite actualizar el _nombre_, la _descripción_ y el _enlace compartido_ (lo que hará que sus datos estén disponibles públicamente para que cualquiera que tenga la _url del flujo_ pueda leerlos).
+
+#### Entradas
+
+- _Stream_: Admite cualquier flujo generado dentro de la categoría de componentes `Stream`, así como URL de flujo en formato de texto.
+
+- _Name (opcional)_: Cadena de texto con el nuevo nombre para el flujo.
+
+- _Description (opcional)_: Cadena de texto con la nueva descripción para el flujo.
+
+- _Public_: Valor booleano para activar/desactivar la opción de compartir el enlace de este flujo.
+
+#### Producción
+
+- _ID de flujo_: Una URL de `Stream` que apunta al flujo actualizado.
+
+### Herramientas para desarrolladores
+
+Estos nodos se desarrollaron exclusivamente con fines de prueba y desarrollo. Si no sabes qué son, probablemente nunca los necesites.
+
+#### Convertir a nodo Speckle
+
+<img src="/images/legacy/gh/nodes-convert-tospeckle.png" alt="Convertir a nodo Speckle" />
+
+El nodo **Convertir a Speckle** intentará convertir cualquier objeto de Rhino (como líneas, curvas, mallas...) en objetos Speckle.
+
+Este nodo funciona **de forma recursiva**, lo que significa que si se le proporciona cualquier objeto `base` no convertible, recorrerá las propiedades e intentará convertir cada valor, dejando la estructura intacta.
+
+<Warning>
+Este nodo fue desarrollado con fines de prueba/desarrollo.
+</Warning>
+
+#### Convertir a Node nativo
+
+El nodo **Convertir a nativo** intentará convertir cualquier objeto de Speckle en objetos compatibles con Rhino.
+
+Este nodo funciona **recursivamente**, lo que significa que si se le proporciona cualquier objeto `base` no convertible, recorrerá las propiedades e intentará convertir cada valor, dejando la estructura intacta.
+
+<Warning>
+Este nodo fue desarrollado con fines de prueba/desarrollo.
+</Warning>
+
+#### Serializar objetos Speckle Node
+
+<img src="/images/legacy/gh/node-serialize.png" alt="Nodo serializado" />
+
+El nodo **Serializar objetos** convertirá cualquier objeto Speckle en texto con formato `JSON`.
+
+#### Nodo para deserializar objetos Speckle
+
+<img src="/images/legacy/gh/nodes-deserialize.png" alt="Nodo deserialización" />
+
+El nodo **Deserializar objetos** convertirá un objeto speckle serializado en formato json en objetos speckle `Base`.
+
+#### Enviar a Transporte
+
+<img src="/images/legacy/gh/nodes-transports-send.png" alt="Nodo de envío de transportes" />
+
+Envía un objeto a un medio de transporte especificado y devuelve el `id` del objeto.
+
+#### Recibir del transporte
+
+Recibe un objeto del transporte especificado utilizando su `id`.
+
+<img src="/images/legacy/gh/nodes-transports-receive.png" alt="Los transportes reciben el nodo" />
+
+#### Transporte de SQLite
+
+<img src="/images/legacy/gh/nodes-transport-sqlite.png" alt="Transporte SQLite" />
+
+Crea una conexión a una base de datos SQLite específica.
+
+#### Transporte de disco
+
+<img src="/images/legacy/gh/nodes-transport-disk.png" alt="Transporte de disco" />
+
+Crea una conexión con un archivo específico en el disco duro del ordenador, donde se guardarán los datos en formato JSON.
+
+#### Transporte de memoria
+
+<img src="/images/legacy/gh/nodes-transport-memory.png" alt="Transporte de memoria" />
+
+Crea una conexión con el almacenamiento en memoria.
+
+#### Colección Aplanar
+
+Introducido en la versión 2.14
+
+<img src="/images/legacy/gh/gh-collections-flatten-node.png" alt="Colección aplanada" />
+
+Devuelve una lista plana de todas las colecciones anidadas dentro de una colección/modelo existente.
+
+Este nodo facilita la obtención de los elementos geométricos dentro de estructuras de objetos de confirmación complejas (como capas anidadas de Rhino o la estructura de árbol de Navisworks).
+
+<Note>
+Para una estructura de capas determinada en Rhino, puede extraer fácilmente la información de todas las capas en Grasshopper.
+</Note>
+

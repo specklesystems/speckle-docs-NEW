@@ -1,0 +1,107 @@
+---
+title: "Ajustes"
+noindex: true
+---
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx'
+import LegacyVersions from '/snippets/es/legacy-versions.mdx'
+
+<LegacyWarning connector="Revit" /> 
+<LegacyVersions app="AutodeskRevit" versions="2020, 2021, 2022, 2023 and 2024" />
+
+La página de "Configuración avanzada" le permite personalizar el comportamiento de Speckle "para cada proyecto".
+
+<img src="/images/legacy/revit/advanced-settings.png" alt="Configuración avanzada" width={350} style={{display: 'block', margin: '0 auto'}} />
+
+## 1. Punto de referencia
+
+<img src="/images/legacy/revit/setting-reference-point.png" alt="Punto de referencia" width={350} />
+
+Esta configuración le permite especificar qué punto de referencia debe utilizarse al enviar o recibir datos.
+
+Las opciones disponibles son:
+
+1. <b>Origen interno</b> (predeterminado)
+2. <b>Punto base del proyecto</b>
+3. <b>Punto de referencia topográfica</b>
+
+## 2. Enviar modelos vinculados
+
+Por defecto, Speckle solo enviará datos del modelo actual, sin incluir elementos de los modelos vinculados (si los hay). Marque esta opción para controlar cuándo desea enviar toda la información, incluidos los modelos vinculados.
+
+## 3. Recibir modelos vinculados
+
+Por defecto, Speckle solo recibirá datos del modelo actual, sin incluir elementos de los modelos vinculados (si los hubiera). Marque esta opción si desea recibir toda la información (incluidos los modelos vinculados).
+
+## 4. Recurrir a DirectShape al recibir
+
+<img src="/images/legacy/revit/setting-fallback-directshape.png" alt="Volver a DirectShape" width={350} />
+Speckle allows to load any model to Revit as a DirectShape when only a mesh reference model containing no BIM data is needed.
+
+Las opciones disponibles son:
+
+1. <b>Siempre:</b> No se crean objetos nativos; todo se crea como formas directas con categorías y materiales asignados.
+
+2. <b>En caso de error</b> (Predeterminado): Revit Connector intenta cargar todos los objetos como tipos nativos, pero en caso de error recurre a la malla DirectShape. El resultado es un modelo visualmente coherente con su representación en el visor Speckle.
+
+3. <b>Nunca:</b> Si desea cargar todos los objetos como nativos, seleccione la opción «Nunca».
+
+<Callout type="warning">
+  Some objects might not be loaded, or the geometry might not be correct. Speckle's aim is to support all types and workflows but while we get there, some inconsistencies can occur.
+</Callout>
+
+## 5. No permitir la unión de elementos
+
+<img src="/images/legacy/revit/setting-disallow-join.png" alt="No permitir la unión" width={350} />
+
+Por defecto, los objetos de Revit importados por Speckle se unirán. Los objetos unidos en Revit pueden tener un comportamiento muy extraño, por lo que esta configuración permite seleccionar uno o más tipos de objetos para deshabilitar las uniones por defecto antes de recibirlos.
+
+Las opciones disponibles son:
+
+1. Muros arquitectónicos
+2. Muros estructurales
+3. Estructuras estructurales
+
+## 6. Método de importación de malla
+
+<img src="/images/legacy/revit/setting-mesh-import.png" alt="Método de importación de malla" width={350} />
+
+Esta configuración le permite seleccionar el método de importación de malla que desea utilizar.
+
+Las opciones disponibles son:
+
+1. <b>Predeterminado</b>: Speckle convertirá cualquier malla en mallas nativas de Revit (DirectShapes), lo que hará que aparezcan con todos sus bordes internos. Esto puede no ser deseable dependiendo de la geometría y la densidad de la malla.
+
+2. <b>DXF</b>: Para importar mallas <b>sin los bordes internos</b>, puede seleccionar la opción `Importar DXF`. Esto exportará la malla en formato `DXF` y la importará a su proyecto. Este método de exportación también conservará los colores y materiales siempre que sea posible.
+
+3. <b>Familia DXF</b>: La tercera opción es similar a la segunda, pero insertará el DXF resultante en un nuevo documento de Familia, que luego se insertará en el proyecto.
+
+## 7. Falta la asignación de tipos
+
+Por defecto, Speckle intentará hacer coincidir los objetos Speckle que importe con los objetos nativos de Revit. Para ello, intentará hacer coincidir las propiedades `Categoría`, `Familia` y `Tipo` del objeto Speckle. Esto funciona bien si importa objetos estandarizados, como secciones estructurales.
+
+Supongamos que se agrega un objeto de tipo "W12x19" a un proyecto de Revit. Speckle puede reconocer fácilmente este objeto y asociarlo a un tipo con el mismo nombre en la familia de perfiles de ala ancha, siempre que dicho tipo de familia esté cargado en el proyecto. Si no hay ningún tipo de familia cargado en Revit de la categoría y el tipo correctos, Speckle intentará adivinar a qué tipo de objeto corresponder.
+
+Para evitar esto, puede utilizar la configuración de asignación de tipos de objeto.
+
+<img src="/images/legacy/revit/setting-missing-type.png" alt="Falta la asignación de tipos" width={350} />
+
+Las opciones disponibles son:
+
+- <b>Nunca</b>: Speckle gestiona automáticamente todo el mapeo.
+
+- <b>Siempre</b>: Al recibir una versión del modelo, se mostrará una tabla con los tipos de objetos entrantes y la opción de asignar un tipo de Revit.
+
+- <b>Para nuevos tipos:</b> Al recibir un modelo por primera vez, se mostrará una tabla con todos los tipos entrantes. Podrá asignar estos tipos a los correspondientes en la aplicación Revit, de forma similar a la opción anterior. Sin embargo, si recibe una versión más reciente del mismo modelo por segunda vez, el cuadro de diálogo de mapeo solo aparecerá si hay nuevos tipos entrantes que aún no haya asignado.
+
+Si la siguiente versión tiene los mismos tipos de objetos que la primera, se utilizará el mapeo personalizado anterior y no será necesario volver a asignar los tipos entrantes.
+
+<img src="/images/legacy/revit/missing-type-notification.png" alt="Notificación de tipo faltante" width={350} />
+
+### Importación de familias y tipos externos
+
+<img src="/images/legacy/revit/import-types-dialog.png" alt="Cuadro de diálogo de tipos de importación" />
+
+Cuando estés en el cuadro de diálogo de asignación y quieras importar algunos tipos de objetos, pero te des cuenta de que no tienes esos tipos de Revit cargados en el proyecto, puedes hacer clic en el botón "Importar tipos". Esto abrirá el cuadro de diálogo Importar tipos de familia, que te permitirá seleccionar e importar los tipos necesarios.
+
+Para empezar, el programa le pedirá que seleccione uno o varios archivos de familia de Revit mediante un cuadro de diálogo. Una vez seleccionados los archivos, podrá explorar todos los tipos disponibles e importar los que necesite. Si un interruptor aparece atenuado, significa que el tipo ya está presente en el proyecto.

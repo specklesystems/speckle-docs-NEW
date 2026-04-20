@@ -1,0 +1,217 @@
+---
+title: "QGIS"
+noindex: true
+---
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx'
+import LegacyVersions from '/snippets/es/legacy-versions.mdx'
+
+<LegacyWarning connector="QGIS" /> 
+<LegacyVersions app="QGIS" versions="3.28.15 & above" />
+
+<Frame>
+  <img src="/images/legacy/qgis/01_main.png" alt="Conector QGIS" />
+</Frame>
+
+El conector Speckle 2.0 para QGIS actualmente es compatible con las versiones 3.28.15 y posteriores de QGIS.
+
+## Empezando
+
+### Instalación
+
+Puedes encontrar Speckle QGIS en el menú `Plugins -> Administrar e instalar plugins` de QGIS.
+
+<Frame>
+  <img src="/images/legacy/qgis/qgis-pluginsMenu.png" alt="Menú desplegable de complementos" />
+</Frame>
+
+Ve a la pestaña `Todos` y busca `Speckle`. Deberías ver el complemento en la lista:
+
+<Frame>
+  <img src="/images/legacy/qgis/qgis-specklePluginView.png" alt="panel moteado" />
+</Frame>
+
+También puedes instalar el plugin desde Speckle Desktop Manager:
+
+<Frame>
+  <img src="/images/legacy/qgis/02_install_manager.png" alt="Instalación desde el administrador" />
+</Frame>
+
+<Frame>
+  <img src="/images/legacy/qgis/02_install_manager1.png" alt="Instalación desde el administrador" />
+</Frame>
+
+### Características
+
+- El plugin permite seleccionar varias capas de tu proyecto y enviar su geometría y atributos a un servidor Speckle.
+
+- Puedes recibir geometría Speckle enviada desde otros programas. Las propiedades de los objetos se almacenan en la tabla de atributos de la capa.
+
+- Puedes enviar tus datos desde QGIS y recibirlos en CAD en una ubicación compatible con CAD, gracias a la opción de crear un Sistema de Referencia de Coordenadas (SRC) personalizado en QGIS. Para ello, deberás introducir las coordenadas geográficas del punto de origen (0, 0) en tu proyecto CAD.
+
+- Puedes transformar los polígonos y la topografía (capas ráster de una sola banda) de 2D a 3D al enviarlos. Consulta la sección "Transformaciones" a continuación.
+
+### Uso de Speckle en QGIS
+
+Una vez instalado el complemento, encontrará un nuevo botón en la barra de herramientas de QGIS que abrirá el panel `SpeckleQGIS`. El panel contiene una interfaz muy sencilla:
+
+<Frame>
+  <img src="/images/legacy/qgis/03_open_plugin.png" alt="Vista del complemento" />
+</Frame>
+
+#### Agregar un proyecto Speckle al proyecto QGIS
+
+Primero, debes buscar y añadir un proyecto a tu proyecto de QGIS. Para ello, pulsa el botón de búsqueda que aparece junto al panel «Proyecto». Se abrirá una ventana emergente que te permitirá buscar un proyecto específico y añadirlo a tu proyecto de QGIS.
+
+<Frame>
+  <img src="/images/legacy/qgis/add_stream_img.png" alt="Panel de búsqueda de proyectos" />
+</Frame>
+
+En la lista desplegable de proyectos, seleccione uno para establecerlo como el **proyecto activo**. Este será el proyecto que se utilizará para enviar y recibir datos. Al seleccionar un proyecto activo, la lista desplegable «Modelo» mostrará todos los modelos disponibles de dicho proyecto.
+
+Y aquí tenéis un breve GIF del proceso 👇🏼
+
+<Frame>
+  <img src="/images/legacy/qgis/add_stream_gif.gif" alt="Agregar un proyecto al proyecto QGIS" />
+</Frame>
+
+Una vez que se agrega un proyecto al proyecto de QGIS, se guarda junto con él, por lo que los proyectos seguirán estando disponibles después de reiniciar QGIS.
+
+#### Envío de datos
+
+Para enviar tus datos, solo tienes que seguir estos pasos:
+
+1. Seleccione un proyecto de la lista desplegable.
+
+2. Especifique el modelo al que desea enviar los datos mediante el menú desplegable.
+
+3. Seleccione las capas del archivo que desea enviar.
+
+4. (Opcional) Escriba un mensaje de versión.
+
+5. (Opcional) Si desea recibir los datos en un software que no sea SIG o visualizarlos en el navegador, asegúrese de configurar su proyecto con un sistema de coordenadas de referencia (CRS) de tipo proyectado (por ejemplo, utilizando metros como unidades).
+
+6. Envíe los datos.
+
+La geometría se reproyectará y se enviará en el sistema de coordenadas del proyecto QGIS (que se muestra en la esquina inferior derecha del panel QGIS). Si el sistema de coordenadas elegido es geográfico con unidades no lineales, se interpretará como metros en otros programas que no admitan dichas unidades.
+
+Aquí tienes una breve explicación del proceso.
+
+<Frame>
+  <img src="/images/legacy/qgis/send.gif" alt="Envío de datos desde QGIS" />
+</Frame>
+
+Si desea recibir las capas posteriormente en un software que no sea SIG en la ubicación exacta (por ejemplo, recibir el contexto de su edificio en Londres), puede crear un sistema de coordenadas personalizado en QGIS que sincronice el sistema de coordenadas global de QGIS con el sistema de coordenadas local de CAD. Simplemente introduzca las coordenadas geográficas (Latitud, Longitud) del punto que constituye el origen (0,0) de su entorno CAD.
+
+<Frame>
+  <img src="/images/legacy/qgis/custom_crs.gif" alt="Comparación de coordenadas con CAD" />
+</Frame>
+
+#### Visualización del resultado
+
+Una vez que los datos se hayan enviado a Speckle, puede ver el resultado accediendo a la URL del servidor de Speckle (la nuestra pública es https://app.specke.systems/). Aquí tiene un ejemplo de datos de QGIS:
+
+<iframe title="Speckle" src="https://app.speckle.systems/projects/55a29f3e9d/models/e9f320ca1c@1f8b3ca162#embed=%7B%22isEnabled%22%3Atrue%7D" width="600" height="400" frameborder="0"></iframe>
+
+#### Recepción de datos
+
+Pasos para recibir los datos:
+
+1. Seleccione el proyecto del que desea recibir datos.
+2. Seleccione el modelo.
+3. Seleccione la versión específica (por defecto, la más reciente).
+4. Busque las capas recibidas en el nuevo grupo de capas, cuyo nombre coincide con el del proyecto, el modelo y la versión.
+
+<Frame>
+  <img src="/images/legacy/qgis/receive.gif" alt="Recepción de datos" />
+</Frame>
+
+### El Centro de Proyectos Personalizados es útil cuando necesitas:
+- Enviar datos (para poder recibirlos correctamente en una aplicación que no sea SIG)
+- Recibir datos (si los datos se enviaron desde una aplicación que no sea SIG).
+
+Tienes varias opciones para elegir a fin de configurar el centro de proyecto personalizado.
+
+#### Agregar desplazamientos
+Puede usar el Sistema de Referencia de Coordenadas (SRC) del proyecto y modificar sus propiedades de Speckle agregando desplazamientos en los ejes X e Y. Esta opción solo afectará las propiedades de Speckle al enviar/recibir datos y no tendrá ningún efecto mientras trabaja en un proyecto de QGIS. Use esta opción cuando su proyecto requiera el uso de un SRC específico.
+
+Por ejemplo, si utiliza un sistema de coordenadas proyectado (p. ej., EPSG:32631) sin desplazamientos y envía el contorno de la Torre Eiffel a Speckle, al recibirlo en Rhino la geometría se ubicará a miles de kilómetros del origen. Pero si antes de enviarlo establece los desplazamientos Lat(y) como 5411939.08 y Lon(x) como 448253.52, recibirá la Torre Eiffel justo en el centro de su lienzo de Rhino, conservando el sistema de coordenadas requerido (p. ej., EPSG:32631).
+
+Las coordenadas Lat(y) y Lon(x) deben especificarse en las unidades del sistema de coordenadas de referencia (CRS) del proyecto actual y en el orden correcto. Tenga en cuenta que, al copiar las coordenadas del lienzo de QGIS con el botón derecho del ratón, el orden de Lat/Lon puede variar según el CRS utilizado (normalmente, Lat se indica con N-Norte y Lon con E-Este; ambos valores pueden ser positivos o negativos).
+
+#### Creación de un SRC personalizado
+Cree un Sistema de Referencia de Coordenadas (SRC) personalizado, basado en la Proyección Mercator Transversa, si no necesita usar un SRC específico y desea minimizar las distorsiones de tamaño y forma. Especifique la latitud y longitud del origen en coordenadas geográficas para crear un SRC personalizado con el origen requerido y cambiar el SRC de su proyecto.
+
+#### Agregar ángulo al norte verdadero
+También puede agregar un ángulo al norte verdadero a cualquiera de las opciones anteriores si su aplicación no SIG lo requiere. Esto solo afectará las propiedades del objeto Speckle durante las operaciones de envío/recepción y no será visible en el proyecto QGIS.
+
+### Transformaciones
+A partir de la versión 2.14, se incluye una nueva funcionalidad que permite enviar mapas de contexto 3D completos para su posterior uso en CAD, BIM o cualquier software 3D. Esta función se aplica haciendo clic en "Aplicar transformaciones al enviar" antes de enviar los datos.
+
+<Frame>
+  <img src="/images/legacy/qgis/transforms_intro.png" alt="introducción a las transformaciones" />
+</Frame>
+
+Actualmente, hay 4 tipos de transformaciones disponibles:
+
+- **Creación de una malla a partir de un modelo digital de elevación:** Conversión de una capa ráster de una sola banda a una malla 3D.
+
+- **Uso de una capa ráster como textura para una malla 3D:** Mapeo de la imagen ráster sobre una elevación 3D (requiere una capa de elevación preseleccionada).
+
+- **Extrusión de polígonos:** Uso de un valor aleatorio o un campo de atributo numérico/texto de la capa.
+
+- **Proyección de polígonos sobre una elevación 3D:** Traslado del punto más bajo del polígono al punto más bajo del terreno circundante (requiere una capa de elevación preseleccionada).
+
+<Frame>
+  <img src="/images/legacy/qgis/transforms_types.png" alt="tipos_de_transformación" />
+</Frame>
+
+Además:
+- **Configurar una capa como capa de elevación:** servirá de base para varias transformaciones, como texturizar y proyectar sobre un terreno.
+
+<Frame>
+  <img src="/images/legacy/qgis/transforms_elevation_layer.png" alt="capa de elevación de transformaciones" />
+</Frame>
+
+Puedes añadir y eliminar transformaciones usando los botones + y - que se encuentran encima y debajo de la lista con las transformaciones aplicadas:
+
+<Frame>
+  <img src="/images/legacy/qgis/transforms_add.png" alt="transformaciones_agregar" />
+</Frame>
+
+Cada tipo de transformación se dirige a un tipo de capa específico, por ejemplo, solo capas poligonales o solo capas ráster. La transformación de extrusión ofrece un parámetro adicional: la opción de elegir el atributo que se utilizará para el valor de extrusión. Si selecciona la opción "Rellenar valores nulos", podrá establecer una "Altura aleatoria" como valor.
+
+<Frame>
+  <img src="/images/legacy/qgis/transforms_extrusion_attributes.png" alt="atributos_de_extrusión_transformados" />
+</Frame>
+
+Agregue el "Panel de mensajes de registro" a su interfaz de QGIS para ver más información y advertencias sobre sus transformaciones.
+
+### Ejemplos
+
+**Elevación a una malla 3d**
+<Marco>
+  <img src="/images/legacy/qgis/2.14-changelog-01-elevation.gif" alt="2.14-registro de cambios-01-elevación" />
+</Marco>
+
+**Textura para malla 3D**
+<Frame>
+
+<img src="/images/legacy/qgis/2.14-changelog-02-texture_over_elevation.gif" alt="2.14-registro de cambios-02-textura" />
+</Frame>
+
+**Extrusiones de polígonos**
+<Marco>
+  <img src="/images/legacy/qgis/2.14-changelog-03-extrusion.gif" alt="2.14-registro de cambios-03-extrusión" />
+</Marco>
+
+**Extrusión y proyección sobre un terreno**
+<Frame>
+
+<img src="/images/legacy/qgis/2.14-changelog-04-extrude_and_project_smaller_smaller.gif" alt="2.14-registro de cambios-04-proyección" />
+</Frame>
+
+**Combinación de las transformaciones**
+<Marco>
+  <img src="/images/legacy/qgis/2.14-changelog-05-altogether_smaller.gif" alt="2.14-registro de cambios-05-todas las transformaciones" />
+</Marco>

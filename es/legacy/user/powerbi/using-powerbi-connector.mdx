@@ -1,0 +1,71 @@
+---
+title: "Usando el conector de Power BI"
+noindex: true
+---
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx'
+
+<LegacyWarning connector="PowerBI" />
+
+Si has llegado hasta aquí, lo más probable es que ya hayas instalado el conector de Power BI y completado los pasos de configuración y autenticación. Si no, ahora es un buen momento para echar un vistazo.
+
+Una vez instalado el conector, encontrará dos nuevas opciones en la interfaz "**Obtener datos**" dentro de la categoría "**Otros**":
+
+<Frame>
+<img src="/images/legacy/powerbi/4-receive-methods.png" alt="Métodos de recepción" />
+</Frame>
+
+1. **`Speckle - Obtener modelo por URL (beta)`** (Opción recomendada para principiantes)
+2. **`Speckle - Obtener modelo por URL [Estructurado] (beta)`** (experimental).
+
+### Speckle - Obtener modelo por URL (beta)
+
+Esto se recomienda si estás empezando a usar el conector Speckle Power BI.
+
+Su uso es sencillo: pegue la **URL del modelo/versión** y haga clic en **Aceptar**.
+
+<Frame>
+<img src="/images/legacy/powerbi/5-default-method.gif" alt="Demostración del método predeterminado" />
+</Frame>
+
+El resultado de esa consulta será una tabla con las siguientes columnas:
+
+<Frame>
+<img src="/images/legacy/powerbi/6-received-data-columns.png" alt="Columnas de datos recibidos" />
+</Frame>
+
+1. **URL del modelo**: Esta es la URL de su modelo.
+
+2. **Tipo de URL**: Tipo o categoría de la URL de entrada. Su valor puede ser modelo, versión u objeto.
+
+3. **ID del objeto de versión**: El ID del objeto raíz del que proviene cada objeto individual. Para modelos/versiones, será el objeto de versión referenciado. Para URL de objetos, coincidirá con el ID del objeto en la URL.
+
+4. **ID del objeto**: El ID de cada objeto speckle en la tabla. Este se extrajo de los registros de `data`.
+
+5. **tipo_speckle**: Tipo de Speckle de cada objeto.
+
+6. **datos**: Una columna de registros que contiene los datos pertenecientes a cada objeto speckle.
+
+Es posible que aparezcan otras columnas, generadas por el usuario, pero que no son relevantes para esta sección.
+
+<Tip>
+Se agregaron la URL del modelo, el ID del objeto de versión y el ID del objeto para facilitar la carga de datos en el nuevo Speckle Power BI 3D Viewer.
+</Tip>
+
+#### Columna de datos
+
+Si observas los valores de la columna de datos, verás que está llena de registros. En Power BI, el tipo de datos Registro representa una sola fila de datos con uno o más campos. Su estructura es similar a la de un objeto JSON, donde cada campo tiene un nombre y un valor correspondiente. Esto permite representar tipos de datos complejos dentro de una sola fila.
+
+<Frame>
+<img src="/images/legacy/powerbi/7-data-records.png" alt="Registros de datos" />
+</Frame>
+
+En el caso de Speckle, donde los objetos son esencialmente objetos JSON con pares clave-valor, estos se convierten en objetos Record en Power BI al recibirlos. Esta conversión permite representar las complejas estructuras de datos de Speckle como registros dentro de Power BI.
+
+### Speckle - Obtener modelo por URL [Estructurado] (beta)
+
+<Warning>
+Esta función es experimental.
+</Warning>
+
+Esta nueva función permite interactuar mucho más rápido con tus datos de Speckle, ya que ya no es necesario obtener cada objeto como una lista plana. Sin embargo, esto tiene una pequeña desventaja: ya no obtendrás los datos con las columnas esperadas para conectarlos directamente con la visualización de Speckle en Power BI.
