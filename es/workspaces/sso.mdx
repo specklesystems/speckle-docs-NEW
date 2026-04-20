@@ -1,0 +1,165 @@
+---
+title: "Inicio de sesión único (SSO)"
+description: "Controla quién puede acceder a tu espacio de trabajo"
+tag: Enterprise
+---
+El inicio de sesión único (SSO) permite a los usuarios acceder a Speckle utilizando el proveedor de identidades existente de su organización. Speckle es compatible con cualquier proveedor de identidades OIDC.
+
+### ¿Cómo se habilita el inicio de sesión único (SSO)?
+
+Los administradores pueden habilitar el inicio de sesión único (SSO) en Configuración del espacio de trabajo → Seguridad.
+
+<Note>
+El inicio de sesión único (SSO) está disponible en el plan Enterprise.
+</Note>
+<Info>
+  Need help setting up SSO? We're happy to jump on a call to walk you through
+  the process. [Contact us](mailto:support@speckle.systems) to schedule a
+  meeting.
+</Info>
+
+<Steps>
+  <Step title="Crear una aplicación OpenID Connect">Configura una nueva **aplicación web** usando el protocolo OpenID Connect en el panel de tu proveedor de identidad. Esto generará la configuración necesaria para Speckle.
+
+Al configurar la aplicación, usa esta **URL de redireccionamiento** (callback):
+
+```
+
+https://app.speckle.systems/api/v1/workspaces/{workspace-short-id}/sso/oidc/callback
+
+```
+
+El valor de `workspace-short-id` debe ser el ID corto único de tu espacio de trabajo.
+
+Establece el tipo de concesión de la aplicación en "authorization_code" y configura estos ámbitos:
+
+| Ámbito | Reclamaciones resultantes |
+
+|---------|-------------------------------|
+
+| openid | - |
+
+| perfil | nombre, nombre_de_usuario, apellido |
+
+| correo electrónico | correo electrónico |
+
+<Advertencia>
+
+Es posible que debas configurar explícitamente tu proveedor de identidad para que proporcione correos electrónicos de usuario con la reclamación `email`. Algunos proveedores, como Azure AD, omiten u ocultan esta información de forma predeterminada.
+
+</Advertencia>
+
+</Step>
+  <Step title="Configurar SSO en Speckle">Complete el formulario de configuración de SSO con la información de su proveedor de identidad:
+
+- **Proveedor**: La etiqueta que se muestra en el botón de inicio de sesión en Speckle.
+- **ID de cliente**: Proporcionado por la aplicación de su proveedor de identidad.
+- **Secreto de cliente**: Cadena de caracteres estrictamente confidencial generada por su proveedor de identidad junto con el ID de cliente.
+
+- **URL de descubrimiento**: La URL completa donde se alojan los metadatos de configuración de su proveedor de identidad, proporcionada por la aplicación de su proveedor de identidad. Esta URL casi siempre termina en `/.well-known/openid-configuration`. Ejemplo: `https://your-company.idp.com/.well-known/openid-configuration`
+</Step>
+  <Step title="Habilitar SSO">Haz clic en **Agregar** para guardar la configuración de SSO. Una vez habilitado el SSO, todos los miembros del espacio de trabajo deberán autenticarse con sus credenciales de SSO la próxima vez que accedan al espacio de trabajo.</Step>
+</Steps>
+
+### Cuando SSO está habilitado
+
+1. Los usuarios verán la opción de inicio de sesión único (SSO) de su organización al ser invitados al espacio de trabajo.
+
+2. Los miembros existentes del espacio de trabajo deberán autenticarse mediante SSO la próxima vez que accedan.
+
+3. Los usuarios con el rol de Invitado pueden acceder al espacio de trabajo sin SSO, ya que este rol está diseñado para colaboradores externos.
+
+<Warning>
+El inicio de sesión único (SSO) proporciona autenticación, pero no aprovisionamiento automático de usuarios. Los usuarios eliminados
+de su proveedor de identidades seguirán apareciendo en su lista de miembros en Speckle
+hasta que un administrador de Speckle los elimine.
+</Warning>
+<Info>
+  If your organization uses SSO, you don't need to enable [domain
+  protection](/workspaces/domain-protection) as SSO provides equivalent security
+  controls.
+</Info>
+
+### Configurar el cierre de sesión del canal secundario
+
+Tu proveedor de identidad (IdP) puede notificar automáticamente a Speckle cuando finaliza la sesión de un usuario específico. Al recibir esta notificación, Speckle cierra inmediatamente la sesión del usuario en el espacio de trabajo asociado.
+
+Esta función ayuda a aplicar políticas de seguridad estrictas al garantizar la revocación inmediata del acceso en los casos en que un usuario abandona la organización o se ve comprometida una sesión.
+
+Para habilitar esta función, configure la URL de cierre de sesión de backchannel en la configuración de su IdP utilizando el siguiente punto final:
+
+```
+  https://app.speckle.systems/api/v1/workspaces/{workspace-short-id}/sso/oidc/backchannel-logout
+```
+
+**Nota:** Reemplace `{workspace-short-id}` con el identificador corto único de su espacio de trabajo Speckle específico.
+
+### Actualizar la configuración del proveedor de SSO
+
+Si necesita actualizar los detalles del proveedor por algún motivo, por ejemplo, si los secretos del cliente están a punto de caducar, actualmente es necesario utilizar la API GraphQL.
+
+1. Abra el explorador de API en https://app.specke.systems/graphql
+2. Consulte los detalles del proveedor SSO existente con la siguiente consulta; esta devolverá los detalles del proveedor existente.
+
+```gql
+query ($slug: String!) {
+  workspaceBySlug(slug: $slug) {
+    id
+    sso {
+      provider {
+        id
+        clientId
+        issuerUrl
+        name
+      }
+    }
+  }
+}
+```
+
+3. Actualice los detalles del proveedor con la mutación y la estructura de entrada que se detallan a continuación.
+
+<Warning>
+Actualizar incorrectamente los datos del proveedor puede hacer que su espacio de trabajo sea inaccesible para sus usuarios.
+Asegúrese de verificar los nuevos valores.
+</Warning>
+
+Mutación
+
+```gql
+mutation ($input: WorkspaceSsoProviderUpdateInput!) {
+  workspaceMutations {
+    updateSsoProvider(input: $input)
+  }
+}
+```
+
+Aporte
+
+```json
+{
+  "input": {
+    "clientId": "",
+    "clientSecret": "",
+    "issuerUrl": "",
+    "providerId": "",
+    "providerName": "",
+    "workspaceId": ""
+  }
+}
+```
+
+4. Los detalles del proveedor de SSO deben actualizarse si la modificación se realizó correctamente.
+
+## Preguntas frecuentes
+
+<AccordionGroup>
+  <Accordion title="Si tenemos SSO, ¿necesitamos invitar a los usuarios de la organización al espacio de trabajo de nuestro plan Enterprise?">No. Con el inicio de sesión único (SSO) habilitado, los usuarios de la organización pueden acceder al espacio de trabajo
+automáticamente a través de su proveedor de identidad. No es necesario enviar
+invitaciones individuales a los usuarios de su organización.</Accordion>
+  <Accordion title="¿Durante cuánto tiempo permanecerán los usuarios conectados con SSO?">La duración máxima de una sesión SSO de usuario en Speckle es de 7 días. Transcurrido este tiempo,
+los usuarios deberán volver a autenticarse a través de su proveedor de identidad.
+Sin embargo, la duración real de la sesión puede ser menor si su proveedor
+finaliza las sesiones antes o si los usuarios cierran sesión manualmente (cierre de sesión en segundo plano).
+Para configurar duraciones de sesión personalizadas, puede contactarnos.</Accordion>
+</AccordionGroup>
