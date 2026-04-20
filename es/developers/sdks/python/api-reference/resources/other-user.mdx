@@ -1,0 +1,209 @@
+---
+title: "OtherUserResource"
+description: "Complete API reference for other user lookup operations in SpecklePy"
+---
+
+## Overview
+
+The `OtherUserResource` provides methods for looking up other users on the Speckle server. Access it via `client.other_user` after authenticating your `SpeckleClient`.
+
+Use this resource to search for users by name or email, or retrieve public profile information for specific users.
+
+```python lines icon="python"
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token(token)
+
+# Access other user operations
+user = client.other_user.get("user_id")
+```
+
+## Methods
+
+### get()
+
+Get public profile information for another user by their ID.
+
+```python lines icon="python"
+client.other_user.get(id: str) -> Optional[LimitedUser]
+```
+
+**Parameters:**
+
+<ResponseField name="id" type="str" required>
+  The ID of the user to retrieve
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="user" type="LimitedUser | None">
+  The user's public profile, or `None` if not found
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+user = client.other_user.get("other_user_id_here")
+
+if user:
+    print(f"Name: {user.name}")
+    print(f"Bio: {user.bio}")
+    print(f"Company: {user.company}")
+    print(f"Avatar: {user.avatar}")
+    print(f"Verified: {user.verified}")
+    print(f"Role: {user.role}")
+else:
+    print("User not found")
+```
+
+See [LimitedUser](#limiteduser) for property details.
+
+<Note>
+This method returns limited public profile information. Email addresses and other private information are not included. Use `client.active_user.get()` to access your own full profile.
+</Note>
+### user_search()
+
+Search for users by name or email.
+
+```python lines icon="python"
+client.other_user.user_search(
+    query: str,
+    *,
+    limit: int = 25,
+    cursor: Optional[str] = None,
+    archived: bool = False,
+    emailOnly: bool = False
+) -> UserSearchResultCollection
+```
+
+**Parameters:**
+
+<ResponseField name="query" type="str" required>
+  Search query (minimum 3 characters)
+</ResponseField>
+
+<ResponseField name="limit" type="int" default="25">
+  Maximum number of results to return
+</ResponseField>
+
+<ResponseField name="cursor" type="str" default="None">
+  Cursor for pagination
+</ResponseField>
+
+<ResponseField name="archived" type="bool" default="False">
+  Include archived users
+</ResponseField>
+
+<ResponseField name="emailOnly" type="bool" default="False">
+  Search email addresses only
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="results" type="UserSearchResultCollection">
+  Search results with pagination cursor
+</ResponseField>
+
+**Example:**
+
+```python lines icon="python"
+# Search for users by name
+results = client.other_user.user_search("john", limit=10)
+
+print(f"Found {len(results.items)} users:")
+for user in results.items:
+    print(f"  - {user.name} ({user.company})")
+    if user.verified:
+        print(f"    ✓ Verified")
+
+# Paginate through more results
+if results.cursor:
+    next_page = client.other_user.user_search(
+        "john",
+        cursor=results.cursor
+    )
+```
+
+**Search by Email:**
+
+```python lines icon="python"
+# Search email addresses only
+results = client.other_user.user_search(
+    "john@example.com",
+    emailOnly=True
+)
+
+if results.items:
+    user = results.items[0]
+    print(f"Found: {user.name} ({user.email if hasattr(user, 'email') else 'email hidden'})")
+```
+
+See [UserSearchResultCollection](#usersearchresultcollection) for property details.
+
+<Warning>
+The search query must be at least 3 characters long. Shorter queries will result in an error.
+</Warning>
+## Types
+
+### LimitedUser
+
+Represents another user's public profile information.
+
+<ResponseField name="id" type="str">
+  User ID
+</ResponseField>
+
+<ResponseField name="name" type="str">
+  Display name
+</ResponseField>
+
+<ResponseField name="bio" type="str">
+  User biography
+</ResponseField>
+
+<ResponseField name="company" type="str">
+  Company name
+</ResponseField>
+
+<ResponseField name="avatar" type="str">
+  Avatar image URL
+</ResponseField>
+
+<ResponseField name="verified" type="bool">
+  Whether user is verified
+</ResponseField>
+
+<ResponseField name="role" type="str">
+  Server role (e.g., "server:user", "server:admin")
+</ResponseField>
+### UserSearchResultCollection
+
+Collection of user search results with pagination.
+
+<ResponseField name="items" type="List[LimitedUser]">
+  List of matching users
+</ResponseField>
+
+<ResponseField name="cursor" type="str">
+  Pagination cursor for next page
+</ResponseField>
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="ActiveUserResource" icon="user" href="/developers/sdks/python/api-reference/resources/active-user">
+    Manage your own user profile
+  </Card>
+
+  <Card title="ProjectResource" icon="folder" href="/developers/sdks/python/api-reference/resources/project">
+    Manage project teams and collaborators
+  </Card>
+
+  <Card title="VersionResource" icon="clock-rotate-left" href="/developers/sdks/python/api-reference/resources/version">
+    See version authors and contributors
+  </Card>
+
+  <Card title="SpeckleClient" icon="plug" href="/developers/sdks/python/api-reference/client">
+    Main client documentation
+  </Card>
+</CardGroup>

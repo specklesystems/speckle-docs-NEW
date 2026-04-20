@@ -1,0 +1,538 @@
+---
+title: Deploying a Speckle Enterprise licensed Automate server
+description: Hosting Speckle Enterprise Automate in your organization.
+sidebarTitle: Enterprise Automate
+tag: Enterprise
+noindex: true
+---
+
+<Note>
+
+This guide is for organisations who have a commercial license for Speckle Enterprise, including Automate, and are deploying on their own infrastructure.
+
+If you are looking for guidance on how to use Speckle Automate features, please refer to our [Automate documentation](/developers/automate/introduction).
+
+</Note>
+
+# Speckle Enterprise Automate deployment guide
+
+We recommend that you first [familiarise yourself with Automate](/developers/automate/introduction).
+
+## Prerequisites
+
+Before you can configure Speckle Enterprise Automate, your organization will have already completed the following steps:
+1. **Deployment**: Deployed Speckle Enterprise Server on Kubernetes. See our instructions for [deploying on Kubernetes](/developers/server/deployment/kubernetes) and configuring [Speckle Enterprise Server](/developers/server/deployment/enterprise) for more details.
+2. **License Acquisition**: Acquired a commercial license for Speckle Enterprise from Speckle Systems. This license should include permissions for deploying Automate.
+3. **Package Registry Token**: Obtained a package registry token from Speckle Systems to access the private Helm charts & Docker images for Enterprise features.
+4. **Package Registry URL**: Received the URL for the private package registry hosting the Automate Helm charts and Docker images.
+
+Speak to your Speckle representative if you need assistance with any of the prerequisites.
+
+## Infrastructure
+
+Speckle Enterprise Automate requires the following infrastructure components:
+
+- **Kubernetes Cluster**: A Kubernetes cluster to host the Automate components. This can be a managed service (e.g., EKS, AKS, GKE) or a self-hosted cluster.
+  - It is possible to host Automate in the same cluster as your Speckle Enterprise Server deployment, and this requires careful configuration of node taints, tolerances, and priority classes to prevent resource contention.
+  - We recommend using a separate cluster for better isolation, resource management, and security.
+- **Container Registry**: Access to a container registry which will store Automate Functions which are published as Docker images. We recommend a separate registry for Automate, as it programatically writes and reads images.
+  - Once the registry is created, you will need to create two API tokens/credentials for Automate to authenticate with the registry.
+    - The first should have read-only access
+    - The second should have read-write access.
+- **Postgres**: Two separate Postgres (version 16) databases are required for Automate; one for the Automate server and one for storing results of Automations. These can be hosted within the same server cluster as the Speckle Enterprise Server database, or in a different server cluster.
+- **Valkey**: A Valkey (or Redis) instance is required by Automate. Due to the lack of isolated namespacing in Valkey/Redis, we recommend using a separate instance for Automate to avoid conflicts with the Valkey/Redis instance used by the Speckle Enterprise Server.
+- **Blob Storage**: An S3-compatible blob storage service is required for Automate to store logs from Automations.
+
+## Configuration Steps
+
+### Retrieving the Helm Chart
+
+1. To access the private Helm charts for Speckle Automate Enterprise, you need to log in to the Speckle Enterprise package registry:
+
+    ```bash
+    helm login <PACKAGE_REGISTRY_URL> --username <PACKAGE_REGISTRY_USERNAME> --password <PACKAGE_REGISTRY_TOKEN>
+    ```
+
+1. Once authenticated, you can pull the Automate Helm chart and investigate its contents:
+
+    ```bash
+    helm pull <PACKAGE_REGISTRY_URL>/speckle-automate-chart --untar
+    ```
+
+1. We recommend reading the `values.yaml` file included in the Helm chart to understand all the configuration options available for Automate. A `json.schema` file is also included to provide validation and documentation for each configuration option.
+
+1. We also recommend understanding the architecture of the Kubernetes resources deployed by the Helm chart. Please contact your Speckle representative if you have further questions.
+
+1. Create an empty `values.yaml` file which we will use to configure our deployment:
+
+    ```bash
+    touch values.yaml
+    ```
+
+### Image Pull Secrets
+
+The Helm Chart references Docker Images that are hosted in the same private registry as the Helm Chart.
+You will need to create an Image Pull secret in Kubernetes to allow your cluster to authenticate with the registry and pull the necessary images.
+
+1. Create a Kubernetes Secret of type dockerconfigjson:
+
+    ```bash
+    kubectl create secret docker-registry speckle-enterprise-registry \
+    --docker-server=<PACKAGE_REGISTRY_URL> \
+    --docker-username=<PACKAGE_REGISTRY_USERNAME> \
+    --docker-password=<PACKAGE_REGISTRY_TOKEN> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Update the Helm values.yaml file to reference the image pull secret:
+
+    ```yaml
+    automate:
+      imagePullSecrets:
+        - name: speckle-enterprise-registry
+    ```
+
+### License Key
+
+1. Obtain your Speckle Enterprise license key from Speckle.
+1. Create a Kubernetes Secret to store the license key:
+
+    ```bash
+    kubectl create secret generic license \
+    --from-literal=license_token=<YOUR_LICENSE_KEY> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Update the Helm values.yaml file to reference the license secret:
+
+    ```yaml
+    automate:
+      licenseTokenSecret:
+        secretName: 'license'
+        secretKey: 'license_token'
+    ```
+
+### Configure the Database connections
+
+#### Configure Automate Server Database connection
+
+1. Create a Kubernetes secret to store the Automate Server database credentials:
+
+    ```bash
+    kubectl create secret generic automate-server-db \
+    --from-literal=postgres_url=<DB_CONNECTION_URL> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+    The database connection (`<DB_CONNECTION_URL>`) should be in the format of:
+
+    ```text
+    postgresql://<DB_USERNAME>:<DB_PASSWORD>@<DB_HOST>:<DB_PORT>/<DB_NAME>?sslmode=ssl_required
+    ```
+
+1. Update the Helm values.yaml file to reference the Automate Server database secret:
+
+    ```yaml
+    automate:
+      postgresql:
+        connectionString:
+          secretName: 'automate-server-db'
+          secretKeyRef: 'postgres_url'
+    ```
+
+1. If your PostgreSQL database TLS presents a self-signed certificate, update the Helm values.yaml file to provide the CA certificate for the Automate Server database connection. The CA certificate should be in PEM format.
+
+    ```yaml
+    automate:
+      postgresql:
+        useCertificate: true
+        caCertificate: |-
+          -----BEGIN CERTIFICATE-----
+          Your CA certificate in PEM format goes here, including the BEGIN and END lines.
+          -----END CERTIFICATE-----
+    ```
+
+#### Configure Automate Results database connection
+
+The results database is used to store the results of Automations, configuration takes a slightly different format than Automate's own database connection.
+
+1. Create a Kubernetes secret to store the Automate Results database credentials.
+
+    ```bash
+    kubectl create secret generic automate-results-db \
+    --from-literal=POSTGRES_USER=<DB_USERNAME> \
+    --from-literal=POSTGRES_PASSWORD=<DB_PASSWORD>
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Update the Helm values.yaml file to reference the Automate Server cache secret:
+
+    ```yaml
+    kubernetes-runner:
+      results:
+        postgres:
+          host: 'your-postgres-fqdn-or-ip-address' # e.g. "postgres.yourdomain.com"
+          port: 5432
+          db: 'your-postgres-db-name'
+          sslmode: 'require'
+          credentials:
+            username:
+              secretName: automate-results-db
+              secretKeyRef: POSTGRES_USER
+            password:
+              secretName: automate-results-db
+              secretKeyRef: POSTGRES_PASSWORD
+          caCertificate:
+            generateConfigMap: true
+            configMapName: 'results-postgres-certificate'
+            data: |
+              -----BEGIN CERTIFICATE-----
+              Your CA certificate in PEM format goes here, including the BEGIN and END lines.
+              -----END CERTIFICATE-----
+    ```
+
+### Configure the Valkey (or Redis) connection
+
+1. Create a Kubernetes secret to store the Automate Server cache (Valkey or Redis) credentials:
+
+    ```bash
+    kubectl create secret generic automate-server-cache \
+    --from-literal=redis_url=<CACHE_CONNECTION_URL> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+    The cache connection (`<CACHE_CONNECTION_URL>`) should be in the format of:
+
+    ```text
+    redis://<REDIS_USERNAME>:<REDIS_PASSWORD>@<REDIS_HOST>:<REDIS_PORT>
+    ```
+
+1. Update the Helm values.yaml file to reference the Automate Server cache secret:
+
+    ```yaml
+    automate:
+      redis:
+        connectionString:
+          secretName: 'automate-server-cache'
+          secretKeyRef: 'redis_url'
+    ```
+
+### Configure the Container Registry connection
+
+Automate requires a container registry to store and retrieve Automate Functions. Automate needs to be able to authenticate with the registry using both read and write credentials, so we recommend creating two separate API tokens/credentials in your container registry; one with read-only permissions and one with read-write permissions.
+
+The registry namespace (or 'organisation') is the area in your container registry where Automate Functions will be stored. This should be a namespace/organisation dedicated to Automate to avoid conflicts with other images in your registry.
+
+1. Create Kubernetes secrets to store the container registry credentials:
+
+    ```bash
+    kubectl create secret generic automate-registry-read \
+    --from-literal=registry_username=<REGISTRY_READ_USERNAME> \
+    --from-literal=registry_password=<REGISTRY_READ_PASSWORD_OR_TOKEN> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+
+    kubectl create secret generic automate-registry-write \
+    --from-literal=registry_username=<REGISTRY_WRITE_USERNAME> \
+    --from-literal=registry_password=<REGISTRY_WRITE_PASSWORD_OR_TOKEN> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Update the Helm values.yaml file to reference the container registry secrets:
+
+    ```yaml
+    automate:
+      registry:
+        url: <PACKAGE_REGISTRY_URL> # e.g. "https://index.docker.io/v1/" or "https://ghcr.io/" (the URL of your container registry)
+        organisation: <YOUR_REGISTRY_ORGANISATION> # e.g. "myorg". This is the namespace/organisation in your container registry belonging to your organisation, where Automate Functions will be stored.
+        authentication:
+          # read-only credentials
+          readOnlyUsername:
+            secretName: 'automate-registry-read'
+            secretKeyRef: 'registry_username'
+          readOnlyPassword:
+            secretName: 'automate-registry-read'
+            secretKeyRef: 'registry_password'
+          # read and write credentials
+          username:
+            secretName: 'automate-registry-write'
+            secretKeyRef: 'registry_username'
+          password:
+            secretName: 'automate-registry-write'
+            secretKeyRef: 'registry_password'
+
+### Configure the Blob Storage connection
+
+Automate requires an S3-compatible blob storage service to store logs from Automations.
+
+1. Create Kubernetes secrets to store the container registry credentials:
+
+    ```bash
+    kubectl create secret generic automate-results-s3 \
+    --from-literal=S3_ACCESS_KEY_ID=<S3_ACCESS_KEY_ID> \
+    --from-literal=S3_SECRET_ACCESS_KEY=<S3_SECRET_ACCESS_KEY> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Update the Helm values.yaml file to reference the container registry secrets:
+
+    ```yaml
+        kubernetes-runner:
+          results:
+            s3:
+              bucketName: 'your-bucket-name'
+              endpoint: 'https://your-s3-endpoint.example.org'
+              region: '<YOUR_S3_REGION>' # e.g. "us-east-1"
+              multiPartSize: 5242880 # 5MB, adjust as needed
+              hostnameImmutable: true
+              credentials:
+                accessKeyId:
+                  secretName: automate-results-s3
+                  secretKeyRef: S3_ACCESS_KEY_ID
+                secretAccessKey:
+                  secretName: automate-results-s3
+                  secretKeyRef: S3_SECRET_ACCESS_KEY
+    ```
+
+### (Optional) Configure Ingress
+
+If your Speckle Enterprise server is external to the cluster where you are deploying Automate, you may need to configure an Ingress resource to allow Speckle Enterprise server to communicate with Automate. If your Speckle Enterprise server is hosted within the same cluster as Automate, you can use internal Kubernetes networking and do not need to set up an Ingress.
+
+1. You should have an existing Ingress controller set up in your cluster, such as NGINX Ingress Controller or Traefik. If you do not have an Ingress controller set up, you will need to set one up before proceeding.
+1. You should also have a Certificate Issuer, such as cert-manager, set up in your cluster to manage TLS certificates for the Ingress. If you do not have a Certificate Issuer set up, you will need to set one up before proceeding.
+1. Update the Helm values.yaml file to enable the Ingress configuration and set the appropriate host and path:
+
+    ```yaml
+    automate:
+      canonicalUrl: 'https://automate.yourdomain.com' # the external URL for your Automate deployment, which should point to the Ingress you are setting up. This is used by Speckle Server to communicate with Automate, so it should be a URL that resolves to the Ingress endpoint.
+      ingress:
+        enabled: true
+        proxy_body_size: 20m
+        certManagerIssuer: letsencrypt # the name of your cert-manager issuer, if you are using cert-manager to manage your TLS certificates. Adjust as needed for other certificate management solutions.
+    ```
+
+### Security
+
+#### Enabling your Speckle Server to access Automate
+
+Speckle Server is responsible for triggering Automations in Automate and for displaying the results of Automations in the Speckle Server interface. To do this, Speckle Server needs to be able to communicate with the Automate API.
+
+Speckle Server establishes an HTTPS connection with Automate. Automate in turn confirms that the Speckle server is included in its allow-list of referring domains. Automate will make a new HTTPS connection back to Speckle server. Automate and Speckle Server exchange a token to validate the Speckle Server's identity.
+
+To enable developers to test new Automate Functions in local development environments, you may wish to include `speckle.internal` in the allow-list of referring domains. Developers will need to add an entry to their local hosts (`/etc/hosts` or similar) file to point `speckle.internal` to their localhost IP address (e.g. `127.0.0.1 speckle.internal`).
+
+1. To add your Speckle Server's domain to the allow-list of referring domains in Automate, update your values.yaml file with the following configuration:
+
+    ```yaml
+    automate:
+      speckleServer:
+        allowlist:
+          domains:
+            - <YOUR_SPECKLE_SERVER_DOMAIN> # e.g. speckle.yourdomain.com (do not include the protocol)
+    ```
+
+#### Blocking network egress
+
+By default, Automations running within Automate have all ingress blocked. However, they have unrestricted egress. This means that, by default, Automations can make outgoing network requests to any domain on the internet and to the local cluster.
+
+We *strongly* recommend restricting the egress to the local Kubernetes cluster Pod and Service CIDR ranges.
+
+Due to limitations in Kubernetes Network Policies, we cannot restrict egress to specific domains, only to IP ranges (defined in CIDR notation).
+
+1. To restrict egress for Automations, update your values.yaml file with the CIDR ranges for your local Kubernetes cluster:
+
+    ```yaml
+    automate:
+      blockedEgressCidrs:
+        - <YOUR_CLUSTER_POD_CIDR> # e.g. "192.168.0.0/16"
+        - <YOUR_CLUSTER_SERVICE_CIDR> # e.g. "192.168.1.0/16"
+    ```
+
+### (Optional) Observability
+
+Automate supports OpenTelemetry for metrics. Please speak to your Speckle representative for instructions on how to configure Automate to send metrics to your monitoring system.
+
+### (Optional) Integrate with GitHub
+
+Automate has a built-in integration with GitHub which allows you to create GitHub repositories from Speckle's templates, and to link your GitHub repositories to Automate Functions for streamlined development and deployment.
+
+It is possible to use Automate without GitHub integration, please refer to our documentation for [publishing Automate Functions without GitHub integration](/developers/automate/publishing-without-github) for more details.
+
+1. Create a GitHub OAuth App in your GitHub organization to obtain a client ID and client secret. Please follow [GitHub's documentation](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app).
+  - At present only OAuth Apps are supported, GitHub Apps are not currently supported.
+  - The Authorization Callback URL for the OAuth App should be `<AUTOMATE_CANONICAL_URL>/api/v2/functions/auth/githubapp/authorize/callback`, replacing `<AUTOMATE_CANONICAL_URL>` with the canonical URL of your Automate instance.
+  - Device flow is *not* required.
+
+1. Create Kubernetes secrets to store the container registry credentials:
+
+    ```bash
+    kubectl create secret generic speckle-automate-github \
+    --from-literal=clientSecret=<GITHUB_CLIENT_SECRET> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+  ```yaml
+  automate:
+    github:
+      clientId: '<GITHUB_CLIENT_ID>'
+      clientSecret:
+        secretName: speckle-automate-github
+        secretKeyRef: clientSecret
+  ```
+
+#### Encrypting GitHub credentials
+
+The GitHub client is used to authenticate with GitHub. The authorization which is shared with Speckle Automate by GitHub is encrypted in the database.
+
+This means that even if an attacker were to gain read access to the database, they would not be able to decrypt the GitHub credentials without also having access to the Kubernetes Secret. The encryption uses Public-key cryptography and is [achieved using X25519 and XSalsa20-Poly1305 algorithms](https://doc.libsodium.org/public-key_cryptography/sealed_boxes).
+
+1. Generate a public and private key pair for encrypting the GitHub credentials:
+
+    ```bash
+    # Generate the key pair
+    openssl genpkey -algorithm X25519 -out automate-github-key.pem
+
+    # Export private key as base64-encoded DER
+    openssl pkey -in automate-github-key.pem -outform DER | base64
+
+    # Derive public key as base64-encoded DER
+    openssl pkey -in automate-github-key.pem -pubout -outform DER | base64
+    ```
+
+1. Store the public and private keys in a json file in the following format:
+
+    ```json
+    [
+      {
+        "publicKey": "<BASE64_ENCODED_PUBLIC_KEY>",
+        "privateKey": "<BASE64_ENCODED_PRIVATE_KEY>"
+      }
+    ]
+    ```
+
+    Note, if you need to rotate keys in the future, you can generate a new key pair and add it to the array in the json file. The Automate server will attempt to decrypt GitHub credentials using each private key in the array until it finds one that works.
+
+1. Create a Kubernetes secret to store the GitHub encryption keys:
+
+    ```bash
+    kubectl create secret generic speckle-automate-encryption-keys \
+    --from-file=keys.json=<PATH_TO_JSON_FILE> \
+    -n <NAMESPACE> \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+    ```
+
+1. Store the keys securely and delete these original `.pem` and `.json` files, as they contain the private keys in plaintext.
+
+1. Update the Helm values.yaml file to reference the GitHub encryption keys secret:
+
+    ```yaml
+    automate:
+      encryptionKeys:
+        secretName: speckle-automate-encryption-keys
+        secretKeyRef: keys.json
+    ```
+
+### (Optional) Function development support
+
+Automate supports the development of new Automate Functions in developer's local development environments, allowing them to run their Automate Functions in the Automate server. This promotes faster feedback and shortens the development cycle for new Automate Functions, increasing development productivity.
+
+Enabling this functionality requires a special allow-listing configuration in Automate, and developers will need to configure their local environments and provide an authentication token.
+
+
+1. Include `speckle.internal` in the allow-list of referring domains, update your values.yaml file with the following configuration:
+
+    ```yaml
+    speckleServer:
+      allowlist:
+        domains:
+          - <YOUR_SPECKLE_SERVER_DOMAIN> # as described above
+          - speckle.internal
+    ```
+
+1. Generate a random password or token. This should be unique to your Speckle Automate deployment.
+
+1. Add the token to your values.yaml file:
+
+    ```yaml
+    speckleServer:
+      allowlist:
+        testAuthenticationToken: <YOUR_RANDOM_TOKEN>
+    ```
+
+Each Function developer can then follow the instructions in our [Automate Function development guide](/developers/automate/function-testing).
+
+### Provide Priority Classes
+
+The Helm Chart expects two separate Kubernetes PriorityClasses to be available in the cluster, one for the Automate Server itself (named `automate-critical`) and one for the Automations running within Automate (named `automate-workloads`).
+
+The priority class values in the below examples should be adjusted for your cluster's scheme. We recommend that `automate-critical` is a higher value than `automate-workloads`.
+
+1. Create the required PriorityClasses in your cluster:
+
+    ```bash
+    kubectl apply -f - <<EOF
+    apiVersion: scheduling.k8s.io/v1
+    kind: PriorityClass
+    metadata:
+      name: automate-critical
+    value: 80
+    globalDefault: false
+    description: "Priority class for Speckle Automate Server components"
+    ---
+    apiVersion: scheduling.k8s.io/v1
+    kind: PriorityClass
+    metadata:
+      name: automate-workloads
+    value: -150
+    globalDefault: false
+    description: "Priority class for Speckle Automate workloads"
+    EOF
+    ```
+
+### Deploying the Helm Chart
+
+1. The Kubernetes RBAC user deploying Automate will require permissions to create namespaces, deployments, services, configmaps, secrets, and other resources required by the Helm Chart. Please ensure your user has the necessary permissions before proceeding.
+
+1. Use Helm to deploy Speckle Enterprise Automate:
+
+    ```bash
+    helm install speckle-automate <PACKAGE_REGISTRY_URL>/speckle-automate-chart \
+    --namespace <NAMESPACE> \
+    -f values.yaml
+    ```
+
+## Configuring Speckle Server to use Automate
+
+Now that you have deployed Automate, you need to configure your Speckle Enterprise Server to connect to your Automate deployment. This is done by updating the `automate` configuration in your Speckle Enterprise Server's `values.yaml` file with the canonical URL for your Automate deployment (the same URL you set in the `automate.canonicalUrl` field in the Automate Helm chart).
+
+1. In **Speckle Server's** `values.yaml` file, update the following configuration with the canonical URL for your Automate deployment:
+
+    ```yaml
+    featureFlags:
+      automateModuleEnabled: true
+
+    server:
+      speckleAutomateUrl: "https://<YOUR_AUTOMATE_CANONICAL_URL>" # e.g. "https://automate.example.org"
+    ```
+
+1. Redeploy your Speckle Enterprise Server with the updated configuration.
+
+1. Validate that Automate is working correctly by following our [Quickstart Guide](/developers/automate/quickstart).

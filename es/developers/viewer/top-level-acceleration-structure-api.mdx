@@ -1,0 +1,181 @@
+---
+title: TopLevelAccelerationStructure
+description: The viewer is using three-mesh-bvh as the backbone for it's BVH implementation. 
+---
+
+The AccelerationStructure class is a thin wrapper around the library's [_MeshBVH_](https://threejs.org/docs/index.html?q=box#api/en/math/Box3) class with some additional specific functionality.
+
+The speckle viewer uses a dual level BVH for optimal acceleration. The TopLevelAccelerationStructure is a BVH comprised of several other BVHs. Each viewer batch will have a single top level acceleration structure containing all the BVHs of the individual objects that make up the batch.
+
+## Constructors
+
+### constructor
+
+```typescript
+constructor(batchObjects: BatchObject[])
+```
+
+Populates/constructs this top level acceleration structure with the group of objects that comprise it.
+
+**Parameters**
+
+- **batchObjects**: The group of [_BatchObject_](/developers/viewer/batch-object-api)s that will make up this top level acceleration structure
+
+## Properties
+
+### accelerationStructure
+
+```typescript
+accelerationStructure: AccelerationStructure;
+```
+
+The top-level [_AccelerationStructure_](/developers/viewer/acceleration-structure-api) built on top of the group of bottom-level BVHs.
+<Warning>
+The top-level acceleration structure does not have it's own transformation space. It's identical to the world space. Unlike the bottom-level acceleration structure which is always centered around the world origin.
+</Warning>
+
+**Returns**: [_AccelerationStructure_](/developers/viewer/acceleration-structure-api)
+
+## Methods
+
+### closestPointToPoint
+
+```typescript
+closestPointToPoint(point: Vector3): HitPointInfo | null
+```
+
+Returns the closest point on the BVH to the provided argument
+
+**Parameters**
+
+- **point**: [_Vector3_](https://threejs.org/docs/index.html?q=box3#api/en/math/Vector3) The point in space we want to find the closest point in the BVH to
+
+**Returns**: [_HitPointInfo_](https://github.com/gkjohnson/three-mesh-bvh/blob/be976e6746123f37faa8527b63c13cec9782253c/src/index.d.ts#L17)
+
+
+### getBoundingBox
+
+```typescript
+getBoundingBox(target?: Box3): Box3
+```
+
+Gets the aabb of the entire top level BVH.
+
+**Parameters**
+
+- _optional_ **target**: [_Box3_](https://threejs.org/docs/index.html?q=box3#api/en/math/Box3)
+
+**Returns**: [_Box3_](https://threejs.org/docs/index.html?q=box3#api/en/math/Box3)
+
+### raycast
+
+```typescript
+raycast(
+    ray: Ray,
+    materialOrSide: Side | Material | Material[] = FrontSide
+): ExtendedIntersection[]
+```
+
+Wrapper over three-mesh-bvh raycast function. Queries the top-level BVH first, then if it finds intersections, it goes down to the bottom-level BVHs and raycasts against them.
+
+**Parameters**
+
+- **ray**: [_Ray_](https://threejs.org/docs/index.html?q=ray#api/en/math/Ray) to intersect with
+- **materialOrSide**: [_Side_](https://threejs.org/docs/index.html?q=Materia#api/en/constants/Materials) | [_Material_](https://threejs.org/docs/index.html?q=Materia#api/en/materials/Material) | [_Material[]_](https://threejs.org/docs/index.html?q=Materia#api/en/materials/Material)
+
+**Returns**: [_ExtendedIntersection_](/developers/viewer/top-level-acceleration-structure-api#extendedintersection)
+
+### raycastFirst
+
+```typescript
+raycastFirst(
+    ray: Ray,
+    materialOrSide: Side | Material | Material[] = FrontSide
+): ExtendedIntersection
+```
+
+Identical to `raycast` but stops at first intersection found. Queries the top-level BVH first, then if it finds intersections, it goes down to the bottom-level BVHs and raycasts against them.
+
+**Parameters**
+
+- **ray**: [_Ray_](https://threejs.org/docs/index.html?q=ray#api/en/math/Ray) to intersect with
+- **materialOrSide**: [_Side_](https://threejs.org/docs/index.html?q=Materia#api/en/constants/Materials) | [_Material_](https://threejs.org/docs/index.html?q=Materia#api/en/materials/Material) | [_Material[]_](https://threejs.org/docs/index.html?q=Materia#api/en/materials/Material)
+
+**Returns**: [_ExtendedIntersection_](/developers/viewer/top-level-acceleration-structure-api#extendedintersection)
+
+### raycastFirst
+
+```typescript
+refit(): void
+```
+
+Rebuilds the top level acceleration structure. Whenever any of the comprising batch objects update their transfromation, a refit needs to be called.
+<Tip>
+`refit` is called automatically whenever any of the comprising [_BatchObjects_](/developers/viewer/batch-object-api) update their transformation.
+</Tip>
+
+**Returns**: void
+
+### shapecast
+
+```typescript
+shapecast(callbacks: ExtendedShapeCastCallbacks): boolean
+```
+
+Generic mechanism to intersect the BVH with various shapes/objects. The callbacks provide granular access to several stages of both the top-level BVH and bottom-level BVH intersection process.
+
+**Parameters**
+
+- **callbacks**: [ExtendedShapeCastCallbacks](/developers/viewer/top-level-acceleration-structure-api#extendedshapecastcallbacks)
+
+**Returns**: boolean
+
+## Typedefs
+
+### ExtendedShapeCastCallbacks
+
+```typescript
+type ExtendedShapeCastCallbacks = {
+  intersectsTAS?: (
+    box: Box3,
+    isLeaf: boolean,
+    score: number | undefined,
+    depth: number,
+    nodeIndex: number
+  ) => ShapecastIntersection | boolean;
+  intersectTASRange?: (
+    batchObject: BatchObject
+  ) => ShapecastIntersection | boolean;
+  intersectsBounds: (
+    box: Box3,
+    isLeaf: boolean,
+    score: number | undefined,
+    depth: number,
+    nodeIndex: number
+  ) => ShapecastIntersection | boolean;
+
+  traverseBoundsOrder?: (box: Box3) => number;
+} & (
+  | {
+      intersectsRange: (
+        triangleOffset: number,
+        triangleCount: number,
+        contained: boolean,
+        depth: number,
+        nodeIndex: number,
+        box: Box3
+      ) => boolean;
+    }
+  | {
+      intersectsTriangle: (
+        triangle: ExtendedTriangle,
+        triangleIndex: number,
+        contained: boolean,
+        depth: number,
+        batchObject?: BatchObject
+      ) => boolean | void;
+    }
+);
+```
+
+Extension of three-mesh-bvh shapecast callbacks with the addition of top level acceleration structure stages.

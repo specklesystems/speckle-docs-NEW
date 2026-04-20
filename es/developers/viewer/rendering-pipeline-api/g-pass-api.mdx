@@ -1,0 +1,325 @@
+---
+title: GPass
+description: Contract for all rendering pass implementations in the speckle viewer.
+---
+
+<Note>
+The "G" stands for "Graphics" and it's only there to make it clear that it's a different type that three's `Pass`.
+</Note>
+
+## Accessors
+
+### clearAlpha
+
+```typescript
+get clearAlpha(): number | undefined
+```
+
+Gets the current alpha clear value for the pass. If the value is `undefined` the pass will not clear alpha
+
+**Returns**: `number | undefined`
+
+### clearColor
+
+```typescript
+get clearColor(): number | undefined
+```
+
+        Gets the current clear color value for the pass. If the value is `undefined` the pass will not clear color. 
+
+The color is represented as a `number` where:
+- `R = value & 0xFF0000`
+- `G = value & 0x00FF00`
+- `B = value & 0x0000FF`
+
+**Returns**: `number | undefined`
+
+### clearFlags
+
+```typescript
+get clearFlags(): number | undefined
+```
+
+Gets the current flags that determine what gets cleared by the pass. The value returned is a mask with the possibly OR-ed WebGL constant values for `COLOR_BUFFER_BIT` `DEPTH_BUFFER_BIT` and `STENCIL_BUFFER_BIT`
+
+**Returns**: `number | undefined`
+
+### displayName
+
+```typescript
+get displayName(): string
+```
+
+Gets the display name of the pass.
+
+**Returns**: `string`
+
+### enabled
+
+```typescript
+get enabled(): boolean
+set enabled(value: boolean)
+```
+
+Gets the enabled state of the pass. A disabled pass will not be rendered by the hosting pipeline
+
+**Returns**: `boolean`
+
+### jitter
+
+```typescript
+get jitter(): boolean
+```
+
+Gets the jitter state of the pass. If jitter is enabled, the pipeline will apply Hatlon jitter to the projection matrix
+
+**Returns**: `boolean`
+
+### options
+
+```typescript
+get options(): PassOptions
+```
+
+Gets the pass options. [PassOptions]()
+
+**Returns**: `PassOptions`
+
+### outputTarget
+
+```typescript
+get outputTarget(): WebGLRenderTarget | null
+set outputTarget(value: WebGLRenderTarget)
+```
+
+Gets or sets the render target the pass writes to. If `null` it will write to the backbuffer
+
+**Returns**: [`WebGLRenderTarget`](https://threejs.org/docs/index.html?q=render#api/en/renderers/WebGLRenderer.renderTarget)` | null`
+
+### overrideBatchMaterial
+
+```typescript
+get overrideBatchMaterial(): Material | null
+```
+
+Gets the material that will override the default material of batches in the scene. This allows the pass to combine it's defined override material with filters or other externally applied materials. If `null`, nothing gets overriden
+
+**Returns**: `Material | null`
+
+### overrideMaterial
+
+```typescript
+get overrideMaterial(): Material | null
+```
+
+Gets the material that will override *all* materials. If the overriden material is defined, it will completely replace any existing materials on the batches and no other effects that apply materials on objects will be made visible in this pass's render result. If `null`, nothing gets overriden
+
+**Returns**: `Material | null`
+
+### visibility
+
+```typescript
+get visibility(): ObjectVisibility | null
+```
+
+Gets the current visibility state for the pass. If `null`, no visibility restrictions will be applied to the pass's rendering, i.e everything gets rendered
+
+**Returns**: `ObjectVisibility | null`
+
+## Methods
+
+### onAferRender
+
+```typescript
+onAferRender: () => void
+```
+
+Callback for after rendering the pass
+
+**Returns**: `void`
+
+### onBeforeRender
+
+```typescript
+onBeforeRender: () => void
+```
+
+Callback for before rendering the pass
+
+**Returns**: `void`
+
+### render
+
+```typescript
+render(
+   renderer: WebGLRenderer,
+   camera?: PerspectiveCamera | OrthographicCamera | null,
+   scene?: Scene
+): boolean
+```
+
+The pass's render function.
+
+**Parameters**:
+
+- **renderer**: The hosting [`WebGLRenderer`](https://threejs.org/docs/index.html?q=render#api/en/renderers/WebGLRenderer)
+- *optional* **camera**: The rendering camera.
+- *optional* **scene**: The scene to render
+
+
+**Returns**: `boolean` - If `true`, it signals that the pass needs more rendering, `false` otherwise.
+
+### setClearColor
+
+```typescript
+setClearColor(color: number, alpha: number): void
+```
+
+Sets the pass's clear color and alpha. 
+
+<Warning>
+Clearing will be executed on whatever the current `outputTarget` value is. If `outputTarget` is `null`, the backbuffer will be cleared!
+</Warning>
+
+**Parameters**:
+
+- **color**: The color to clear with represented as a `number` where:
+  - `R = value & 0xFF0000`
+  - `G = value & 0x00FF00`
+  - `B = value & 0x0000FF`
+- **alpha**: The alpha value to clear with in the range `[0, 1]`
+
+**Returns**: `void`
+
+### setClearFlags
+
+```typescript
+setClearFlags(flags: number): void
+```
+
+Sets the clear flags. The [ClearFlags](#clearflags) values can be used for ease of use.
+
+**Parameters**:
+
+- **flags**: The value for the flags as previously [detailed](#clearflags)
+
+**Returns**: `void`
+
+### setClippingPlanes
+
+```typescript
+setClippingPlanes(planes: Plane[]): void
+```
+
+Sets the current clipping planes, if any exist
+
+**Parameters**:
+
+- **planes**: The array of [Planes](https://threejs.org/docs/index.html?q=plane#api/en/math/Plane)
+
+**Returns**: `void`
+
+### setJitter
+
+```typescript
+setJitter(value: boolean): void
+```
+
+Enables/disables jittering for the pass
+
+**Returns**: `void`
+
+### setLayers
+
+```typescript
+setLayers?(layers: ObjectLayers[]): void
+```
+
+The the exclusive layers this pass will render. If no layers are set, all layers get rendered
+
+**Parameters**:
+
+- **layers**: The array of [ObjectLayers](/developers/viewer/viewer-api#objectlayers)
+
+**Returns**: `void`
+
+### setSize
+
+```typescript
+setSize(width: number, height: number): void
+```
+
+Sets the rendering size for this pass.
+
+**Parameters**:
+
+- **width**: number - The width of the rendering size.
+- **height**: number - The height of the rendering size.
+
+**Returns**: `void`
+
+### setVisibility
+
+```typescript
+setVisibility(objectVisibility: ObjectVisibility): void
+```
+
+Sets the exclusive visibility of the pass. Currently just a single visibility option can be set.
+
+**Parameters**:
+
+- **objectVisibility**: The [ObjectVisibility](#objectvisibility) to set.
+
+**Returns**: `void`
+
+### update
+
+```typescript
+update(camera: PerspectiveCamera | OrthographicCamera | null): void
+```
+
+The pass's update function. Generally used for updating pass related data before the render call
+
+**Parameters**:
+
+- **camera**: The rendering camera.
+
+**Returns**: `void`
+
+## Typedefs
+
+### ClearFlags
+
+```typescript
+enum ClearFlags {
+  COLOR = 0x00000100,
+  DEPTH = 0x00000400,
+  STENCIL = 0x00004000
+}
+```
+
+The WebGL constant values for the clear flags for convenience
+
+
+### ObjectVisibility
+
+```typescript
+enum ObjectVisibility {
+  OPAQUE = 'opaque',
+  TRANSPARENT = 'transparent',
+  DEPTH = 'depth',
+  STENCIL = 'stencil'
+}
+```
+
+An object visibility categorization. Used to restrict pass rendering to only specific object lists
+
+### PassOptions
+
+```typescript
+interface PassOptions {}
+```
+
+This can be virtually anything, and it's up for the concrete pass implementations to define their own options.
+
+

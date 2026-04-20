@@ -1,0 +1,656 @@
+---
+title: Extracting Display Values and Transform Instances
+description: Learn how to extract geometry from display values and resolve instance definition references in Speckle objects.
+---
+
+## Overview
+
+When working with BIM models in Speckle, you'll encounter objects whose geometry is represented through `displayValue` properties. This guide shows you how to extract this geometry, including how to handle **instance definitions** that require resolving `applicationId` references.
+
+**What you'll learn:**
+- How to extract meshes from `displayValue` properties
+- How to build an applicationId index for reference lookups
+- How to resolve InstanceDefinition references to get actual geometry
+- How to apply transformations to instances
+
+<Note>
+For a comprehensive explanation of proxies and why Speckle uses them, see [BIM Data Patterns: Pattern 5](/developers/sdks/python/guides/bim-data-patterns#pattern-5-level-and-location-data-with-proxy-collections) and [Proxification](/developers/sdks/python/concepts/proxification).
+</Note>
+
+
+
+## The Challenge with Display Values
+
+After receiving a model version with `operations.receive()`, objects have a `displayValue` property containing visualization geometry. This can be:
+1. **Direct meshes** - The geometry is right there
+2. **Instance references** - References to InstanceDefinition objects by `applicationId`
+
+The second case requires building an `applicationId` index to resolve the references.
+
+```python
+# Case 1: Direct mesh
+obj.displayValue = [mesh1, mesh2, ...]  # Meshes are directly accessible
+
+# Case 2: Instance references
+obj.displayValue = [
+    {
+        "applicationId": "instance_def_123",
+        # ... other instance properties
+        # Need to look this up in instanceDefinitionProxies
+    }
+]
+
+# InstanceDefinition itself has no 'value' property
+# It has 'objects' which are applicationIds that need resolution
+```
+
+## Extracting Display Values
+
+### Finding Objects with Display Values
+
+Start by finding all objects that have display geometry:
+
+```python
+from specklepy.api import operations
+from specklepy.transports.server import ServerTransport
+from specklepy.api.client import SpeckleClient
+from specklepy.api.credentials import get_default_account
+from specklepy.objects.graph_traversal.traversal import GraphTraversal
+
+# Receive model version
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_account(get_default_account())
+transport = ServerTransport("project_id", client)
+version = operations.receive("version_id", transport)
+
+def find_displayable_objects(root):
+    """Find all objects with displayValue property."""
+    displayable = []
+    traversal = GraphTraversal([])
+
+    for context in traversal.traverse(root):
+        obj = context.current
+        if hasattr(obj, "displayValue") and obj.displayValue:
+            displayable.append(obj)
+
+    return displayable
+
+objects_with_display = find_displayable_objects(version)
+print(f"Found {len(objects_with_display)} displayable objects")
+```
+
+### Extracting Direct Meshes
+
+For objects with direct mesh geometry:
+
+```python
+from specklepy.objects.geometry import Mesh
+
+def extract_direct_meshes(obj):
+    """
+    Extract meshes that are directly in displayValue.
+
+    Returns:
+        List of Mesh objects
+    """
+    if not hasattr(obj, "displayValue"):
+        return []
+
+    display = obj.displayValue
+    meshes = []
+
+    # Normalize to list
+    display_list = [display] if not isinstance(display, list) else display
+
+    for item in display_list:
+        # Check if it's a Mesh object
+        if isinstance(item, Mesh):
+            meshes.append(item)
+
+    return meshes
+
+# Usage
+for obj in objects_with_display:
+    meshes = extract_direct_meshes(obj)
+    for mesh in meshes:
+        if hasattr(mesh, "vertices"):
+            print(f"Mesh: {len(mesh.vertices) // 3} vertices")
+```
+
+## Building an applicationId Index
+
+To resolve instance references, build an index mapping applicationIds to objects:
+
+```python
+from specklepy.objects.graph_traversal.traversal import GraphTraversal
+
+def build_applicationid_index(root):
+    """
+    Build a dictionary mapping applicationId to objects.
+
+    Why this is needed: InstanceDefinition objects reference other
+    objects by applicationId, not by direct embedding.
+
+    Returns:
+        Dictionary: {applicationId: object}
+    """
+    index = {}
+    traversal = GraphTraversal([])
+
+    for context in traversal.traverse(root):
+        obj = context.current
+
+        # Index any object with an applicationId
+        if hasattr(obj, "applicationId") and obj.applicationId:
+            index[obj.applicationId] = obj
+
+    return index
+
+# Build the index once
+app_id_index = build_applicationid_index(version)
+print(f"Indexed {len(app_id_index)} objects")
+
+# Now you can quickly look up any object
+some_obj = app_id_index.get("some-application-id")
+if some_obj:
+    print(f"Found: {getattr(some_obj, 'name', 'unnamed')}")
+```
+
+**Why build an index?** Without it, you'd traverse the entire tree for each lookup. With an index, lookups are instant (O(1) vs O(n)).
+
+## Working with Instance Definitions
+
+### Understanding Instance Definitions
+
+Instance definitions enable geometry reuse. The definition contains references to geometry objects (by applicationId), and each instance includes a transformation matrix.
+
+```python
+# Root has instanceDefinitionProxies
+version.instanceDefinitionProxies = [
+    {
+        "id": "door_def_123",
+        "name": "Door Type A",
+        "objects": [
+            "mesh_app_id_1",
+            "mesh_app_id_2"
+        ]
+        # NOTE: No 'value' property like LevelProxy or ColorProxy!
+        # 'objects' are applicationIds that need to be resolved
+    }
+]
+
+# Objects reference the definition
+obj.displayValue = [
+    {
+        "applicationId": "door_def_123",  # References the definition
+        "transform": [...]                 # 4x4 transformation matrix
+    }
+]
+```
+
+### Extracting Instance Definitions
+
+Extract instance definitions and resolve their geometry references:
+
+```python
+def extract_instance_definitions(root, app_id_index):
+    """
+    Extract instance definitions and resolve their geometry.
+
+    Args:
+        root: Model version object
+        app_id_index: applicationId index from build_applicationid_index()
+
+    Returns:
+        Dictionary: {applicationId: definition_info}
+    """
+    if not hasattr(root, "instanceDefinitionProxies"):
+        return {}
+
+    definitions = {}
+
+    for proxy in root.instanceDefinitionProxies:
+        # Index by applicationId (not id) - instances reference by applicationId
+        def_app_id = getattr(proxy, "applicationId", None)
+
+        if def_app_id:
+            # Resolve geometry references using the index
+            geometry = []
+            if hasattr(proxy, "objects"):
+                for app_id in proxy.objects:
+                    obj = app_id_index.get(app_id)
+                    if obj:
+                        geometry.append(obj)
+
+            definitions[def_app_id] = {
+                "name": getattr(proxy, "name", "unnamed"),
+                "geometry": geometry,
+                "proxy": proxy
+            }
+
+    return definitions
+
+# Usage
+definitions = extract_instance_definitions(version_root_object, app_id_index)
+for def_app_id, def_info in definitions.items():
+    print(f"{def_info['name']}: {len(def_info['geometry'])} objects")
+
+# Args:
+#     root: Version object
+#     app_id_index: applicationId index
+#     definitions: Instance definitions from extract_instance_definitions()
+
+# Returns:
+#     List of dictionaries with mesh and metadata
+```
+
+### Resolving Instance References in Display Values
+
+Now you can resolve instance references when extracting display values:
+
+```python
+from specklepy.objects.geometry import Mesh
+
+def extract_all_display_meshes(root, app_id_index, definitions):
+    """
+    Extract all meshes from display values, resolving instance references.
+
+    Args:
+        root: Version object
+        app_id_index: applicationId index
+        definitions: Instance definitions from extract_instance_definitions()
+
+    Returns:
+        List of dictionaries with mesh and metadata
+    """
+    results = []
+    traversal = GraphTraversal([])
+
+    for context in traversal.traverse(root):
+        obj = context.current
+
+        if not hasattr(obj, "displayValue"):
+            continue
+
+        display = obj.displayValue
+        display_list = [display] if not isinstance(display, list) else display
+
+        for item in display_list:
+            # Case 1: Direct mesh
+            if isinstance(item, Mesh):
+                results.append({
+                    "mesh": item,
+                    "source": obj,
+                    "is_instance": False
+                })
+
+            # Case 2: Instance reference (by definitionId which is applicationId)
+            elif hasattr(item, "definitionId"):
+                def_app_id = item.definitionId
+                if def_app_id in definitions:
+                    # Get the geometry from the definition
+                    def_info = definitions[def_app_id]
+                    for geom in def_info["geometry"]:
+                        if isinstance(geom, Mesh):
+                            results.append({
+                                "mesh": geom,
+                                "source": obj,
+                                "is_instance": True,
+                                "definition": def_info,
+                                "transform": getattr(item, "transform", None)
+                            })
+
+    return results
+```
+
+## Applying Transformations
+
+Instance references include transformation matrices that position, rotate, and scale the geometry:
+
+```python
+def get_transformed_instances(root, app_id_index):
+    """
+    Extract instance meshes with their transformations.
+
+    Note: This function identifies which meshes need transformation.
+    Actual transformation math is shown for reference but may require
+    additional libraries (numpy) for production use.
+
+    Returns:
+        List of dictionaries with mesh and transform info
+    """
+    definitions = extract_instance_definitions(root, app_id_index)
+    instances = []
+    traversal = GraphTraversal([])
+
+    for context in traversal.traverse(root):
+        obj = context.current
+
+        if not hasattr(obj, "displayValue"):
+            continue
+
+        display = obj.displayValue
+        display_list = [display] if not isinstance(display, list) else display
+
+        for item in display_list:
+            # Look for instance references with transforms
+            if hasattr(item, "applicationId") and hasattr(item, "transform"):
+                def_id = item.applicationId
+                transform = item.transform
+
+                if def_id in definitions:
+                    def_info = definitions[def_id]
+
+                    for geom in def_info["geometry"]:
+                        instances.append({
+                            "geometry": geom,
+                            "definition_name": def_info["name"],
+                            "transform": transform,  # 4x4 matrix as flat list
+                            "source_object": obj
+                        })
+
+    return instances
+
+# Usage
+instances = get_transformed_instances(version, app_id_index)
+print(f"Found {len(instances)} instance uses")
+```
+
+**Transform structure:** The `transform` is a 4x4 transformation matrix stored as a flat list of 16 numbers (column-major order). This represents position, rotation, and scale.
+
+## Complete Example
+
+Here's a complete workflow combining all concepts:
+
+```python
+from specklepy.api import operations
+from specklepy.transports.server import ServerTransport
+from specklepy.api.client import SpeckleClient
+from specklepy.api.credentials import get_default_account
+from specklepy.objects.graph_traversal.traversal import GraphTraversal
+from specklepy.objects.geometry import Mesh
+
+def analyze_display_geometry(project_id, version_id):
+    """Complete analysis of display geometry including instances."""
+
+    # 1. Receive version
+    client = SpeckleClient(host="https://app.speckle.systems")
+    client.authenticate_with_account(get_default_account())
+    transport = ServerTransport(project_id, client)
+    version = operations.receive(version_id, transport)
+
+    # 2. Build applicationId index
+    print("Building applicationId index...")
+    app_id_index = build_applicationid_index(version)
+    print(f"Indexed {len(app_id_index)} objects")
+
+    # 3. Extract instance definitions
+    print("\nExtracting instance definitions...")
+    definitions = extract_instance_definitions(version, app_id_index)
+    print(f"Found {len(definitions)} instance definitions:")
+    for def_id, def_info in definitions.items():
+        print(f"  {def_info['name']}: {len(def_info['geometry'])} objects")
+
+    # 4. Extract all display meshes
+    print("\nExtracting display geometry...")
+    traversal = GraphTraversal([])
+
+    direct_mesh_count = 0
+    instance_mesh_count = 0
+
+    for context in traversal.traverse(version):
+        obj = context.current
+
+        if not hasattr(obj, "displayValue"):
+            continue
+
+        display = obj.displayValue
+        display_list = [display] if not isinstance(display, list) else display
+
+        for item in display_list:
+            # Direct mesh
+            if isinstance(item, Mesh):
+                direct_mesh_count += 1
+                vertex_count = len(item.vertices) // 3
+                print(f"  Direct mesh: {vertex_count} vertices")
+
+            # Instance reference
+            elif hasattr(item, "definitionId"):
+                def_app_id = item.definitionId
+                if def_app_id in definitions:
+                    def_info = definitions[def_app_id]
+                    mesh_count = sum(1 for g in def_info["geometry"] if isinstance(g, Mesh))
+                    instance_mesh_count += mesh_count
+
+                    has_transform = hasattr(item, "transform")
+                    print(f"  Instance of '{def_info['name']}': {mesh_count} meshes"
+                          f"{' (with transform)' if has_transform else ''}")
+
+    print(f"\nSummary:")
+    print(f"  Direct meshes: {direct_mesh_count}")
+    print(f"  Instance meshes: {instance_mesh_count}")
+    print(f"  Total: {direct_mesh_count + instance_mesh_count}")
+
+# Run analysis
+analyze_display_geometry("your_project_id", "version_id")
+```
+
+## Best Practices
+
+### Build the Index Once
+
+Building an applicationId index traverses the entire object tree. Do this once at the start:
+
+```python
+# ✅ Good: Build once, use many times
+app_id_index = build_applicationid_index(version)
+definitions = extract_instance_definitions(version, app_id_index)
+
+# Then use the index for all lookups
+for app_id in some_list_of_ids:
+    obj = app_id_index.get(app_id)
+
+# ❌ Bad: Don't rebuild in loops
+```
+
+### Use Safe Dictionary Access
+
+Always use `.get()` when looking up by applicationId:
+
+```python
+# ❌ This can crash
+obj = app_id_index[app_id]  # KeyError if not found
+
+# ✅ This is safe
+obj = app_id_index.get(app_id)
+if obj:
+    # Process the object
+    print(getattr(obj, "name", "unnamed"))
+```
+
+### Check for Proxy Collections
+
+Not all model versions have instance definitions:
+
+```python
+# ✅ Always check first
+if hasattr(version, "instanceDefinitionProxies"):
+    definitions = extract_instance_definitions(version, app_id_index)
+else:
+    print("No instance definitions in this version")
+    definitions = {}
+
+# Then safely use the definitions dictionary
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+
+<Accordion title="Why can't I find geometry in an instance definition?">
+
+**Problem:** Instance definition's `objects` list has applicationIds but you can't find the geometry.
+
+**Why this happens:** The geometry objects might not have been indexed, or the applicationIds are incorrect.
+
+**Solution:** Verify your index contains the referenced objects:
+
+```python
+def debug_instance_definition(proxy, app_id_index):
+    """Debug helper to see what's in an instance definition."""
+    print(f"Definition: {getattr(proxy, 'name', 'unnamed')}")
+    print(f"  ID: {getattr(proxy, 'id', 'none')}")
+    print(f"  References {len(proxy.objects)} objects:")
+
+    for app_id in proxy.objects:
+        obj = app_id_index.get(app_id)
+        if obj:
+            obj_type = getattr(obj, "speckle_type", "unknown")
+            print(f"    ✓ {app_id}: {obj_type}")
+        else:
+            print(f"    ✗ {app_id}: NOT FOUND IN INDEX")
+
+# Use it to debug
+for proxy in version.instanceDefinitionProxies:
+    debug_instance_definition(proxy, app_id_index)
+```
+
+</Accordion>
+
+<Accordion title="How do I handle mixed display values (meshes + instances)?">
+
+**Problem:** Some objects have direct meshes, others have instance references in the same `displayValue` list.
+
+**Why this happens:** Complex objects can combine directly modeled geometry with instanced components.
+
+**Solution:** Check the type of each item in displayValue:
+
+```python
+from specklepy.objects.geometry import Mesh
+
+def extract_mixed_display(obj, definitions):
+    """Handle displayValue with both meshes and instances."""
+    if not hasattr(obj, "displayValue"):
+        return []
+
+    meshes = []
+    display_list = [obj.displayValue] if not isinstance(obj.displayValue, list) else obj.displayValue
+
+    for item in display_list:
+        # Type 1: Direct mesh
+        if isinstance(item, Mesh):
+            meshes.append(item)
+
+        # Type 2: Instance reference
+        elif hasattr(item, "applicationId"):
+            def_id = item.applicationId
+            if def_id in definitions:
+                # Get meshes from the definition
+                for geom in definitions[def_id]["geometry"]:
+                    if isinstance(geom, Mesh):
+                        meshes.append(geom)
+
+    return meshes
+```
+
+</Accordion>
+
+<Accordion title="Why are there no instance definitions in my version?">
+
+**Problem:** `version.instanceDefinitionProxies` doesn't exist or is empty.
+
+**Why this happens:** Not all models use instancing—depends on the source application
+ and how the model was created.
+
+**Solution:** Always check before accessing, and handle both cases:
+
+```python
+# Check if instances are used
+if hasattr(version, "instanceDefinitionProxies") and version.instanceDefinitionProxies:
+    print(f"Found {len(version.instanceDefinitionProxies)} instance definitions")
+    definitions = extract_instance_definitions(version, app_id_index)
+else:
+    print("No instance definitions - all geometry is direct")
+    definitions = {}
+
+# Your code works with or without instances
+for obj in objects_with_display:
+    # This handles both cases
+    meshes = extract_direct_meshes(obj)  # Gets direct meshes
+    # If needed, also check for instances using definitions dict
+```
+
+</Accordion>
+
+<Accordion title="How do I know if an object uses instances?">
+
+**Problem:** Can't tell if displayValue contains meshes or instance references.
+
+**Why this happens:** Both are in the same `displayValue` property.
+
+**Solution:** Check for the presence of `applicationId`:
+
+```python
+def is_instance_reference(item):
+    """Check if displayValue item is an instance reference."""
+    # Instance references have applicationId
+    # Direct meshes are Mesh objects
+    from specklepy.objects.geometry import Mesh
+
+    if isinstance(item, Mesh):
+        return False
+
+    if hasattr(item, "applicationId"):
+        return True
+
+    return False
+
+# Use it
+for item in obj.displayValue:
+    if is_instance_reference(item):
+        print(f"Instance: {item.applicationId}")
+    else:
+        print("Direct mesh")
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Summary
+
+**Key concepts:**
+- ✅ **displayValue** can contain direct meshes or instance references
+- ✅ **InstanceDefinition** objects reference geometry by `applicationId`, not direct embedding
+- ✅ **applicationId index** enables fast lookups when resolving references
+- ✅ **Transformations** position, rotate, and scale instanced geometry
+
+**Core workflow:**
+1. Build applicationId index once
+2. Extract instance definitions, resolving their geometry references
+3. Process displayValue, handling both direct meshes and instance references
+4. Apply transformations where present
+
+**For more on proxies:**
+- [BIM Data Patterns: Pattern 5](/developers/sdks/python/guides/bim-data-patterns#pattern-5-level-and-location-data-with-proxy-collections)
+- [Proxification Concepts](/developers/sdks/python/concepts/proxification)
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="BIM Data Patterns" href="./bim-data-patterns">
+    Level proxies, color proxies, and organizational hierarchies
+  </Card>
+
+  <Card title="Finding and Extracting Data" href="./how-to-find-and-extract-data">
+    Advanced traversal and filtering techniques
+  </Card>
+
+  <Card title="Understanding Speckle Mesh" href="./understanding-speckle-mesh">
+    Deep dive into mesh structure and encoding
+  </Card>
+
+  <Card title="Working with Geometry" href="./working-with-geometry">
+    Create and manipulate geometry objects
+  </Card>
+</CardGroup>

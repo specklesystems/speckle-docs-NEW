@@ -1,0 +1,130 @@
+---
+title: Tekla Schema
+description: Data schema and structure for Tekla models
+---
+
+The Tekla connector exports structural elements from Tekla Structures, preserving type organization and report data.
+
+## Hierarchy
+
+Tekla models are organized by File and Type:
+
+```mermaid
+graph TD
+    A[Root Collection] --> B[Tekla File]
+    A --> C[Proxies: RenderMaterial array]
+    
+    B --> D[Type]
+    D --> E[TeklaObject]
+```
+
+The hierarchy reflects Tekla's organizational structure:
+- **File** - The Tekla file
+- **Type** - Element type (beam, column, plate, etc.)
+
+## TeklaObject Structure
+
+TeklaObject extends [DataObject](/developers/data-schema/object-schema) with these additional fields:
+
+```json
+{
+  "id": "string",
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.TeklaObject",
+  "applicationId": "string",
+  "name": "string",
+  "properties": {
+    "string": "any value"
+  },
+  "displayValue": [
+    "Base (geometry objects)"
+  ],
+  "units": "string",
+  
+  "__comment": "TeklaObject-specific fields",
+  "type": "string"
+}
+```
+
+### Connector-Specific Fields
+
+- **`type`** - The element type name (e.g., "Beam", "Column", "Plate")
+
+## Properties
+
+TeklaObject `properties` contain:
+
+- **Report** - Tekla report data containing element properties, dimensions, and metadata
+
+```json
+{
+  "properties": {
+    "Report": {
+      "Profile": "HEA200",
+      "Material": "S355",
+      "Length": 5.0,
+      "Weight": 125.5,
+      "Part Number": "P1",
+      "Assembly Number": "A1"
+    }
+  }
+}
+```
+
+The Report structure varies by element type and contains Tekla-specific property data.
+
+## Proxies
+
+Tekla models use:
+
+### RenderMaterial
+
+Material assignments for visual representation. Referenced by objects via `applicationId`.
+
+## Example: TeklaObject
+
+```json
+{
+  "id": "tekla-abc123...",
+  "speckle_type": "Objects.Data.DataObject:Objects.Data.TeklaObject",
+  "applicationId": "element-456",
+  "name": "Beam - HEA200",
+  "properties": {
+    "Report": {
+      "Profile": "HEA200",
+      "Material": "S355",
+      "Length": 5.0,
+      "Weight": 125.5,
+      "Part Number": "P1",
+      "Assembly Number": "A1",
+      "Start Point": {"x": 0, "y": 0, "z": 0},
+      "End Point": {"x": 5, "y": 0, "z": 0}
+    }
+  },
+  "displayValue": [
+    {
+      "speckle_type": "Objects.Geometry.Brep",
+      "units": "meters"
+    }
+  ],
+  "type": "Beam",
+  "units": "meters"
+}
+```
+
+## Invariants and Caveats
+
+1. **No nested DataObjects** - TeklaObjects cannot contain other TeklaObjects as direct children
+2. **Geometry in displayValue** - All visual geometry is in `displayValue`
+3. **Report data** - All Tekla-specific data is in `properties.Report`
+4. **Type organization** - Objects are organized by element type
+5. **Structural focus** - Tekla models focus on structural elements (beams, columns, plates, etc.)
+
+<Accordion title="What's in the Report property?">
+The Report property contains Tekla's native report data, which includes element properties, dimensions, material information, part numbers, assembly numbers, and other Tekla-specific metadata. The exact structure depends on the element type.
+</Accordion>
+
+## Related Documentation
+
+- [Object Schema](/developers/data-schema/object-schema) - Base object structure
+- [Proxy Schema](/developers/data-schema/proxy-schema) - How proxies work
+

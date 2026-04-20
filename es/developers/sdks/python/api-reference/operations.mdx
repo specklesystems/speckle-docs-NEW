@@ -1,0 +1,567 @@
+---
+title: "Operations"
+description: "API reference for send, receive, serialize, and deserialize operations"
+---
+
+## Overview
+
+The operations module provides the core functions for working with Speckle data: sending objects to transports, receiving them back, and serializing/deserializing for custom workflows.
+
+```python lines icon="python"
+from specklepy.api import operations
+from specklepy.objects.geometry import Point
+from specklepy.transports.server import ServerTransport
+
+# Send an object
+point = Point(x=1, y=2, z=3)
+transport = ServerTransport(stream_id="abc", client=client)
+object_id = operations.send(point, [transport])
+
+# Receive it back
+received = operations.receive(object_id, remote_transport=transport)
+```
+
+
+## Principal Operations
+
+### send()
+
+Send a Base object to one or more transports.
+
+```python lines icon="python"
+operations.send(
+    base: Base,
+    transports: Optional[List[AbstractTransport]] = None,
+    use_default_cache: bool = True
+) -> str
+```
+
+**Parameters:**
+
+<ResponseField name="base" type="Base" required>
+  The object to send
+</ResponseField>
+
+<ResponseField name="transports" type="List[AbstractTransport]" default="None">
+  Where to send the object. Defaults to local cache only.
+</ResponseField>
+
+<ResponseField name="use_default_cache" type="bool" default="True">
+  Whether to also save to the local SQLite cache
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="object_id" type="str">
+  The object ID (hash) of the sent object
+</ResponseField>
+
+**Examples:**
+
+<Tabs>
+  <Tab title="Send to Server">
+    ```python
+    from specklepy.api import operations
+    from specklepy.api.client import SpeckleClient
+    from specklepy.transports.server import ServerTransport
+    from specklepy.objects.geometry import Point
+
+    # Setup
+    client = SpeckleClient(host="https://app.speckle.systems")
+    client.authenticate_with_token(token)
+
+    # Create transport
+    transport = ServerTransport(stream_id="project_id", client=client)
+
+    # Send object
+    point = Point(x=10, y=20, z=5)
+    object_id = operations.send(point, [transport])
+
+    print(f"Sent object: {object_id}")
+    ```
+  </Tab>
+
+  <Tab title="Send Complex Object">
+    ```python
+    from specklepy.api import operations
+    from specklepy.objects import Base
+    from specklepy.objects.geometry import Point, Line
+    from specklepy.transports.server import ServerTransport
+
+    # Build a complex object
+    collection = Base()
+    collection.name = "Site Data"
+    collection.points = [
+        Point(x=0, y=0, z=0),
+        Point(x=10, y=0, z=0),
+        Point(x=10, y=10, z=0),
+    ]
+    collection.lines = [
+        Line(
+            start=Point(x=0, y=0, z=0),
+            end=Point(x=10, y=10, z=0)
+        )
+    ]
+
+    # Send (all nested objects sent automatically)
+    transport = ServerTransport(stream_id="project_id", client=client)
+    object_id = operations.send(collection, [transport])
+    ```
+  </Tab>
+
+  <Tab title="Send to Multiple Transports">
+    ```python
+    from specklepy.api import operations
+    from specklepy.transports.server import ServerTransport
+    from specklepy.transports.memory import MemoryTransport
+    from specklepy.objects.geometry import Point
+
+    point = Point(x=1, y=2, z=3)
+
+    # Send to both server and memory transport
+    server_transport = ServerTransport(stream_id="project_id", client=client)
+    memory_transport = MemoryTransport()
+
+    object_id = operations.send(
+        point,
+        [server_transport, memory_transport]
+    )
+
+    # Object now available in both transports
+    ```
+  </Tab>
+
+  <Tab title="Local Cache Only">
+    ```python
+    from specklepy.api import operations
+    from specklepy.objects.geometry import Point
+
+    point = Point(x=1, y=2, z=3)
+
+    # Send to local cache only (no remote transport)
+    object_id = operations.send(point)
+
+    print(f"Cached locally: {object_id}")
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+When you send an object, all nested Base objects are automatically sent too. You don't need to send them separately.
+</Info>
+
+
+### receive()
+
+Receive a Base object from a transport.
+
+```python lines icon="python"
+operations.receive(
+    obj_id: str,
+    remote_transport: Optional[AbstractTransport] = None,
+    local_transport: Optional[AbstractTransport] = None
+) -> Base
+```
+
+**Parameters:**
+
+<ResponseField name="obj_id" type="str" required>
+  The ID of the object to receive
+</ResponseField>
+
+<ResponseField name="remote_transport" type="AbstractTransport" default="None">
+  The transport to receive from (e.g., ServerTransport)
+</ResponseField>
+
+<ResponseField name="local_transport" type="AbstractTransport" default="None">
+  The local cache to check first. Defaults to SQLiteTransport
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="object" type="Base">
+  The received object, fully recomposed with all children
+</ResponseField>
+
+**Examples:**
+
+<Tabs>
+  <Tab title="Receive from Server">
+    ```python
+    from specklepy.api import operations
+    from specklepy.api.client import SpeckleClient
+    from specklepy.transports.server import ServerTransport
+
+    # Setup
+    client = SpeckleClient(host="https://app.speckle.systems")
+    client.authenticate_with_token(token)
+
+    # Get the object ID from a version
+    version = client.version.get(project_id, version_id)
+    object_id = version.referencedObject
+
+    # Create transport and receive
+    transport = ServerTransport(stream_id=project_id, client=client)
+    obj = operations.receive(object_id, remote_transport=transport)
+
+    print(f"Received: {obj.speckle_type}")
+    ```
+  </Tab>
+
+  <Tab title="Receive with Local Cache">
+    ```python
+    from specklepy.api import operations
+    from specklepy.transports.server import ServerTransport
+    from specklepy.transports.sqlite import SQLiteTransport
+
+    object_id = "abc123..."
+
+    # Receive from server, cache locally
+    remote = ServerTransport(stream_id="project_id", client=client)
+    local = SQLiteTransport()
+
+    obj = operations.receive(
+        object_id,
+        remote_transport=remote,
+        local_transport=local
+    )
+
+    # Second receive is faster (reads from local cache)
+    obj2 = operations.receive(
+        object_id,
+        remote_transport=remote,
+        local_transport=local
+    )
+    ```
+  </Tab>
+
+  <Tab title="Receive from Cache Only">
+    ```python
+    from specklepy.api import operations
+    from specklepy.transports.sqlite import SQLiteTransport
+
+    # If object is in cache, no remote transport needed
+    object_id = "abc123..."
+
+    try:
+        obj = operations.receive(
+            object_id,
+            local_transport=SQLiteTransport()
+        )
+        print("Found in cache!")
+    except Exception:
+        print("Not in cache, need remote transport")
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+`receive()` automatically reconstructs the entire object tree. All referenced child objects are fetched and recomposed.
+</Info>
+
+
+
+## Serialization
+
+<Info>
+**Note:** The `serialize()` and `deserialize()` functions below are included for completeness, but most developers won't need them directly. The `send()` and `receive()` operations handle serialization and deserialization implicitly. Use these functions only when you need custom workflows like saving objects to files or working with JSON representations directly.
+</Info>
+
+### serialize()
+
+Serialize a Base object to a JSON string.
+
+```python lines icon="python"
+operations.serialize(
+    base: Base,
+    write_transports: Optional[List[AbstractTransport]] = None
+) -> str
+```
+
+**Parameters:**
+
+<ResponseField name="base" type="Base" required>
+  The object to serialize
+</ResponseField>
+<ResponseField name="write_transports" type="List[AbstractTransport]" default="None">
+  Transports to write detached objects to. If `None`, objects are serialized inline without detachment
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="json_string" type="str">
+  JSON string representation of the object
+</ResponseField>
+
+**Examples:**
+
+<Tabs>
+  <Tab title="Simple Serialization">
+    ```python
+    from specklepy.api import operations
+    from specklepy.objects.geometry import Point
+
+    point = Point(x=10, y=20, z=5)
+    point.units = "m"
+
+    json_str = operations.serialize(point)
+    print(json_str)
+    # {"x": 10, "y": 20, "z": 5, "units": "m", "speckle_type": "Objects.Geometry.Point", ...}
+    ```
+  </Tab>
+
+  <Tab title="Serialize with Detachment">
+    ```python
+    from specklepy.api import operations
+    from specklepy.objects import Base
+    from specklepy.objects.geometry import Mesh
+    from specklepy.transports.memory import MemoryTransport
+
+    obj = Base()
+    obj.name = "Building"
+    obj.displayValue = Mesh(vertices=[...], faces=[...])  # Large mesh
+
+    # Serialize with detachment
+    transport = MemoryTransport()
+    json_str = operations.serialize(obj, [transport])
+
+    # json_str contains reference to mesh, mesh stored in transport
+    print(json_str)
+    # {"name": "Building", "@displayValue": "hash123...", ...}
+    ```
+  </Tab>
+
+  <Tab title="Save to File">
+    ```python
+    from specklepy.api import operations
+    from specklepy.objects.geometry import Point
+    import json
+
+    point = Point(x=1, y=2, z=3)
+    json_str = operations.serialize(point)
+
+    # Save to file
+    with open("point.json", "w") as f:
+        f.write(json_str)
+
+    # Or pretty print
+    data = json.loads(json_str)
+    with open("point_pretty.json", "w") as f:
+        json.dump(data, f, indent=2)
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+Without write transports, large nested objects are serialized inline, which can result in huge JSON strings. Use write transports for large objects.
+</Note>
+
+### deserialize()
+
+Deserialize a JSON string back into a Base object.
+
+```python lines icon="python"
+operations.deserialize(
+    obj_string: str,
+    read_transport: Optional[AbstractTransport] = None
+) -> Base
+```
+
+**Parameters:**
+
+<ResponseField name="obj_string" type="str" required>
+  JSON string to deserialize
+</ResponseField>
+<ResponseField name="read_transport" type="AbstractTransport" default="None">
+  Transport to read detached/referenced objects from. Defaults to SQLiteTransport
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="object" type="Base">
+  The deserialized object
+</ResponseField>
+
+**Examples:**
+
+<Tabs>
+  <Tab title="Simple Deserialization">
+    ```python
+    from specklepy.api import operations
+
+    json_str = '{"x": 10, "y": 20, "z": 5, "speckle_type": "Objects.Geometry.Point"}'
+    point = operations.deserialize(json_str)
+
+    print(f"Point: ({point.x}, {point.y}, {point.z})")
+    # Point: (10, 20, 5)
+    ```
+  </Tab>
+
+  <Tab title="Deserialize with References">
+    ```python
+    from specklepy.api import operations
+    from specklepy.transports.memory import MemoryTransport
+
+    # Assume we serialized with detachment earlier
+    transport = MemoryTransport()
+    # ... (serialize with transport) ...
+
+    # Deserialize with same transport to resolve references
+    obj = operations.deserialize(json_str, read_transport=transport)
+
+    # All references are resolved
+    print(obj.displayValue.vertices_count)
+    ```
+  </Tab>
+
+  <Tab title="Load from File">
+    ```python
+    from specklepy.api import operations
+
+    # Load from file
+    with open("point.json", "r") as f:
+        json_str = f.read()
+
+    point = operations.deserialize(json_str)
+    print(f"Loaded: {point.speckle_type}")
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+If the JSON contains references (like `"@displayValue": "hash123..."`), you must provide a read_transport that contains those referenced objects.
+</Warning>
+
+## Detachment and Chunking
+
+Large objects are automatically optimized during send:
+
+```python lines icon="python"
+from specklepy.api import operations
+from specklepy.objects.geometry import Mesh
+from specklepy.transports.server import ServerTransport
+
+# Create a large mesh
+mesh = Mesh(
+    vertices=[...],  # 1 million vertices
+    faces=[...],     # 500k faces
+)
+
+# Mesh vertices and faces are automatically chunked
+transport = ServerTransport(stream_id="project_id", client=client)
+object_id = operations.send(mesh, [transport])
+
+# The mesh and its chunks are all stored separately for efficiency
+```
+
+<Note>
+Objects like `Mesh` have predefined chunking and detachment rules. See the [Mesh documentation](/developers/sdks/python/guides/working-with-geometry#meshes) for details.
+</Note>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use local cache for better performance">
+    Always let the local cache work for you:
+
+    ```python
+    # Good - uses local cache by default
+    object_id = operations.send(obj, [remote_transport])
+
+    # Also good - explicit local cache
+    received = operations.receive(
+        object_id,
+        remote_transport=remote_transport,
+        local_transport=SQLiteTransport()  # Explicit
+    )
+
+    # Bad - disabling cache hurts performance
+    object_id = operations.send(
+        obj,
+        [remote_transport],
+        use_default_cache=False  # Don't do this
+    )
+    ```
+  </Accordion>
+
+  <Accordion title="Handle errors gracefully">
+    Network operations can fail:
+
+    ```python
+    from specklepy.api import operations
+    from specklepy.transports.server import ServerTransport
+
+    transport = ServerTransport(stream_id="project_id", client=client)
+
+    try:
+        obj = operations.receive(object_id, remote_transport=transport)
+        print(f"Success: {obj.speckle_type}")
+    except Exception as e:
+        print(f"Receive failed: {e}")
+        # Handle error (retry, log, notify user, etc.)
+    ```
+  </Accordion>
+
+  <Accordion title="Don't deserialize untrusted JSON">
+    Be careful with deserialization:
+
+    ```python
+    # Only deserialize JSON from trusted sources
+    def safe_deserialize(json_str: str):
+        try:
+            # Validate it's actually Speckle data
+            obj = operations.deserialize(json_str)
+            if not hasattr(obj, 'speckle_type'):
+                raise ValueError("Not a valid Speckle object")
+            return obj
+        except Exception as e:
+            print(f"Deserialization failed: {e}")
+            return None
+    ```
+  </Accordion>
+
+  <Accordion title="Use appropriate transports">
+    Choose the right transport for your use case:
+
+    ```python
+    from specklepy.transports.server import ServerTransport
+    from specklepy.transports.memory import MemoryTransport
+    from specklepy.transports.sqlite import SQLiteTransport
+
+    # For sending to Speckle
+    server = ServerTransport(stream_id="id", client=client)
+    operations.send(obj, [server])
+
+    # For temporary storage
+    memory = MemoryTransport()
+    operations.send(obj, [memory])
+
+    # For local persistence
+    sqlite = SQLiteTransport()
+    operations.send(obj, [sqlite])
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Summary
+
+The operations module provides four essential functions:
+
+- ✅ **send()** - Send objects to transports with automatic chunking/detachment
+- ✅ **receive()** - Receive and recompose objects from transports
+- ✅ **serialize()** - Convert objects to JSON strings
+- ✅ **deserialize()** - Convert JSON strings back to objects
+
+These operations are the foundation of all Speckle data workflows!
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Transports" icon="truck" href="/developers/sdks/python/api-reference/transports">
+    Learn about different transport types
+  </Card>
+
+  <Card title="SpeckleClient" icon="plug" href="/developers/sdks/python/api-reference/client">
+    Client for server authentication and resources
+  </Card>
+</CardGroup>

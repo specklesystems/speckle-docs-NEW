@@ -1,0 +1,254 @@
+---
+title: API reference
+description: Access the complete GraphQL schema and API documentation for the Speckle Server
+---
+
+## Overview
+
+The Speckle Server provides a comprehensive GraphQL API that powers most interactions with your data. The complete, up-to-date API reference is available through Apollo Studio.
+
+## Documentation
+
+Access the full GraphQL API reference at:
+
+[**Apollo Studio - Speckle Server API**](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems)
+
+This interactive documentation provides:
+
+- **Complete Schema**: Browse the entire GraphQL schema with detailed descriptions for all types, queries, mutations, and subscriptions
+- **Field Documentation**: Inline documentation for every field, argument, and return type
+- **Interactive Explorer**: Test queries directly in your browser with the built-in GraphQL explorer
+- **Type Definitions**: Full type definitions and relationships between objects
+
+## Changelog
+
+The Apollo Studio reference also includes a **changelog** that tracks all changes to the GraphQL API. This allows you to:
+
+- Stay informed about new features and capabilities
+- Track breaking changes and deprecations
+- Plan updates to your integrations
+- Review the evolution of the API over time
+
+Access the full changelog at:
+
+[**Apollo Studio - API Changelog**](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems/changelog)
+
+## Using the API
+
+### Authentication
+
+To authenticate your GraphQL requests, you'll need a personal access token. Include it in your requests:
+
+```bash
+Authorization: Bearer YOUR_TOKEN
+```
+
+### Endpoint
+
+The GraphQL endpoint for `app.speckle.systems` is:
+
+```
+https://app.speckle.systems/graphql
+```
+
+For self-hosted instances, replace the domain with your server's address.
+
+### Example Query
+
+Here's a simple example query to get started:
+
+#### Query user data:
+```graphql
+query {
+  activeUser {
+    id
+    name
+    email
+  }
+}
+```
+---
+
+#### Query workspace projects data:
+```graphql
+query($workspaceId: String!) {
+  workspace(id: $workspaceId) {
+    projects {
+      totalCount
+      items {
+        id
+        name
+        createdAt
+      }
+    }
+  }
+}
+```
+```json
+{
+  "workspaceId": "your-workspace-id"
+}
+```
+Variable: workspace ID. You can find it under Workspace Settings > General.
+
+<Accordion title="Response Example">
+   ```json
+{
+  "data": {
+    "workspace": {
+      "projects": {
+        "totalCount": 4,
+        "items": [
+          {
+            "id": "ad9c9929e6",
+            "name": "Speckle First Project",
+            "createdAt": "2025-10-15T12:06:46.315Z"
+          },
+          {
+            "id": "6399c298d",
+            "name": "Speckle Tower",
+            "createdAt": "2026-02-04T16:30:57.240Z"
+          },
+          {
+            "id": "e98ab96c9e",
+            "name": "Speckle Demo Project",
+            "createdAt": "2026-01-29T17:17:07.451Z"
+          },
+          {
+            "id": "0387c91dvb",
+            "name": "My amazing project",
+            "createdAt": "2026-01-29T13:49:59.154Z"
+          },
+        ]
+      }
+    }
+  }
+}
+  
+  ```
+</Accordion>
+
+---
+
+#### Query object data:
+
+In this example, we query the children of a specific object, using the GraphQL arguments select and query to filter and return specific fields. We filter for objects with the category "Structural Columns" and retrieve the following information for each child: ```category```, ```level```, ```name```, ```element ID```, ```length dimension```
+```graphql
+query Query($projectId: String!, $objectId: String!, $select: [String], $query: [JSONObject!]) {
+  project(id: $projectId) {
+    object(id: $objectId) {
+      children(select: $select, query: $query) {
+        objects {
+          data
+        }
+      }
+    }
+  }
+}
+```
+```json
+{
+  "projectId": "your-project-id",
+  "objectId": "your-object-id",
+  "select": [
+    "category",
+    "level",
+    "name",
+    "properties.elementId",
+    "properties.Parameters.Instance\\ Parameters.Dimensions.Length.value"
+  ],
+  "query": [
+    {
+      "field": "category",
+      "value": "Structural Columns",
+      "operator": "="
+    }
+  ]
+}
+```
+Variables: **Project ID** & **Object ID**
+
+- **Project ID**: This identifies your project. Find it in the project URL:: https://app.speckle.systems/projects/{projectId}/...
+- **Object ID**: Unique identifier for the object. To find it: open Dev Mode in the Speckle Web App, then inspect the object's data.
+
+<Tip>The root object ID is the first ID shown in Dev Mode. Use it to query the full model.</Tip>
+
+<Accordion title="Response example">
+   ```json
+{
+  "data": {
+    "project": {
+      "object": {
+        "children": {
+          "objects": [
+            {
+              "data": {
+                "category": "Structural Columns",
+                "level": "Level 14",
+                "name": "Structural Columns - Circular-Column",
+                "properties": {
+                  "elementId": "382271",
+                  "Parameters": {
+                    "Instance\\ Parameters": {
+                      "Dimensions": {
+                        "Length": {
+                          "value": 7529.999999999986
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "data": {
+                "category": "Structural Columns",
+                "level": "Level 6",
+                "name": "Structural Columns - Circular-Column",
+                "properties": {
+                  "elementId": "382321",
+                  "Parameters": {
+                    "Instance\\ Parameters": {
+                      "Dimensions": {
+                        "Length": {
+                          "value": 469.9999999999971
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "data": {
+                "category": "Structural Columns",
+                "level": "Level 12",
+                "name": "Structural Columns - Circular-Column",
+                "properties": {
+                  "elementId": "382131",
+                  "Parameters": {
+                    "Instance\\ Parameters": {
+                      "Dimensions": {
+                        "Length": {
+                          "value": 3529.999999999986
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+  ```
+</Accordion>
+
+## Additional Resources
+
+- [GraphQL Subscriptions](/developers/api/subscriptions) - Real-time event notifications using WebSocket connections
+- [GraphQL Official Documentation](https://graphql.org/learn/) - Learn GraphQL fundamentals
+- [Apollo Client Documentation](https://www.apollographql.com/docs/react/) - If you're building a client application

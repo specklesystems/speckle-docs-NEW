@@ -1,0 +1,85 @@
+---
+title: Authenticating with Speckle
+sidebarTitle: Introduction
+---
+
+Speckle supports multiple authentication mechanisms for different use cases. Choose the right method based on whether you're building a single-user tool, a multi-user web application, or a server-side integration.
+
+## Authentication Methods
+
+Speckle supports multiple authentication mechanisms for different use cases. Choose the right method based on whether you're building a single-user tool, a multi-user web application, or a server-side integration.
+
+- **Personal Access Tokens (PATs)**: PATs can be generated in the user profile settings and provide a simple way to authenticate without needing to implement a token exchange on demand. However, they should be kept secure and should not be used for **multi-user applications** or **public-facing apps**, as they are tied to a single user and can be easily compromised if not handled properly.
+
+- **OAuth2 Authorization Code Flow with PKCE**: This is the recommended method for web applications that need to authenticate multiple users. PKCE enhances security by ensuring authorization codes cannot be intercepted or reused.
+
+
+<CardGroup cols={2}>
+  <Card title="Use Personal Access Tokens" icon="key">
+    **When:**
+    - Single-user tools or scripts
+    - Server-side applications
+    - Automation and CI/CD
+    - Personal development projects
+  </Card>
+  <Card title="Use OAuth2 with PKCE" icon="shield">
+    **When:**
+    - Multi-user web applications
+    - Public-facing apps
+    - Third-party integrations
+    - Apps requiring user consent
+  </Card>
+</CardGroup>
+
+## Security Best Practices
+
+### Token Management
+
+Treat all tokens as sensitive information. Proper token management is critical for security.
+
+<Check>
+**Do:**
+- Store tokens in environment variables
+- Use `.gitignore` to exclude `.env` files
+- Rotate tokens periodically
+- Use scoped tokens with minimal permissions
+- Revoke tokens when no longer needed
+- Use secure storage (keychain, secret managers) in production
+- Implement token refresh for OAuth2 tokens
+</Check>
+
+<Warning>
+**Don't:**
+- Commit tokens to version control
+- Share tokens between team members
+- Use PATs in client-side code (use OAuth instead)
+- Store tokens in plain text files
+- Use overly permissive scopes
+- Expose app secrets in client-side code
+- Log tokens in application logs
+</Warning>
+
+
+### Token Compromise Response
+
+If a token is compromised:
+
+1. **Revoke immediately** - Go to Settings → Developer → Access Tokens and revoke the compromised token
+2. **Generate new token** - Create a replacement with the same scopes
+3. **Update application** - Replace the token in your application
+4. **Review access logs** - Check for unauthorized access
+5. **Rotate related credentials** - If app secret was exposed, regenerate it
+
+
+## Community Resources
+
+### speckle-auth Package
+
+For JavaScript/TypeScript developers, the community-maintained **[speckle-auth](https://www.npmjs.com/package/speckle-auth)** package simplifies the authentication process by providing utility functions for handling OAuth2 flows with Speckle.
+
+The package handles PKCE generation, state management, and token exchange automatically, making OAuth2 implementation much simpler. See the [package documentation](https://www.npmjs.com/package/speckle-auth) for installation and usage instructions.
+
+## Next Steps
+
+- [Personal Access Tokens](/developers/authentication/pats) - Learn how to use tokens for single-user tools and server-side applications
+- [OAuth2 with PKCE](/developers/authentication/oauth2) - Learn how to implement secure multi-user authentication
