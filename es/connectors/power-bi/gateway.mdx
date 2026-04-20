@@ -1,0 +1,276 @@
+---
+title: "Puerta de enlace de datos de Power BI"
+sidebarTitle: "Puerta de enlace de datos"
+description: "Configuración de puertas de enlace de datos para la actualización programada de Power BI"
+---
+
+import PowerBIVersionFetcher from '/snippets/components/PowerBIVersionFetcher.jsx'
+
+Las pasarelas de datos permiten la actualización programada de tus informes de Power BI, lo que garantiza que tus datos de Speckle se mantengan actualizados automáticamente. Esto resulta especialmente útil para los informes de producción que necesitan reflejar las últimas versiones del modelo sin intervención manual.
+
+## Elegir el modo de puerta de enlace correcto
+
+El **Modo Personal** es ideal para usuarios individuales que necesitan:
+- Conectar sus propios informes de Power BI a fuentes de datos locales
+- Utilizar la actualización programada para actualizar los datos
+- Mantener una configuración sencilla con una configuración mínima
+
+**El modo estándar** se recomienda para organizaciones que necesitan:
+- Compartir fuentes de datos entre varios usuarios
+- Integrarse con otros servicios de Microsoft (Power Apps, Power Automate, Azure Logic Apps)
+- Utilizar funciones avanzadas como DirectQuery y Live Connection
+- Disponer de capacidades centralizadas de administración y supervisión
+
+<Note>
+Microsoft recomienda utilizar el Modo Estándar para la mayoría de los escenarios organizativos debido a sus capacidades mejoradas y su flexibilidad.
+</Note>
+
+## Puerta de enlace de modo personal
+
+<Steps>
+    <Step title="Instale el conector de Power BI y la puerta de enlace de datos.">1. Descargue e instale el conector de Power BI desde https://app.speckle.systems/connectors.
+
+2. Descargue e instale la [**Puerta de enlace de datos local (modo personal)**](https://go.microsoft.com/fwlink/?LinkId=820925&clcid=0x409).
+
+3. Abra la puerta de enlace de datos instalada.
+
+4. Seleccione **Iniciar sesión** e inicie sesión en su cuenta.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/personal dg sign in.png" alt="Inicio de sesión en la puerta de enlace personal" />
+
+</Frame>
+
+Nota>
+Verifique que la puerta de enlace aparezca en el servicio de Power BI en **Configuración** > **Administrar conexiones y puertas de enlace** > **Puertas de enlace de datos locales**. Seleccione **Puertas de enlace de datos locales (modo personal)** en el menú Tipo de puerta de enlace. </Note>
+
+5. Seleccione la pestaña **Conectores** y verifique que Speckle aparezca en la lista de conectores.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/personal dg connectors.png" alt="Conectores de puerta de enlace personal" />
+
+</Frame>
+
+<Note>
+Compruebe la ruta que se muestra en la puerta de enlace de datos y asegúrese de que el archivo **Speckle.pqx** esté allí. Si no lo está, cópielo desde la ubicación de instalación y péguelo allí.
+</Note>
+
+6. Publique su informe.</Step>
+
+    <Step title="Configurar el servicio Power BI">1. Abra su informe publicado en Power BI Service.
+
+2. Seleccione **Más opciones (…) > Ver modelo semántico** en la barra superior.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/dg view semantic model.png" alt="Ver modelo semántico" />
+
+</Frame>
+
+3. Seleccione **Actualizar > Programar actualización**. Esto abrirá la configuración del modelo semántico.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/dg schedule refresh.png" alt="Programar actualización" />
+
+</Frame>
+
+4. Expanda **Conexiones de puerta de enlace y nube** y compruebe si su puerta de enlace personal aparece en la lista.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/personal dg gateways list.png" alt="Lista de puertas de enlace personales" />
+
+</Frame>
+
+5. Después de confirmar que la puerta de enlace personal aparece en la lista, seleccione **Credenciales de origen de datos** y, a continuación, **Speckle** > **Editar credenciales**.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/personal dg edit credentials.png" alt="Editar ›" />
+
+</Frame>
+
+6. Seleccione **OAuth2** como método de autenticación. Configure el nivel de privacidad según sus necesidades.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/personal dg oauth.png" alt="Configuración de OAuth" />
+
+</Frame>
+
+7. Seleccione **Iniciar sesión** e inicie sesión en su cuenta de Speckle en la ventana que se abre.
+
+Ahora puede configurar la actualización programada.</Step>
+</Steps>
+
+## Puerta de enlace en modo estándar
+
+<Steps>
+    <Step title="Instale la puerta de enlace de datos y el conector de Power BI.">1. Descargue e instale la puerta de enlace de datos local (https://go.microsoft.com/fwlink/?LinkId=820925&clcid=0x409). (enlace externo)
+
+2. Abra la puerta de enlace de datos.
+
+3. Seleccione **Iniciar sesión** e inicie sesión en su cuenta.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/on prem sign in.png" alt="Inicio de sesión en la puerta de enlace estándar" />
+
+</Frame>
+
+<Note>
+Verifique que la puerta de enlace aparezca en el servicio Power BI en **Configuración** > **Administrar conexiones y puertas de enlace** > **Puertas de enlace de datos locales**.
+</Note>
+
+4. Seleccione la pestaña **Conectores** y copie la ruta a la carpeta Conectores personalizados.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/on prem copy path.png" alt="Copiar ruta de los conectores" />
+
+</Frame>
+
+<Note>
+Si ve una advertencia de carpeta no encontrada, vaya a la ruta y cree las carpetas Power BI Desktop y Conectores personalizados si no existen.
+</Note>
+
+5. Descargue el archivo ZIP del conector de Power BI:
+
+<PowerBIVersionFetcher />
+
+6. Extraiga el contenido del archivo ZIP y copie el archivo `Speckle.pqx`.
+
+7. Pegue el archivo en la ubicación que se muestra en la pestaña Conectores. La ruta predeterminada es:
+
+`C:\WINDOWS\ServiceProfiles\PBIEgwService\Documents\Power BI Desktop\Custom Connectors`
+
+8. Verifique que Speckle aparezca en la pestaña Conectores personalizados.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/on prem connectors.png" alt="Conectores de puerta de enlace estándar" />
+</Frame>
+</Step>
+
+    <Step title="Configurar el servicio Power BI">1. Abra el informe publicado en Power BI Service.
+
+2. En la barra superior, seleccione **Más opciones (…) > Ver modelo semántico**.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/dg view semantic model.png" alt="Ver modelo semántico" />
+
+</Frame>
+
+3. Seleccione **Actualizar > Programar actualización** para abrir la configuración del modelo semántico.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/dg schedule refresh.png" alt="Programar actualización" />
+
+</Frame>
+
+4. Expanda **Conexiones de puerta de enlace y nube** y compruebe si su puerta de enlace aparece en la lista.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/on prem gateway listing.png" alt="Listado de Gateway" />
+
+</Frame>
+
+5. Si ve "No configurado correctamente" en el estado, seleccione **Ver orígenes de datos (▶️)**.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/on prem view data source.png" alt="Ver orígenes de datos" />
+
+</Frame>
+
+6. Seleccione **Agregar manualmente a la puerta de enlace** para el modelo Speckle que ha cargado.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/on prem Handheld Add.png" alt="Agregar manualmente a la puerta de enlace" />
+
+</Frame>
+
+7. Cree una nueva conexión.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/on prem create connection.png" alt="Crear conexión" />
+
+</Frame>
+
+- Asigne un nombre a su conexión: Puede usar la URL del modelo como nombre.
+
+- Pegue la URL del modelo en el campo **URL del modelo de Speckle**.
+
+- Seleccione **Cuenta de Speckle** como método de autenticación.
+
+- Seleccione **Editar credenciales** e inicie sesión en su cuenta de Speckle en la ventana que se abre.
+
+- Configure el nivel de privacidad según la configuración de su organización.
+
+- Seleccione **Crear** para crear la conexión.
+
+8. Vuelva a la página de configuración del modelo semántico.
+
+9. Seleccione el nombre de la colección recién creada en el menú desplegable **Asignar a** y seleccione **Aplicar**.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/on prem maps to.png" alt="Mapa con el menú desplegable" />
+
+</Frame>
+
+10. Su puerta de enlace de datos ya está configurada para la actualización programada.
+</Step>
+</Steps>
+
+<AccordionGroup>
+    <Accordion title="Mensaje de error: 'La consulta contiene un nombre de función desconocido: Speckle.GetByUrl'"><Frame>
+
+<img src="/images/connectors/powerbi/dg unknown function.png" alt="Error de función desconocida" />
+
+</Frame>
+
+**Para solucionar este error:**
+
+1. Verifique que la puerta de enlace aparezca en el servicio Power BI en **Configuración** > **Administrar conexiones y puertas de enlace** > **Puertas de enlace de datos locales**.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/dg verify gateway.png" alt="Verificar puerta de enlace" />
+
+</Frame>
+
+2. Verifique que Speckle aparezca en la pestaña Conectores de la puerta de enlace de datos.
+
+<Frame>
+
+<img src="/images/connectors/powerbi/on prem connectors.png" alt="Verificar conectores" />
+
+</Frame>
+
+3. Si ambas condiciones son verdaderas, publique un nuevo conjunto de datos con conectores predeterminados (CSV, Excel, etc.) desde Power BI Desktop y configure las credenciales de origen de datos en el servicio Power BI.
+
+4. Vuelva al informe que genera el error e inténtelo de nuevo.
+
+El informe debería funcionar correctamente ahora.
+
+**Por qué funciona**
+
+Los conectores personalizados requieren que primero se publique un conjunto de datos con conectores verificados. Después de publicar un conjunto de datos con conectores estándar, los conectores personalizados funcionarán con la puerta de enlace de datos. Solo necesita realizar este paso una vez por puerta de enlace de datos.
+</Accordion>
+</AccordionGroup>
+
+<Note>
+Obtenga más información sobre las puertas de enlace de datos y la actualización programada de Microsoft:
+- [Puerta de enlace de datos local (modo personal)](https://learn.microsoft.com/en-us/power-bi/connect-data/service-gateway-personal-mode)
+- [Puerta de enlace de datos local (modo estándar)](https://learn.microsoft.com/en-us/power-bi/connect-data/service-gateway-onprem-indepth)
+- [Configurar la actualización programada](https://learn.microsoft.com/en-us/power-bi/connect-data/refresh-scheduled-refresh)
+</Note>
