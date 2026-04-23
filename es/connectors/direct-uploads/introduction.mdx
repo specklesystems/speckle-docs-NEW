@@ -1,0 +1,270 @@
+---
+title: "Cargas directas"
+description: "Sube archivos directamente a tus proyectos de Speckle y visualízalos en tu navegador, sin necesidad de software de escritorio ni conectores."
+---
+
+import CoordinationWorkflowRevit from "/snippets/es/connectors/coordination-workflow-revit.mdx";
+
+## Cuándo usar la carga de archivos
+
+Sube archivos directamente cuando:
+
+- Necesitas convertir datos IFC al formato Speckle.
+- No tienes la aplicación de origen ni la licencia.
+- Quieres visualizar un modelo rápidamente en tu navegador.
+- Recibes archivos de colaboradores que no usan conectores Speckle.
+- Trabajas con formatos de archivo que no tienen un conector Speckle específico.
+
+## Subir un archivo
+
+<Info>
+  **Upload limits:** Maximum file size is 1000 MB for all plans and formats
+</Info>
+
+<Steps>
+  <Step title="Crear un proyecto">
+    Seleccione la opción para subir un archivo.
+
+    <Frame>
+
+    ![Opción para subir archivo](/images/files/file-upload.png)
+
+    </Frame>
+
+  </Step>
+  <Step title="Añade tu archivo">
+    Arrastra y suelta tu archivo en el proyecto. Speckle creará un nuevo modelo con el nombre del archivo.
+
+    <Frame>
+
+    ![Progreso de la carga del archivo](/images/files/file-uploading.png)
+
+    </Frame>
+
+  </Step>
+  <Step title="Subir nuevas versiones">
+    Para subir versiones actualizadas, seleccione el menú desplegable del modelo.
+
+    <Frame>
+
+    ![Opción para subir nueva versión](/images/files/file-new_version.png)
+
+    </Frame>
+
+  </Step>
+</Steps>
+
+## Formatos de archivo compatibles
+
+Speckle admite los siguientes formatos de archivo:
+
+<Note>
+Si su software de Autodesk (u otro) puede exportar un archivo de caché de Navisworks
+
+(`.nwc`) o un archivo de documento de Navisworks (`.nwd`), puede subirlo a Speckle
+
+Sin necesidad de tener una licencia de Navisworks.
+</Note>
+
+<Note>
+¿Quieres ayudar a mejorar este flujo? Participa en el estudio de pruebas de usuario para las cargas de NWC y NWD
+
+con sincronización ACC en la página [Oportunidades de pruebas de usuario](/get-involved/user-testing#nwc-nwd-acc-sync).
+</Note>
+
+<Warning>
+Si bien el analizador de Navisworks está en fase beta, si el tamaño del archivo supera los 200 MB,
+la sincronización podría no siempre ser exitosa. Considere la sincronización de Navisworks como una versión beta y
+espere fallos ocasionales, especialmente con archivos muy grandes.
+</Warning>
+
+| Formato | Extensión | Estado |
+
+| ----------------------------- | --------- | ------ |
+
+| IFC | .ifc | ✔︎ |
+
+| Rhinoceros 3D | .3dm | ✔︎ |
+
+| SketchUp | .skp | ✔︎ |
+
+| AutoCAD | .dwg | ✔︎ |
+
+| Formato de intercambio de dibujos | .dxf | ✔︎ |
+
+| MicroStation | .dgn | ✔︎ |
+
+| 3D Studio | .3ds | ✔︎ |
+
+| Pieza de SolidWorks | .sldprt | ✔︎ |
+
+| STEP | .stp | ✔︎ |
+
+| STEP | .step | ✔︎ |
+
+| Nube de puntos | .e57 | ✔︎ | Formato de fabricación 3D | .3mf | ✔︎ |
+
+Formato de fabricación aditiva | .amf | ✔︎ |
+
+Filmbox | .fbx | ✔︎ |
+
+IGES | .igs | ✔︎ |
+
+IGES | .iges | ✔︎ |
+
+Wavefront | .obj | ✔︎ |
+
+Formato de archivo de polígonos | .ply | ✔︎ |
+
+DirectX | .x | ✔︎ |
+
+Revit | .rvt | ✔︎ |
+
+Caché de Navisworks | .nwc | ✔︎ |
+
+Documento de Navisworks | .nwd | ✔︎ |
+
+<CoordinationWorkflowRevit />
+
+### Conversión de unidades
+
+Para varios formatos de archivo, el sistema de unidades del archivo de origen se detectará y conservará automáticamente al enviarlo a través de Speckle.
+
+- IFC ✔︎
+- 3dm ✔︎
+- DGN ✔︎
+- SKP ✔︎
+- STP ✔︎
+- FBX ✔︎
+
+Otros formatos tienen un comportamiento diferente:
+
+| **Formato** | **Comportamiento** |
+
+| ---------- | ---------------------------- |
+
+| DWG | La geometría está escalada a metros |
+
+| 3DS | Se asume que el archivo está en cm |
+
+| OBJ | Se asume que el archivo está en mm |
+
+## Detalles del formato del archivo
+
+### IFC
+
+Los archivos IFC se convierten al formato Speckle, con soporte para atributos, conjuntos de propiedades y cantidades.
+
+<Info>**Supported versions:** IFC2x3, IFC4</Info>
+
+<Check>
+  **Features**
+
+- Atributos de elementos y tipos de elementos
+- Conjuntos de propiedades
+- Cantidades de elementos
+- Los **espacios IFCS** se publican como geometría volumétrica.
+
+</Check>
+
+<Info>
+  **Known limitations**
+
+- Las versiones IFC2x2_FINAL y Release Candidate no son compatibles.
+- Los formatos alternativos como XML, ZIP y bases de datos no son compatibles.
+- Los tipos 2D como IfcAnnotation no son compatibles actualmente.
+
+</Info>
+
+### Rhino (3DM)
+
+Los archivos de Rhino conservan la geometría y la estructura de capas al ser cargados.
+
+<Note>
+Para obtener mejores resultados con archivos 3dm, utilice el [conector Rhino](/connectors/rhino) siempre que sea posible.
+</Note>
+
+<Info>
+  **Known limitations**
+
+- Los archivos de Rhino 9 no son compatibles.
+- El texto dinámico no es compatible.
+
+</Info>
+
+### SketchUp (SKP)
+
+Los modelos de SketchUp se convierten conservando la geometría y la organización básica.
+
+<Note>
+Para obtener mejores resultados con archivos de SketchUp, utilice el [SketchUp
+
+conector](/conectores/sketchup) siempre que sea posible.
+</Note>
+
+<Info>
+  **Known limitations**
+
+- Los atributos no se importan
+- Es posible que los componentes dinámicos no se transfieran correctamente
+</Info>
+
+### DWG y DXF
+
+Cargue directamente los archivos de dibujo de AutoCAD. Los resultados pueden variar según la complejidad del archivo.
+
+<Note>
+Para obtener mejores resultados con archivos DWG, utilice el [conector de AutoCAD](/connectors/autocad) siempre que sea posible.
+</Note>
+
+<Info>
+  **Known limitations**
+
+- Los archivos grandes pueden tardar más en procesarse.
+- No se admite texto dinámico.
+</Info>
+
+### Frente de onda (OBJ)
+
+Los archivos OBJ se convierten conservando la geometría.
+
+<Info>
+  **Known limitations**
+
+- Los materiales no son compatibles
+</Info>
+
+## Preguntas frecuentes
+
+<AccordionGroup>
+  <Accordion title="¿Por qué mis modelos están en la ubicación incorrecta?">
+    Las cargas directas convierten los modelos usando el origen interno y no aplican las coordenadas compartidas de Revit. Los modelos cargados no se ubican en un espacio coordinado. Para flujos de trabajo de coordinación que dependen de las coordenadas compartidas, utilice el conector de Revit para publicar y cargar modelos, de modo que se conserven las modificaciones de coordenadas.
+  </Accordion>
+  
+  <Accordion title="¿Puedo descargar los archivos subidos?">
+    Sí, puedes descargar archivos. Para descargar un archivo:
+
+    1. Selecciona el menú desplegable (**...**) del modelo.
+
+    2. Selecciona **Ver archivos subidos**.
+
+    3. Selecciona **Descargar** junto a la versión que deseas.
+
+  </Accordion>
+
+  <Accordion title="Mi archivo es demasiado grande para subirlo.">
+    Actualmente, el límite de subida de archivos es de **1000 MB** para todos los planes y formatos.
+  </Accordion>
+  
+  <Accordion title="¿Por qué se queda mi archivo bloqueado durante el procesamiento?">
+    Utilizamos un sistema de cola para procesar archivos, por lo que la generación del modelo Speckle puede tardar un tiempo después de subir tu archivo. Si no ves tu modelo después de un tiempo prolongado, esto podría deberse a elementos defectuosos en tu archivo. Por favor, informa del problema en nuestro [Foro de la Comunidad](https://speckle.community/c/help) e incluye la siguiente información:
+
+    - Tipo y versión de tu archivo
+
+    - El archivo que presentó el error
+
+  </Accordion>
+  <Accordion title="¿Admitirán formatos adicionales?">
+    Siempre buscamos ampliar la compatibilidad con formatos. Háganos saber qué formatos le gustaría ver en futuras versiones.
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,494 @@
+---
+title: "Irreal"
+noindex: true
+---
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx'
+import LegacyVersions from '/snippets/es/legacy-versions.mdx'
+
+<LegacyWarning connector="Unreal" />
+
+<LegacyVersions connector="Unreal" versions="4.27 & 5.x and newer" />
+
+Nuestro conector para Unreal Engine ha alcanzado la fase **beta** de desarrollo. <br/> Actualmente, solo admitimos la **recepción de geometría** (la compatibilidad con el envío está prevista en nuestra hoja de ruta). <br/>
+
+Ofrecemos soporte oficial para Unreal Engine 4.27 y versiones posteriores de la serie 5.X en plataformas Windows, Mac y Linux (otras plataformas no han sido probadas).
+
+No olvides visitar (y marcar con una estrella :star: ) nuestro repositorio de GitHub: [https://github.com/specklesystems/speckle-unreal](https://github.com/specklesystems/speckle-unreal). Si tienes alguna opinión o sugerencia sobre este plugin, puedes [comentarlas en nuestro foro](https://speckle.community/).
+
+<Info>
+For additional resources, see Unreal's guides on [Installing Unreal Engine](https://docs.unrealengine.com/4.27/en-US/Basics/InstallingUnrealEngine/),
+[Setting Up Visual Studio for Unreal Engine](https://docs.unrealengine.com/4.27/en-US/ProductionPipelines/DevelopmentSetup/VisualStudioSetup/),
+and [Create a New Project](https://docs.unrealengine.com/4.27/en-US/Basics/Projects/Browser/).
+</Info>
+
+## Instalación (Mercado)
+
+El Unreal Connector se distribuye como un complemento de código en el [Unreal Engine Marketplace](https://www.unrealengine.com/marketplace/en-US/product/speckle-for-unreal-engine). Para la mayoría de los usuarios, se recomienda este método de instalación.
+
+Una vez instalado, es necesario **habilitar el plugin Speckle** para tu proyecto desde el menú **`Editar → Plugins`**. Una vez habilitado, se te pedirá que reinicies tu proyecto.
+
+¡Eso es todo! ¡Tu proyecto ya puede usar el plugin Speckle!
+
+## Instalación (Git)
+
+Para los desarrolladores que deseen modificar el código fuente, probar ramas en desarrollo y/o contribuir con cambios al repositorio speckle-unreal, se prefiere la instalación a través de [git](https://git-scm.com/).
+
+1. Git clone [este repositorio](https://github.com/specklesystems/speckle-unreal) en el directorio `Plugins` de tu proyecto (creado según sea necesario).
+
+```
+git clone https://github.com/specklesystems/speckle-unreal
+```
+
+3. Abre tu proyecto de UE (o reinicia el editor si ya lo tienes abierto). Esto compilará el plugin en tu entorno.
+
+Si encuentras problemas de compilación, intenta compilar tu proyecto directamente desde VS/Rider. Revisa los archivos `Saved\Logs\` para ver los mensajes de error y no dudes en contactarnos en nuestros foros de la comunidad (https://speckle.community) si necesitas ayuda.
+
+## Uso (Editor)
+
+El complemento incluye un tipo de actor llamado `Speckle Unreal Manager` que puedes usar para importar objetos de Speckle.
+
+Aquí te explicamos cómo usarlo:
+
+1. En la barra lateral `Place Actors`, busca *Speckle Unreal Manager* y agrégalo al mundo.
+
+<Frame>
+  <img src="/images/legacy/unreal/speckle_manager_actor.png" width="50%" alt="actor gerente de moteado" />
+</Frame>
+
+---
+
+2. Seleccione la instancia `SpeckleUnrealManager` en la barra lateral `World Outliner` y utilice las opciones que se presentan en la categoría `Speckle`.
+
+<Frame>
+  <img src="/images/legacy/unreal/speckle_manager_config.png" width="50%" alt="Configuración del administrador de moteado" />
+</Frame>
+
+---
+
+3. Hay **dos maneras de importar objetos** usando el actor `Speckle Unreal Manager`.
+
+<Tip>
+Importe <b>un ID de objeto específico</b>, especificando una <i>URL del servidor</i> + <i>ID del proyecto</i> + <i>ID del objeto</i>
+
+<Accordion title="Expandir"><summary>Expandir</summary>
+
+**1.** En primer lugar, asegúrese de que la casilla **"Especificar por ID de objeto" esté marcada** y que la **URL del servidor** coincida con la del servidor Speckle que está utilizando (por defecto: [`https://app.speckle.systems`](https://app.speckle.systems)).
+
+**2.** Introduzca el **ID del proyecto**. Puede copiarlo de la URL de su proyecto y pegarlo en la propiedad "ID del proyecto" de su `Speckle Unreal Manager`.
+<marco>
+
+<img src="/images/legacy/unreal/finding_stream_id.png" width="75%" alt="Captura de pantalla de la URL de un proyecto Speckle https://app.speckle.systems/streams/76c45cdb32, con el ID del proyecto 76c45cdb32 resaltado" />
+</Marco>
+
+**3.** Introduzca el **ID del objeto** que desea recibir.
+
+Puede explorar los objetos de un proyecto utilizando la aplicación web de Speckle para el servidor Speckle que utiliza.
+
+<Marco>
+
+<img src="/images/legacy/unreal/finding_object_id.png" width="75%" alt="Captura de pantalla del panel de propiedades de una versión de Speckle,> resaltando el ID del objeto seleccionado (raíz)" />
+</Marco>
+
+**4. Si la transmisión es privada**, deberá generar un **token de autenticación**.
+
+Para ello, diríjase a su página de perfil [https://app.speckle.systems/profile](https://app.speckle.systems/profile) y genere un nuevo token de acceso (con todos los permisos).
+<marco>
+
+<img src="/images/legacy/unreal/generate_auth_token.png" width="75%" alt="Captura de pantalla de la página de perfil, con una flecha que apunta al botón del nuevo token" />
+</Marco>
+
+</Accordion>
+</Tip>
+
+<center><b>OR</b></center>
+
+<Tip>
+Importe <b>una versión moteada</b>, especificando una <i>URL del servidor</i> + <i>Token de autenticación</i> y luego seleccione un <i>proyecto</i> + <i>modelo</i> + <i>versión</i> en el menú desplegable.
+
+<Accordion title="Expandir"><summary>Expandir</summary>
+
+**1.** Primero, debes autenticar tu cuenta de Speckle.<br/>
+
+Actualmente, esto solo se puede hacer mediante un **token de autenticación** (también conocido como token de acceso personal).<br/>
+
+Para generar uno, ve a tu página de perfil <a href="https://app.speckle.systems/profile">https://app.speckle.systems/profile</a> y, en "Token de acceso", genera un nuevo token **con todos los permisos**.
+<marco>
+
+<img src="/images/legacy/unreal/generate_auth_token.png" width="75%" alt="Captura de pantalla de la página de perfil, con una flecha apuntando al botón del nuevo token" />
+</Marco>
+
+**2.** Pega el token de autenticación en tu actor `Speckle Unreal Manager` (asegúrate también de que `ServerUrl` sea correcto).
+
+**3.** Desmarca la opción "Especificar por ID de objeto" y, si la URL y el token son válidos, las opciones desplegables para `proyecto`, `modelo` y `versión` estarán disponibles.
+
+<Marco>
+
+<video width="66%" controles de bucle reproducción automática silenciada src="/images/legacy/unreal/stream.branch.commit.selection.mp4" type="video/mp4" />
+</Marco>
+
+(Notas opcionales) El número de proyectos/modelos/versiones está limitado, por defecto a 15, pero este valor se puede ajustar en la configuración avanzada (límite de opciones).
+
+Si no aparecen opciones, intente deseleccionar y volver a seleccionar el actor, y revise el registro de salida para ver si hay advertencias.
+
+</Accordion>
+</Tip>
+
+<Warning>
+Trata tu token de acceso personal **como una contraseña**. Si alguien más tiene acceso a tu token de autenticación, ¡podrá acceder a tus datos de Speckle!
+</Warning>
+
+---
+
+4. Después de configurar los parámetros de recepción, simplemente haga clic en el botón «Recibir». El objeto especificado y todos sus elementos secundarios se importarán como actores.<br/>
+Para configurar las opciones de conversión de objetos, consulte la sección [conversión de objetos](./unreal.html#object-conversion).
+
+## Uso (Plano)
+
+Blueprint puede ser una herramienta poderosa para implementar comportamientos personalizados para la recepción de objetos.
+
+El proceso de recepción se puede realizar utilizando un plano, lo que permite una **flexibilidad adicional** para realizar acciones adicionales con los datos recibidos o los actores convertidos.
+
+Para usar Blueprint, se requiere un conocimiento básico del funcionamiento del plugin.
+
+- Se utiliza un `ServerTransport` para realizar una solicitud HTTP a un servidor Speckle para obtener el objeto (y sus elementos secundarios).
+
+Este servidor recupera objetos JSON, que luego se almacenan en un `Memory Transport` local.
+
+- El nodo `ReceiveOperation` gestiona los objetos recibidos y los deserializa en modelos de objetos (objetos que heredan de `UBase`).
+
+- El `SpeckleConverterComponent` convierte estos objetos en actores/componentes nativos.
+
+Un ejemplo de este proceso en Blueprint se encuentra en el directorio `Plugins\speckle-unreal\Content\Examples` y tiene este aspecto:
+<Frame>
+
+<img src="/images/legacy/unreal/receiving_bp.png" width="100%" alt="recibiendo presión arterial" />
+</Frame>
+
+Además, se proporcionan varios nodos macro de Blueprint para obtener detalles sobre el proyecto, el modelo, la versión y los usuarios.
+
+## Conversión de objetos
+
+El componente `SpeckleConverterComponent` proporciona la funcionalidad de conversión para transformar objetos Speckle en actores nativos de UE.
+
+Sin embargo, esta clase no contiene lógica de conversión específica.<br/> En su lugar, la lógica de conversión está modularizada, de modo que las funciones y la configuración de conversión para tipos específicos se encapsulan en su propia clase que implementa `ISpeckleConverter`.
+
+> Tenga en cuenta que `ISpeckleConverter` aquí no es lo mismo que `Speckle.​Core.​Kits.​ISpeckleConverter` en el SDK de .NET.
+
+De forma predeterminada, el complemento proporciona convertidores para las siguientes conversiones:
+
+| Tipo de moteado | | Tipo nativo |
+
+| ---: | :---: | :--- |
+
+| [`Objects.Geometry.Mesh`](https://github.com/specklesystems/speckle-sharp/blob/main/Objects/Objects/Geometry/Mesh.cs) | → | [Componente de malla estática](https://docs.unrealengine.com/4.27/en-US/API/Runtime/Engine/Components/UStaticMeshComponent/) /<br/> [Componente de malla procedural](https://docs.unrealengine.com/4.27/en-US/API/Plugins/ProceduralMeshComponent/UProceduralMeshComponent/) |
+
+| [`Objects.Geometry.PointCloud`](https://github.com/specklesystems/speckle-sharp/blob/main/Objects/Objects/Geometry/Pointcloud.cs) | → | [Nube de puntos LiDAR](https://docs.unrealengine.com/4.27/en-US/WorkingWithContent/LidarPointCloudPlugin/LidarPointCloudPluginReference/) |
+
+| [`Objects.Other.BlockInstance`](https://github.com/specklesystems/speckle-sharp/blob/main/Objects/Objects/Other/Block.cs) | → | Actor con transformación |
+
+| [`Objects.BuiltElements.View`](https://github.com/specklesystems/speckle-sharp/blob/main/Objects/Objects/BuiltElements/View.cs) | → | Cámara |
+
+| [`Speckle.Core.Models.Collection`](https://github.com/specklesystems/speckle-sharp/blob/main/Core/Core/Models/Collection.cs) | → | EmptyActor |
+
+`StaticMeshConverter` y `ProceduralMeshConverter` son mutuamente excluyentes, y para la mayoría de los usuarios recomendamos usar mallas estáticas (opción predeterminada).
+
+Debido a la naturaleza de Unreal Engine, es necesario ofrecer **opciones/configuraciones para la conversión de objetos**.
+
+Por lo tanto, cada `ISpeckleConverter` también puede exponer **propiedades que se pueden configurar** desde el editor o desde BP/C++.
+
+Esta estructura es claramente diferente a la de otros conectores, que suelen tener una única clase de conversión que contiene muchas conversiones y ofrecen pocas (o ninguna) opciones de configuración.
+
+Tomando como ejemplo el `StaticMeshConverter`, se puede observar que expone varias configuraciones, como el tipo de actor a crear y la configuración de construcción de la malla.
+
+<Frame>
+  <video width="100%" loop controls autoplay muted src="/images/legacy/unreal/converter-settings.mp4" type="video/mp4" />
+</Frame>
+
+De forma predeterminada, los componentes `SpeckleConverterComponent` se configuran con un conjunto de convertidores predeterminados.
+
+Para la mayoría de los usuarios, no se requiere ninguna configuración adicional.
+
+Sin embargo, puede crear sus propias instancias de `ISpeckleConverter` específicas a través de los recursos en el Contenido y luego asignarlas al componente convertidor.
+
+Esto se puede hacer haciendo clic con el botón derecho y creando un nuevo convertidor del tipo especificado.
+
+<center><img src="/images/legacy/unreal/create_converter.png" width="66.66%" /></center>
+
+Puedes crear tus propios convertidores personalizados en BP/C++ (consulta la documentación de [Creación de conversiones personalizadas](./unreal.html#creating-custom-conversion)).
+
+### Convertidores de malla
+
+Speckle-Unreal ofrece dos tipos de convertidores de malla:
+1. `ProceduralMeshConverter` (https://github.com/specklesystems/speckle-unreal/blob/main/Source/SpeckleUnreal/Public/Conversion/Converters/ProceduralMeshConverter.h):
+
+- Crea un `UProceduralMeshComponent`.
+
+- La conversión es ligeramente más rápida y permite la edición de vértices y caras en tiempo de ejecución.
+
+- Es el más lento en renderizar y no permite usar iluminación precalculada.
+
+2. `StaticMeshConverter` (https://github.com/specklesystems/speckle-unreal/blob/main/SpeckleUnrealProject/Plugins/SpeckleUnreal/Source/SpeckleUnreal/Public/SpeckleUnrealStaticMesh.h):
+
+- Crea un `UStaticMeshComponent`.
+- Los vértices, caras, etc., de la malla no se pueden editar fácilmente (es necesario reconstruirla).
+
+- Renderizado más rápido.
+
+- Las mallas construidas se pueden guardar como recursos, lo que permite recargar los niveles.
+
+- El proceso de construcción adicional, exclusivo del editor, permite iluminación precalculada, opciones adicionales de trazado de rayos e iluminación optimizada.
+
+Para la mayoría de los usuarios, recomendamos usar mallas estáticas, ya que están más optimizadas para la renderización y se pueden guardar en un nivel.
+
+Las mallas estáticas se pueden usar tanto en tiempo de ejecución como en modo editor, pero el proceso de compilación exclusivo para editor solo estará disponible con acceso al editor.
+
+### Convertidor de materiales
+
+Unreal Engine destaca como herramienta para generar renders fotorrealistas de escenas de gran calidad.
+
+Esto resulta muy valioso para los usuarios de Speckle, ya que les permite crear demostraciones, animaciones y experiencias XR de alta calidad y en tiempo real.
+
+Para algunos usuarios, los materiales PBR simples con sombreado plano convertidos usando el `RenderMaterial` de un objeto (https://github.com/specklesystems/speckle-sharp/blob/main/Objects/Objects/Other/RenderMaterial.cs) serán todo lo que necesiten.
+
+Sin embargo, muchos usuarios desean utilizar **materiales texturizados**, ya que Unreal destaca por su fotorrealismo, y los materiales de alta calidad son una parte importante de ello.
+
+La función **Material Overrides** del `MaterialConverter` satisface esta necesidad, ya que permite un flujo de trabajo semiautomatizado para aplicar materiales texturizados a la geometría recibida.
+
+El kit `Objects`(https://speckle.guide/developers/objects.html) de Speckle admite materiales PBR a través de la propiedad `RenderMaterial`(https://github.com/specklesystems/speckle-sharp/blob/main/Objects/Objects/Other/RenderMaterial.cs) de las mallas de Speckle.
+Al recibir mallas con un `RenderMaterial`, el `MaterialConverter` crea una instancia de material (`MaterialInstance`) que se aplica a las mallas convertidas.
+
+<Tip>
+Unreal se integra con Megascans de [Quixel](https://quixel.com/), una biblioteca de materiales y recursos de alta calidad que se pueden usar gratuitamente dentro de Unreal Engine.
+</Tip>
+
+#### ¿Cómo se convierten los materiales?
+
+El `MaterialConverter` expone algunas propiedades para definir el material base/padre de los materiales creados.
+
+Los materiales opacos se convertirán en instancias de `BaseMeshOpaqueMaterial`.
+
+Y los materiales transparentes se convertirán en instancias de `BaseMeshTransparentMaterial`.
+
+Por defecto, estos materiales base son materiales simples con modelos de sombreado opacos/translúcidos respectivamente.
+Ambos tienen varias propiedades expuestas (ver captura de pantalla) y, durante el proceso de conversión, estas propiedades se configuran con los valores del `RenderMaterial`.
+
+El material opaco predeterminado "SpeckleMaterial" tiene este aspecto:
+<Frame>
+
+<img src="/images/legacy/unreal/SpeckleMaterial.png" width="50%" alt="material moteado" />
+</Frame>
+
+Y el material translúcido predeterminado "SpeckleGlassMaterial" tiene este aspecto:
+<Frame>
+
+<img src="/images/legacy/unreal/SpeckleGlassMaterial.png" width="50%" alt="material de vidrio moteado" />
+</Frame>
+
+Estos materiales base se exponen como propiedades del convertidor y se pueden cambiar desde el editor (o desde BP/C++) a un material personalizado.
+
+#### Sobrescribir/Sustituir materiales convertidos
+
+Speckle **actualmente** no admite el envío ni la recepción de materiales con textura.
+
+Sin embargo, ofrecemos una forma de aplicar automáticamente materiales nativos de Unreal al recibir objetos desde Speckle.
+
+Los materiales convertidos se pueden reemplazar con materiales personalizados de dos maneras.
+
+- **Por nombre** - El valor de `RenderMaterial.name` se comparará con los materiales del array `MaterialsOverridesByName`.
+
+- **Por ID** - El valor de `RenderMaterial.id` se comparará con la clave de los materiales del mapa `MaterialOverridesById`.
+
+<Frame>
+  <img src="/images/legacy/unreal/OverridesById.png" width="66.66%" alt="anula por id" />
+</Frame>
+
+Captura de pantalla de las anulaciones de material **por ID** en el panel de detalles de la instancia predeterminada de `MaterialConverter`.
+
+Los materiales con el ID `f5f7ebd4a...` usarán este material en lugar de convertir uno del `RenderMaterial` del objeto.
+
+<Frame>
+  <img src="/images/legacy/unreal/OverridesByName.png" width="66.66%" alt="anula por nombre" />
+</Frame>
+
+Captura de pantalla de las anulaciones de material **Por nombre** en el panel de detalles de la instancia predeterminada de `MaterialConverter`. Los materiales con el nombre `Mossy_Grass` usarán este material en lugar de convertir uno del `RenderMaterial` del objeto.
+
+#### Prioridades materiales
+
+Prioridad de los materiales (de mayor a menor).
+
+1. Un material en `OverridesById` que coincida por ID.
+
+2. Un material en `OverridesByName` que coincida por nombre.
+
+3. Un material almacenado en caché de una operación de recepción anterior.
+
+4. Un recurso de material en el paquete `/Game/Speckle/Materials/{id}` (es decir, de una recepción anterior, pero no almacenado en caché, o de un recurso ubicado estratégicamente).
+5. Un material convertido a partir del `RenderMaterial` de la malla.
+
+6. Finalmente, si todo lo demás falla, se utilizará el `DefaultMaterial` configurado en el `MaterialConverter`.
+
+Nota: Si un objeto no tiene material, no se recurre al material del objeto padre como en versiones anteriores de este conector.
+
+Somos conscientes de que esto puede provocar un comportamiento inesperado. Este problema se solucionará.
+
+#### Limitaciones
+
+Para usar materiales texturizados, las mallas necesitan tener **coordenadas de textura** (coordenadas UV). Actualmente, las coordenadas de textura solo se generan desde los conectores de Rhino, Blender y SketchUp. (¡Próximamente se añadirán más conectores! Consulta [issue](https://github.com/specklesystems/speckle-sharp/issues/797). El conector de Unreal **no** genera coordenadas de textura.
+
+Tener coordenadas UV también ofrece otras ventajas para la iluminación precalculada.
+
+**No se pueden enviar ni recibir texturas a través de Speckle**, solo colores planos y propiedades PBR simples. La compatibilidad con texturas está en nuestra hoja de ruta, pero aún quedan varios retos técnicos por superar antes de que sea posible.
+
+### Desarrollo de lógica de conversión personalizada
+
+Como se mencionó anteriormente, las clases `ISpeckleConverter` pueden exponer propiedades, como el tipo de Actor a crear, si se debe crear un recurso o configurar ajustes, etc.
+
+Si esto no satisface sus necesidades, existen varias maneras de personalizar aún más la conversión.
+
+1. Puedes extender un convertidor existente y reimplementar funciones específicas.
+
+2. Puedes escribir una clase `ISpeckleConverter` completamente personalizada y añadir una instancia a tu `SpeckleConverterComponent`.
+
+3. Puedes extender `SpeckleConverterComponent` para personalizar de forma más general cómo se convierten los objetos y se adjuntan los actores.
+
+Los convertidores se pueden crear tanto en C++ como en Blueprint.
+
+#### Modelos de objetos personalizados
+
+Los modelos de objetos en el plugin de Unreal funcionan igual que los modelos de objetos en .NET.
+
+El plugin Speckle para Unreal incluye varios modelos de objetos de forma predeterminada.
+
+Estas clases se encuentran en `speckle-unreal\Source\SpeckleUnreal\Public\Objects` y son subclases del tipo `UBase`.
+
+En su mayoría, estas clases son adaptaciones directas de las clases .NET correspondientes de nuestro kit de objetos.
+
+Por ejemplo, `Mesh` y `BlockInstance`.
+
+Se requiere un modelo de objetos para convertir objetos Speckle.
+Si desea convertir un tipo para el que no proporcionamos un modelo de objetos, crear uno es sencillo.
+
+Este proceso es muy similar a la definición de un modelo de objetos en los SDK de .NET y PY.
+Sin embargo, tenga en cuenta algunas limitaciones:
+
+1. El complemento UE **no proporciona un serializador/deserializador basado en reflexión**.
+
+Los modelos de objetos implementan su propia lógica de serialización/deserializamiento mediante el análisis manual de las propiedades JSON.
+
+2. **Solo se proporcionan ciertos modelos de objetos** de forma predeterminada. Si bien la mayoría son adaptaciones directas de Objects Kit, ¡algunos no lo son!
+
+4. El tipo Speckle se define en el constructor del modelo de objetos, no por su espacio de nombres como en .NET.
+
+5. Las unidades se aplican durante el análisis (en lugar de la conversión ToNative; esto está sujeto a cambios).
+
+Para implementar tu propio modelo de objetos de Unreal, simplemente crea una nueva clase que herede de `UBase`.
+
+Añade tus propiedades e implementa el método `Parse` para establecerlas a partir del objeto JSON.
+
+```cpp
+bool UMyObjectModel::Parse(const TSharedPtr<FJsonObject> Obj, const TScriptInterface<ITransport> ReadTransport)
+{
+	if(!Super::Parse(Obj, ReadTransport)) return false;
+
+// ¡Añade aquí tu propio análisis JSON!
+
+// Elimina las propiedades explícitas del array DynamicProperties
+
+// Ejemplo sencillo de análisis de una propiedad numérica opcional:
+
+if(Obj->TryGetNumberField("myProperty", MyProperty)) DynamicProperties.Remove("myProperty");
+
+// Ejemplo sencillo de análisis de una propiedad numérica obligatoria:
+
+if(!Obj->TryGetNumberField("myProperty", MyProperty)) return false; // Devuelve false en caso de error, en lugar de aserciones fatales
+
+DynamicProperties.Remove("myProperty");
+
+// Devuelve true si el análisis se realizó correctamente
+
+return true;
+
+}
+
+Para más información, consulte `URenderMaterial` para ver un ejemplo y `UMesh` para un ejemplo más avanzado.
+
+`UConversionUtils` proporciona métodos auxiliares para separar/desreferenciar objetos Speckle.
+
+Actualmente, el escalado de unidades se aplica durante el análisis sintáctico (no durante la conversión). ¡Esto podría cambiar!
+
+En el futuro, podríamos considerar la creación de un deserializador adecuado que utilice reflexión. Esto permitiría deserializar los modelos de objetos sin que los desarrolladores tengan que escribir estos métodos de análisis.
+
+Aún tenemos que resolver varios desafíos técnicos antes de que esto sea posible. <br/>
+No dudes en iniciar un debate en [nuestros foros](https://speckle.community).
+
+#### Creación de convertidores (C++)
+
+Se puede definir un convertidor personalizado creando una clase `UObject` que implemente `ISpeckleConverter`.
+
+Debe implementar los métodos `ConvertToNative` y `CanConverToNative`.
+
+```cpp
+
+UCLASS(BlueprintType, Blueprintable)
+clase SPECKLEUNREAL_API UMyConverter : público UObject, público ISpeckleConverter
+{
+GENERATED_BODY()
+
+público:
+
+virtual UObject* ConvertToNative_Implementation(const UBase* SpeckleBase, UWorld*, TScriptInterface<ISpeckleConverter>&) override;
+
+virtual bool CanConvertToNative_Implementation(TSubclassOf<UBase> BaseType) override;
+
+}
+```
+
+Lo más probable es que, en lugar de incluir el código de conversión en la función `ConvertToNative`, sea mejor ubicarlo en una función aparte.
+
+¡Pero esta clase se puede implementar como se desee!
+
+El objeto de parámetro `AvailableConverters` es una referencia al convertidor agregado principal, y podemos usarlo si necesitamos convertir otros objetos Speckle y queremos reutilizar la lógica de conversión de otro convertidor.
+
+Por ejemplo, el `StaticMeshConverter` utilizará `AvailableConverters` para convertir un `RenderMaterial`.
+
+```cpp
+UObject* UMyConverter::ConvertToNative_Implementation(const UBase* SpeckleBase, UWorld* World, TScriptInterface<ISpeckleConverter>& AvailableConverters)
+{
+	const UMyObjectModel* m = Cast<UMyObjectModel>(SpeckleBase);
+	
+	if(m == nullptr) return nullptr;
+	
+	return MyObjectToNative(m);
+}
+
+AActor* UMyConverter::MyObjectToNative(const UMyObjectModel* MyObject, UWorld* World)
+{
+/ // ¡Lógica de conversión aquí!
+
+/ // Convertir MyObject en un Actor que devolveremos
+}
+
+Se puede implementar un método opcional `CleanUp`, que se utiliza para borrar cualquier objeto almacenado en caché o cualquier limpieza adicional que deba realizarse entre las operaciones de recepción.
+
+#### Creación de convertidores (Blueprint)
+
+De la misma manera que con C++, los convertidores también se pueden implementar usando Blueprint.
+
+Primero, crea un nuevo Blueprint que herede de `UObject`.
+
+<Frame>
+  <img src="/images/legacy/unreal/new_blueprint.png" width="50%" alt="Captura de pantalla del menú de creación de planos, creando un nuevo plano de tipo UObject." />
+</Frame>
+
+En *Configuración de clase*, agregue `ISpeckleConverter` a la lista de *Interfaces implementadas*.
+
+<Frame>
+  <img src="/images/legacy/unreal/bp_speckle_converter_interface.png" width="50%" alt="Captura de pantalla de los detalles del plano, que muestra cómo se agrega ISpeckleConverter como una interfaz implementada." />
+</Frame>
+
+Finalmente, implementa tu lógica de conversión en las funciones requeridas.
+
+<Frame>
+  <img src="/images/legacy/unreal/bp_functions.png" width="50%" alt="Captura de pantalla del editor de planos, que muestra las funciones de la interfaz." />
+</Frame>

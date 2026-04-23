@@ -1,0 +1,90 @@
+---
+title: "Trabajar con registros"
+noindex: true
+---
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx'
+
+<LegacyWarning connector="PowerBI" />
+
+En Speckle, los datos se organizan en objetos llamados Objetos Speckle. Estos objetos representan elementos de diseño, como geometría, parámetros, materiales, etc. Al recibir datos de Speckle, estos se reciben en el tipo de datos "Registro". La columna "Datos" del conjunto de datos recuperado contendrá los objetos de registro que representan los objetos Speckle.
+
+Cada objeto de registro contiene información sobre un objeto Speckle específico, incluyendo sus propiedades, geometría y otros datos relevantes. El formato de registro permite flexibilidad y extensibilidad, ya que puede albergar diversos tipos de objetos y sus datos asociados.
+
+Esta página muestra algunas técnicas básicas para acceder a los datos de los objetos de registro. Sin embargo, recuerde que los métodos de acceso no se limitan a lo que se muestra aquí. [Consulte la documentación de Power BI para obtener más información.](https://learn.microsoft.com/en-us/powerquery-m/record-field)
+
+## Extracción de valores de los registros
+
+Si desea extraer el valor de un campo específico de los objetos recibidos, puede usar el operador de búsqueda "[ ]". Así es como se hace:
+
+<Frame>
+<img src="/images/legacy/powerbi/17-record-field.mp4" alt="Demostración de extracción de campo récord" />
+</Frame>
+
+1. Ve a la pestaña "Agregar columna" y haz clic en "Columna personalizada". Aparecerá un cuadro de diálogo donde podrás ingresar un nombre y una fórmula para tu nueva columna.
+
+2. Ingresa un nombre para tu nueva columna; la llamaremos "categoría".
+
+3. En el cuadro de fórmula, puedes acceder a los campos que desees mediante la siguiente expresión.
+
+   ```
+   [data][category]
+   ```
+
+Puedes reemplazar "categoría" por el campo al que deseas acceder. Si no se encuentra el campo, se devolverá un error.
+
+4. Haga clic en **Aceptar**. Se agregará una nueva columna a su tabla, que contendrá los valores del campo "categoría" de los registros en la columna "datos".
+
+### Registros anidados
+
+<Frame>
+<img src="/images/legacy/powerbi/18-record-nested-field.mp4" alt="Demostración de extracción de campos de registros anidados" />
+</Frame>
+
+La mayoría de las veces, sus datos tendrán registros anidados. Acceder a los campos de los registros anidados no es mucho más difícil. Digamos que tiene un registro de parámetros que almacena todos los parámetros y desea obtener el valor de un parámetro.
+
+```
+data
+├── id
+├── category
+└── parameters
+├── id
+├── parameter_name_1
+│ ├── id
+│ ├── name
+│ └── value
+└── parameter_name 2
+├── id
+├── name
+└── value
+```
+
+La estructura de su fórmula será la siguiente:
+
+```
+[data][parameters][parameter_name_1][value]
+```
+
+Esta estructura se utiliza con frecuencia, especialmente si se trabaja con datos procedentes de aplicaciones BIM como Revit, Archicad, etc.
+
+## Columna de datos en expansión
+
+Esto es lo que debes hacer si quieres expandir los campos de los registros en tu columna "datos" en columnas separadas:
+
+<Frame>
+<img src="/images/legacy/powerbi/19-expand-data-column.mp4" alt="Demostración de expansión de columna de datos" />
+</Frame>
+
+1. Haz clic en el icono de **Expandir** en el encabezado de la columna "Datos". Tiene la forma de dos flechas que apuntan en direcciones opuestas.
+
+2. Aparecerá un cuadro de diálogo con los **nombres de los campos** de los registros de la columna. Puedes seleccionar los campos que deseas expandir o seleccionarlos todos.
+
+3. Haz clic en **Aceptar**. La columna "Datos" se reemplazará por nuevas columnas, cada una con los valores de un campo de los registros.
+
+<Warning>
+Expandir una columna de registro puede tener algunas desventajas:
+
+- Puede **aumentar** el tamaño de su modelo de datos si expande una columna que contiene muchas columnas o filas, lo cual suele ocurrir con los datos de Speckle. Los registros recibidos tendrán todas las propiedades del objeto de origen (muchos nombres de campo), lo que puede afectar el consumo de memoria y el rendimiento de su informe si los expande todos.
+
+- Puede **omitir** algunos nombres de columna si tiene diferentes tipos de objetos en sus datos. Esto se debe a que Power BI codifique los nombres de las columnas que seleccione para expandir, y si hay un nombre de columna nuevo o diferente en el origen, no se incluirá en los resultados expandidos.
+</Advertencia> 

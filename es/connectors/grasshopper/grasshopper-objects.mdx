@@ -1,0 +1,247 @@
+---
+title: "objetos"
+description: "Trabajar con objetos Speckle en Grasshopper."
+---
+En Speckle, los objetos son elementos seleccionables dentro de tu modelo Speckle.
+
+Los objetos Speckle pueden ser geometría, bloques, anotaciones u objetos de datos Speckle, y pueden contener atributos adicionales como color, material y propiedades específicas de la aplicación.
+
+## Geometría
+
+<Note>
+En Rhino y Grasshopper, una **Geometría de moteado** corresponde a un único objeto **Rhino GeometryBase**, como instancias de breps, curvas, sombreados, texto y bloques.
+</Note>
+
+La geometría moteada se utiliza principalmente en flujos de trabajo geométricos que no involucran objetos complejos como tuberías, paredes o vigas. Normalmente, se emplea en flujos de trabajo hacia y desde Rhino, Grasshopper, Blender, AutoCAD y SketchUp.
+
+### Creación, inspección o modificación de la geometría de moteado
+
+Dado que la geometría de Speckle es prácticamente idéntica a la geometría nativa de Grasshopper y Rhino, puede utilizar su geometría de Grasshopper directamente convirtiéndola en cualquier componente de Speckle que tenga entrada de geometría de Speckle.
+
+Utilice el nodo de paso directo **Geometría de moteado** para un control más avanzado de la geometría, incluyendo la adición, modificación o inspección de atributos.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_geometry.jpg" />
+</Frame>
+
+**Entradas**
+1. Añada una entrada **Geometría de moteado** si desea inspeccionar o modificar una geometría de moteado existente, o si está [convirtiendo un objeto Modelo](/connectors/grasshopper/grasshopper-objects#baking-and-casting-speckle-geometry) para asignar todos los atributos durante la creación.
+
+2. Añada una entrada **Geometría** para crear una nueva geometría de moteado o modificar la geometría del punto (1).
+
+3. Añada una entrada **Nombre** opcional para establecer o cambiar el nombre de la geometría.
+
+4. Añada una entrada **Propiedades** opcional para establecer o cambiar las propiedades de la geometría.
+
+5. Añada una entrada **Color** opcional para establecer o cambiar el color de la geometría. Los colores se mostrarán en modo sombreado al visualizar el modelo en el navegador web.
+
+6. Añada una entrada **Material** opcional para establecer o cambiar el material de la geometría. Los materiales se mostrarán en el modo renderizado predeterminado al visualizar el modelo en el navegador web.
+
+**Resultados**
+1. El resultado **Geometría de moteado** contiene el objeto Geometría de moteado resultante.
+
+2. El resultado **Geometría** contiene la geometría de (1).
+
+3. El resultado **Nombre** contiene el nombre de (1).
+
+4. El resultado **Propiedades** contiene las propiedades de (1).
+
+5. El resultado **Color** contiene el color de (1).
+
+6. El resultado **Material** contiene el material de (1).
+
+7. El resultado **Ruta** contiene la ruta completa de la Colección a la que pertenece (1).
+
+### Horneado y fundición Geometría de moteado
+
+El parámetro **Speckle Geometry** permite generar y convertir tipos nativos de Grasshopper. Estas conversiones se pueden realizar tanto desde el nodo del parámetro como desde el parámetro de salida de otro componente.
+
+**Geometría de la repostería**
+
+En cualquier parámetro de Geometría de Speckle, haga clic con el botón derecho y seleccione Hornear para integrar la geometría en el documento de Rhino actual, incluyendo:
+- Ruta completa (las colecciones principales se integrarán como capas principales)
+- Nombre (si lo hay)
+- Color (si lo hay)
+- Material (si lo hay)
+- Propiedades como cadenas de texto definidas por el usuario (si las hay)
+
+**Geometría de fundición**
+
+La geometría de moteado se puede conectar a cualquiera de los siguientes parámetros, lo que permite usarlos indistintamente:
+- **Geometría de Grasshopper** (incluyendo sombreados, bloques y texto)
+- (Rhino 8+) **Objetos de modelo de Rhino**. La conversión conserva el nombre, el color, el material, las cadenas de usuario y el GUID.
+
+## Bloques
+
+<Note>
+Una instancia de Speckle Block corresponde a un bloque de Rhino, y una definición de Speckle Block corresponde a una definición de bloque de Rhino.
+</Note>
+
+En Rhino y Grasshopper, los bloques son instancias de una definición de bloque, que se compone de geometría. Las instancias de bloques Speckle son un tipo de geometría Speckle y se utilizan como parte de flujos de trabajo basados en geometría, normalmente desde y hacia Rhino, Grasshopper, AutoCAD y SketchUp.
+
+### Creación, inspección o modificación de bloques de moteado
+
+Dado que los bloques Speckle son prácticamente idénticos a los bloques nativos de Grasshopper y Rhino, puedes usar tus bloques de Grasshopper directamente convirtiéndolos en cualquier componente Speckle que tenga una entrada de instancia de bloque Speckle o definición de bloque Speckle.
+
+Utilice el nodo de paso directo **Definición de bloque Speckle** para un control más avanzado de las definiciones de sus bloques, incluyendo la adición, modificación o inspección de atributos.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_blockdefinition.jpg" />
+</Frame>
+
+**Entradas**
+1. Añada una entrada **Definición de Bloque de Moteado** solo si desea inspeccionar o modificar una Definición de Bloque de Moteado existente, o si está [creando una definición de Modelo](/connectors/grasshopper/grasshopper-objects#baking-and-casting-speckle-blocks) para asignar todos los atributos durante la creación.
+
+2. Añada una entrada **Nombre** para establecer o cambiar el nombre de la definición del bloque.
+
+3. Añada una lista de entradas **Geometrías** de Geometría de Moteado para establecer o cambiar las geometrías de la definición.
+
+**Resultados**
+1. La salida **Definición de Bloque de Moteado** contiene el objeto de Definición de Bloque de Moteado resultante.
+
+2. La salida **Nombre** contiene el nombre de (1).
+
+3. La salida **Geometrías** contiene las geometrías de definición de (1).
+
+Utilice el nodo de paso directo **Speckle Block Instance** para un control más avanzado de sus instancias de bloques, incluyendo la adición, modificación o inspección de atributos.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_blockinstance.jpg" />
+</Frame>
+
+**Entradas**
+1. Añada una entrada **Instancia de Bloque de Moteado** solo si desea inspeccionar o modificar una instancia de Bloque de Moteado existente, o si está [creando una instancia de Modelo](/connectors/grasshopper/grasshopper-objects#baking-and-casting-speckle-blocks) para asignar todos los atributos durante la creación.
+
+2. Añada una entrada **Definición** para establecer o cambiar la definición del bloque de la instancia.
+
+3. Añada una entrada **Transformación** opcional para establecer o cambiar la transformación de la instancia. Por defecto, se utiliza la transformación identidad.
+
+4. Añada una entrada **Nombre** opcional para establecer o cambiar el nombre de la instancia.
+
+5. Añada una entrada **Propiedades** opcional para establecer o cambiar las propiedades de la instancia.
+
+6. Añada una entrada **Color** opcional para establecer o cambiar el color de la instancia.
+
+7. Añada una entrada **Material** opcional para establecer o cambiar el material de la instancia.
+
+**Resultados**
+1. La salida **Instancia de Bloque Speckle** contiene el objeto Instancia de Bloque Speckle resultante.
+
+2. La salida **Definición** contiene la definición del bloque utilizada por (1).
+
+3. La salida **Transformación** contiene la transformación de (1).
+
+4. La salida **Nombre** contiene el nombre de (1).
+
+5. La salida **Propiedades** contiene las propiedades de (1).
+
+6. La salida **Color** contiene el color de (1).
+
+7. La salida **Material** contiene el material de (1).
+
+### Horneado y fundición de bloques moteados
+
+Los parámetros **Speckle Block Instance** y **Speckle Block Definition** permiten generar y convertir bloques a otros tipos nativos de Grasshopper. Estas conversiones se pueden realizar tanto desde los nodos de parámetros como desde los parámetros de salida de otro componente.
+
+**Bloques para hornear**
+
+En cualquier parámetro de **Definición de Bloque de Moteado**, haga clic con el botón derecho y seleccione «Hornear» para integrar la definición en el documento de Rhino actual. Cada geometría de definición contendrá:
+- Nombre (si lo hay)
+- Color (si lo hay)
+- Material (si lo hay)
+- Propiedades como cadenas de texto definidas por el usuario (si las hay)
+
+En cualquier parámetro de **Instancia de Bloque de Moteado**, haga clic con el botón derecho y seleccione «Hornear» para integrar la instancia en el documento de Rhino actual, incluyendo:
+- Ruta completa (las colecciones principales se integrarán como capas principales)
+- Definición (si no existe en el documento)
+- Nombre (si lo tiene)
+- Color (si lo tiene)
+- Material (si lo tiene)
+- Propiedades como cadenas de texto definidas por el usuario (si las tiene)
+
+**Bloques de fundición**
+
+Las definiciones de bloques de moteado se pueden usar como entrada o salida de cualquiera de los siguientes parámetros, lo que permite utilizarlos indistintamente: - (Rhino 8+) **Definiciones de bloques de modelos de Rhino**. La conversión conserva el nombre de la definición del bloque, así como el color, el material, las cadenas de texto del usuario y el GUID de la geometría de la definición.
+
+Las instancias de bloques de moteado se pueden conectar a cualquiera de los siguientes parámetros, lo que permite utilizarlas indistintamente: - (Rhino 8+) **Instancias de bloques de modelos de Rhino**. La conversión conserva el nombre, el color, el material, las cadenas de usuario y el GUID.
+
+## Objetos de datos
+
+<Note>
+En Rhino y Grasshopper, un **Objeto de Datos Speckle** corresponde a un **grupo de geometrías** con propiedades adicionales significativas. Los objetos de datos se utilizan a menudo para representar elementos BIM como muros, vigas y columnas.
+</Note>
+
+Los objetos de datos Speckle se utilizan principalmente en flujos de trabajo computacionales y basados en datos que suelen involucrar objetos más complejos de aplicaciones BIM, estructurales y de ingeniería civil. Encontrará objetos de datos Speckle en modelos de Revit, Navisworks, IFC, Archicad, Civil 3D, Tekla Structures y ETABS.
+
+### Creación, inspección o modificación de objetos de datos Speckle
+
+Dado que los objetos de datos Speckle pueden contener múltiples geometrías, utilice el nodo de paso de geometría Speckle para crear nuevos objetos de datos o agregar, modificar o inspeccionar atributos.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_dataobject.jpg" />
+</Frame>
+
+**Entradas**
+1. Añada una entrada **Objeto de datos Speckle** solo si desea inspeccionar o modificar un objeto de datos Speckle existente, o si está [convirtiendo un objeto Modelo](/connectors/grasshopper/grasshopper-objects#baking-and-casting-speckle-data-objects) para asignar todos los atributos durante su creación.
+
+2. Añada una lista de entradas **Geometrías** de Geometría Speckle para establecer o cambiar las geometrías del objeto de datos.
+
+3. Añada una entrada **Nombre** opcional para establecer o cambiar el nombre de la geometría.
+
+4. Añada una entrada **Propiedades** opcional para establecer o cambiar las propiedades de la geometría.
+
+**Resultados**
+1. El objeto de datos Speckle contiene el objeto de datos Speckle resultante.
+
+2. Las geometrías utilizadas por (1) contienen la información geométrica.
+
+3. El nombre contiene el nombre de (1).
+
+4. Las propiedades contienen las propiedades de (1).
+
+5. La ruta contiene la ruta completa de la colección a la que pertenece (1).
+
+### Horneado y conversión de objetos de datos Speckle
+
+El parámetro **Speckle Data Object** permite generar y convertir datos a otros tipos nativos de Grasshopper. Estas conversiones se pueden realizar tanto desde el nodo del parámetro como desde el parámetro de salida de otro componente.
+
+**Creación de objetos de datos**
+
+En cualquier parámetro de objeto de datos de Speckle, haga clic con el botón derecho y seleccione «Hornear» para integrar el objeto de datos en el documento de Rhino actual, con:
+- ruta completa (las colecciones principales se integrarán como capas principales)
+- geometrías como un grupo
+- nombre (si lo hay)
+- propiedades como cadenas de texto definidas por el usuario (si las hay)
+
+**Conversión de objetos de datos**
+
+Los objetos de datos Speckle se pueden conectar a cualquiera de los siguientes parámetros, lo que permite usarlos indistintamente:
+- **Geometría de Grasshopper** (incluyendo sombreados, bloques y texto). La conversión a geometría solo funciona si el objeto de datos tiene una única pieza geométrica.
+
+- (Rhino 8+) **Objetos de modelo de Rhino**. La conversión conserva el nombre, el color, el material, las cadenas de usuario y el GUID. La conversión a objetos de modelo solo funciona si el objeto de datos tiene una única pieza geométrica.
+
+## Filtrado de objetos por sus atributos
+
+Puedes filtrar una lista de Geometría de moteado, Instancias de bloque u Objetos de datos por sus atributos utilizando el nodo Filtrar objetos.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_filterobjects.jpg" />
+</Frame>
+
+**Entradas**
+1. Añada una entrada de **Objetos** con los objetos Speckle que desea filtrar.
+
+2. Añada una entrada opcional de **Nombre** para filtrar los objetos con un nombre exacto.
+
+3. Añada una entrada opcional de **Clave de propiedad** para filtrar los objetos que contengan una propiedad con una clave exacta.
+
+4. Añada una entrada opcional de **Nombre del material** para filtrar los objetos que utilicen un material con un nombre exacto.
+
+5. Añada una entrada opcional de **ID de aplicación** para filtrar los objetos con el ID de aplicación exacto.
+
+6. Añada una entrada opcional de **ID de Speckle** para filtrar los objetos con el ID de Speckle exacto.
+
+**Resultados**
+1. La salida **Objetos** contiene una lista de todos los objetos de entrada que cumplen las condiciones del filtro.
+
+2. La salida **Objetos descartados** contiene una lista de todos los objetos de entrada que no cumplen las condiciones del filtro.

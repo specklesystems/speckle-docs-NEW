@@ -1,0 +1,253 @@
+---
+title: "Extracción de datos de habitaciones desde Revit usando SpecklePy"
+sidebarTitle: "Extracción de datos de habitaciones en Revit"
+description: "Extrae datos de habitaciones de modelos de Revit usando SpecklePy."
+---
+En este flujo de trabajo, demostraremos cómo extraer datos de habitaciones de modelos de Revit utilizando el SDK de SpecklePy y convertirlos a un DataFrame de Pandas.
+
+## Requisitos previos
+Antes de comenzar, asegúrese de tener lo siguiente:
+- Un modelo de Revit con datos de habitaciones.
+
+- Envíe su modelo a Speckle usando el conector Speckle para Revit. (Aprenda cómo [aquí](https://docs.speckle.systems/connectors/revit/revit))
+- El SDK de SpecklePy instalado en su entorno Python.
+
+- La biblioteca Pandas para la manipulación de datos.
+
+## Paso 1: Instalar SpecklePy SDK y Pandas
+Puedes instalar las bibliotecas necesarias usando pip:
+
+```bash 
+pip install specklepy pandas
+```
+
+## Paso 2: Conéctate a Speckle
+Primero, importa las bibliotecas necesarias y autentícate con Speckle.
+
+```python
+
+import os
+
+from dotenv import load_dotenv
+from specklepy.api.client import SpeckleClient
+from specklepy.api import operations
+from specklepy.objects import Base
+from specklepy.transports.server import ServerTransport
+import pandas as pd
+
+cargar_dotenv()
+
+SPECKLE_TOKEN = os.getenv("SPECKLE_TOKEN")# Puedes generar un nuevo token desde la CONFIGURACIÓN DE DESARROLLADOR
+SPECKLE_SERVER_URL = os.getenv("SPECKLE_SERVER_URL", "https://app.specke.systems")
+
+Si no existe SPECKLE_TOKEN:
+
+generar EnvironmentError("SPECKLE_TOKEN no está configurado. Agréguelo a su archivo .env.")
+
+cliente = SpeckleClient(host=SPECKLE_SERVER_URL) # Aquí añade la URL de tu servidor personalizado
+cliente.autenticar_con_token(SPECKLE_TOKEN)
+## Paso 3: Recuperar el gráfico completo del objeto
+A continuación, recuperaremos el gráfico completo del objeto del modelo de Revit que contiene los datos de la habitación. Para ello, necesitamos el ID del proyecto y el ID de la versión del modelo que enviamos a Speckle. Puedes encontrar estos ID en la URL de tu proyecto y versión en la interfaz web de Speckle. Obtén más información sobre los conceptos básicos [aquí](https://docs.speckle.systems/core/concepts/).
+
+```python
+project_id = "your_project_id" # here add your project ID, you can find it in the URL of your project, after "projects/", for example in "https://app.speckle.systems/projects/e23d2d5041/models/ab02b98507" the project ID is "e23d2d5041"
+version_id = "your_version_id" # here add your version ID, you can find it under Share > Copy ID in the web 3D viewer
+
+# Obtener los metadatos de la versión para encontrar el ID del objeto referenciado
+versión = cliente.versión.get(id_versión, id_proyecto)
+id_objeto_referenciado = versión.objeto_referenciado
+
+# A continuación, crea un transporte de servidor: este es el medio a través del cual enviarás y recibirás mensajes.
+transporte = ServerTransport(stream_id=project_id, client=client)
+
+# Descarga el grafo de objetos completo. Ten en cuenta que esta es una operación costosa, ya que recupera todos los objetos del modelo, por lo que puede tardar un tiempo en modelos grandes.
+
+received_base = operations.receive(referenced_object_id, transport)
+```
+
+## Paso 4: Aplanar el grafo de objetos a una lista de objetos
+
+```python
+# Flatten root object and get all objects in a list
+def flatten_base(base: Base) -> Iterable[Base]:
+    """Flatten a base object into an iterable of bases.
+    
+    This function recursively traverses the `elements` or `@elements` attribute of the 
+    base object, yielding each nested base object.
+
+Argumentos:
+
+base (Base): El objeto base a aplanar.
+
+Devuelve:
+
+Base: Cada objeto base anidado en la jerarquía.
+
+""
+# Intenta obtener el atributo `elements`; si es necesario, usa `@elements`.
+
+`elements = getattr(base, "elements", getattr(base, "@elements", None))`
+
+Si elementos no es None:
+
+Para cada elemento en elementos:
+
+devolver desde flatten_base(elemento)
+
+devolver base
+
+todos_los_objetos = lista(aplanar_base(base_recibida))
+```
+
+## Paso 5: Crear funciones auxiliares para filtrar objetos por categoría y extraer valores anidados
+En este paso, definiremos funciones auxiliares para filtrar objetos por categoría y extraer valores anidados de sus propiedades. Estas funciones se utilizarán en el siguiente paso para extraer los datos deseados de los objetos de la habitación.
+
+```python
+# Helper function to filter objects by category
+def filter_objects_by_category(all_objects, filter_categories):
+    """
+    Filters objects by category and returns a list of matching objects and their IDs.
+
+Parámetros:
+
+all_objects (lista): Lista de objetos a filtrar.
+
+filter_categories (lista): Lista de categorías por las que filtrar.
+
+Devuelve:
+
+lista: objetos_filtrados
+
+""
+objetos_filtrados = []
+
+elementos = []
+
+for i in all_objects:
+
+if hasattr(i, "category"): # Comprobar si el objeto tiene el atributo "category"
+
+if i.category in filter_categories: # Comprobar si la categoría coincide con la lista de filtros
+
+filtered_objects.append(i) # Añadir el objeto completo a la lista de elementos
+
+else:
+
+continue # Saltar si "category" no existe
+
+devolver objetos filtrados
+
+# Función auxiliar para obtener un valor anidado de un diccionario usando una ruta de claves
+def get_nested_value(data, path, extract_value=True):
+
+""
+Navega por un diccionario anidado usando una lista de claves.
+Si el último nodo es un diccionario de parámetros de Revit (tiene una clave 'value'), devuelve su valor.
+
+Parámetros:
+
+data (dict): El diccionario a recorrer (normalmente obj.properties).
+
+path (list[str]): Lista ordenada de claves, por ejemplo:
+
+['Parámetros', 'Parámetros de instancia', 'Datos de identidad', 'Número']
+
+extraer_valor (bool): Si es verdadero y el nodo hoja contiene una clave 'valor', devuelve ese valor.
+
+Devuelve:
+
+El valor resuelto, o None si falta alguna clave en la ruta.
+
+""
+current = data
+
+for key in path:
+
+if not isinstance(current, dict):
+
+return None
+
+current = current.get(key)
+
+if current is None:
+
+return None # Si falta alguna clave, devuelve NaN en el DataFrame
+
+if extract_value and isinstance(current, dict) and 'value' in current:
+
+return current['value']
+
+return current
+
+# Función auxiliar para extraer campos específicos de una lista de objetos mediante rutas anidadas flexibles.
+def extract_object_data(objects, field_paths, include_defaults=True):
+
+""
+Extrae datos de una lista de DataObjects mediante rutas de campo anidadas flexibles.
+
+Devuelve:
+
+list[dict]: Un diccionario por objeto con los valores resueltos.
+
+""
+
+resultados = []
+
+para cada objeto en objetos:
+
+propiedades = getattr(obj, 'propiedades', {}) o {}
+
+fila = {}
+
+Si include_defaults:
+
+row['id'] = getattr(obj, 'id', None) # Incluye el ID del objeto por defecto, u otros parámetros como 'type' si es necesario.
+
+Para cada nombre de columna y ruta en field_paths.items():
+row[nombre de columna] = get_nested_value(propiedades, ruta)
+
+resultados.append(fila)
+
+return resultados
+## Paso 6: Filtrar objetos de la habitación y extraer los datos deseados en un DataFrame
+En este paso, definiremos las rutas de los campos para los parámetros deseados y extraeremos los datos de los objetos de la habitación en un DataFrame de Pandas. Puedes usar el Visor 3D de Speckle para inspeccionar la estructura de las propiedades y ajustar las rutas según sea necesario.
+
+```python
+# Define the field paths for the desired parameters, use the Speckle 3D Viewer to inspect the structure of the properties and adjust paths as needed. 
+# Select one of the rooms in the viewer, inspect its properties and find the path to the parameters you want to extract. 
+# The path is a list of keys to navigate through the nested dictionaries in obj.properties. For example, if the parameter is located at obj.properties['Parameters']['Instance Parameters']['Identity Data']['Number'], 
+# then the path would be ['Parameters', 'Instance Parameters', 'Identity Data', 'Number'].
+field_paths = {
+    'Number':       ['Parameters', 'Instance Parameters', 'Identity Data', 'Number'],
+    'Name':         ['Parameters', 'Instance Parameters', 'Identity Data', 'Name'],
+    'Occupant':     ['Parameters', 'Instance Parameters', 'Identity Data', 'Occupant'],
+    'Floor Finish': ['Parameters', 'Instance Parameters', 'Identity Data', 'Floor Finish'],
+    'Level':        ['Parameters', 'Instance Parameters', 'Constraints', 'Level'],
+    'Area':         ['Parameters', 'Instance Parameters', 'Dimensions', 'Area'],
+    'Volume':       ['Parameters', 'Instance Parameters', 'Dimensions', 'Volume'],
+    'Perimeter':    ['Parameters', 'Instance Parameters', 'Dimensions', 'Perimeter'],
+    'Unbounded Height':    ['Parameters', 'Instance Parameters', 'Dimensions', 'Unbounded Height'],
+}
+
+datos_habitaciones = filtrar_objetos_por_categoría(todos_los_objetos, ['Habitaciones']) # Asegurarse de extraer solo las habitaciones
+datos = extraer_datos_objeto(datos_habitaciones, rutas_campo) # Extraer los datos usando las rutas de campo definidas
+df_habitaciones = pd.DataFrame(datos)
+df_habitaciones.head()
+```
+
+## Los resultados deberían verse así:
+| id | Número | Nombre | Ocupante | Acabado del suelo | Nivel | Área | Volumen | Perímetro | Altura ilimitada |
+
+|-------------------------------------|--------|------------------|----------------|---------------------|---------------|-----------|---------------|------------|-----------------|
+| ab37495bf07f97 6aae3c55e3cc2617f9 | S1 | Escalera | Ninguno | Hormigón | L1 - Bloque 35 | 184.598958 | 15891.467781 | 60.833333 | 87.666667 |
+
+| 00b6189ecb67a54f09e47cda717295a3 | 101 | Cafetería | Restaurante | Hormigón pulido/LVT | L1 - Bloque 35 | 642.967568 | 13276.052784 | 196.655657 | 24.250000 |
+
+| 42ba7c725016f8ef7458065b7824fbc2 | 102 | Cafetería | Restaurante | Hormigón pulido/LVT | L1 - Bloque 35 | 433.370768 | 4730.964220 | 137.312500 | 10.916667 |
+
+| 77aacf2216a7c55cdc72ef5f118f3113 | 103 | Comedor exterior cubierto | Restaurante | Hormigón pulido/LVT | L1 - Bloque 35 | 674.576823 | 14316.140687 | 114.583333 | 22.750000 |
+
+| f71f1d3a62b5457de25061e025a8f2c9 | 104 | Parque de bolsillo | Público al aire libre | Varía, ver plano | L1 - Bloque 35 | 1775.819324 | 39490.443882 | 225.443711 | 22.750000 |
+
+| c825211befa4530a133cf44fd21084cc | S3 | Escalera | Ninguna | Hormigón | L2 | 180.062500 | 15500.451922 | 59.750000 | 87.708333 |
+

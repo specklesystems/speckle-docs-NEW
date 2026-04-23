@@ -1,0 +1,198 @@
+---
+title: Data schema
+description: Introduction to Speckle's Data Schema and how models are organized
+---
+
+<Note>
+  Our Data Schemas and object model are still evolving, and there may be
+  discrepancies or incompleteness between our documentation and the latest in
+  development. If you have any questions, please contact us on the [Speckle
+  Community Forum: Developers](https://speckle.community/c/help/developers/18).
+</Note>
+
+This page introduces the fundamental structure of Speckle's Data Schema—the conceptual framework that organizes how model data is structured, stored, and related. Understanding this structure is essential before working with any Speckle SDK, as it defines the relationships between objects, their organization, and how they reference each other.
+
+<Note title="Core Glossary">
+Before diving into the structure, here are the essential terms you'll encounter:
+
+- **Collection** - An organizational container that creates hierarchy by grouping objects and other collections. Collections don't contain data themselves; they organize it.
+- **DataObject** - A semantic object representing a BIM element or domain entity (wall, column, door) with properties and geometry stored in `displayValue`.
+- **Proxy** - A relationship container stored at the root level that links objects to shared resources (materials, levels, groups) or encodes instance definitions.
+- **Definition** - A proxy type that stores geometry for reuse by multiple Instance objects.
+- **Instance** - An object that references a Definition proxy and applies a transform, representing repeated geometry (blocks, components).
+- **DisplayValue** - An array property on DataObjects containing geometry primitives (meshes, lines, points) that represent the visual appearance.
+- **Root Collection** - The top-level container for a data package, holding the collections hierarchy, proxies, info, and closures table.
+- **Info** - Metadata fields at the root level that apply to the entire data package (views, transforms, analysis results).
+</Note>
+
+## What is the Data Schema?
+
+The **Data Schema** is the structuring of properties and geometries at the most granular level. It defines how data from any source application (Revit, Rhino, AutoCAD, etc.) is organized, starting from the smallest building blocks and building up into larger structures.
+
+### Design Principles
+
+Speckle's schema follows these core principles:
+
+- **Unified structure** - Same schema across all connectors, enabling code that works with any Speckle data
+- **Tree hierarchy** - Directed tree structure prevents cycles and enables predictable traversal
+- **Separation of concerns** - Collections organize spatially/categorically; Proxies encode cross-cutting relationships without duplication
+- **Content-based identity** - Objects identified by content hash for deduplication; `applicationId` provides stable version tracking
+- **Interoperable geometry** - Geometry stored as minimum viable primitives (Meshes, Lines, Points) for maximum receiver compatibility
+
+## Projects, Models, and Versions as Addresses
+
+Projects, Models, and Versions form an addressing system that organizes and locates data in Speckle.
+
+```mermaid
+graph TD
+    A[Project] --> B[Model<br/>semantic]
+    B --> C[Version]
+    C --> D[Root Collection]
+```
+
+**Projects** are top-level containers that organize related work and control access.
+
+**Models** are user-facing semantic labels that provide organizational meaning (e.g., "structural", "MEP", "design-option-a"). They group related versions together for easier navigation and understanding.
+
+**Versions** are immutable snapshots of data at a specific point in time. Each version references a Root Collection by its object ID, creating a discoverable entry point to the data.
+
+Think of this as an **addressing system**: Project → Model → Version provides a unique "address" to locate a specific package of information, where Models add semantic meaning to help users organize and find their work.
+
+## The Data Schema Structure
+
+The Data Schema organizes data from the most granular level upward:
+
+1. **Properties and Geometries** - The atomic building blocks (key-value pairs and geometric primitives), all structured as Base Objects
+2. **Objects** - Combine properties and geometries into meaningful units (Geometry, DataObject, Instance)
+3. **Collections** - Organize objects into hierarchies (layers, levels, categories)
+4. **Root Collection** - The top-level container that holds Collections, Proxies, Info, and the closures table
+5. **Proxies** - Encode relationships between objects and shared resources (materials, levels, groups)
+6. **Info** - Metadata that applies to the entire data package
+
+The following diagram illustrates how these components form a tree structure:
+
+```mermaid
+graph TD
+    A[Root Collection] --> B[Collections<br/>hierarchical organization]
+    A --> C[Proxies<br/>cross-cutting relationships]
+    A --> D[Info<br/>package-wide metadata]
+    A --> E[Closures table<br/>flat list of nodes]
+    
+    B --> F["Collection: 'Level 1'"]
+    F --> G["Collection: 'Walls'"]
+    G --> H[DataObject<br/>wall with properties + displayValue]
+    F --> I["Collection: 'Doors'"]
+    I --> J[DataObject<br/>door with properties + displayValue]
+    B --> K["Collection: 'Level 2'"]
+    
+    C --> L[RenderMaterial<br/>references objects by applicationId]
+    C --> M[Level<br/>references objects by applicationId]
+    C --> N[Definition<br/>stores geometry for Instances]
+    
+    D --> O[Views, Transforms,<br/>Analysis Results]
+```
+
+See the [Concepts](/developers/data-schema/concepts) page for detailed explanations of each component.
+
+## The Relationship Model
+
+The Speckle data schema is structured as a **directed tree**. This is the core relationship model that defines how objects relate to each other:
+
+- **Tree structure**: Data flows from Root Collection → Collections → Objects in a hierarchical, one-way relationship
+- **No cycles**: Unlike a directed acyclic graph (DAG), the tree structure prevents circular references
+- **Flat object graph (best practice)**: As a general rule, objects don't nest within other objects—they're organized in collections and referenced via proxies. Some DataObjects (e.g., Revit curtain walls) may use an `elements` property when required by the source application.
+- **Proxies add cross-cutting relationships**: While the collection hierarchy is a tree, proxies create additional relationships (materials, levels, groups) that reference objects by `applicationId`
+
+**Key relationship rules:**
+
+1. Collections contain objects and other collections (via `elements` property)
+2. DataObjects contain geometry in `displayValue` (and may contain child DataObjects via `elements` in some cases)
+3. Proxies reference objects by `applicationId` (stored at root level)
+4. Instances reference Definition proxies by `applicationId`
+
+**Why a tree?** This structure makes traversal predictable and efficient—you can walk from root to leaf without encountering cycles or complex reference resolution. The generally flat object graph (DataObjects typically don't nest) keeps the model simple and prevents deep nesting issues. Proxies solve the "overlapping hierarchies" problem—a wall can belong to a level, a group, and use a material simultaneously without duplication. **Note**: Traversal code should check for `elements` properties on both Collections and DataObjects to handle connector-specific exceptions.
+
+## Conceptual Walkthrough
+
+Consider a simple building model containing two walls on Level 1. Here's how Speckle structures this conceptually:
+
+1. **Root Collection** serves as the entry point, containing everything.
+
+2. **Collections** organize the walls: a "Level 1" collection contains a "Walls" collection, which contains the two wall DataObjects.
+
+3. **DataObjects** represent each wall: each has a name, properties (material, dimensions), and a `displayValue` array containing mesh geometry.
+
+4. **Proxies** at the root level create additional relationships:
+
+   - A RenderMaterial proxy links both walls to a "Concrete" material resource
+   - A Level proxy links both walls to the "Level 1" level resource
+
+5. **Info** might contain a reference point transform for coordinate system alignment.
+
+The key insight: the walls exist once as DataObjects in the collections hierarchy, but participate in multiple organizational systems (spatial via collections, material via proxy) without duplication. This structure avoids cycles—you can traverse from root to leaf without encountering circular references—while preserving provenance through stable `applicationId` references.
+
+## The Complete Structure
+
+Putting it all together, a complete data package looks like:
+
+```mermaid
+graph TD
+    A[Data Package<br/>at a Version] --> B[Root Collection]
+    B --> C[Collections<br/>hierarchy]
+    B --> D[Proxies<br/>relationships]
+    B --> E[Info<br/>metadata]
+    B --> F[Closures table<br/>flat list of nodes]
+    
+    C --> G[Collections]
+    G --> H[Objects]
+    H --> I[Properties<br/>key-value pairs]
+    H --> J[Geometry<br/>in displayValue]
+    
+    D --> K[Reference objects<br/>by applicationId]
+    
+    E --> L[Data package-wide data]
+```
+
+## Learning Path
+
+This documentation is organized as a progressive learning experience:
+
+1. **[Concepts](/developers/data-schema/concepts)** - Core ideas: Collections, Objects, Proxies, Info
+2. **[Object Schema](/developers/data-schema/object-schema)** - How objects are structured and what fields they contain
+3. **[Geometry Schema](/developers/data-schema/geometry-schema)** - How geometry is stored and organized
+4. **[Proxy Schema](/developers/data-schema/proxy-schema)** - How proxies encode relationships
+5. **[Connector Index](/developers/data-schema/connector-index)** - Overview of connector-specific behaviors
+
+<Accordion title="Why is the structure the same across all connectors?">
+  Speckle uses a unified Data Schema so that data from any source can be
+  consumed by any receiver. This means you can write code that works with
+  Speckle models without needing to know which application created them. The
+  connector-specific differences are captured in the object properties and
+  hierarchy structure, not in the fundamental Data Schema organization.
+</Accordion>
+
+<Accordion title="What's the difference between a Speckle hierarchy and the source application's hierarchy?">
+  The **source application's hierarchy** (e.g., Revit's levels/categories,
+  Rhino's layers) is preserved in the Collections structure. However, Speckle
+  also imposes its own organizational structure through Proxies, which can
+  create additional relationships that don't exist in the source application.
+  This allows objects to be organized in multiple ways simultaneously without
+  duplication.
+</Accordion>
+
+<Accordion title="What about orphaned objects?">
+Objects are scoped to projects—when an object is sent to a Speckle server, it's stored within a project's scope. However, without being referenced by a version, the object is effectively unreachable through normal workflows. These "orphaned" objects exist in the database and can be retrieved if you have the object ID directly, but they cannot be browsed or discovered through the UI. To make objects discoverable, they must be referenced by a version.
+
+Behind the Scenes (API):
+
+```mermaid
+graph TD
+    A[Project] --> B[Version]
+    B --> C[Root Collection]
+```
+
+</Accordion>
+
+## Conceptual Capability
+
+After reading this overview, you understand how Speckle structures model data as a tree with a Root Collection containing Collections, Proxies, and Info. You recognize that Collections create hierarchical organization, Proxies encode cross-cutting relationships, and the tree structure prevents cycles while preserving provenance. You're ready to explore the detailed concepts that make up each component.

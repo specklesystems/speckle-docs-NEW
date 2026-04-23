@@ -1,0 +1,120 @@
+---
+title: "Licuadora"
+noindex: true
+---
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx';
+import LegacyVersions from '/snippets/es/legacy-versions.mdx';
+
+<LegacyWarning connector="Blender" />
+<LegacyVersions app="Blender" versions="3.0, 3.1, 3.2, 3.3, 3.4 & 3.5" />
+
+## Instalación
+
+Antes de usar este conector, deberá seguir nuestras instrucciones de configuración estándar para [**instalar Speckle Manager** y **agregar una cuenta de Speckle**](/legacy/user/manager).
+
+Una vez instalado Blender Connector a través del Administrador, lo encontrarás en la pestaña «Complementos» del menú Preferencias, dentro de la categoría «Escena». Actívalo marcando la casilla junto al nombre del complemento.
+
+<Image
+  src="./img-blender/enable-addon.png"
+  alt="activating the Blender Connector"
+/>
+
+Una vez activada, puede que sea necesario reiniciar Blender.
+
+> No dudes en ponerte en contacto con nosotros en los [foros](https://speckle.community/) si tienes alguna dificultad.
+
+### Instalación manual
+
+Se recomienda la instalación a través de Speckle Manager para la mayoría de los usuarios; sin embargo, para aquellos usuarios que deseen instalar el conector de Blender en **plataformas o versiones de Blender no compatibles**, el conector se puede instalar mediante un archivo zip manual.
+
+Sin embargo, aún deberá agregar sus cuentas, ya sea a través de [Speckle Manager](/legacy/user/manager) (recomendado) o [manualmente](/legacy/user/manager.html#adding-accounts-manually).
+
+1. Dirígete a [releases.speckle.systems](https://releases.speckle.systems/) y, en el menú desplegable, **descarga el instalador `manual` más reciente**.
+
+<Frame>
+  <img
+    src="/images/legacy/blender/manual-installer.png"
+    width="33.33%"
+    alt="Captura de pantalla de la pestaña de versiones de speckle-blender, donde se muestra el instalador manual resaltado en el menú desplegable."
+  />
+</Frame>
+
+1. Abre Blender y **ve al menú Complementos**, en «Editar -> Preferencias».
+2. Pulsa el botón «Instalar» en la esquina superior derecha y selecciona el archivo zip descargado.
+3. Una vez activado, es posible que tengas que reiniciar Blender.
+
+## Interfaz de usuario
+
+El conector de Blender se encuentra en la barra de herramientas de la vista 3D (N), en la pestaña Speckle. Contiene tres paneles principales:
+
+- **Panel de usuario** para cambiar entre diferentes cuentas locales.
+
+- **Panel de proyectos** para explorar tus proyectos existentes, crear nuevos proyectos o eliminar proyectos antiguos.
+
+- **Panel de proyectos activos** para enviar y recibir datos desde y hacia Speckle.
+
+<Frame>
+  <img src="/images/legacy/blender/sidebar-menu.png" alt="Descripción general de los paneles" />
+</Frame>
+
+El **Panel de Proyectos** muestra una lista de tus proyectos más recientes, que puedes buscar por nombre. Puedes añadir nuevos proyectos con el botón "+", eliminarlos con el botón "-" y actualizarlos con el botón de actualización.
+
+<Frame>
+  <img src="/images/legacy/blender/add-by-url.png" alt="agregar por URL" />
+</Frame>
+
+A partir de la versión 2.1.9, también puedes añadir proyectos existentes mediante su URL. Puedes usar la URL de un proyecto, un modelo específico o una versión específica. Simplemente pégala en la ventana emergente y se seleccionarán automáticamente la cuenta, el proyecto, el modelo y la versión correctos.
+
+El **Panel de Proyecto Activo** mostrará más detalles sobre el proyecto que hayas seleccionado en el Panel de Proyectos. Desde aquí, puedes cambiar el modelo y la versión activos. También puedes enviar y recibir cualquier elemento que hayas seleccionado en Blender. Debajo de los botones Enviar y Recibir, puedes usar los menús desplegables para seleccionar un script que se ejecutará en todos los elementos durante el proceso de envío/recepción.
+
+En la parte inferior del panel (no se muestra en la imagen), encontrarás un botón que abrirá el proyecto en la aplicación web Speckle.
+
+## Mallas limpias
+
+Una de las nuevas funciones que incorporamos en la versión 2.9 es **Clean Meshes** para Blender. Con esta función, se obtiene una única superficie combinando caras triangulares coplanares. Esto resulta especialmente útil para geometrías provenientes de aplicaciones que no admiten mallas NGON. Gracias a Clean Meshes, la asignación de materiales y el mapeado UV serán mucho más sencillos.
+
+<Frame>
+  <img
+    src="https://user-images.githubusercontent.com/51519350/195507307-78ae7cd4-5895-4b4b-ba99-91e734cdb541.png"
+    alt="Mallas limpias"
+  />
+</Frame>
+
+La opción Clean Mesh se puede acceder desde el cuadro de diálogo que aparece después de hacer clic en el botón Recibir. Por defecto, estará desactivada 🔳.
+
+<Frame>
+  <img
+    src="https://user-images.githubusercontent.com/51519350/195507390-54e44041-8a10-4b1f-a034-4f3dd68dd13b.png"
+    alt="Opción de mallas limpias"
+  />
+</Frame>
+
+## BlenderBIM
+
+Actualmente existe un soporte limitado para [BlenderBIM](https://blenderbim.org/), aunque está pensado para exportar y no funciona al revertir el proceso. Para aprovechar esta función, simplemente abre un archivo IFC con BlenderBIM y luego usa el conector Speckle para enviarlo a Speckle.
+
+<Frame>
+  <iframe
+    title="BlenderBIM IFC in Speckle"
+    src="https://app.speckle.systems/projects/c51120a7f7/models/d57e0b6bc8@767b7288ee#embed=%7B%22isEnabled%22%3Atrue%7D"
+    width="600"
+    height="400"
+    frameborder="0"
+  ></iframe>
+</Frame>
+
+Hay algunas cosas que debes tener en cuenta al enviar un archivo IFC a Speckle usando BlenderBIM:
+
+- Estructura: La estructura jerárquica de las colecciones y los objetos se conserva al enviarlos a Speckle.
+
+- El nombre de cada objeto se adjunta en el campo `name`.
+
+- Cualquier barra inclinada (`/`) en los nombres se reemplazará por dos puntos suspensivos (`::`).
+- Materiales: Si el objeto tiene un material, este se simplificará a un [Material de renderizado](https://github.com/specklesystems/speckle-py/blob/9a1f28516d0bb7c76e390af103bc677bc5ca7b04/specklepy/objects/other.py#L6-L12) y se adjuntará en el campo `renderMaterial`.
+
+- Propiedades: Las propiedades personalizadas añadidas en Blender siempre se agregan al campo `properties` de los objetos correspondientes. Para los objetos BlenderBIM, esto incluye el `ifc_definition_id`.
+
+- Las propiedades IFC adicionales que no se almacenan en Blender actualmente no se extraen del IFC ni se adjuntan. Esto podría explorarse como una mejora en el futuro.
+
+- Tipo: Todos los objetos se envían como mallas y las colecciones como objetos «Base». Actualmente, ninguno de los objetos se convierte ni se envía como objeto BIM.

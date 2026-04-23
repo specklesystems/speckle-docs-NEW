@@ -1,0 +1,164 @@
+---
+title: "Cómo usar Speckle para Rhino"
+sidebarTitle: "Inicio rápido"
+description: "Guía paso a paso para usar el conector Rhino"
+---
+
+import Versions from '/snippets/es/versions.mdx';
+import Setup from '/snippets/es/connectors/setup.mdx';
+import SetupFaq from '/snippets/es/connectors/setup-faq.mdx';
+import Login from '/snippets/es/connectors/login.mdx';
+import Publish from '/snippets/es/connectors/publish.mdx';
+import PublishFaq from '/snippets/es/connectors/publish-faq.mdx';
+import Load from '/snippets/es/connectors/load.mdx';
+import LoadFaq from '/snippets/es/connectors/load-faq.mdx';
+
+<Versions app="Rhino" versions="7 & 8" os="Windows" />
+
+## Configuración
+
+<Tip>
+{' '}
+
+Los conectores **Rhino** y **Grasshopper** vienen incluidos, así que si instalas uno,
+no necesitas instalar el otro.
+</Sugerencia>
+
+<Steps>
+  <Setup app="Rhino" />
+  <Step title="Abra el conector Rhino">1. Escribe **Speckle** en la línea de comandos, o 2. Selecciona **Speckle** en la
+
+Barra de herramientas Speckle para abrir el conector de Rhino.
+
+<Frame>
+
+<img src="/images/connectors/rhino_toolbar.jpg" alt="Barra de herramientas de Rhino" />
+
+</Frame>
+
+<Login app="Rhino" />
+</Step>
+</Steps>
+
+<AccordionGroup>
+    <Accordion title="¿Dónde se encuentra la barra de herramientas Speckle en Rhino?">Tras la instalación, si no ve la barra de herramientas de Speckle Rhino, puede cargarla manualmente:
+
+1. Escriba el comando **Toolbar** en Rhino.
+
+2. Seleccione **Archivo** > **Abrir** y navegue hasta la carpeta de la interfaz de usuario de Rhino: `AppData\Roaming\McNeel\Rhinoceros\7.0\UI\Plug-ins`
+
+3. Seleccione el archivo **Speckle.Connectors.Rhino.rui** y pulse **Intro**.
+
+Ahora debería ver la barra de herramientas en Rhino.</Accordion>
+
+    <Accordion title="Me aparece un error de compatibilidad del framework o una ventana de conector negra.">Es posible que las versiones antiguas de Rhino 8 no tengan la compatibilidad adecuada con los complementos.
+Le recomendamos actualizar a Rhino 8.9 o superior si está utilizando una versión anterior.
+
+También puede cambiar el entorno de ejecución de Rhino:
+
+1. Escriba el comando **SetDotNetRuntime** en Rhino.
+
+2. Seleccione la opción **NETFramework**.
+
+3. Reinicie Rhino.
+</Accordion>
+
+    <SetupFaq app="Rhino" />
+
+</AccordionGroup>
+
+## Publicación de un modelo
+
+<Publish app="Rhino" />
+
+<AccordionGroup>
+
+    <Accordion title="¿Qué tipos de elementos de Rhino puedo publicar en Speckle?">Se pueden publicar todos los tipos de geometría visible, así como sombreados, texto y bloques. Cada objeto publicado contiene la siguiente información:
+
+- Nombre
+- Color
+- Material de renderizado
+- Cadenas de texto del usuario
+</Accordion>
+
+    <Accordion title="¿Cómo puedo publicar modelos desde capas de Rhino?">1. Haz clic en el campo azul **Filtro** en la parte superior del cuadro de diálogo **Seleccionar objetos** al publicar una nueva versión.
+
+<Frame>
+
+<img src="/images/connectors/rhino_filters.jpg" alt="Filtros de Rhino" />
+
+</Frame>
+
+2. Selecciona **Capas** y, a continuación, haz clic en las capas que quieras añadir al filtro.
+</Accordion>
+
+    <Accordion title="¿Cómo puedo ver las cadenas de texto del usuario en mis objetos Rhino publicados?">Todas las propiedades personalizadas se encuentran en el campo **Propiedades** al seleccionar y visualizar un objeto de Rhino en el navegador.</Accordion>
+
+    <Accordion title="¿Qué hace la opción 'Agregar propiedades de visualización'?"><Frame>
+
+<img src="/images/connectors/rhino-add visualization properties.png" alt="Configuración de Rhino - Agregar propiedades de visualización" />
+
+</Frame>
+
+Al publicar un modelo, verá una opción llamada **"Agregar propiedades de visualización (aumentará el tamaño del modelo)"**. Esta opción está **desactivada por defecto**.
+
+- **Con la opción DESACTIVADA**: Las normales de vértice, los colores de vértice y las coordenadas de textura no se incluyen en las mallas, lo que resulta en modelos de menor tamaño.
+
+- **Con la opción ACTIVADA**: Todos los datos de visualización se extraen e incluyen.
+
+**Cuándo activar esta opción:**
+
+- Si desea la máxima fidelidad visual en el visor Speckle.
+
+- Si necesita total interoperabilidad con herramientas de renderizado (por ejemplo, Blender, otras instancias de Rhino).
+
+**Cuándo mantenerla desactivada:**
+
+- Si desea el menor tamaño de datos posible (por ejemplo, para Power BI u otros flujos de trabajo centrados en datos).
+</Accordion>
+
+    <Accordion title="¿Se publican en Speckle mis opiniones sobre Rhino?">Sí. Al publicar un modelo, todas las vistas con nombre se incluyen automáticamente, sin necesidad de pasos adicionales.
+
+Nota: Solo se publican las vistas con nombre en perspectiva. Las vistas de proyección paralela no se incluyen.</Accordion>
+
+    <PublishFaq app="Rhino" />
+
+</AccordionGroup>
+
+## Cargando un modelo
+
+<Load app="Rhino" />
+
+<AccordionGroup>
+
+    <Accordion title="¿Cómo se cargan los modelos Speckle en Rhino?">Todos los objetos de los modelos Speckle se cargan como geometría, texto o bloques en Rhino. Se crean con la misma estructura de capas que se muestra al visualizar el modelo en el navegador. Cada objeto se carga con:
+
+- Material de renderizado (si lo tiene)
+
+- Color (si lo tiene)
+
+- Nombre (si está definido)
+
+- Propiedades personalizadas como cadenas de texto definidas por el usuario
+</Accordion>
+
+    <Accordion title="¿Puedo cargar propiedades personalizadas en Rhino, como los parámetros de Revit?">Sí, todas las propiedades personalizadas que se encuentren en el campo **propiedades** se crearán como cadenas de usuario en Rhino.</Accordion>
+
+    <Accordion title="¿Qué ocurre cuando existe un material en el documento con el mismo nombre?">Se utilizará material existente en lugar de crear uno nuevo.</Accordion>
+
+    <Accordion title="¿Qué ocurre con los materiales cuando recibo una nueva versión de un modelo?">Cuando reciba versiones actualizadas del mismo modelo, el conector de Rhino conservará sus materiales existentes. Esto significa que cualquier ajuste manual que realice en las propiedades del material (como colores, texturas u otros atributos de renderizado) se mantendrá en las actualizaciones posteriores.</Accordion>
+
+    <Accordion title="¿Se incluyen las vistas con nombre cuando cargo un modelo en Rhino?">Sí. Al cargar un modelo que contiene vistas, estas se crean automáticamente
+como **vistas con nombre** en Rhino, sin necesidad de pasos adicionales.
+
+**Notas:**
+
+- Si ya existe una vista con el mismo nombre en Rhino, se omitirá
+y no se sobrescribirá.
+
+- Las vistas publicadas desde otros conectores (por ejemplo, vistas de perspectiva 3D de Revit)
+también se reciben como vistas con nombre en Rhino.</Accordion>
+
+    <LoadFaq app="Rhino" />
+
+</AccordionGroup>

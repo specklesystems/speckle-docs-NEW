@@ -1,0 +1,171 @@
+---
+title: Webhook Security
+description: Securing your webhook endpoints and best practices
+---
+
+## Verifying Webhook Authenticity
+
+To ensure webhooks are coming from Speckle and haven't been tampered with, you should verify the webhook signature using the secret you configured.
+
+<Warning>
+Always verify webhook signatures in production to prevent unauthorized requests from being processed.
+</Warning>
+
+The webhook signature is sent in the `X-WEBHOOK-SIGNATURE` header. The signature is computed using HMAC-SHA256 with your webhook secret.
+
+### Example Verification
+
+<CodeGroup>
+
+```python verify_webhook.py
+import hmac
+import hashlib
+
+def verify_webhook(payload, signature, secret):
+    digest = hmac.new(
+        secret.encode('utf-8'),
+        payload.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(signature, digest)
+
+# In your webhook handler
+signature = request.headers.get('X-WEBHOOK-SIGNATURE')
+is_valid = verify_webhook(request.data, signature, WEBHOOK_SECRET)
+
+if not is_valid:
+    return 'Invalid signature', 401
+```
+
+```javascript verify-webhook.js
+const crypto = require('crypto');
+
+function verifyWebhook(payload, signature, secret) {
+  const hmac = crypto.createHmac('sha256', secret);
+  const digest = hmac.update(JSON.stringify(payload)).digest('hex');
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(digest)
+  );
+}
+
+// In your webhook handler
+const signature = req.headers['x-webhook-signature'];
+const isValid = verifyWebhook(req.body, signature, WEBHOOK_SECRET);
+
+if (!isValid) {
+  return res.status(401).send('Invalid signature');
+}
+```
+
+
+</CodeGroup>
+
+## Avoiding Infinite Loops
+
+<Warning>
+**Critical**: Any time you make a commit (create a version) in response to a triggered webhook event, you are at risk of creating an infinite loop on both your handling code and your Speckle server. Use caution and ensure that you safely exit your handling code when no change is needed.
+
+**If you trigger an infinite loop:**
+- Make your endpoint inaccessible immediately
+- Deploy new code that prevents the loop
+- Delete the webhook on the server/project
+
+**Best practices to prevent loops:**
+- Check if changes are actually needed before creating new versions
+- Use conditional logic to exit early when no action is required
+- Implement idempotency checks to avoid reprocessing the same event
+- Monitor your webhook endpoint for unusual activity patterns
+</Warning>
+
+## Best Practices
+
+### 1. Use HTTPS Endpoints
+
+Always use HTTPS for your webhook endpoints to ensure payloads are encrypted in transit.
+
+### 2. Verify Signatures
+
+Always verify webhook signatures to ensure requests are authentic and haven't been tampered with.
+
+### 3. Handle Failures Gracefully
+
+Webhook delivery is not guaranteed. Implement retry logic and handle failures appropriately:
+
+- Return appropriate HTTP status codes (200-299 for success)
+- Log failed deliveries for debugging
+- Consider implementing a dead letter queue for failed webhooks
+
+### 4. Process Asynchronously
+
+Webhook handlers should process requests asynchronously and return quickly:
+
+- Acknowledge receipt immediately (return 200 OK)
+- Process the webhook data in a background job
+- Avoid long-running operations in the webhook handler
+
+### 5. Idempotency
+
+Make your webhook handlers idempotent to handle duplicate deliveries:
+
+- Use event IDs or timestamps to detect duplicates
+- Store processed event IDs to prevent reprocessing
+
+### 6. Rate Limiting
+
+Be aware of rate limits on your webhook endpoint. If you receive many events, consider:
+
+- Batching multiple events
+- Using a message queue to buffer events
+- Scaling your endpoint to handle the load
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <Accordion title="How do I verify webhook signatures?">
+    Use HMAC-SHA256 to compute a signature from the webhook payload and your secret, then compare it with the `X-WEBHOOK-SIGNATURE` header. See the [Example Verification](#example-verification) section above for code examples in Node.js and Python.
+  </Accordion>
+
+  <Accordion title="What happens if I don't verify signatures?">
+    Without signature verification, your endpoint could accept fake webhook requests from attackers, potentially leading to security vulnerabilities, data corruption, or unauthorized actions in your system. Always verify signatures in production.
+  </Accordion>
+
+  <Accordion title="Can I use webhooks without a secret?">
+    Yes, secrets are optional, but **highly recommended** for production use. Without a secret, you cannot verify that webhooks are actually coming from Speckle, leaving your endpoint vulnerable to spoofed requests.
+  </Accordion>
+
+  <Accordion title="How do I handle webhook failures gracefully?">
+    Implement proper error handling:
+    - Return appropriate HTTP status codes (200-299 for success)
+    - Log failures for debugging
+    - Use idempotency to handle duplicate deliveries
+    - Process webhooks asynchronously to avoid timeouts
+    - Consider a dead letter queue for persistent failures
+    
+    See [Best Practices](#best-practices) above for more details.
+  </Accordion>
+
+  <Accordion title="What HTTP status codes should my webhook endpoint return?">
+    Return status codes in the 200-299 range to indicate successful receipt. Speckle considers any other status code as a failure and may retry the delivery. Return 200 OK immediately, then process the webhook asynchronously in the background.
+  </Accordion>
+
+  <Accordion title="How do I prevent duplicate webhook processing?">
+    Make your webhook handlers idempotent by:
+    - Using event IDs or timestamps to detect duplicates
+    - Storing processed event IDs in a database or cache
+    - Checking if an event has already been processed before acting on it
+    
+    This ensures that if a webhook is delivered multiple times (which can happen), you won't process it more than once.
+  </Accordion>
+
+  <Accordion title="How do I avoid infinite loops with webhooks?">
+    If your webhook handler creates a new version/commit, it will trigger another webhook event, potentially creating an infinite loop. To prevent this:
+    - Always check if changes are actually needed before creating new versions
+    - Use conditional logic to exit early when no action is required
+    - Implement idempotency checks to avoid reprocessing the same event
+    - Monitor for unusual activity patterns
+    
+    If you accidentally trigger a loop, immediately make your endpoint inaccessible, deploy fix code, or delete the webhook. See [Avoiding Infinite Loops](#avoiding-infinite-loops) above for more details.
+  </Accordion>
+</AccordionGroup>
+

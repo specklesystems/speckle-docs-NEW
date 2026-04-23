@@ -1,0 +1,150 @@
+---
+title: "Actualizador de parámetros de Revit"
+description: "Revise y edite por lotes los parámetros de Revit desde un panel de control de Speckle y, a continuación, aplique los cambios a su modelo mediante la función de Incidencias."
+sidebarTitle: "Actualizador de parámetros"
+tag: Beta
+---
+
+<Warning>
+El Actualizador de Parámetros de Revit se encuentra en **beta** y solo está disponible en los espacios de trabajo donde
+se haya habilitado explícitamente. Por el momento, esta función está limitada a **Revit**.
+
+Si aún no tiene acceso y desea participar en la versión beta, complete el
+formulario de registro: [Solicitar acceso al Actualizador de Parámetros de Revit](https://share-eu1.hsforms.com/2Jy0rZrUfQpKkbvtomaxXMA2fs1ws).
+</Advertencia>
+
+Revit Parameter Updater te permite revisar y editar por lotes los parámetros de los elementos de Revit desde un panel de control de Speckle, y luego aplicar esos cambios al modelo de Revit. Cada lote de ediciones se registra como una incidencia para que puedas hacer un seguimiento de los cambios y sus motivos.
+
+[[MARCADOR DE POSICIÓN - Conector de Revit (DUI) a la izquierda publicando un modelo, panel de control de Speckle con el widget Actualizador de parámetros a la derecha]]
+
+## Requisitos previos
+
+Antes de comenzar, confirme que tiene:
+
+- Un espacio de trabajo donde el equipo de Speckle haya **habilitado** el Actualizador de parámetros de Revit.
+
+- El **conector de Speckle para Revit** instalado e iniciado sesión.
+- Un modelo de Revit que se haya **publicado** en un proyecto de Speckle al menos una vez.
+
+## Dónde encontrar el actualizador de parámetros de Revit
+
+En cualquier panel de control, abre la barra lateral de widgets y desplázate hasta la categoría **Acondicionamiento de datos** en la parte inferior. Arrastra el widget **Actualizador de parámetros** al lienzo.
+
+Si no ve la categoría **Actualizador**, significa que el Actualizador de parámetros de Revit no está habilitado para su espacio de trabajo.
+
+## Flujo de trabajo de extremo a extremo
+
+<Steps>
+  <Step title="Publicar un modelo desde Revit">Abre tu proyecto de Revit y usa el conector Speckle Revit para publicarlo en tu proyecto y modelo de destino. Espera a que finalice la publicación para tener al menos una versión del modelo de Revit disponible como fuente de datos del panel de control.
+
+<Consejo>
+
+Si deseas editar o completar parámetros vacíos, asegúrate de habilitar la opción **Enviar parámetros nulos/vacíos** en la configuración del conector antes de enviar
+tu modelo a Speckle.
+
+</Consejo></Step>
+  <Step title="Crea un panel de control con ese modelo.">En la aplicación web Speckle, ve a tu espacio de trabajo **Paneles**, crea o abre un panel y añade un widget **Visor de modelos** que apunte al modelo y la versión de Revit publicados. Deberías ver el modelo renderizado para que el panel pueda leer los elementos y parámetros.</Step>
+  <Step title="Configurar el widget de actualización de parámetros">Agregue el widget **Actualizador de parámetros** de la categoría **Acondicionamiento de datos** y configure sus ajustes. Seleccione una o más versiones del modelo de Revit como fuentes de datos, elija columnas editables y de solo lectura (los campos en `Propiedades` son editables) y, opcionalmente, agrupe las filas por una propiedad como nivel o tipo para ver una tabla agrupada de elementos de Revit.
+
+[[ESPACIO DE CONTACTO - Barra lateral de configuración del widget que muestra las fuentes de datos, las columnas y la opción Agrupar por]]
+</Step>
+  <Step title="Revisar y editar los parámetros de Revit.">En la tabla, edite los parámetros directamente en las celdas, establezca valores para un grupo completo desde el encabezado del grupo o actualice solo los elementos seleccionados mediante la fila de selección. Las celdas pueden ser editables, de solo lectura o estar marcadas como «Parámetro faltante» cuando el elemento no tiene ese campo. Si hay ediciones sin guardar, aparece una barra en la parte inferior del widget que muestra el número de cambios pendientes con las acciones **Descartar** y **Enviar solicitudes de cambio**.
+
+[[PLACEHOLDER - Tabla de actualización de parámetros con celdas editables, de solo lectura y de parámetros faltantes, además de una barra en el pie de página]]
+</Step>
+  <Step title="Enviar una solicitud de cambio como un problema">Haz clic en **Enviar solicitudes de cambio** en la barra inferior y completa el cuadro de diálogo con un título, estado, campos de seguimiento opcionales y una descripción que resuma los cambios. Al enviar la solicitud, Speckle crea una **incidencia** con una captura de pantalla, el estado del visor y los cambios de parámetros almacenados como `objectDeltas` para que puedas hacer un seguimiento de qué cambió y por qué.</Step>
+  <Step title="Aplique los cambios aprobados en Revit.">En Revit, abre el mismo proyecto, busca la ficha del modelo publicado en el conector Speckle y abre la incidencia correspondiente mediante el icono **Incidencias**. Usa la acción **Aplicar cambios** para que el conector envíe el lote de actualizaciones de parámetros, valide cada una y las aplique en una sola transacción, mostrando una notificación emergente que indica si se actualizaron todos, algunos o ninguno de los parámetros.
+
+[[ESQUEMA DE POSICIÓN - Panel de incidencias del conector de Revit con la acción Aplicar cambios y notificación de éxito]]
+</Step>
+</Steps>
+
+## Qué puedes y qué no puedes editar
+
+### Editable
+
+- Parámetros de instancia, tipo y tipo de sistema expuestos en `propiedades` en el
+árbol de objetos de Revit.
+
+- Parámetros de texto, numéricos, booleanos (Sí/No) y algunos parámetros basados en ElementId (por ejemplo, materiales y niveles que se pueden resolver por nombre).
+
+### No editable
+
+- **Parámetros de solo lectura**: valores controlados por el sistema que la API de Revit
+no permite modificar.
+
+- **Parámetros faltantes**: elementos que no tienen el parámetro seleccionado. El
+widget muestra «Parámetro faltante» y los omite durante las ediciones masivas.
+
+- **Elementos de modelo vinculados**: los elementos de modelos de Revit vinculados están bloqueados. El
+conector informa «No se pueden modificar elementos de un modelo vinculado».
+
+- **Parámetros no publicados**: los parámetros que no se incluyeron al
+publicar el modelo no aparecerán en el widget.
+
+[[MARCADOR DE POSICIÓN - Widget de actualización de parámetros completo: tabla con celdas de parámetros editables, de solo lectura y faltantes resaltadas, barra de pie de página con cambios pendientes y botón Enviar]]
+
+## Limitaciones conocidas
+
+| Limitación | Detalle |
+
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+
+| Solo Revit | El actualizador de parámetros de Revit actualmente solo funciona con modelos de Revit. |
+
+| Modelos vinculados | Los elementos de modelos vinculados no se pueden actualizar. Las solicitudes dirigidas a elementos vinculados se omiten con un error. |
+
+| Formato de ruta | La ruta del parámetro debe resolverse en tres segmentos (ámbito, grupo, nombre) después de eliminar los prefijos. Si la estructura de la ruta no coincide, la actualización se rechaza. |
+
+| Parámetros renombrados o eliminados | Si un parámetro ya no existe o se ha renombrado desde que se publicó el modelo, el conector informa "Parámetro no encontrado". |
+
+| Aplicación de solo lectura | Algunos parámetros aparecen como editables en el panel de control, pero están marcados como de solo lectura en Revit. El conector los rechaza al aplicarlos. |
+
+| Manejo de unidades | Los valores numéricos se escalan a las unidades internas de Revit. Los valores extremos o las discrepancias en las unidades pueden producir fallos. |
+
+| Parámetros ElementId | Aún no se admite la configuración de valores ElementId mediante ID sin procesar. El conector intenta resolver por nombre de elemento (materiales, niveles, fases). Es posible que otros tipos no se resuelvan. |
+
+| Sin sondeo automático de incidencias | El conector no sondea automáticamente las incidencias. Debe abrir la interfaz de usuario y activar la acción de aplicación. |
+
+## Qué probar
+
+Para las pruebas beta, céntrese en:
+
+- **Caso ideal**: actualice un pequeño conjunto de parámetros (por ejemplo, marcas de puertas o
+tipos de muros) y confirme que se actualizan correctamente en Revit.
+
+- **Resultados mixtos**: incluya parámetros que deberían fallar (solo lectura, faltantes,
+elementos vinculados) junto con ediciones válidas. Confirme que el widget marque las celdas no editables
+y que Revit informe de un éxito parcial con errores agrupados.
+
+- **Escala**: pruebe lotes de decenas a cientos de elementos y compruebe que la
+experiencia siga siendo utilizable y que los mensajes sean claros.
+
+- **Trazabilidad de incidencias**: confirme que cada envío crea una única incidencia con una
+captura de pantalla útil, el estado del visor y una descripción para que pueda auditar lo que se
+modificó posteriormente.
+
+[[MARCADOR DE POSICIÓN - Montaje de escenarios: Varios paneles y problemas para diferentes modelos de Revit]]
+
+## Comentarios y próximos pasos
+
+- Si algo se comporta de forma inesperada, anote lo siguiente:
+
+- La ruta del parámetro y el tipo de elemento.
+
+- El texto exacto del error que aparece en la notificación de Revit.
+
+- El enlace del problema en la aplicación web Speckle.
+
+- Comparta estos detalles al informar de errores para que podamos reproducirlos rápidamente.
+
+- Si desea una demostración:
+
+- Reserve una breve sesión para una demostración en vivo y una introducción al funcionamiento.
+
+<CardGroup cols={2}>
+  <Card
+    title="Reserva una sesión de actualización de parámetros de Revit."
+    href="https://calendar.app.google/rtn2HBFZwXSZY7Br5"
+  >Envía tus comentarios sobre Revit Parameter Updater, actualmente en fase beta.</Card>
+</CardGroup>

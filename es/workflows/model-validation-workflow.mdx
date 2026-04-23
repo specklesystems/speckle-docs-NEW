@@ -1,0 +1,164 @@
+---
+title: "Flujo de trabajo de validación del modelo"
+sidebarTitle: "Validación del modelo"
+description: "Valide los modelos con los widgets Property Checker y Model Validation, y luego realice las correcciones necesarias."
+---
+Utilice esta guía cuando desee una forma repetible de verificar la calidad de los datos del modelo en Speckle mediante los paneles de Intelligence. Toda la validación en este flujo de trabajo se basa en paneles: widgets de **Verificador de propiedades** y **Validación del modelo**, con resultados en el panel, el visor 3D y los conectores. Dirigida a coordinadores y modeladores BIM que definen y ejecutan reglas de calidad.
+
+<Note>
+**Antes de empezar:** Necesitas un proyecto Speckle con al menos un modelo y acceso a los **paneles de control de Inteligencia**. Abre tu proyecto y haz clic en **Inteligencia** en la navegación del proyecto para acceder al editor de paneles de control.
+</Note>
+
+## Elige tu método de validación
+
+**Cuándo usarlo:** Antes de configurar cualquier widget o regla.
+
+<Steps>
+  <Step title="Decide qué necesitas validar">Enumera las preguntas que necesitas responder, como "¿Todas las puertas tienen clasificación contra incendios?", "¿Los nombres de los pisos cumplen con nuestro estándar de nomenclatura?" o "¿Todos los elementos están en niveles válidos?". Agrúpalas por disciplina o
+fase del proyecto.
+</Step>
+  <Step title="Elige entre comprobaciones rápidas y conjuntos de reglas completos.">Utilice **Verificador de propiedades** para realizar comprobaciones puntuales o exploratorias de una sola propiedad. Utilice **Validación de modelos** cuando necesite un conjunto de reglas reutilizable que compruebe varias propiedades a la vez. Consulte
+
+[Descripción general de la validación](/analytics/data-validation/overview) para conocer las capacidades y limitaciones.</Step>
+  <Step title="Planificar dónde se consumirán los resultados">Decide si los usuarios verán principalmente los resultados de la validación en paneles, en el visor 3D o en conectores de escritorio. Esto influye en qué enfoques priorizar y en el nivel de detalle que incluyas en los mensajes de las reglas.</Step>
+</Steps>
+
+Resultado: Una idea clara de qué preguntas de validación necesita responder y si necesita comprobaciones rápidas, conjuntos completos de reglas o ambas cosas.
+
+## Realice comprobaciones rápidas con Property Checker
+
+**Cuándo usarlo:** Si desea probar rápidamente una sola propiedad o regla, o explorar el estado del modelo sin crear un conjunto completo de reglas.
+
+<Steps>
+  <Step title="Crear o abrir un panel de inteligencia">En tu proyecto Speckle, haz clic en **Inteligencia** en la navegación del proyecto y, a continuación, crea un nuevo panel o abre uno existente. Asegúrate de que el panel tenga un widget **Visor de modelos** con tu modelo de destino. Consulta
+
+[Paneles](/analytics/intelligence-dashboards) para obtener más información sobre la configuración.
+
+<Frame>
+
+<img src="/images/analytics/speckle_intelligence_nav_01.jpg" alt="Navegación y editor de paneles de Inteligencia" />
+
+</Frame>
+</Step>
+  <Step title="Agregar un widget de comprobación de propiedades">En el editor del panel de control, abre el **panel de widgets** (barra lateral izquierda) y añade el **verificador de propiedades**. Conéctalo al Visor de modelos o a las fuentes de datos que contienen los elementos que deseas validar.</Step>
+  <Step title="Defina la propiedad y la regla.">En la configuración del Comprobador de propiedades, seleccione la propiedad que desea comprobar (p. ej., `fireRating`, `Level`, `Type Name`) y el predicado (p. ej., **Existe**, **Es igual a**, **Coincide con el patrón**). Establezca el valor de referencia donde sea necesario. Consulte [Reglas y conjuntos de reglas](/analytics/data-validation/rules-and-rulesets#predicates-in-the-ui) para ver la lista completa; para archivos TSV heredados, consulte [Cadenas de predicado TSV](/analytics/data-validation/rules-and-rulesets#tsv-predicate-strings).</Step>
+  <Step title="Interpreta los resultados y colorea el modelo.">El widget muestra el número y el porcentaje de elementos aprobados/reprobados. Active la coloración para ver los elementos aprobados y reprobados en el visor 3D. Haga clic en segmentos del gráfico para resaltar subconjuntos de elementos.
+
+<Frame>
+
+<img src="/images/model-checker/widget-results.png" alt="Widget de comprobación de propiedades o validación de modelos que muestra los resultados de aprobado/reprobado" />
+
+</Frame>
+</Step>
+  <Step title="Decide si esta regla pertenece a un conjunto de reglas.">Si la comprobación rápida resulta útil, anote la lógica de la regla (propiedad, predicado, valor, gravedad y mensaje). La reutilizará al crear un conjunto completo de reglas en la validación del modelo.</Step>
+</Steps>
+
+Resultado: Una comprobación visual rápida de una propiedad a la vez, que le ayudará a descubrir qué reglas merece la pena codificar en un conjunto completo de reglas.
+
+## Crear un conjunto de reglas con validación de modelo
+
+**Cuándo usarlo:** Si desea un conjunto de reglas reutilizables que se puedan aplicar de forma consistente a un mismo modelo.
+
+<Steps>
+  <Step title="Agregue un widget de validación de modelos a su panel de control.">En el editor del panel de control, añade un widget de **Validación de modelo** desde el panel de widgets y conéctalo a un Visor de modelos que cargue el modelo que deseas validar. Este widget mostrará el estado de todo el conjunto de reglas para ese modelo.</Step>
+  <Step title="Cree o seleccione un conjunto de reglas.">Abre la configuración del conjunto de reglas desde el widget (por ejemplo, a través de la configuración o el menú del widget). Crea un nuevo conjunto de reglas para este proyecto o selecciona uno existente. Asígnale un nombre y una descripción descriptivos para que otros sepan qué verifica (por ejemplo, "Estrategia de incendios: rutas principales y de escape").</Step>
+  <Step title="Defina reglas utilizando WHERE, AND y CHECK.">Para cada requisito de validación, añada una o más reglas. Utilice condiciones `WHERE` para seleccionar los elementos a considerar (p. ej., todas las puertas), condiciones `AND` para refinar ese conjunto y condiciones `CHECK` para verificar
+
+lo que debe ser cierto (p. ej., que exista una clasificación de resistencia al fuego y cumpla con un umbral). Consulte [Reglas y conjuntos de reglas](/analytics/data-validation/rules-and-rulesets) para ver la estructura de las reglas y ejemplos.</Step>
+  <Step title="Establecer gravedad y mensajes">Para cada regla, asigne un nivel de gravedad (ERROR, ADVERTENCIA, INFORMACIÓN) que se ajuste a su impacto. Utilice mensajes claros y prácticos para que quien corrija el modelo sepa qué hacer al detectar un fallo.</Step>
+  <Step title="Guarda y ejecuta el conjunto de reglas.">Guarda los cambios y ejecuta el conjunto de reglas sobre el modelo. El widget de validación del modelo se actualizará para mostrar cuántos elementos pasaron, fallaron o no fueron aplicables a cada regla.
+
+<Frame>
+
+<img src="/images/model-checker/widget-results.png" alt="Widget de validación del modelo con desglose del conjunto de reglas y recuentos de elementos aprobados/fallidos" />
+
+</Frame>
+</Step>
+</Steps>
+
+Resultado: Un conjunto de reglas reutilizables que recoge sus requisitos de calidad de datos y que se puede volver a ejecutar bajo demanda con un modelo específico.
+
+## Comprender y explorar los resultados de la validación
+
+**Cuándo usarlo:** Después de ejecutar un conjunto de reglas y antes de pedir a los autores del modelo que corrijan algo.
+
+<Steps>
+  <Step title="Utilice la vista de desglose para obtener una visión general.">En el widget de validación del modelo, comience con la pestaña de desglose o resumen para ver los recuentos de reglas aprobadas, fallidas y no aplicadas por regla. Identifique qué reglas causan la mayor cantidad de fallos o afectan a la mayor cantidad de elementos.
+Consulte [Visualización de resultados](/analytics/data-validation/viewing-results) para obtener más detalles.
+</Step>
+  <Step title="Profundizar en las reglas individuales">Seleccione una regla para ver qué elementos fallaron y por qué. Use los filtros del widget o del panel para segmentar por nivel, categoría u otras propiedades. Verifique que los fallos coincidan con sus expectativas y que la lógica de la regla sea correcta.</Step>
+  <Step title="Inspeccione los elementos defectuosos en el visor 3D.">Haz clic en las filas o categorías con errores y usa la función de color para resaltarlas en el visor 3D. Confirma que se trata de problemas reales y no de casos excepcionales o excepciones intencionadas.
+
+<Frame>
+
+<img src="/images/model-checker/results.png" alt="Resultados de la validación en el visor 3D con los elementos con errores resaltados" />
+
+</Frame>
+</Step>
+  <Step title="Si la lógica no es correcta, ajusta las reglas.">Si observa muchos falsos positivos o negativos, ajuste las condiciones WHERE/AND/CHECK, la gravedad o los mensajes. Vuelva a ejecutar el conjunto de reglas hasta que los fallos reflejen problemas reales en lugar de ruido.</Step>
+</Steps>
+
+Resultado: Un conjunto de reglas validadas cuyos fallos representan problemas de calidad reales, con una comprensión clara de su impacto y ubicación.
+
+## Solucionar problemas e iterar en la validación
+
+**Cuándo usarlo:** Una vez que confíe en el conjunto de reglas y quiera mejorar el modelo.
+
+<Steps>
+  <Step title="Comparta los resultados con los autores del modelo.">Comparta el panel de control y explique qué reglas requieren atención. Indique a los autores las reglas más importantes y confirme qué proyectos, modelos y versiones están incluidos en la ronda de validación actual.</Step>
+  <Step title="Utilice conectores para encontrar y corregir elementos defectuosos.">En aplicaciones de escritorio como Revit o Rhino, utilice los conectores Speckle para localizar los elementos que no superaron la validación. Si están disponibles, utilice los filtros y el resaltado relacionados con la validación para centrarse en las áreas problemáticas. Corrija las propiedades, la nomenclatura y las asignaciones directamente en la herramienta de autoría.</Step>
+  <Step title="Publique las versiones actualizadas y vuelva a ejecutar la validación.">Tras realizar los cambios, publique las nuevas versiones del modelo en Speckle. Vuelva a ejecutar el conjunto de reglas de validación del modelo o actualice el panel para ver el recuento actualizado de elementos aprobados/rechazados. Verifique que los elementos que antes fallaban ahora pasen la validación
+y que no se hayan introducido nuevos fallos.</Step>
+  <Step title="Repita el proceso hasta que el conjunto de reglas cumpla con un nivel aceptable.">Continúa iterando hasta que el número de fallos se encuentre dentro de los límites aceptables para la fase actual del trabajo. Puedes considerar aceptables algunas advertencias si representan excepciones conocidas.</Step>
+</Steps>
+
+Resultado: Los modelos mejoran con el tiempo a medida que se resuelven los fallos de validación y las comprobaciones de regresión se integran en el flujo de trabajo normal de publicación.
+
+## Administrar y compartir conjuntos de reglas
+
+**Cuándo usarlo:** Si desea reutilizar reglas en diferentes proyectos o mantener un registro duradero de las mismas.
+
+<Steps>
+  <Step title="Organizar los conjuntos de reglas por propósito y alcance.">Cree conjuntos de reglas independientes para diferentes propósitos (por ejemplo, "Seguridad contra incendios", "Convenciones de nomenclatura", "Asignación de niveles") y, si es necesario, para diferentes tipos de modelos o disciplinas. Utilice nombres que indiquen claramente el alcance.</Step>
+  <Step title="Exportar e importar conjuntos de reglas como TSV">Cuando necesite una copia de seguridad o desee transferir reglas entre espacios de trabajo, exporte un conjunto de reglas como un archivo TSV. Almacene estos archivos en repositorios con control de versiones junto con la documentación de su proyecto. Consulte
+
+[Reglas y conjuntos de reglas](/analytics/data-validation/rules-and-rulesets) para obtener información sobre las columnas y el formato.
+</Step>
+  <Step title="Reglas de uso compartido entre proyectos">Si varios proyectos comparten los mismos estándares, reutilice el mismo conjunto de reglas cuando sea apropiado o impórtelo desde un archivo TSV canónico que su equipo mantenga como fuente de información principal.</Step>
+  <Step title="Actualizar conjuntos de reglas de forma segura">Cuando modifiques las reglas, comunica qué cambia y por qué. Es preferible añadir nuevas reglas o ajustar los mensajes y niveles de gravedad en lugar de eliminarlas, para que los resultados históricos sigan siendo interpretables.</Step>
+</Steps>
+
+Resultado: Los conjuntos de reglas se convierten en activos compartidos que codifican sus estándares y pueden aplicarse de forma coherente en diferentes proyectos y a lo largo del tiempo.
+
+## Mejores prácticas
+
+- **Empieza poco a poco**: Comienza con unas pocas reglas de alto valor y añade más a medida que los equipos adquieran confianza, en lugar de empezar con un conjunto de reglas exhaustivo pero confuso.
+
+- **Separa las comprobaciones por intención**: Agrupa las reglas en conjuntos que compartan un objetivo, como seguridad, nomenclatura o documentación; esto facilita la interpretación de los resultados.
+
+- **Trata las reglas como estándares dinámicos**: Actualiza las reglas a medida que evolucionan tus estándares, pero comunica los cambios con claridad para que los equipos comprendan los nuevos fallos.
+
+- **Utiliza la gravedad de forma coherente**: Reserva ERROR para problemas que bloquean el desarrollo, ADVERTENCIA para problemas que deben corregirse e INFORMACIÓN para sugerencias útiles.
+
+- **Documenta las suposiciones**: Cuando una regla codifica una suposición (por ejemplo, la nomenclatura de niveles o el uso de parámetros), inclúyela en el texto del mensaje.
+
+## Preguntas frecuentes
+
+<AccordionGroup>
+<Accordion title="¿Cuándo debo usar Property Checker en lugar de Model Validation?">Utilice el Comprobador de propiedades cuando desee explorar rápidamente una propiedad o probar una nueva idea sin tener que gestionar un conjunto completo de reglas. Utilice la Validación de modelos cuando la regla sea estable, importante y deba reutilizarse en distintas versiones o proyectos.</Accordion>
+<Accordion title="¿Se puede utilizar un mismo conjunto de reglas en varios proyectos?">Sí, siempre y cuando los modelos compartan una estructura y propiedades similares. Para estándares comunes, mantenga un conjunto de reglas central o un archivo TSV e impórtelo donde sea necesario. Realice los ajustes únicamente cuando las diferencias específicas del proyecto lo requieran.</Accordion>
+<Accordion title="¿Qué sucede si modifico una regla en un conjunto de reglas?">Las validaciones futuras usarán la regla actualizada, pero los resultados anteriores reflejarán la lógica vigente en el momento de su ejecución. Si necesita una ruptura clara, cree una nueva versión del conjunto de reglas y haga referencia a ella por separado en sus paneles.</Accordion>
+<Accordion title="¿Cómo puedo gestionar las excepciones sin cambiar la regla?">Utilice etiquetas o comentarios en las herramientas de autoría para marcar las excepciones intencionadas y ajuste las condiciones WHERE para excluirlas cuando sea posible. Para excepciones poco frecuentes, puede optar por tolerar fallos específicos en lugar de flexibilizar la regla.</Accordion>
+<Accordion title="¿Puedo validar varios modelos a la vez?">La validación de modelos comprueba un modelo a la vez, pero los paneles pueden agregar resultados de varios modelos. Utilice varios widgets o paneles para ver el rendimiento de los conjuntos de reglas en un proyecto o portafolio.</Accordion>
+<Accordion title="¿Cómo puedo saber si una regla es demasiado estricta?">Si una regla genera muchos fallos que no son viables ni realistas de solucionar, revise su alcance y gravedad. Considere dividirla en reglas más pequeñas o reducir su gravedad para que los equipos puedan centrarse en los problemas más importantes.</Accordion>
+<Accordion title="¿Cómo puedo realizar un seguimiento de las tendencias de validación a lo largo del tiempo?">Utilice paneles para comparar el número de fallos por regla y por versión. También puede conectar los datos del panel o del proyecto a herramientas externas como Power BI para crear gráficos de tendencias; consulte [Paneles de inteligencia](/analytics/intelligence-dashboards) para obtener información sobre datos y opciones para compartirlos.</Accordion>
+<Accordion title="¿Quién debería ser el responsable de los conjuntos de reglas en una organización grande?">Por lo general, los gestores BIM, los gestores de información o los responsables de disciplina son quienes elaboran sus propios conjuntos de reglas. Coordinan los cambios, revisan las nuevas reglas y se aseguran de que los equipos de proyecto comprendan cómo se integra la validación en sus flujos de trabajo.</Accordion>
+</AccordionGroup>
+
+## Ver también
+
+- [Valida tus datos en Speckle](/analytics/data-validation/overview)
+- [Reglas y conjuntos de reglas](/analytics/data-validation/rules-and-rulesets)
+- [Visualización de resultados](/analytics/data-validation/viewing-results)
+- [Paneles de control inteligentes](/analytics/intelligence-dashboards)
+

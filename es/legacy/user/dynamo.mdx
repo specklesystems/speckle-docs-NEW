@@ -1,0 +1,446 @@
+---
+title: "Dynamo para Revit"
+sidebarTitle: "Revit"
+noindex: true
+---
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx'
+import LegacyVersions from '/snippets/es/legacy-versions.mdx'
+
+<LegacyWarning connector="Dynamo" /> 
+<LegacyVersions app="Dynamo" versions="2.1 to 2.10" />
+
+<Note>
+El paquete de nodos Speckle no está disponible en el Administrador de paquetes de Dynamo. Para obtener instrucciones de instalación, consulte la sección siguiente.
+</Note>
+
+<Note>
+Hemos renombrado algunos conceptos clave en Speckle para que sean más fáciles de entender.
+
+- Los flujos se han renombrado a proyectos.
+- Las ramas se han renombrado a modelos.
+- Las confirmaciones se han renombrado a versiones.
+</Note>
+
+## Empezando
+
+Nuestro conector Dynamo se presenta como un paquete de nodo, que se instala a través del Administrador de Speckle. Para instalar el conector Dynamo y agregar su cuenta de Speckle, siga las instrucciones en nuestra sección [Administrador de Speckle](/legacy/user/manager).
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-cat-all.png" alt="Componentes del conector Dynamo" />
+</Frame>
+
+Una vez instalado, el **Dynamo Connector** aparecerá como un paquete de Node en su biblioteca como `Speckle 2`.
+
+El paquete `Speckle 2` contiene los nodos principales necesarios para usar Speckle dentro de Dynamo, incluidos los nodos para enviar y recibir datos, administrar flujos y seleccionar cuentas.
+
+También hemos creado algunos nodos para casos de uso más avanzados, así como algunas herramientas útiles para desarrolladores/hackers de Speckle (estas se encuentran en la subsección `Herramientas para desarrolladores` del paquete).
+
+## Transmisiones y URL
+
+Las secuencias de Speckle se identifican por sus URL.
+
+En nuestros conectores Dynamo y Grasshopper verá URL en 3 formatos diferentes:
+
+- `https://app.speckle.systems/streams/3073b96e86` apunta a la rama `main` del flujo `3073b96e86`.
+- `https://app.speckle.systems/streams/3073b96e86/branches/dev` apunta a una rama llamada `dev` del flujo `3073b96e86`.
+- `https://app.speckle.systems/streams/3073b96e86/commits/604bea8cc6` apunta a una confirmación específica, `604bea8cc6`, del flujo `3073b96e86`.
+- `https://app.speckle.systems/streams/3073b96e86/objects/df7b8bafccefa791d82939dd36541189` apunta a un objeto específico. `df7b8bafccefa791d82939dd36541189` en el flujo `3073b96e86`
+
+<Info>
+  Unsure about what _commits_ and _branches_ are? No worries, you don't need to know what they are to use Speckle! 
+</Info>
+
+En las siguientes secciones veremos cómo se utilizan las URL de rama y de confirmación.
+
+## Envío de datos
+
+Veamos cómo enviaríamos algunos datos en Dynamo. Primero, comencemos creando un nuevo nodo `Enviar datos`.
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-send.png" alt="Enviar nodo" />
+</Frame>
+
+Para seleccionar a qué flujo enviar los datos, solo necesita pasar una URL de flujo al puerto `streamUrl`.
+
+<Frame>
+  <img src="/images/legacy/dyn/sending-multiple-branches.png" alt="Envío a varias sucursales" />
+</Frame>
+
+Como alternativa, también puede utilizar uno de los siguientes nodos para crear o recuperar flujos existentes:
+
+- [Crear flujo](#create-stream)
+- [Obtener flujo](#get-stream)
+- [Listar flujos](#list-streams)
+
+<Info>
+  You cannot send data to a specific commit. Commits are a snapshot of data at a specific point in time and therefore cannot be edited.
+</Info>
+
+### Agregar objetos
+
+Para seleccionar qué objetos enviar a tu flujo, solo tienes que conectar los datos deseados a la entrada `data` del nodo `Send Data`. El nodo convertirá automáticamente cualquier objeto Dynamo compatible a un formato compatible con Speckle.
+
+### Añadiendo un mensaje de confirmación
+
+Aunque es opcional, se recomienda añadir un mensaje de confirmación al enviar datos (sobre todo si se trabaja en colaboración con otros). Este mensaje debe describir los cambios realizados. Para añadir un mensaje de confirmación, basta con pasar cualquier cadena de texto al puerto `message`.
+
+El mensaje de confirmación será visible en la aplicación web de Speckle (donde también se podrá editar).
+
+### Envío de datos
+
+Con la URL del flujo y los datos para enviar, lo único que queda por hacer es pulsar el botón **Enviar**. Esto iniciará el proceso de conversión de tus datos al modelo de objetos de Speckle y su posterior carga en tu servidor Speckle.
+
+<Frame>
+  <img src="/images/legacy/dyn/dyn-send.gif" alt="Envío de datos en Dynamo" />
+</Frame>
+
+### Visualización de una transmisión en línea
+
+Para ver la transmisión enviada en línea, simplemente haga clic con el botón derecho en el nodo remitente:
+
+<Frame>
+  <img src="/images/legacy/dyn/viewing-a-stream-online.png" alt="Ver una transmisión en línea" />
+</Frame>
+
+### Envío a una rama específica
+
+Al usar una URL de transmisión, por defecto, se utiliza la rama `main` para enviar y recibir datos.
+
+Para enviar a una rama específica, simplemente use la URL de la rama, como por ejemplo: `https://app.specke.systems/streams/3073b96e86/branches/dev`.
+
+## Recepción de datos
+
+Recibir datos es muy sencillo; solo necesitas un nodo `Receive Data` y una URL de transmisión.
+
+<Frame>
+  <img src="/images/legacy/dyn/dyn-receive.gif" alt="Recepción de datos en Dynamo" />
+</Frame>
+
+Cuando se envían nuevos datos a este flujo, aparecerá una notificación en el nodo receptor.
+
+### Recepción automática
+
+Mediante el interruptor del nodo, puede activar o desactivar la recepción automática. Si está activada, los nuevos datos que se envíen a este flujo se descargarán automáticamente en cuanto estén disponibles.
+
+### Recibiendo una rama específica
+
+Al usar una URL de transmisión, la rama `main` se usa para enviar y recibir datos de forma predeterminada.
+
+También puede recibir datos de una rama específica; simplemente use la URL de la rama, como por ejemplo: `https://app.specke.systems/streams/3073b96e86/branches/dev`.
+
+### Recibir una confirmación específica
+
+Ya hemos visto cómo recuperar datos de flujos y ramas. Es posible ir aún más allá y recuperar datos de confirmaciones específicas. Para ello, basta con usar la URL de la confirmación, como por ejemplo: `https://app.speckle.systems/streams/3073b96e86/commits/604bea8cc6`.
+
+<Info>
+  When receiving from a commit, the node will stop showing notifications about new activity and the auto-receive toggle will be disabled. This is because commits cannot be edited.
+</Info>
+
+<Frame>
+  <img src="/images/legacy/dyn/image-20210322172730078.png" alt="Recibir de una confirmación específica" />
+</Frame>
+
+### Recibir un objeto específico
+
+De forma similar a las confirmaciones, también puedes apuntar el nodo receptor a un objeto específico. Para ello, simplemente usa la URL del objeto, como por ejemplo: `https://app.speckle.systems/streams/3073b96e86/objects/df7b8bafccefa791d82939dd36541189`.
+
+Al igual que las confirmaciones, los objetos en una confirmación no se pueden editar, por lo que los datos recibidos mediante dicha URL siempre serán consistentes. Puedes encontrar el ID de un objeto en la interfaz web de Speckle:
+
+<Frame>
+  <img src="/images/legacy/dyn/image-20210322185007725.png" alt="Cómo encontrar el ID del objeto en la interfaz web" />
+</Frame>
+
+### Visualización de una transmisión en línea
+
+Para ver la transmisión recibida en línea, simplemente haga clic con el botón derecho en el nodo receptor:
+
+<Frame>
+  <img src="/images/legacy/dyn/viewing-a-stream-online.png" alt="Ver una transmisión en línea" />
+</Frame>
+
+## Creación de objetos personalizados
+
+Un `Objeto Personalizado` es un Objeto Base con propiedades personalizadas asignadas. Básicamente, es una estructura de datos personalizada que puedes crear para enviar datos en un formato específico que tú definas.
+
+En Dynamo, utilizamos diccionarios para representar objetos personalizados, ya que son compatibles de forma nativa, por lo que crear objetos personalizados es tan sencillo como crear un diccionario que contenga las claves y los valores que se desean incluir en el objeto `Base`.
+
+Este diccionario se convertirá automáticamente en un objeto `Base` durante la operación _Send_.
+
+<Frame>
+  <img src="/images/legacy/dyn/guide-custom-objects.png" alt="Creación de objetos personalizados" />
+</Frame>
+
+## Todos los nodos Speckle
+
+### Enviar datos
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-send.png" alt="Enviar nodo" />
+</Frame>
+
+El nodo **Enviar datos** realiza operaciones de envío. Los datos se envían normalmente a un servidor Speckle, pero el nodo también admite el envío a otro sistema de almacenamiento de datos mediante _transportes_. Siempre que sea posible, el nodo _Enviar_ intentará convertir los objetos compatibles al formato Speckle.
+
+También hay un interruptor que puedes activar para que el nodo envíe automáticamente los datos cada vez que cambien.
+
+#### Aporte
+
+- _data_: ¡Este puerto acepta prácticamente cualquier cosa que le proporciones! Si los objetos proporcionados no son objetos `Base`, también realizará la conversión a Speckle automáticamente.
+
+- _streamUrl_: Admite cualquier flujo generado dentro de la categoría de componentes `Stream`, así como URL de flujo en formato de texto.
+
+- _message (opcional)_: El mensaje que deseas adjuntar al _commit_ al enviar los datos. Por defecto, es `"Dynamo push"`.
+
+#### Producción
+
+- _streamUrl_: La _url de confirmación_ que apunta a los objetos en el servidor Speckle.
+
+### Recibir datos
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-receive.png" alt="Recibir datos" />
+</Frame>
+
+El nodo **Recibir datos** obtiene datos de un `Stream` especificado o de cualquier otro `Transporte` válido. Siempre que sea posible, el nodo receptor intentará convertir todos los objetos Speckle en objetos compatibles.
+
+#### Entradas
+
+- _streamUrl_: La URL de cualquier flujo, rama, confirmación u objeto de Speckle.
+
+#### Salidas
+
+- _datos_: Cualquier dato que se haya recibido del flujo.
+
+### Enviar datos locales
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-send-local.png" alt="Enviar nodo local" />
+</Frame>
+
+El nodo **Enviar datos locales** realiza operaciones de envío directamente a la base de datos local del usuario.
+
+#### Entradas
+
+- _data_: Los datos que se enviarán localmente. Este puerto aceptará casi cualquier cosa que se le proporcione. Si los objetos proporcionados no son objetos `Base`, también realizará la conversión a Speckle automáticamente.
+
+#### Salidas
+
+- _localDataId_: El `id` único para los datos que se enviaron localmente.
+
+### Recibir datos locales
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-receive-local.png" alt="Recibir nodo local" />
+</Frame>
+
+El nodo **Recibir datos locales** realiza operaciones de recepción de la misma manera que el nodo [Recibir datos](#receive-node), la única diferencia es que los datos se reciben localmente desde la base de datos local del usuario de Speckle, en lugar del servidor o cualquier otro transporte.
+
+#### Entradas
+
+- _localDataId_: El `id` único para los datos que desea obtener localmente. Este será proporcionado por un nodo [Enviar datos locales](#local-send-node).
+
+#### Salidas
+
+- _Datos_: Los datos recibidos. Este puerto acepta prácticamente cualquier cosa que se le proporcione. Si los objetos proporcionados no son objetos `Base`, también realizará la conversión a Speckle automáticamente.
+
+### Seleccionar cuenta
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-accounts.png" alt="Nodo de cuentas" />
+</Frame>
+
+El nodo **Seleccionar cuenta** proporciona una forma rápida de seleccionar diferentes cuentas de Speckle.
+
+Las cuentas deben configurarse en su ordenador utilizando el **Speckle Manager**.
+
+### Crear flujo
+
+Para crear una nueva transmisión, haz clic derecho en el lienzo y busca el nodo «Crear transmisión». Este nodo tiene una interfaz de usuario personalizada que te permite seleccionar una cuenta específica y un botón para confirmar la creación de la transmisión.
+
+<Callout type="info">
+  You can also create streams online form Speckle Web. From there you can also set their name, description and permissions.
+</Callout>
+
+Una vez creado, el nodo recordará esa secuencia. Esto significa que no podrá _cambiar_ la secuencia que creó, ni crear una nueva utilizando el mismo nodo (para ello, simplemente coloque un nuevo nodo `Crear secuencia`).
+
+Seleccione la cuenta correspondiente y pulse el botón azul. Si la creación del flujo se realizó correctamente, la salida del nodo debería ser una URL de flujo que apunte al flujo recién creado y esté vinculada a la cuenta especificada.
+
+<Frame>
+  <img src="/images/legacy/dyn/guide-stream-create.gif" alt="Creando una transmisión" />
+</Frame>
+
+#### Visualización de la transmisión en línea
+
+Para ver la transmisión recién creada en línea, simplemente haga clic con el botón derecho en el nodo:
+
+<Frame>
+  <img src="/images/legacy/dyn/viewing-the-stream-online.png" alt="Visualización de la transmisión en línea" />
+</Frame>
+
+#### Entradas
+
+Este nodo no tiene entradas.
+
+#### Salidas
+
+- _streamUrl_: Una URL que apunta al flujo recién creado.
+
+### Obtener transmisión
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-stream-get.png" alt="Nodo de obtención de flujo" />
+</Frame>
+
+El nodo **Obtener flujo** intentará recuperar un flujo existente, a partir de su URL y una cuenta específica para acceder a él. Esto puede resultar útil si hay varias cuentas registradas en la misma máquina y un flujo determinado requiere una cuenta específica para ser accesible.
+
+#### Entradas
+
+- _streamUrl_: La URL de cualquier flujo, rama, confirmación u objeto de Speckle.
+
+- _account (opcional)_: Una cuenta de Speckle, proporcionada por el nodo **Cuentas**. Si no se proporciona ninguna cuenta, se utilizará la cuenta predeterminada.
+
+#### Salidas
+
+- _stream_: Un objeto `Stream` que apunta a un flujo existente. Si el flujo no existe, se mostrará un error.
+
+### Listar flujos
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-stream-list.png" alt="nodo de lista de flujo" />
+</Frame>
+
+El nodo **Listar transmisiones** devuelve una cantidad específica de transmisiones disponibles en una cuenta. Por motivos de rendimiento, se ha limitado a obtener un máximo de 20 transmisiones.
+
+#### Entradas
+
+- _cuenta (opcional): Una cuenta de Speckle, proporcionada por el nodo **Cuentas**. Si no se proporciona ninguna cuenta, se utilizará la cuenta predeterminada.
+
+- _límite (opcional): El número de transmisiones que se obtendrán del servidor.
+
+#### Salidas
+
+- _streams_: Lista de objetos `Stream` disponibles para la cuenta especificada.
+
+### Detalles de la transmisión
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-stream-details.png" alt="nodo de detalles de la transmisión" />
+</Frame>
+
+El nodo **Detalles del flujo** devuelve toda la información relevante relacionada con un `Stream` específico.
+
+#### Entradas
+
+- _stream_: Admite cualquier flujo generado dentro de la categoría de componentes `Stream`, pero también _urls de flujo_ en formato de texto.
+
+#### Producción
+
+- _stream_: El identificador único que identifica el flujo.
+
+- _name_: El nombre del flujo.
+
+- _description_: La descripción del flujo.
+
+- _createdAt_: La fecha de creación de este flujo.
+
+- _updatedAt_: La fecha de la última actualización del flujo.
+
+- _public_: Valor booleano que indica si el flujo es público o privado.
+
+- _collaborators_: Una lista de los colaboradores que tienen acceso a este flujo, así como sus roles.
+
+- _branches_: Una lista de las ramas disponibles para este flujo.
+
+### Actualizar flujo
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-stream-update.png" alt="Nodo de actualización de flujo" />
+</Frame>
+
+El nodo **Actualizar flujo** permite actualizar el _nombre_ de un flujo, su _descripción_ y si es _público_ (disponible para que lo lea cualquier persona con la _url del flujo_) o _privado_ (solo los colaboradores invitados pueden ver este flujo).
+
+#### Entradas
+
+- _streamUrl_: La URL de una transmisión, rama, confirmación u objeto.
+
+- _name (opcional)_: Cadena de texto con el nuevo nombre de la transmisión.
+
+- _description (opcional)_: Cadena de texto con la nueva descripción de la transmisión.
+
+- _isPublic (opcional)_: Valor booleano para activar/desactivar el uso compartido de enlaces de esta transmisión.
+
+#### Producción
+
+- _streamUrl_: La URL de la transmisión actualizada.
+
+### Herramientas para desarrolladores
+
+Estos nodos se desarrollaron exclusivamente para fines de prueba y desarrollo. Si no sabes qué son, probablemente nunca los necesites.
+
+#### Convertir a Speckle
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-convert-tospeckle.png" alt="Convertir a nodo Speckle" />
+</Frame>
+
+El nodo **Convertir a Speckle** convertirá cualquier objeto compatible (como líneas, curvas, mallas...) en objetos Speckle.
+
+Este nodo se desarrolló con fines de prueba/desarrollo, ya que los nodos de envío/recepción ya realizan este paso de conversión automáticamente.
+
+#### Convertir a nativo
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-convert-tonative.png" alt="Convertir a nodo nativo" />
+</Frame>
+
+El nodo **Convertir a nativo** convertirá cualquier objeto Speckle compatible en objetos compatibles.
+
+Este nodo fue desarrollado con fines de prueba/desarrollo.
+
+#### Serializar a JSON
+
+<Frame>
+  <img src="/images/legacy/dyn/node-serialize.png" alt="Nodo de serialización de objetos" />
+</Frame>
+
+El nodo **Serializar a JSON** convertirá cualquier objeto Speckle en texto con formato `JSON`.
+
+#### Deserialización desde JSON
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-deserialize.png" alt="Nodo de deserialización de objetos" />
+</Frame>
+
+El nodo **Deserializar desde JSON** convertirá un objeto Speckle serializado en formato `JSON` en objetos Speckle `Base`.
+
+#### Transporte del servidor
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-transports-server.png" alt="Nodo de transporte del servidor" />
+</Frame>
+
+Crea una conexión con un servidor Speckle específico.
+
+#### Transporte de SQLite
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-transport-sqlite.png" alt="Transporte SQLite" />
+</Frame>
+
+Crea una conexión a una base de datos SQLite específica.
+
+#### Transporte de disco
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-transport-disk.png" alt="Transporte de disco" />
+</Frame>
+
+Crea una conexión con un archivo específico en el disco duro del ordenador, donde se guardarán los datos en formato JSON.
+
+#### Transporte de memoria
+
+<Frame>
+  <img src="/images/legacy/dyn/nodes-transport-memory.png" alt="Transporte de memoria" />
+</Frame>
+
+Crea una conexión con el almacenamiento en memoria.

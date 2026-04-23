@@ -1,0 +1,137 @@
+---
+title: "Nodos de desarrollador"
+description: "Trabajando con nodos de desarrollador de Speckle"
+---
+## Uso de un token de acceso de desarrollador para la autenticación
+
+Si utiliza Speckle para Grasshopper en un entorno Rhino sin interfaz gráfica, como Rhino Compute, o si desea acceder a una cuenta de Speckle mediante un token de acceso de desarrollador, puede utilizar el nodo **Speckle Model URL**.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_modeltoken.jpg" />
+</Frame>
+
+<Note>
+El token de desarrollador utilizado debe tener habilitados los siguientes permisos: `profile:read`, `profile:email`, `stream:read` y `workspace:read` (a menos que se trate de un servidor sin permisos para espacios de trabajo), así como cualquier otro permiso de escritura necesario.
+</Note>
+
+**Entradas**
+1. Añade la entrada **URL de Speckle** al modelo de Speckle para el que deseas crear un recurso.
+
+2. Añade la cadena de texto **Token de Speckle** con tu token de acceso de desarrollador.
+
+Puedes crear tokens [en la app de Speckle](https://app.specke.systems/settings/user/developer) con los permisos que desees.
+
+**Resultados**
+1. El resultado **Modelo Speckle** contiene el recurso del modelo de la URL de entrada.
+
+## Inspeccionando todos los atributos de los parámetros de Speckle
+
+Al visualizar tu modelo en la aplicación web de Speckle, puedes activar el [Modo Desarrollador](../../3d-viewer/exploration#dev-eloper-mode) para inspeccionar a fondo todos los atributos de tus objetos Speckle. Algunos ejemplos de campos visibles en el modo desarrollador son:
+- El **ID de Speckle**, que identifica de forma única este objeto en el servidor de Speckle.
+
+- Atributos **geométricos**
+
+Ej.: el vector de nodos de una curva NURBS.
+
+- Atributos **específicos de la aplicación** en objetos de datos
+Ej.: la categoría, la familia y el nivel de los objetos de Revit.
+
+- Cualquier **objeto secundario** en los objetos de datos
+Ej.: las líneas base de los objetos civiles de corredor.
+
+- Cualquier atributo **adjunto dinámicamente**.
+
+Utilice el nodo **Deconstruct** para acceder a todos los campos de su parámetro Speckle en Grasshopper, tal como lo haría en el modo de desarrollo de su navegador.
+
+<Frame>
+<img src="/images/connectors/grasshopper/node_deconstruct.jpg" />
+</Frame>
+
+**Entradas**
+1. Añada una entrada **Parámetro Speckle** con cualquier parámetro Speckle que desee inspeccionar.
+
+**Resultados**
+1. Se creará un resultado para cada atributo directo del parámetro de entrada Speckle Param.
+
+**Configuración adicional**
+
+Haz clic con el botón derecho en un parámetro de salida para acceder a configuraciones adicionales: - Selecciona **Extraer parámetro** para crear automáticamente un nuevo nodo de parámetro con el valor y el nombre del parámetro de salida.
+
+<Warning>
+Este nodo está diseñado para la inspección de atributos en objetos individuales o en listas de objetos del mismo tipo Speckle.
+
+Si desea acceder a las propiedades de diferentes objetos, solicite que se añada esta funcionalidad a nuestros nodos de paso en nuestro foro.
+</Advertencia>
+
+## Operaciones síncronas
+
+Para cualquier script que opere en contextos que requieran la resolución síncrona de nodos, utilice los nodos **Publicar (síncrono)** y **Cargar (síncrono)** en lugar de los nodos Publicar y Cargar predeterminados.
+
+## Uso de Speckle con nodos de script C#/Python
+
+### Script C#
+
+Speckle publica paquetes NuGet para su SDK de C#. Deberá instalar los siguientes paquetes NuGet para su script de C# personalizado:
+- Utilice el paquete [Speckle.Sdk](https://www.nuget.org/packages/Speckle.Sdk) para operaciones de publicación y carga, serialización, clases de objetos principales como **Base** y **Collection**, y más.
+
+- Utilice el paquete [Speckle.Objects](https://www.nuget.org/packages/Speckle.Objects) para acceder a todas las clases de geometría y objetos adicionales.
+
+<Frame>
+<img src="/images/connectors/grasshopper/developer_csharp.jpg" />
+</Frame>
+
+<Steps>
+    <Step title="Agregue un nodo de script C# a su lienzo.">1. Este nodo se encuentra en **Matemáticas** > **Script**.
+
+2. Haz doble clic en el nodo para abrir la ventana del editor de scripts.
+</Step>
+
+    <Step title="Instala el paquete NuGet Speckle.Sdk">1. Haz clic en el icono de la caja para instalar un paquete de terceros para tu script.
+
+2. Accede al paquete NuGet Speckle.Sdk en tu navegador web (enlaces arriba).
+
+3. Ve a la pestaña **Script e interactivo** y copia el valor al portapapeles. El texto copiado debería verse así, con la versión más reciente del SDK:
+
+```
+
+#r "nuget: Speckle.Sdk, 3.5.5"
+
+```
+
+4. En Grasshopper, pega el valor copiado en el campo **Especificar paquete(s)** y haz clic en **Instalar**.
+</Step>
+
+    <Step title="Instala el paquete NuGet Speckle.Objects.">Repita el paso anterior para el paquete NuGet Speckle.Objects. El texto copiado debería verse así, con la versión más reciente del SDK:
+
+```
+#r "nuget: Speckle.Objects, 3.5.5"
+
+```
+</Step>
+</Steps>
+
+### Script de Python
+
+El SDK de Speckle para Python se puede instalar con pip para tu script personalizado de Grasshopper en Python.
+- Usa el paquete [specklepy](https://pypi.org/project/specklepy/) para operaciones de publicación y carga, serialización, todas las clases de objetos y más.
+
+<Frame>
+<img src="/images/connectors/grasshopper/developer_python.jpg" />
+</Frame>
+
+<Steps>
+    <Step title="Agrega un nodo de script de Python a tu lienzo.">1. Este nodo se encuentra en **Matemáticas** > **Script**.
+
+2. Haz doble clic en el nodo para abrir la ventana del editor de scripts.
+</Step>
+
+    <Step title="Instala el paquete specklepy">1. Haz clic en el icono de la caja para instalar un paquete de terceros para tu script.
+
+2. Escribe `specklepy` en el campo **Especificar paquete(s)** y haz clic en **Instalar**. Puedes verificar que este es el nombre del paquete pip en el enlace anterior.
+
+```
+specklepy
+
+```
+</Step>
+</Steps>

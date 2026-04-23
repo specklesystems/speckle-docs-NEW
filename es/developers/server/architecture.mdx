@@ -1,0 +1,72 @@
+---
+title: Server Architecture
+description: The Speckle server is designed as a modular, scalable system that can handle everything from small team deployments to enterprise-scale installations. This page provides a high-level overview of the server architecture and its components.
+---
+
+## Overview
+
+The Speckle server follows a microservices architecture pattern, with each component responsible for specific functionality while communicating through well-defined APIs. This design allows for:
+
+- **Scalability**: Components can be scaled independently
+- **Reliability**: Failure in one component doesn't bring down the entire system
+- **Maintainability**: Each component can be updated and maintained separately
+- **Flexibility**: Components can be deployed on different infrastructure as needed
+
+## Core Services
+
+### API Server
+
+The central component that handles all client requests and business logic.
+
+**Responsibilities:**
+- Authentication & Authorization
+- Project Management
+- Data Operations
+- User Management
+- Webhook Management
+
+### Frontend
+
+The web interface for managing Speckle projects and data.
+
+**Responsibilities:**
+- User Interface
+- Data Visualization
+- User Management
+- Project Administration
+
+### Supporting Services
+
+- **Preview Service**: Generates object previews headlessly
+- **Webhook Service**: Handles external webhook calls and integrations
+- **File Import Service**: Parses and imports various file formats
+- **Database monitor**: Generates statistics related to the stored data
+
+## Required Dependencies
+
+### Database (PostgreSQL)
+
+PostgreSQL serves as the primary database for all relational data including user accounts, projects, object metadata, and activity logs.
+
+### Object Storage (S3-compatible)
+
+Object storage handles the actual 3D data and file assets. We require an S3-compatible blob storage, such as AWS S3 or MinIO.
+
+### Cache Layer (Redis-compatible)
+
+The cache layer provides caching and session management capabilities, serving as the Redis-compatible open-source alternative.
+
+**Cached Data:**
+- User Sessions
+- Rate Limiting
+- Messages between supporting services and the API server
+
+### Email server (SMTP-compatible)
+
+This handles all transactional emails to users, including account email verification. We recommend using an externally provided email service which is SMTP compatible.
+
+---
+
+<Note>
+**For detailed implementation information**: Check the [GitHub repository](https://github.com/specklesystems/speckle-server) for the latest architectural decisions, configuration details, and technical specifications.
+</Note>

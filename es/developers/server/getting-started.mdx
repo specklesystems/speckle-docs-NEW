@@ -1,0 +1,166 @@
+---
+title: Getting Started
+description: Quick start guide to deploy a Speckle server using Docker Compose. Learn the minimal steps to get a server running, including prerequisites, Docker Compose setup, and initial configuration for local or production use.
+---
+
+## Prerequisites
+
+- **Linux VM** with at least 4GB RAM
+- **x86_64** CPU architecture
+- **Docker** and **Docker Compose** installed
+
+## Quick Start
+
+<Steps>
+<Step title="Create Directory">
+
+```bash
+mkdir /opt/speckle/
+cd /opt/speckle/
+```
+
+</Step>
+<Step title="Create Docker Compose File">
+
+Create a file named `docker-compose.yml` with the following content:
+
+```yaml
+version: '2.3'
+name: 'speckle-server'
+
+services:
+  postgres:
+    image: 'postgres:16.9-alpine'
+    restart: always
+    environment:
+      POSTGRES_DB: speckle
+      POSTGRES_USER: speckle
+      POSTGRES_PASSWORD: speckle
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data/
+
+  redis:
+    image: 'valkey/valkey:8-alpine'
+    restart: always
+    volumes:
+      - ./redis-data:/data
+
+  minio:
+    image: 'minio/minio'
+    command: server /data --console-address ":9001"
+    restart: always
+    ports:
+      - '127.0.0.1:9000:9000'
+    volumes:
+      - ./minio-data:/data
+
+  speckle-ingress:
+    image: speckle/speckle-docker-compose-ingress:latest
+    restart: always
+    ports:
+      - '127.0.0.1:80:8080'
+
+  speckle-frontend-2:
+    image: speckle/speckle-frontend-2:latest
+    restart: always
+    environment:
+      NUXT_PUBLIC_SERVER_NAME: 'local'
+      NUXT_PUBLIC_API_ORIGIN: 'http://127.0.0.1'
+      NUXT_PUBLIC_BACKEND_API_ORIGIN: 'http://speckle-server:3000'
+      NUXT_PUBLIC_BASE_URL: 'http://127.0.0.1'
+      NUXT_REDIS_URL: 'redis://redis'
+      # Set to true if running it w/ SSL
+      NUXT_PUBLIC_SSL_ENABLED: 'false'
+
+  speckle-server:
+    image: speckle/speckle-server:latest
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    environment:
+      CANONICAL_URL: 'http://127.0.0.1'
+      SESSION_SECRET: 'your-secret-key-here'
+      STRATEGY_LOCAL: 'true'
+      POSTGRES_URL: 'postgres'
+      POSTGRES_USER: 'speckle'
+      POSTGRES_PASSWORD: 'speckle'
+      POSTGRES_DB: 'speckle'
+      REDIS_URL: 'redis://redis'
+      S3_ENDPOINT: 'http://minio:9000'
+      S3_PUBLIC_ENDPOINT: 'http://127.0.0.1:9000'
+      S3_ACCESS_KEY: 'minioadmin'
+      S3_SECRET_KEY: 'minioadmin'
+      S3_BUCKET: 'speckle-server'
+      FRONTEND_ORIGIN: 'http://127.0.0.1'
+      EMAIL: 'true'
+      EMAIL_HOST: 'your-email-host-domain-here'
+      EMAIL_PORT: '587' # or another SMTP compatible port as defined by your transactional (SMTP relay) email provider
+      EMAIL_USERNAME: 'your-email-service-username'
+      EMAIL_PASSWORD: 'your-email-service-password'
+      EMAIL_SECURE: 'false' # enable to require SSL (Note that TLS is often preferred; see EMAIL_REQUIRE_TLS)
+      EMAIL_REQUIRE_TLS: 'true' # enable to require TLS. Disable if SSL is used instead.
+      EMAIL_FROM: 'an-email-address-you-own-and-configured-with-your-transactional-email-provider@example.org'
+
+  preview-service:
+    image: speckle/speckle-preview-service:latest
+    restart: always
+    depends_on:
+      - speckle-server
+    environment:
+      REDIS_URL: 'redis://redis'
+
+  webhook-service:
+    image: speckle/speckle-webhook-service:latest
+    restart: always
+    depends_on:
+      - speckle-server
+    environment:
+      PG_CONNECTION_STRING: 'postgres://speckle:speckle@postgres/speckle'
+
+  fileimport-service:
+    image: speckle/speckle-fileimport-service:latest
+    restart: always
+    depends_on:
+      - speckle-server
+    environment:
+      SPECKLE_SERVER_URL: 'http://speckle-server:3000'
+      PG_CONNECTION_STRING: 'postgres://speckle:speckle@postgres/speckle'
+```
+
+</Step>
+<Step title="Start the Server">
+
+```bash
+docker compose up -d
+```
+
+</Step>
+</Steps>
+
+## Access Your Server
+
+Once running, access your Speckle server at:
+
+- **Frontend**: `http://your-server-ip`
+- **MinIO Console**: `http://your-server-ip:9001` (credentials: `minioadmin`/`minioadmin`)
+
+## Next Steps
+
+1. **Create your first user** by visiting the frontend URL
+2. **Configure your server** - a full example is [part of the server repo](https://github.com/specklesystems/speckle-server/blob/main/docker-compose-speckle.yml)
+3. **Set up SSL certificates** for production use
+4. **Configure backups** and monitoring
+
+## Getting Help
+
+- **Community Forum**: [speckle.community](https://speckle.community)
+- **Professional Support**: [https://speckle.systems/pricing/](https://speckle.systems/pricing/)
+
+---
+
+<Note>
+  **Important**: This basic setup is not recommended for production use. For production deployments, see the complete 
+  [Docker Compose Quickstart](/developers/server/getting-started) guide.
+</Note>

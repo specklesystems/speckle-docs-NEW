@@ -1,0 +1,242 @@
+---
+title: "Autodesk Construction Cloud"
+sidebarTitle: "Autodesk Construction Cloud"
+description: "Conecta y sincroniza tus modelos de Autodesk Construction Cloud con Speckle para obtener análisis, paneles de control y flujos de trabajo de automatización."
+---
+
+import CoordinationWorkflowRevit from "/snippets/es/connectors/coordination-workflow-revit.mdx";
+
+<Info>
+  The Autodesk Construction Cloud integration is available on **Team** and
+  **Enterprise** plans. To enable it for your organisation,{" "}
+  <a href="mailto:office@speckle.systems?subject=Autodesk%20Construction%20Cloud%20Integration%20enquiry">
+    get a quote
+  </a>{" "}
+  or see [New plans FAQ](/workspaces/new-plans-faq) for plan details.
+</Info>
+
+<Note>
+La integración de Speckle debe estar habilitada en su ACC Hub antes de poder iniciar sesión.
+Si no ve la opción para iniciar sesión en Autodesk Construction Cloud en la configuración del espacio de trabajo de Speckle, su administrador de TI debe agregar primero la integración en ACC. Consulte [Habilitar la integración en ACC (Administrador de TI)](#enabling-the-integration-on-acc-it-admin) para ver los pasos que siguen.
+</Note>
+
+<Note>
+¿Quieres contribuir a definir este flujo de trabajo? Únete al estudio de pruebas de usuario para las cargas de NWC y NWD
+
+con sincronización ACC en la página [Oportunidades de pruebas de usuario](/get-involved/user-testing#nwc-nwd-acc-sync).
+</Note>
+
+## Configuración
+
+Estos pasos presuponen que la integración de Speckle ya está habilitada en el ACC Hub de su organización. Si no lo está, su administrador de TI debe completar primero los pasos descritos en [Habilitación de la integración en ACC (Administrador de TI)](#enabling-the-integration-on-acc-it-admin).
+
+<Steps>
+  <Step title="Inicia sesión en Autodesk Construction Cloud.">
+    1. Seleccione **Configuración del espacio de trabajo** en el menú desplegable (esquina superior izquierda).
+
+    <Frame>
+
+      <img src="/images/connectors/cloud-integrations/acc/acc-workspace settings.png" alt="Configuracion del espacio de trabajo" />
+
+    </Frame>
+
+    2. Seleccione **Iniciar sesión** junto a Autodesk Construction Cloud.
+
+    <Frame>
+
+      <img src="/images/connectors/cloud-integrations/acc/acc-login.png" alt="Iniciar sesión" />
+
+    </Frame>
+
+    3. Inicie sesión en su cuenta de ACC y seleccione **Permitir** en el cuadro de diálogo de autorización.
+
+    <Frame>
+
+     <img src="/images/connectors/cloud-integrations/acc/acc-authorize app.png" alt="Autorizar aplicación" />
+
+    </Frame>
+
+    Su integración ya está configurada.
+
+  </Step>
+  <Step title="Sincroniza tu primer modelo">
+    1. Desde tu proyecto en Speckle, selecciona **Agregar modelo > Sincronizar desde ACC**.
+
+    <Frame>
+
+      <img src="/images/connectors/cloud-integrations/acc/acc-add model.png" alt="Agregar modelo" />
+
+    </Frame>
+
+    2. Selecciona el archivo que deseas sincronizar. Aquí se mostrarán tus hubs, proyectos, carpetas y archivos de ACC.
+
+    <Frame>
+
+      <img src="/images/connectors/cloud-integrations/acc/acc-select file.png" alt="Seleccionar archivo" />
+
+    </Frame>
+
+    3. Opcionalmente, define la vista que deseas exportar. Consulta [Selección de vista](#view-selection) a continuación para obtener más información sobre cómo afecta esto a la sincronización.
+    <Frame>
+
+      <img src="/images/connectors/cloud-integrations/acc/acc-confirm selection.png" alt="Confirmar selección" />
+
+    </Frame>
+
+    4. Seleccione **Crear**.
+
+    Esto conecta su archivo ACC con su modelo Speckle. Los cambios en ACC se sincronizan automáticamente con Speckle.
+
+  </Step>
+</Steps>
+
+## Formatos de archivo compatibles
+
+Actualmente, se admiten los siguientes formatos de archivo para la sincronización desde Autodesk Construction Cloud:
+
+| Formato | Extensión | Estado |
+| ---------- | ------------- | ------------ |
+| Revit | `.rvt` | ✅ Compatible |
+| IFC | `.ifc` | ✅ Compatible |
+| Navisworks | `.nwc` `.nwd` | ⚠️ Beta |
+
+<Info>
+  Navisworks files (`.nwc` and `.nwd`) are supported for manual upload and ACC
+  sync as a beta feature. Many Autodesk (and other) products can export
+  Navisworks Cache files without requiring a Navisworks license, so you can
+  upload those exports to Speckle.
+</Info>
+
+<Warning>
+Si bien el analizador de Navisworks está en fase beta, si el tamaño del archivo supera los 200 MB,
+la sincronización podría no siempre ser exitosa. Considere la sincronización de Navisworks como una versión beta y
+espere fallos ocasionales, especialmente con archivos muy grandes.
+</Warning>
+
+<Info>
+  We're planning to add support for additional formats like `.dwg` in future
+  releases.
+</Info>
+
+<CoordinationWorkflowRevit />
+
+## Habilitación de la integración en ACC (Administrador de TI)
+
+Si su organización aún no ha habilitado la integración de Speckle en ACC Hub, un administrador de TI (o cualquier persona con acceso de **Administrador de cuenta** en ACC) debe agregarla primero. Después de eso, los usuarios pueden iniciar sesión desde la configuración del espacio de trabajo de Speckle y sincronizar proyectos como se describe en [Configuración](#setup) anteriormente.
+
+<Info>
+  If **Custom Integrations** is not visible in the Account Admin panel, the
+  account may not have the required role. Contact your Autodesk administrator.
+</Info>
+
+<Steps>
+  <Step title="Agregue una integración personalizada a ACC">
+    1. Acceda a la página de [Administración de cuenta de ACC](https://acc.autodesk.com/) (o [acc.autodesk.eu](https://acc.autodesk.eu/) para la región europea).
+
+    2. En el panel de Administración de cuenta, seleccione **Integraciones personalizadas**.
+
+    3. Seleccione **Agregar integraciones personalizadas**.
+
+    4. Introduzca los detalles de la integración (copie el ID de cliente tal cual, sin espacios adicionales):
+
+    - **ID de cliente**: `5Y2LzxsL3usaD1xAMyElBY8mcN6XKyfHfulZDV3up0jfhN5Y`
+
+    - **Nombre**: `Speckle`
+
+    <Frame>
+
+    <img src="/images/connectors/cloud-integrations/acc/acc-add custom integration.png" alt="Agregar integración personalizada" />
+
+    </Frame>
+
+    5. Seleccione **Siguiente**.
+    6. En la advertencia de permisos, seleccione **Continuar de todos modos**.
+
+    <Frame>
+
+      <img src="/images/connectors/cloud-integrations/acc/acc-premission warning.png" alt="Advertencia de permisos" />
+
+    </Frame>
+
+    <Note>
+
+      **La advertencia proviene de Autodesk, no de Speckle.** Autodesk no ofrece controles de permisos granulares para las integraciones personalizadas, por lo que el cuadro de diálogo no puede mostrar el alcance real.
+
+      **Speckle solo solicita permisos de solo lectura** (`account:read`, `user-profile:read`, `data:read`, `data:search`, `bucket:read`, `viewables:read`, `openid`) para acceder a los archivos y metadatos para su conversión. Consulte las [definiciones de permisos de Autodesk](https://aps.autodesk.com/en/docs/oauth/v2/developers_guide/scopes/) para obtener más información.
+
+      Speckle hereda los permisos de ACC existentes de cada usuario. Los usuarios solo ven los hubs, proyectos y carpetas a los que ya tienen acceso. No se eleva el nivel de acceso. La API de Autodesk aplica estas restricciones.
+
+      Para un mayor control, cree una cuenta de ACC dedicada con acceso limitado a proyectos o carpetas específicos y úsela para sincronizar con Speckle.
+
+    </Note>
+    La integración con Speckle ya está habilitada para su cuenta de ACC. Los usuarios pueden iniciar sesión desde la configuración del espacio de trabajo de Speckle y sincronizar proyectos.
+  </Step>
+</Steps>
+
+## Selección de vista
+
+Al sincronizar un archivo de Revit desde ACC, opcionalmente puede especificar un nombre de vista para controlar qué elementos se incluyen en la sincronización.
+
+### No se ha especificado ninguna vista (predeterminada)
+
+Cuando no se especifica un nombre de vista, **todos los elementos compatibles del modelo completo se sincronizan**. Esto incluye todos los elementos de todo el modelo.
+
+Esta es la opción recomendada cuando deseas:
+
+- Representación completa de su modelo
+- Acceso a todos los elementos para análisis y paneles de control
+- Máxima disponibilidad de datos para flujos de trabajo posteriores
+
+### Especificar un nombre de vista
+
+Al introducir un nombre de vista específico, **solo se sincronizarán los elementos visibles en esa vista**. El nombre de la vista debe coincidir exactamente (distinguiendo mayúsculas y minúsculas) con una vista de su modelo de Revit.
+
+Esto es útil cuando quieres:
+
+- Sincroniza solo una parte de tu modelo
+- Céntrate en áreas o disciplinas específicas
+- Adapta el alcance a una vista de coordinación concreta
+- Sincroniza las vistas que corresponden a diferentes opciones de diseño
+
+<Warning>
+Si el nombre de vista especificado no existe en el modelo, la sincronización fallará.
+
+Asegúrese de que el nombre de la vista coincida exactamente.
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="¿La conexión es de solo lectura?">
+    Sí. Speckle establece una conexión de solo lectura con Autodesk Construction Cloud, lo que significa que podemos sincronizar y analizar sus datos, pero no podemos modificar los archivos originales. Esto garantiza la integridad y la seguridad de los datos.
+  </Accordion>
+  <Accordion title="¿Con qué frecuencia se sincronizan los archivos?">
+    Una vez creado un modelo de sincronización, este se sincroniza automáticamente cada vez que se publica una nueva versión del archivo en Autodesk Construction Cloud. No es necesario activar manualmente la sincronización continua.
+  </Accordion>
+  <Accordion title="¿Por qué mis modelos están en la ubicación incorrecta?">
+    La sincronización ACC convierte los modelos usando el origen interno y no aplica las coordenadas compartidas de Revit. Los modelos sincronizados no se colocan en un espacio coordinado. Para flujos de trabajo de coordinación que dependen de coordenadas compartidas, utilice el conector de Revit para publicar y cargar modelos, de modo que se conserven las modificaciones de coordenadas.
+  </Accordion>
+  <Accordion title="¿Qué ocurre si falla la sincronización?">
+    Las causas comunes incluyen problemas de acceso a archivos, problemas de autorización o formatos de archivo no compatibles. Verifique lo siguiente:
+
+    - Que el archivo sea accesible.
+
+    - Que sus permisos sean correctos.
+
+    - Que el archivo esté en formato **.rvt**, **.ifc**, **.nwc** o **.nwd**.
+
+    Si el problema persiste, póngase en contacto con el soporte técnico.
+
+  </Accordion>
+  <Accordion title="¿Cómo puedo obtener acceso?">
+    Para solicitar acceso, contáctenos en [hello@specke.systems](mailto:hello@specke.systems).
+  </Accordion>
+  <Accordion title="¿Cuál es la diferencia entre la integración de ACC y otras integraciones?">
+    La integración de ACC proporciona integración directa con Autodesk Construction Cloud y permite la sincronización automática de los datos de construcción. A diferencia de otras integraciones que requieren la carga manual de archivos o conectores, la sincronización de ACC se produce automáticamente cuando se actualizan los archivos en la nube.
+  </Accordion>
+  <Accordion title="¿Puedo usar modelos de Autodesk Construction Cloud con Speckle Intelligence?">
+    Sí. Una vez sincronizados, sus modelos de Autodesk Construction Cloud se pueden usar con Speckle Intelligence para análisis, creación de paneles y generación de información valiosa a partir de sus datos de construcción.
+  </Accordion>
+</AccordionGroup>
+
+## Obtener ayuda
+
+Para cualquier pregunta o para solicitar acceso, contacte con nuestro equipo de soporte o visite la [Comunidad Speckle](https://speckle.community/).

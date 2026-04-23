@@ -1,0 +1,80 @@
+---
+title: Rhino & Grasshopper
+description: "Manual installation instructions for Speckle Rhino and Grasshopper connectors via ZIP"
+---
+
+import DisableUpdateNotifications from '/snippets/es/connectors/disable-update-notifications.mdx';
+
+<Warning>
+  **This guide is for IT administrators only.** If you are a regular user, see our [Rhino installation guide](/connectors/rhino/rhino) instead.
+</Warning>
+
+<Info>
+  **Install separately for each version**: Repeat these steps for each application version you want to use with Speckle.
+</Info>
+
+<Callout icon="box" color="#07a4ffff">
+  Rhino and Grasshopper connectors are bundled together. Installing the Rhino connector also installs Grasshopper support.
+</Callout>
+
+All current Speckle Connectors require the Speckle Desktop Services background service. [Learn more about Desktop Services](/connectors/manual-installation/desktop-services).
+
+## Install for a single user
+
+1. Extract the downloaded ZIP file.
+2. Copy all contents **except `.gh` files** from `.\Speckle.Connectors.Rhino{VERSION}\` to `%AppData%\McNeel\Rhinoceros\{VERSION}.0\Plug-ins\Speckle.Connectors.Rhino{VERSION} (2153799A-0CEC-40DE-BC3A-01E5055222FF)\`
+   - Replace `{VERSION}` with your Rhino version (example: `8`)
+   - Create the directory if it doesn't exist
+
+## Register the plugin
+
+Rhino requires registry keys to recognize the plugin. This step requires administrator access.
+
+1. Open Registry Editor (press Windows key + R, type `regedit`, and press Enter).
+2. Navigate to `HKEY_CURRENT_USER\Software\McNeel\Rhinoceros\{VERSION}.0\Plug-Ins\2153799A-0CEC-40DE-BC3A-01E5055222FF`
+   - Create the path if it doesn't exist
+3. Create a new string value named `Name` with type `REG_SZ`
+   - Set the value to `Speckle.Connectors.Rhino{VERSION}`
+4. Create a new string value named `FileName` with type `REG_SZ`
+   - Set the value to the full path of the `.rhp` file you copied
+   - Example: `C:\Users\YourUsername\AppData\Roaming\McNeel\Rhinoceros\8.0\Plug-ins\Speckle.Connectors.Rhino8 (2153799A-0CEC-40DE-BC3A-01E5055222FF)\Speckle.Connectors.Rhino8.rhp`
+
+## Install for all users
+
+Use the following changes from the single user installation:
+
+- **Program files**: Use `%ProgramData%` instead of `%AppData%` in all file paths
+- **Registry location**: Use `HKEY_LOCAL_MACHINE` instead of `HKEY_CURRENT_USER`
+- Update the `FileName` registry value to match your `%ProgramData%` installation path
+
+## Install Grasshopper sample files (optional)
+
+The Rhino 8 connector includes sample Grasshopper scripts. These samples work with all supported Rhino versions.
+
+1. Copy all `.gh` files from `.\Speckle.Connectors.Rhino8\` to `%AppData%\Grasshopper\Libraries\Speckle Sample Files\`
+   - Create the directory if it doesn't exist
+   - Only Rhino 8 includes sample files
+
+<Warning>
+  **Don't copy sample files to the plugin folder**: Place `.gh` files only in the Grasshopper Libraries folder, not with the connector files.
+</Warning>
+
+## Disable update notifications
+
+<DisableUpdateNotifications />
+
+## Uninstall the connector
+
+1. Delete the `Speckle.Connectors.Rhino{VERSION}` folder from your installation location.
+2. Delete the registry keys at `HKEY_CURRENT_USER\Software\McNeel\Rhinoceros\{VERSION}.0\Plug-Ins\2153799A-0CEC-40DE-BC3A-01E5055222FF`
+3. Optionally, delete the Grasshopper sample files from `%AppData%\Grasshopper\Libraries\Speckle Sample Files\`
+
+To remove all Speckle products, delete the `%AppData%\Speckle\` folder.
+
+<Card
+  title="Back to manual installation overview"
+  icon="arrow-left"
+  href="/connectors/manual-installation/introduction"
+>
+  Return to connector selection
+</Card>

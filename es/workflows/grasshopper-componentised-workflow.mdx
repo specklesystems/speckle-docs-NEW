@@ -1,0 +1,138 @@
+---
+title: "Flujo de trabajo de Grasshopper basado en componentes"
+sidebarTitle: "Saltamontes"
+description: "Divide las definiciones grandes de Grasshopper en módulos que transfieran datos a través de modelos Speckle."
+---
+Utilice esta guía cuando una definición de Grasshopper sea demasiado extensa o cuando varias personas o herramientas necesiten trabajar en diferentes etapas del mismo flujo de trabajo. Muestra cómo tratar los modelos Speckle como las interfaces entre los módulos de Grasshopper. Para usuarios que ya envían y reciben datos con Speckle en Grasshopper.
+
+<Note>
+**Antes de empezar:** Necesitas tener instalado el conector Speckle para Grasshopper y conocimientos básicos sobre los componentes **Enviar** y **Recibir**. Si no tienes experiencia con Speckle en Grasshopper, consulta primero la guía del conector [Grasshopper connector](/connectors/grasshopper/grasshopper).
+</Note>
+
+<Frame>
+  <img src="/images/connectors/grasshopper_toolbar.jpg" alt="Barra de herramientas Grasshopper Speckle con componentes de envío y recepción." />
+</Frame>
+
+## Cuándo Componentizar una Definición de Grasshopper
+
+**Cuándo usarlo:** Su definición es lo suficientemente compleja como para que tenga sentido separar los archivos o propietarios.
+
+<Steps>
+  <Step title="Identificar los límites de los módulos naturales">Busque etapas que ya existan en su definición, como «generación de geometría base», «configuración del análisis», «preparación de la visualización» o «documentación». Cada una de ellas es un módulo candidato.</Step>
+  <Step title="Decide qué posee cada módulo.">Para cada etapa, decida qué debe producir (por ejemplo, sólidos de sala limpios con metadatos, mallas de análisis, curvas de diseño). Estos se convierten en los resultados públicos de los que dependen los módulos posteriores.</Step>
+  <Step title="Verifica quién necesita trabajar en cada etapa.">Si distintas personas o equipos se encargan de distintas fases (por ejemplo, diseño frente a análisis), la modularización facilita la colaboración. Incluso para una sola persona, los módulos ayudan a separar los experimentos de la lógica establecida.</Step>
+</Steps>
+
+Resultado: Una lista de módulos con responsabilidades claras que se pueden dividir en archivos Grasshopper independientes.
+
+## Diseñar las interfaces de Speckle entre módulos
+
+**Cuándo usarlo:** Antes de crear archivos Grasshopper separados.
+
+<Steps>
+  <Step title="Crea un proyecto Speckle y modelos para el flujo de trabajo.">En Speckle, crea un proyecto que contendrá todos los modelos para este flujo de trabajo. Para cada módulo, planifica uno o más modelos o ramas (por ejemplo, `01_geometría-base`, `02_entrada-análisis`, `03_visualización`). Un flujo de trabajo típico es el siguiente: un módulo publica la geometría base de un modelo; un segundo la procesa y publica la entrada de análisis; un tercero procesa esta entrada y genera documentación o exportaciones.
+
+<Note>
+Se puede agregar aquí un diagrama del flujo de trabajo (proyecto → modelos → módulos) como referencia visual. El flujo es: **Archivo GH de origen → Enviar → Modelo/rama de Speckle → Recibir → Archivo GH de destino**.
+</Note></Step>
+  <Step title="Defina el contrato para cada salida del módulo.">Para cada módulo, decide qué datos se enviarán a Speckle. Especifica claramente los tipos de objetos, las propiedades requeridas, la nomenclatura y las unidades. Considera esto como un contrato: los módulos posteriores deben poder confiar en que
+se mantendrá estable.</Step>
+  <Step title="Elige cómo versionarás los datos.">Decide si los módulos posteriores deben usar siempre la última versión de una rama o fijar versiones específicas para ejecuciones repetibles. Para flujos de trabajo automatizados o de producción, es preferible fijar versiones para evitar sorpresas.</Step>
+</Steps>
+
+Resultado: Un mapa sencillo que muestra qué modelos y ramas transportan datos entre módulos, y qué contiene cada uno de ellos.
+
+## Crea un módulo ascendente que publique en Speckle
+
+**Cuándo usarlo:** Para crear el primer módulo de la cadena que produce datos para otros.
+
+<Steps>
+  <Step title="Inicie un archivo Grasshopper para el módulo.">Copia únicamente la parte de tu definición existente que pertenece a este módulo en un nuevo archivo de Grasshopper. Asegúrate de que sus entradas se centren en lo que este módulo realmente necesita para funcionar.</Step>
+  <Step title="Agregue un componente Speckle Send en la salida.">Coloca un componente **Enviar** del conector Speckle Grasshopper en el punto donde quieras exponer los datos. Conecta la geometría y los datos que definiste en tu contrato como entrada.
+
+<Frame>
+
+<img src="/images/connectors/grasshopper_publish.jpg" alt="Definición de Grasshopper con publicación del componente Enviar en Speckle" />
+
+</Frame>
+</Step>
+  <Step title="Configurar cuenta, servidor, proyecto y modelo">Configura el componente Send con la cuenta, el servidor, el proyecto y el nombre del modelo o rama de Speckle correctos (por ejemplo, `01_base-geometry`). Usa nombres claros y estables que reflejen la función del módulo.</Step>
+  <Step title="Datos de forma para consumidores finales">Antes de enviar los datos, límpielos y estructurelos: agrupe los elementos lógicamente, asegúrese de que las propiedades importantes estén presentes y tengan nombres coherentes, y evite enviar datos no utilizados o experimentales. El objetivo es obtener un gráfico de objetos ordenado que los módulos posteriores no necesiten reinterpretar.</Step>
+  <Step title="Publicar y verificar en Speckle">Ejecuta la definición y envía los datos. Abre el proyecto en Speckle, inspecciona el modelo y confirma que los objetos, las propiedades y la nomenclatura coinciden con el contrato previsto.</Step>
+</Steps>
+
+Resultado: Un módulo independiente de Grasshopper que publica un modelo Speckle bien definido para que otros lo utilicen.
+
+## Construir módulos posteriores que consuman modelos Speckle
+
+**Cuándo usarlo:** Para crear módulos que dependen de datos de etapas anteriores.
+
+<Steps>
+  <Step title="Inicie un nuevo archivo Grasshopper por cada módulo posterior.">Crea una definición de Grasshopper independiente para cada etapa posterior (p. ej., análisis, informes, documentación). Mantén las entradas y salidas explícitas para que el archivo sea fácil de entender.</Step>
+  <Step title="Agregar componentes Speckle Receive para modelos ascendentes">Coloca uno o más componentes **Receive** y configúralos para que apunten a los modelos o ramas ascendentes (por ejemplo, `01_base-geometry`). Si la estabilidad es importante, fija el receptor a una versión específica.
+
+<Frame>
+
+<img src="/images/connectors/grasshopper_load.jpg" alt="Definición de Grasshopper con carga del componente Recibir desde Speckle" />
+
+</Frame>
+</Step>
+  <Step title="Adaptar los datos recibidos a las necesidades locales.">Convierte los objetos recibidos a los tipos, estructuras y unidades que este módulo utiliza internamente. Aquí también puedes añadir propiedades específicas del módulo o realizar filtros basados en etiquetas o parámetros.</Step>
+  <Step title="Opcionalmente, publique los resultados de este módulo.">Si otro módulo va a utilizar esta etapa, añada un componente **Enviar** a la salida de su módulo y repita los pasos de configuración y modelado. Elija un modelo o rama que nombre claramente esta etapa (por ejemplo,
+
+`02_analysis-input`).</Step>
+  <Step title="Probar los módulos juntos">Ejecuta el módulo ascendente para publicar datos actualizados, luego ejecuta el módulo descendente y confirma que los receptores obtienen los objetos esperados. Corrige cualquier discrepancia en el contrato antes de añadir más complejidad.</Step>
+</Steps>
+
+Resultado: Uno o más módulos posteriores que consumen de forma fiable modelos Speckle desde el módulo anterior y que pueden publicar por sí mismos resultados limpios.
+
+## Coordinación entre personas y herramientas
+
+**Cuándo usarlo:** Varias personas, máquinas o herramientas comparten la responsabilidad del oleoducto.
+
+<Steps>
+  <Step title="Asigne una propiedad clara a cada módulo.">Decida quién es el propietario de cada módulo y dónde se encuentra su archivo Grasshopper (por ejemplo, en un repositorio con control de versiones). Los propietarios son responsables de mantener los contratos de Speckle estables y documentados.</Step>
+  <Step title="Adjunte los contratos de documentación a los archivos.">Para cada módulo, registra qué proyecto, modelos y ramas de Speckle lee y escribe, y qué contiene cada salida. Un breve archivo README junto al archivo de Grasshopper suele ser suficiente.</Step>
+  <Step title="Acordar la gestión del cambio">Establezca cómo se comunicarán los cambios en los niveles superiores. Por ejemplo, exija una breve nota cada vez que cambie la estructura del objeto o las propiedades clave, y programe un tiempo para que los responsables de los niveles inferiores se adapten.</Step>
+  <Step title="Ejecutar los módulos en las máquinas adecuadas.">Permita que los módulos de geometría o análisis complejos se ejecuten en estaciones de trabajo potentes o máquinas dedicadas, mientras que los módulos más ligeros de informes o visualización pueden ejecutarse en otro lugar. Los modelos Speckle transfieren los datos entre ellos.</Step>
+</Steps>
+
+Resultado: Los equipos pueden trabajar en diferentes fases sin compartir un único archivo grande de Grasshopper, y los cambios se propagan mediante modelos Speckle bien definidos.
+
+## Patrones y errores comunes
+
+- **Patrón: Flujo de trabajo lineal**
+
+- Un módulo publica la geometría base; otro prepara la entrada para el análisis; un tercero genera la documentación o las exportaciones. Cada etapa lee y escribe en un modelo Speckle dedicado.
+
+- **Patrón: Flujos de trabajo ramificados**
+
+- Un único modelo de origen alimenta varios módulos de destino (p. ej., análisis de iluminación natural, estimación de costes, visualización). Todos los receptores de destino apuntan a la misma rama o versión del modelo de origen.
+
+- **Error: Enviar todo**
+
+- Publicar todo el estado de Grasshopper hace que los módulos de destino sean frágiles y difíciles de entender. En su lugar, envíe solo lo necesario y mantenga los contratos pequeños.
+
+- **Error: Cambios de esquema no anunciados**
+
+- Cambiar los nombres o las estructuras de las propiedades sin coordinación provoca fallos en los módulos de destino. Trate los contratos como API compartidas y modifíquelos de forma deliberada.
+
+## Preguntas frecuentes
+
+<AccordionGroup>
+<Accordion title="¿Cuántos módulos debe tener un flujo de trabajo?">Utilice tantos módulos como necesite para mantener claras las responsabilidades y gestionar los archivos. Lo habitual es usar entre 2 y 4 módulos (por ejemplo, geometría base, preparación para el análisis, informes y exportaciones) en lugar de muchos módulos muy pequeños.</Accordion>
+<Accordion title="¿Pueden varios módulos posteriores consumir el mismo modelo Speckle?">Sí. Cualquier número de archivos de Grasshopper u otras herramientas pueden recibir información del mismo proyecto, modelo y rama. Esta es una buena manera de centralizar la geometría base y distribuirla en flujos de trabajo especializados.</Accordion>
+<Accordion title="¿Los módulos posteriores deben usar siempre la última versión?">Para trabajos exploratorios, usar la última versión simplifica las cosas. Para análisis repetibles o series de producción, configure los receptores con versiones específicas para que los resultados se puedan reproducir y comparar de forma fiable.</Accordion>
+<Accordion title="¿Qué ocurre si un módulo posterior necesita datos adicionales?">Actualiza el contrato del módulo ascendente para incluir las propiedades u objetos adicionales y, a continuación, agrégalos al componente Send. Coordina el cambio con todos los responsables descendentes para que puedan aprovechar los nuevos datos sin alterar la lógica existente.</Accordion>
+<Accordion title="¿Cómo puedo depurar problemas entre módulos?">Primero, inspeccione el modelo Speckle ascendente en el visor web para confirmar que los objetos y las propiedades se vean como se espera. Luego, revise la configuración del componente de recepción y cualquier lógica de conversión en el archivo descendente. Trabaje desde la interfaz hacia adentro, en lugar de desde el interior de la definición.</Accordion>
+<Accordion title="¿Pueden participar en el flujo de trabajo herramientas que no sean de Grasshopper?">Sí. Cualquier herramienta con un conector o SDK de Speckle puede leer y escribir en los mismos modelos y ramas. Por ejemplo, las herramientas de análisis, los paneles de control o los scripts pueden consumir los resultados de los módulos de Grasshopper o publicar nuevas etapas en el flujo de trabajo.</Accordion>
+<Accordion title="¿Qué tamaño máximo pueden alcanzar los modelos Speckle entre módulos?">Los modelos pueden ser grandes, pero las cargas útiles muy pesadas afectarán los tiempos de envío/recepción y el rendimiento de la red. Si los modelos se vuelven difíciles de manejar, considere dividirlos por disciplina, zona o propósito para que los módulos solo consuman lo que necesitan.</Accordion>
+<Accordion title="¿Necesito Automate para flujos de trabajo modularizados?">No. Los flujos de trabajo modularizados funcionan con envío y recepción manual. La automatización resulta útil cuando se desea que estos módulos se ejecuten automáticamente mediante activadores, pero no es necesaria para el patrón en sí.</Accordion>
+</AccordionGroup>
+
+## Ver también
+
+- [Conector Grasshopper](/connectors/grasshopper/grasshopper)
+- [Descripción general de los conectores](/connectors/overview)
+- [Paneles de control de inteligencia](/analytics/intelligence-dashboards)
+

@@ -1,0 +1,154 @@
+---
+title: "Características"
+noindex: true
+---
+
+import LegacyWarning from '/snippets/es/legacy-warning.mdx'
+import LegacyVersions from '/snippets/es/legacy-versions.mdx'
+
+<LegacyWarning connector="Revit" /> 
+<LegacyVersions app="AutodeskRevit" versions="2020, 2021, 2022, 2023 and 2024" />
+
+En esta página, explicaremos cómo Revit Connector convierte tu modelo de Revit al formato Speckle y cómo gestiona las actualizaciones en Revit.
+
+## Conversión de datos de Revit a Speckle
+
+Al enviar datos desde Revit, Speckle se encarga de convertirlos a un formato compatible con Speckle. Si le interesa saber cómo se estructuran estos datos, consulte las **[definiciones de clases del kit de objetos](https://github.com/specklesystems/speckle-sharp/tree/master/Objects/Objects/BuiltElements)**.
+
+Por ejemplo, una habitación de Revit se verá así:
+
+<img src="/images/legacy/revit/features-room-data.png" alt="Estructura de datos de la habitación" width={350} />
+
+- A grandes rasgos, tenemos todas las propiedades principales que definen la habitación, tales como:
+
+- Nombre
+
+- Área
+
+- Número
+
+- Geometría
+
+- Categoría
+- Etc.
+
+Para cada categoría de elemento, tendrás algunas propiedades principales a las que podrás acceder rápidamente a un nivel superior. Las claves y sus valores pueden variar según el elemento.
+
+Todos los demás parámetros de Revit, tanto de **tipo como de instancia**, están anidados dentro de la propiedad **parámetros**. Vea un ejemplo a continuación:
+
+  <img src="/images/legacy/revit/features-room-parameters.png" alt="Parámetros de la habitación" width={350} />
+
+- **ROOM_AREA:** Nombre interno de Revit (API) del parámetro Área para Habitaciones.
+
+- **name:** Representa el nombre del parámetro. En la imagen anterior, es "Area".
+
+- **value:** Representa el valor del parámetro. En este caso, es "2233.64".
+
+- **isShared:** Verdadero si el parámetro es compartido.
+
+- **isReadOnly:** Verdadero si el parámetro es de solo lectura.
+
+- **speckleType:** Representación de moteado del elemento. En este caso, es un objeto "Objects.BuiltElements.Revit.Parameter".
+
+- **y más…**
+
+  <Callout type="info">
+    All the parameters are stored using their **internal Revit names**. You can see the full list of `BuiltInParameter` values **[here](https://www.revitapidocs.com/2022/fb011c91-be7e-f737-28c7-3f1e1917a0e0.htm)**. If you need to access their display name, just refer to the `name` property of each parameter, but please keep in mind these are not unique and can vary between languages.
+  </Callout>
+
+## Actualización de elementos en Revit
+
+El conector se encarga de actualizar automáticamente los elementos recibidos siempre que sea posible (en lugar de eliminarlos y volver a crearlos). Esto es preferible, ya que se conservan las dimensiones, los identificadores de elementos y otras anotaciones.
+
+**Los elementos se actualizan en estas dos circunstancias:**
+
+- Si el elemento se creó en otro proyecto/software y se recibió previamente: por ejemplo, BuiltElements creados en Rhino o Grasshopper.
+
+- Si el elemento se creó en el mismo proyecto en el que está trabajando: por ejemplo, si envía algunas paredes a Speckle, las edita y las vuelve a recibir del mismo modelo.
+
+Aquí tienes algunos detalles técnicos por si te interesa saber qué ocurre entre bastidores:
+
+- Los BuiltElements tienen una propiedad llamada `applicationId`, que es diferente de la propiedad `id/hash` que tienen, y representa el ID de dicho elemento en la aplicación host en la que se creó por primera vez. Si el elemento se creó en Revit, es el `UniqueId`; si proviene de Grasshopper/Rhino, es un campo análogo.
+- Cuando se recibe un modelo en Revit, los `applicationIds` de todos los BuiltElements creados se almacenan en caché en el receptor.
+- Al recibir por segunda vez del mismo modelo, si los elementos recibidos tienen el mismo `applicationId` que uno recibido anteriormente (y aún existe en el documento), el conector intentará modificarlos en lugar de crear nuevos. Si la actualización falla (o no está permitida por la API), se eliminarán los elementos y se crearán otros nuevos.
+- Si no se encuentra ningún elemento en caché, pero existe un elemento en el documento con un `applicationId` coincidente que se utiliza para la actualización (esto ocurre cuando alguien restaura cambios enviados previamente en el mismo proyecto).
+- Si un elemento recibido no tiene un `applicationId`, no se realizará ningún mecanismo de actualización (esto podría suceder con BuiltElements creados en Python si no se generan `applicationIds` manualmente).
+
+### Niveles
+
+En Revit, los niveles se actualizan siguiendo la lógica descrita anteriormente, con una pequeña excepción: si un modelo ya contiene un nivel a la misma elevación, se utilizará el nivel existente y se actualizará su nombre si es necesario. Por ejemplo, si recibe el nivel «Nivel 03», que se encuentra a 9000 mm, en un archivo que contiene el nivel «3.er piso» a 9000 mm, se le cambiará el nombre y se utilizará el nivel «3.er piso» (se utiliza una tolerancia de 5 mm para la coincidencia de niveles por elevación). NOTA: Los niveles no se comparan por nombre, ya que esto podría generar resultados no deseados.
+
+## Editor de Familia
+
+El conector de Revit también funciona en el editor de familias para un subconjunto de tipos de elementos.
+
+## Modelos vinculados
+
+El conector de Revit admite modelos vinculados; a continuación, te explicamos cómo funciona.
+
+### Envío de modelos vinculados
+
+El conector de Revit permite enviar modelos vinculados. Para activar esta función, vaya a Configuración avanzada y seleccione la opción [Enviar modelos vinculados](/legacy/user/revit/advanced-settings#_2-send-linked-models). Una vez hecho esto, podrá usar los filtros de selección como de costumbre y se enviarán todos los elementos relevantes de los modelos vinculados.
+
+Por ejemplo: *Todo* enviará todos los modelos, los filtros de *Categoría* funcionarán junto con cualquier elemento de modelo vinculado, y *Selección* también.
+
+#### Enviando por vista
+
+Al enviar por **vista**, la compatibilidad con modelos vinculados funciona de la siguiente manera:
+
+- **Revit 2024:** Solo se enviarán los elementos de los modelos vinculados que sean visibles en la(s) vista(s) seleccionada(s).
+- **Revit 2023 y versiones anteriores:** Se envía el modelo vinculado completo, a menos que no sea visible en la(s) vista(s) seleccionada(s). Esta es una limitación de la API de Revit.
+
+<Warning>
+Actualmente, no se admiten múltiples instancias del mismo modelo vinculado al enviar datos.
+</Warning>
+
+### Recepción de modelos vinculados
+
+Revit Connector también admite la recepción de elementos vinculados. Para habilitar esta opción, vaya a Configuración avanzada y marque [Recibir modelos vinculados](/legacy/user/revit/advanced-settings#_3-receive-linked-models). Al recibirlos, no se intenta modificar los archivos de modelos vinculados de ninguna manera, pero cuando la opción *Recibir modelos vinculados* está activada, los elementos del modelo vinculado se recibirán en el documento actual como cualquier otro elemento.
+
+## Opciones de diseño
+
+El conector también admite las opciones de diseño de Revit y permite publicar diferentes versiones del modelo en Speckle.
+
+<img src="/images/legacy/revit/features-design-options.png" alt="Opciones de diseño" width={250} />
+
+### ¿Cómo funciona?
+
+Si el filtro de selección está configurado en **Todo**, el conector envía de forma predeterminada el **modelo principal** y cualquier objeto que forme parte de una opción de diseño **primaria**. Para publicar otras opciones con el modelo principal, simplemente seleccione cualquier otra opción en el menú desplegable Opciones de diseño.
+
+### Uso de vistas 3D
+
+También puede configurar una vista en Revit y asociarle las opciones deseadas en la pestaña **Opciones de diseño** (Visibilidad/Anulaciones gráficas).
+
+<img src="/images/legacy/revit/features-vg-design-options.png" alt="Anulaciones de visibilidad/gráficos" />
+
+A continuación, seleccione el filtro de selección **Vista** en el conector y elija una vista. Solo los objetos visibles en esta vista se enviarán a Speckle, lo que le permite organizar su modelo de Revit para una publicación rápida y sencilla.
+
+<img src="/images/legacy/revit/features-send-3d-view.png" alt="Enviar vista 3D" width={350} />
+
+## Uso del planificador (Alpha)
+
+En ocasiones, es posible que desee enviar datos a Speckle automáticamente, en función de algunos activadores. Para ello, hemos añadido una función de "**Programador**" al conector de Revit.
+
+Antes de usar el Planificador, debe **enviar su modelo** a través de la interfaz del conector. (Nota: Asegúrese de seleccionar el filtro de selección que desea usar cuando se active el planificador; por ejemplo, para enviar todo el modelo o una vista específica).
+
+<img src="/images/legacy/revit/scheduler.png" alt="Interfaz del planificador" width={350} />
+
+1. **Activado**: Cuando está activado, el Planificador enviará el modelo al **Proyecto** seleccionado con el **Activador** seleccionado.
+2. Seleccionar **Proyecto**: Seleccione la tarjeta de proyecto que utilizó en la interfaz del conector.
+
+   <Note>
+Actualmente, solo se puede configurar un planificador por archivo. Estamos planeando habilitar la configuración de varios planificadores desde la interfaz del conector principal.
+</Note>
+
+3. Seleccione el **Activador**: Actualmente, están disponibles los siguientes activadores:
+
+- **Al guardar el archivo**
+
+- **Al sincronizar con el servidor central**
+
+- **Al exportar el archivo**
+4. Haga clic en «**Guardar**».
+
+¡Eso es todo! Cada vez que guardes tu archivo, por ejemplo, tus datos se enviarán a Speckle.
