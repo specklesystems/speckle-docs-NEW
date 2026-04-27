@@ -4,8 +4,6 @@ description: "Manual installation instructions for Speckle Power BI connector vi
 noindex: true
 ---
 
-import DisableUpdateNotifications from '/snippets/connectors/disable-update-notifications.mdx';
-
 <Warning>
   **This guide is for IT administrators only.** If you are a regular user, see our [Power BI installation guide](/connectors/power-bi/power-bi) instead.
 </Warning>
@@ -14,7 +12,8 @@ import DisableUpdateNotifications from '/snippets/connectors/disable-update-noti
   **Certificate configuration required**: Power BI requires you to register Speckle's security certificate before the connector will work. Follow the registry steps carefully.
 </Warning>
 
-All current Speckle Connectors require the Speckle Desktop Services background service. [Learn more about Desktop Services](/connectors/manual-installation/desktop-services).
+Connector versions < 3.5.0 require the Speckle Desktop Services background service. [Learn more about Desktop Services](/connectors/manual-installation/desktop-services).
+For versions ≥ 3.5.0; the desktop service is not required.
 
 ## Install for a single user
 
@@ -24,16 +23,14 @@ All current Speckle Connectors require the Speckle Desktop Services background s
 3. Copy the `.pbiviz` file to `%UserProfile%\Power BI Desktop\Custom Visuals\`
    - Create the directory if it doesn't exist
 
-## Register the security certificate
+## Register the trusted certificate
 
 Power BI must trust Speckle's certificate before the connector can load. This step requires administrator access.
 
-1. Open Registry Editor (press Windows key + R, type `regedit`, and press Enter).
-2. Navigate to `HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Power BI Desktop`
-3. Create a new value named `TrustedCertificateThumbprints` with type `REG_MULTI_SZ` (if it doesn't already exist).
-4. Add the following certificate thumbprints to this value:
-   - For Speckle v3.2.2 and earlier: `5270B3C69218C25BE2F20AB2DD76429DDAA38F61`
+1. If it doesn't already exist, create a new registry value named `TrustedCertificateThumbprints` with type `REG_MULTI_SZ` in `HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Power BI Desktop`
+2. To the value data, add the following certificate thumbprints (each thumbprint on a new line)
    - For Speckle v3.2.3 and later: `CDC489B709A709E3283568A9B75D75180B1355BE`
+   - For Speckle v3.2.2 and earlier: `5270B3C69218C25BE2F20AB2DD76429DDAA38F61`
    
    <Info>
      **Add both thumbprints**: We recommend adding both certificate thumbprints to ensure compatibility with all versions. If other thumbprints already exist, add the Speckle thumbprints as new lines.
@@ -43,17 +40,13 @@ This registry configuration removes the need to manually enable "Allow any exten
 
 Learn more about [trusted third-party connectors in Power BI](https://learn.microsoft.com/en-us/power-bi/connect-data/desktop-trusted-third-party-connectors).
 
-## Disable update notifications
-
-<DisableUpdateNotifications />
-
 ## Uninstall the connector
 
 1. Delete the `.pqx` file from `%UserProfile%\Power BI Desktop\Custom Connectors\`
 2. Delete the `.pbiviz` file from `%UserProfile%\Power BI Desktop\Custom Visuals\`
 3. Optionally, remove the Speckle certificate thumbprints from the registry.
 
-To remove all Speckle products, delete the `%AppData%\Speckle\` folder.
+To remove all Speckle products, also delete the `%AppData%\Speckle\` folder.
 
 <Card
   title="Back to manual installation overview"
