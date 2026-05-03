@@ -47,6 +47,7 @@ Before capturing any screenshots, audit visible workspace data:
    - **Rename** them to clean, professional names that would look good in documentation (e.g. "Architecture Office", "Residential Tower", "Site Model").
    - **Select different data** if renaming is not feasible — navigate to workspaces/projects with presentable names.
 4. Ensure avatars, descriptions, and other visible metadata are reasonable.
+5. Ensure screenshots are taken in light theme
 
 Goal: every screenshot should look like a polished product demo, not a developer's test environment.
 
