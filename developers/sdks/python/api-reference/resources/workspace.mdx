@@ -9,6 +9,7 @@ description: "API reference for workspace operations in SpecklePy"
 The `WorkspaceResource` is only available on workspace-enabled Speckle deployments, primarily the hosted server at **app.speckle.systems**.
 
 **Self-hosted/open-source server deployments do not include workspace features.** Attempting to use workspace methods on non-workspace servers will raise an error.
+
 </Warning>
 
 ## Overview
@@ -64,6 +65,7 @@ if workspace.permissions.canCreateProject.authorized:
 ```
 
 See [Workspace](#workspace) for property details.
+
 ### get_projects()
 
 Get all projects in a workspace with pagination support.
@@ -132,7 +134,6 @@ projects = client.workspace.get_projects("workspace_id", filter=filter)
 # - filter by visibility, roles, etc.
 ```
 
-
 ### get_projects_with_permissions()
 
 Get all projects in a workspace with detailed permission information.
@@ -166,7 +167,10 @@ client.workspace.get_projects_with_permissions(
 
 **Returns:**
 
-<ResponseField name="projects" type="ResourceCollection[ProjectWithPermissions]">
+<ResponseField
+  name="projects"
+  type="ResourceCollection[ProjectWithPermissions]"
+>
   Collection of projects with permission details
 </ResponseField>
 
@@ -197,6 +201,7 @@ for project in projects.items:
   - `canPublish` - Version publishing permission
 
 Each permission object includes:
+
 - `authorized` (bool) - Whether the action is authorized
 - `code` (str) - Permission code
 - `message` (str, optional) - Human-readable message
@@ -244,13 +249,12 @@ Represents a Speckle workspace.
 </ResponseField>
 
 <ResponseField name="creationState" type="object">
-  Creation state information
-  - `completed` (bool) - Whether workspace setup is complete
+  Creation state information - `completed` (bool) - Whether workspace setup is
+  complete
 </ResponseField>
 
 <ResponseField name="permissions" type="WorkspacePermissions">
-  Permission checks
-  - `canCreateProject` - Project creation permission
+  Permission checks - `canCreateProject` - Project creation permission
 </ResponseField>
 
 ## Filters
@@ -267,10 +271,11 @@ WorkspaceProjectsFilter(
 Used with [`get_projects()`](#get-projects) and [`get_projects_with_permissions()`](#get-projects-with-permissions).
 
 **Fields:**
+
 - `search` (str, optional) - Filter by project name
 - `with_project_role_only` (bool, optional) - Only return projects where user has explicit project role
 
-## Frequently Asked Questions
+## FAQ
 
 <AccordionGroup>
   <Accordion title="Which servers support workspaces?">
@@ -283,6 +288,7 @@ Used with [`get_projects()`](#get-projects) and [`get_projects_with_permissions(
     - Community edition deployments
 
     Check before using by wrapping calls in try/except blocks.
+
   </Accordion>
 
   <Accordion title="How do I check if workspace features are available?">
@@ -297,6 +303,7 @@ Used with [`get_projects()`](#get-projects) and [`get_projects_with_permissions(
         print("Workspace features not available")
         # Fall back to non-workspace operations
     ```
+
   </Accordion>
 
   <Accordion title="How do I get my workspace ID?">
@@ -310,6 +317,7 @@ Used with [`get_projects()`](#get-projects) and [`get_projects_with_permissions(
         print(f"  ID: {ws.id}")
         print(f"  Slug: {ws.slug}")
     ```
+
   </Accordion>
 
   <Accordion title="What's the difference between workspace projects and personal projects?">
@@ -317,7 +325,7 @@ Used with [`get_projects()`](#get-projects) and [`get_projects_with_permissions(
     - **Personal projects**: Owned by individual users, independent of workspaces
 
     <Warning>
-      **Critical:** All personal projects will be permanently deleted on **January 1, 2026**. 
+      **Critical:** All personal projects will be permanently deleted on **January 1, 2026**.
       Personal projects must be migrated to a workspace before this deadline.
     </Warning>
 
@@ -330,6 +338,7 @@ Used with [`get_projects()`](#get-projects) and [`get_projects_with_permissions(
     else:
         print("Personal project")
     ```
+
   </Accordion>
 
   <Accordion title="Can I create workspace projects?">
@@ -349,6 +358,7 @@ Used with [`get_projects()`](#get-projects) and [`get_projects_with_permissions(
             workspaceId="workspace_id"
         ))
     ```
+
   </Accordion>
 </AccordionGroup>
 
@@ -359,9 +369,13 @@ Used with [`get_projects()`](#get-projects) and [`get_projects_with_permissions(
     Get your workspaces with get_workspaces() and get_active_workspace()
   </Card>
 
-  <Card title="ProjectResource" icon="folder" href="/developers/sdks/python/api-reference/resources/project">
-    Create projects within workspaces
-  </Card>
+<Card
+  title="ProjectResource"
+  icon="folder"
+  href="/developers/sdks/python/api-reference/resources/project"
+>
+  Create projects within workspaces
+</Card>
 
   <Card title="SpeckleClient" icon="plug" href="/developers/sdks/python/api-reference/client">
     Main client documentation
