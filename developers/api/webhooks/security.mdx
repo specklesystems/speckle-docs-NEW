@@ -8,7 +8,8 @@ description: Securing your webhook endpoints and best practices
 To ensure webhooks are coming from Speckle and haven't been tampered with, you should verify the webhook signature using the secret you configured.
 
 <Warning>
-Always verify webhook signatures in production to prevent unauthorized requests from being processed.
+  Always verify webhook signatures in production to prevent unauthorized
+  requests from being processed.
 </Warning>
 
 The webhook signature is sent in the `X-WEBHOOK-SIGNATURE` header. The signature is computed using HMAC-SHA256 with your webhook secret.
@@ -38,26 +39,22 @@ if not is_valid:
 ```
 
 ```javascript verify-webhook.js
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 function verifyWebhook(payload, signature, secret) {
-  const hmac = crypto.createHmac('sha256', secret);
-  const digest = hmac.update(JSON.stringify(payload)).digest('hex');
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(digest)
-  );
+  const hmac = crypto.createHmac("sha256", secret);
+  const digest = hmac.update(JSON.stringify(payload)).digest("hex");
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest));
 }
 
 // In your webhook handler
-const signature = req.headers['x-webhook-signature'];
+const signature = req.headers["x-webhook-signature"];
 const isValid = verifyWebhook(req.body, signature, WEBHOOK_SECRET);
 
 if (!isValid) {
-  return res.status(401).send('Invalid signature');
+  return res.status(401).send("Invalid signature");
 }
 ```
-
 
 </CodeGroup>
 
@@ -67,16 +64,18 @@ if (!isValid) {
 **Critical**: Any time you make a commit (create a version) in response to a triggered webhook event, you are at risk of creating an infinite loop on both your handling code and your Speckle server. Use caution and ensure that you safely exit your handling code when no change is needed.
 
 **If you trigger an infinite loop:**
+
 - Make your endpoint inaccessible immediately
 - Deploy new code that prevents the loop
 - Delete the webhook on the server/project
 
 **Best practices to prevent loops:**
+
 - Check if changes are actually needed before creating new versions
 - Use conditional logic to exit early when no action is required
 - Implement idempotency checks to avoid reprocessing the same event
 - Monitor your webhook endpoint for unusual activity patterns
-</Warning>
+  </Warning>
 
 ## Best Practices
 
@@ -172,4 +171,3 @@ Be aware of rate limits on your webhook endpoint. If you receive many events, co
     If you accidentally trigger a loop, immediately make your endpoint inaccessible, deploy fix code, or delete the webhook. See [Avoiding Infinite Loops](#avoiding-infinite-loops) above for more details.
   </Accordion>
 </AccordionGroup>
-
