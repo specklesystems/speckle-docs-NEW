@@ -119,44 +119,48 @@ Be aware of rate limits on your webhook endpoint. If you receive many events, co
 - Using a message queue to buffer events
 - Scaling your endpoint to handle the load
 
-## Frequently Asked Questions
+## FAQ
 
 <AccordionGroup>
   <Accordion title="How do I verify webhook signatures?">
     Use HMAC-SHA256 to compute a signature from the webhook payload and your secret, then compare it with the `X-WEBHOOK-SIGNATURE` header. See the [Example Verification](#example-verification) section above for code examples in Node.js and Python.
   </Accordion>
 
-  <Accordion title="What happens if I don't verify signatures?">
-    Without signature verification, your endpoint could accept fake webhook requests from attackers, potentially leading to security vulnerabilities, data corruption, or unauthorized actions in your system. Always verify signatures in production.
-  </Accordion>
+<Accordion title="What happens if I don't verify signatures?">
+  Without signature verification, your endpoint could accept fake webhook
+  requests from attackers, potentially leading to security vulnerabilities, data
+  corruption, or unauthorized actions in your system. Always verify signatures
+  in production.
+</Accordion>
 
-  <Accordion title="Can I use webhooks without a secret?">
-    Yes, secrets are optional, but **highly recommended** for production use. Without a secret, you cannot verify that webhooks are actually coming from Speckle, leaving your endpoint vulnerable to spoofed requests.
-  </Accordion>
+<Accordion title="Can I use webhooks without a secret?">
+  Yes, secrets are optional, but **highly recommended** for production use.
+  Without a secret, you cannot verify that webhooks are actually coming from
+  Speckle, leaving your endpoint vulnerable to spoofed requests.
+</Accordion>
 
-  <Accordion title="How do I handle webhook failures gracefully?">
-    Implement proper error handling:
-    - Return appropriate HTTP status codes (200-299 for success)
-    - Log failures for debugging
-    - Use idempotency to handle duplicate deliveries
-    - Process webhooks asynchronously to avoid timeouts
-    - Consider a dead letter queue for persistent failures
-    
-    See [Best Practices](#best-practices) above for more details.
-  </Accordion>
+<Accordion title="How do I handle webhook failures gracefully?">
+  Implement proper error handling: - Return appropriate HTTP status codes
+  (200-299 for success) - Log failures for debugging - Use idempotency to handle
+  duplicate deliveries - Process webhooks asynchronously to avoid timeouts -
+  Consider a dead letter queue for persistent failures See [Best
+  Practices](#best-practices) above for more details.
+</Accordion>
 
-  <Accordion title="What HTTP status codes should my webhook endpoint return?">
-    Return status codes in the 200-299 range to indicate successful receipt. Speckle considers any other status code as a failure and may retry the delivery. Return 200 OK immediately, then process the webhook asynchronously in the background.
-  </Accordion>
+<Accordion title="What HTTP status codes should my webhook endpoint return?">
+  Return status codes in the 200-299 range to indicate successful receipt.
+  Speckle considers any other status code as a failure and may retry the
+  delivery. Return 200 OK immediately, then process the webhook asynchronously
+  in the background.
+</Accordion>
 
-  <Accordion title="How do I prevent duplicate webhook processing?">
-    Make your webhook handlers idempotent by:
-    - Using event IDs or timestamps to detect duplicates
-    - Storing processed event IDs in a database or cache
-    - Checking if an event has already been processed before acting on it
-    
-    This ensures that if a webhook is delivered multiple times (which can happen), you won't process it more than once.
-  </Accordion>
+<Accordion title="How do I prevent duplicate webhook processing?">
+  Make your webhook handlers idempotent by: - Using event IDs or timestamps to
+  detect duplicates - Storing processed event IDs in a database or cache -
+  Checking if an event has already been processed before acting on it This
+  ensures that if a webhook is delivered multiple times (which can happen), you
+  won't process it more than once.
+</Accordion>
 
   <Accordion title="How do I avoid infinite loops with webhooks?">
     If your webhook handler creates a new version/commit, it will trigger another webhook event, potentially creating an infinite loop. To prevent this:
