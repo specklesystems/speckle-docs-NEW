@@ -1,6 +1,7 @@
 ---
 title: "User provisioning (SCIM)"
 description: "Sync workspace members from your identity provider"
+sidebarTitle: Provisioning (SCIM)
 tag: Enterprise
 ---
 
@@ -31,9 +32,11 @@ SCIM does not technically require SSO, but pairing them is the experience your u
 
 ## Enable SCIM
 
-Configure SCIM under **Workspace Settings → Security**.
+Configure SCIM under **Settings -> Security**.
+Workspace members can see this section, but only workspace admins can change these controls.
+SCIM is shown in the Security page only when SCIM is enabled for the workspace.
 
-<Frame caption="SCIM card under Workspace Settings → Security">
+<Frame caption="SCIM card under Settings -> Security">
   <img
     src="/images/workspaces/scim/security-settings.png"
     alt="SCIM card in workspace security settings"
@@ -65,7 +68,9 @@ Configure SCIM under **Workspace Settings → Security**.
     - **SCIM endpoint**: the base URL from the previous step, e.g. `https://app.speckle.systems/api/v1/workspaces/{workspace-slug}/scim/v2`
     - **Authentication**: bearer token (paste the token you copied)
 
-    Filter the identity provider push to the users you want in the workspace. Provisioned users join with the workspace's [default seat type](/workspaces/roles-and-seats) and the `member` role.
+    Filter the identity provider push to the users you want in the workspace.
+    Provisioned users join with the workspace's default project-access setting
+    and the `member` workspace role.
 
     <Frame caption="Example SCIM application configuration in your identity provider">
       <img src="/images/workspaces/scim/idp-config.png" alt="Identity provider SCIM configuration" />
@@ -73,7 +78,9 @@ Configure SCIM under **Workspace Settings → Security**.
 
   </Step>
   <Step title="Trigger the first sync">
-    Trigger a test sync from your identity provider. The SCIM card updates **Last sync** and **Provisioned users** within seconds, and the test user appears under workspace **Members** with the default seat.
+    Trigger a test sync from your identity provider. The SCIM card updates
+    **Last sync** and **Provisioned users** within seconds, and the test user
+    appears under workspace **Members** with the default project-access setting.
   </Step>
 </Steps>
 
@@ -83,7 +90,8 @@ Configure SCIM under **Workspace Settings → Security**.
 
 - A Speckle account is created if one doesn't exist for the user's primary email.
 - An existing Speckle account is matched and linked when the email belongs to a verified workspace domain.
-- The user joins the workspace as a `member` with the default seat type.
+- The user joins the workspace as a `member` with the default project-access
+  setting.
 - The user's display name and emails are synced from the identity provider.
 
 ### When a user is updated
@@ -100,9 +108,10 @@ Configure SCIM under **Workspace Settings → Security**.
 
 ### When a user is deprovisioned
 
-- The user is removed from the workspace and their workspace seat is freed.
+- The user is removed from the workspace.
 - Their Speckle account, projects, and other workspace memberships are untouched.
-- Reactivating the user in the identity provider later restores their workspace membership with the default seat type and `member` role.
+- Reactivating the user in the identity provider later restores their workspace
+  membership with the default project-access setting and `member` role.
 
 <Warning>
   SCIM cannot remove the last admin from a workspace. Promote another admin
@@ -155,6 +164,11 @@ All requests use `Authorization: Bearer {token}` and the `application/scim+json`
     SCIM also only manages membership in the SCIM-enabled workspace; the user's
     other workspace memberships are untouched.
   </Accordion>
+  <Accordion title="Can SCIM manage project membership?">
+    No. SCIM manages workspace-level user lifecycle (create, update, remove)
+    within the SCIM-enabled workspace. Project collaborator membership and
+    project-level roles are managed separately in project settings.
+  </Accordion>
   <Accordion title="Can the same user be SCIM-managed in multiple workspaces?">
     No. A user can only be SCIM-managed in one workspace at a time. Provisioning
     a user who is already SCIM-active in another workspace returns a 409
@@ -162,12 +176,11 @@ All requests use `Authorization: Bearer {token}` and the `application/scim+json`
     elsewhere.
   </Accordion>
   <Accordion title="What if I lose the SCIM token?">
-    Tokens cannot be recovered. Open **Workspace Settings → Security**, rotate
+    Tokens cannot be recovered. Open **Settings -> Security**, rotate
     the token, and update your identity provider with the new value.
   </Accordion>
-  <Accordion title="Does SCIM upgrade roles or seats above the defaults?">
-    No. SCIM creates members on the workspace's default seat type with the
-    `member` role. Promote users to admin or upgrade their seat manually in
-    Speckle.
+  <Accordion title="Does SCIM upgrade permissions above the defaults?">
+    No. SCIM creates members using the workspace defaults. It does not promote
+    users to admin or elevate project permissions automatically.
   </Accordion>
 </AccordionGroup>
