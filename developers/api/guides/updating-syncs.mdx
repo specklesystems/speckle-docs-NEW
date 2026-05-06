@@ -1,0 +1,192 @@
+---
+title: Updating Cloud Integration Syncs via GraphQL
+sidebarTitle: Updating Syncs
+description: Update existing ACC and ProjectWise sync configuration using the `syncMutations.update` GraphQL mutation.
+---
+
+This guide shows how to update an existing cloud integration sync using GraphQL.
+
+Use this when you need to change sync context values such as `referencePoint` or `viewName`, and optionally trigger a run immediately.
+
+The supported flow is:
+
+1. List syncs for a project
+2. Choose target sync IDs
+3. Update each sync with `syncMutations.update`
+4. Optionally trigger immediate execution for selected syncs
+
+## Pre-requisites
+
+- A personal access token with `streams:read` and `streams:write` scopes
+- Access to the target project with edit permissions
+- The target `projectId`
+
+For all GraphQL calls, include:
+
+```bash
+Authorization: Bearer YOUR_TOKEN
+```
+
+<Info>
+This flow is suitable for citizen developers. It uses standard PAT scopes and does not require server admin permissions.
+</Info>
+
+## Overview
+
+Updating sync configuration is usually a two-call pattern:
+
+1. Query `project.syncs` to get the syncs you want to change
+2. Run `syncMutations.update` per sync with a new `context` payload
+
+There is no dedicated bulk mutation for sync updates, so batching is done client-side.
+
+## Step 1: List syncs in the project
+
+Use this to discover sync IDs before updating.
+
+**POST** `/graphql`
+
+**Query:**
+
+```graphql
+query ProjectSyncs($projectId: String!, $limit: Int, $cursor: String) {
+  project(id: $projectId) {
+    syncs(limit: $limit, cursor: $cursor) {
+      items {
+        id
+        fileName
+        integration {
+          slug
+        }
+        active
+        context
+      }
+      cursor
+      totalCount
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "projectId": "0d1f93ec13",
+  "limit": 25,
+  "cursor": null
+}
+```
+
+## Step 2: Update one sync
+
+**POST** `/graphql`
+
+**Mutation:**
+
+```graphql
+mutation UpdateSync($input: UpdateSyncInput!) {
+  syncMutations {
+    update(input: $input) {
+      id
+      active
+      context
+      updatedAt
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "input": {
+    "id": "3d5085bbcc",
+    "projectId": "0d1f93ec13",
+    "context": {
+      "referencePoint": "surveyPoint",
+      "viewName": null
+    },
+    "triggerNow": false
+  }
+}
+```
+
+**Input fields:**
+
+`UpdateSyncInput` supports:
+
+- `id` (`ID!`): Sync identifier
+- `projectId` (`String!`): Owning project identifier
+- `context` (`JSONObject`): Integration-specific sync settings
+- `triggerNow` (`Boolean`): If `true`, requests an immediate execution
+
+### Context shape and enums
+
+Typical context payload shape for ACC and ProjectWise syncs:
+
+```json
+{
+  "referencePoint": "internalOrigin",
+  "viewName": "3D Coordination"
+}
+```
+
+`referencePoint` values:
+
+- `internalOrigin`
+- `projectBasePoint`
+- `surveyPoint`
+
+`viewName` values:
+
+- Any string matching a valid source view name
+- `null` to clear view scoping
+
+<Note>
+  `context` is a JSON object. Keys are integration-specific conventions, not strongly typed GraphQL fields. Common keys in ACC and ProjectWise flows include `referencePoint` and `viewName`.
+</Note>
+
+**Response example:**
+
+```json
+{
+  "data": {
+    "syncMutations": {
+      "update": {
+        "id": "3d5085bbcc",
+        "active": true,
+        "context": {
+          "referencePoint": "surveyPoint",
+          "viewName": null
+        },
+        "updatedAt": "2026-05-06T14:55:00.000Z"
+      }
+    }
+  }
+}
+```
+
+## Step 3: Repeat for batch updates
+
+For batch operations:
+
+1. Query `project.syncs`
+2. Filter target syncs in your client
+3. Run `syncMutations.update` once per sync
+4. Set `triggerNow` only where needed
+
+## Operational notes
+
+- If a sync is paused (`active: false`), updates with `triggerNow: true` can be rejected.
+- Use `syncMutations.setActive` to resume a sync before requesting immediate execution.
+- Keep `context` keys aligned with integration UI and backend conventions in your environment.
+- For large batches, page through `syncs(cursor, limit)` and apply updates in controlled chunks.
+
+## Related operations
+
+- Create sync: `syncMutations.create`
+- Pause/resume sync: `syncMutations.setActive`
+- Migrate legacy ACC sync: `syncMutations.migrateLegacy`
+- Delete sync: `syncMutations.delete`
