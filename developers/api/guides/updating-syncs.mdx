@@ -1,0 +1,247 @@
+---
+title: Updating Cloud Integration Syncs via GraphQL
+sidebarTitle: Updating Syncs
+description: Update existing ACC and ProjectWise sync configuration using the `syncMutations.update` GraphQL mutation.
+---
+
+This guide shows how to update an existing cloud integration sync using GraphQL.
+
+Use this when you need to change sync context values such as `referencePoint` or `viewName`, and optionally trigger a run immediately.
+
+The supported flow is:
+
+1. List syncs for a project
+2. Choose target sync IDs
+3. Update each sync with `syncMutations.update`
+4. Optionally trigger immediate execution for selected syncs
+
+## Pre-requisites
+
+- A personal access token with `streams:read` and `streams:write` scopes
+- Access to the target project with edit permissions
+- The target Speckle `projectId` string (retrieve from the web app URL, GraphQL `project(id: …)`, or [SpecklePy project helpers](/developers/sdks/python/api-reference/resources/project); listing patterns live under [SpeckleClient → Resource Properties](/developers/sdks/python/api-reference/client#resource-properties))
+
+For all GraphQL calls, include:
+
+```bash
+Authorization: Bearer YOUR_TOKEN
+```
+
+<Info>
+This flow is suitable for citizen developers. It uses standard PAT scopes and does not require server admin permissions.
+</Info>
+
+## Before you start: IDs and quick test
+
+You need two IDs:
+
+- `projectId`: the Speckle project ID
+- `sync.id`: the sync entry you want to update
+
+If you are not sure where to get `projectId`, list or fetch projects via your SDK (SpecklePy: [`workspace.get_projects`](/developers/sdks/python/api-reference/resources/workspace#get-projects), [`active_user.get_projects`](/developers/sdks/python/api-reference/resources/active-user#get-projects), then [`project.get`](/developers/sdks/python/api-reference/resources/project#get); workspace vs personal hosts described on [SpeckleClient](/developers/sdks/python/api-reference/client#resource-properties)). Sync row IDs still come from the Step 1 `project.syncs` query—until SpecklePy exposes them, call that query through [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries) or substitute `YOUR_PROJECT_ID` in the curl example and read `items[].id` from the response.
+
+Quick test with `curl`:
+
+```bash
+curl -X POST "https://app.speckle.systems/graphql" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "operationName":"ProjectSyncs",
+    "variables":{"projectId":"YOUR_PROJECT_ID","limit":25,"cursor":null},
+    "query":"query ProjectSyncs($projectId: String!, $limit: Int, $cursor: String) { project(id: $projectId) { syncs(limit: $limit, cursor: $cursor) { items { id fileName active context } cursor totalCount } } }"
+  }'
+```
+
+## Overview
+
+Updating sync configuration is usually a two-call pattern:
+
+1. Query `project.syncs` to get the syncs you want to change
+2. Run `syncMutations.update` per sync with a new `context` payload
+
+There is no dedicated bulk mutation for sync updates, so batching is done client-side.
+
+## Step 1: List syncs in the project
+
+Use this to discover sync IDs before updating.
+
+**POST** `/graphql`
+
+**Query:**
+
+```graphql
+query ProjectSyncs($projectId: String!, $limit: Int, $cursor: String) {
+  project(id: $projectId) {
+    syncs(limit: $limit, cursor: $cursor) {
+      items {
+        id
+        fileName
+        integration {
+          slug
+        }
+        active
+        context
+      }
+      cursor
+      totalCount
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "projectId": "0d1f93ec13",
+  "limit": 25,
+  "cursor": null
+}
+```
+
+## Step 2: Update one sync
+
+**POST** `/graphql`
+
+**Mutation:**
+
+```graphql
+mutation UpdateSync($input: UpdateSyncInput!) {
+  syncMutations {
+    update(input: $input) {
+      id
+      active
+      context
+      updatedAt
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "input": {
+    "id": "3d5085bbcc",
+    "projectId": "0d1f93ec13",
+    "context": {
+      "referencePoint": "surveyPoint",
+      "viewName": null
+    },
+    "triggerNow": false
+  }
+}
+```
+
+**Input fields:**
+
+`UpdateSyncInput` supports:
+
+- `id` (`ID!`): Sync identifier
+- `projectId` (`String!`): Owning project identifier
+- `context` (`JSONObject`): Integration-specific sync settings
+- `triggerNow` (`Boolean`): If `true`, requests an immediate execution
+
+### Context shape and enums
+
+Typical context payload shape for ACC and ProjectWise syncs:
+
+```json
+{
+  "referencePoint": "internalOrigin",
+  "viewName": "3D Coordination"
+}
+```
+
+`referencePoint` values:
+
+- `internalOrigin`
+- `projectBasePoint`
+- `surveyPoint`
+
+`viewName` values:
+
+- Any string matching a valid source view name
+- `null` to clear view scoping
+
+<Note>
+  `context` is a JSON object. Keys are integration-specific conventions, not strongly typed GraphQL fields. Common keys in ACC and ProjectWise flows include `referencePoint` and `viewName`.
+</Note>
+
+**Response example:**
+
+```json
+{
+  "data": {
+    "syncMutations": {
+      "update": {
+        "id": "3d5085bbcc",
+        "active": true,
+        "context": {
+          "referencePoint": "surveyPoint",
+          "viewName": null
+        },
+        "updatedAt": "2026-05-06T14:55:00.000Z"
+      }
+    }
+  }
+}
+```
+
+## Step 3: Repeat for batch updates
+
+For batch operations:
+
+1. Query `project.syncs`
+2. Filter target syncs in your client
+3. Run `syncMutations.update` once per sync
+4. Set `triggerNow` only where needed
+
+## Operational notes
+
+- If a sync is paused (`active: false`), updates with `triggerNow: true` can be rejected.
+- Use `syncMutations.setActive` to resume a sync before requesting immediate execution.
+- Keep `context` keys aligned with integration UI and backend conventions in your environment.
+- For large batches, page through `syncs(cursor, limit)` and apply updates in controlled chunks.
+- If a legacy ACC sync has not been migrated yet, run `syncMutations.migrateLegacy` first, then retry update.
+
+## What developers need to know
+
+<AccordionGroup>
+  <Accordion title="Which token scopes and permissions do I need?">
+    Use a personal access token with `streams:read` and `streams:write`. The GraphQL mutation is gated on `streams:write`. Listing syncs reads project data, so `streams:read` is needed for the query step. Your account also needs permission to manage cloud integration syncs for that project (the same capability you use in the web app to create or edit ACC or ProjectWise syncs).
+  </Accordion>
+
+  <Accordion title="How do I find my project ID?">
+    The GraphQL `projectId` is the project's `id` string (same value you see in URLs as `/projects/{id}/`).
+
+    - Web app: copy `{id}` from `/projects/{id}/`.
+    - GraphQL: run `project(id: "...") { id }`.
+    - SpecklePy: list/fetch projects via [`workspace.get_projects`](/developers/sdks/python/api-reference/resources/workspace#get-projects), [`active_user.get_projects`](/developers/sdks/python/api-reference/resources/active-user#get-projects), and [`project.get`](/developers/sdks/python/api-reference/resources/project#get) (see [SpeckleClient → Resource Properties](/developers/sdks/python/api-reference/client#resource-properties)).
+    - Sync ids: get `items[].id` from Step 1 `project.syncs`. Use [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries) if you are scripting in Python.
+
+    For other SDKs, see [specklesharp (C#/.NET)](/developers/sdks/dotnet/introduction) and [speckle.js](/developers/sdks/typescript/introduction) and use whichever GraphQL or HTTP helpers those packages expose.
+  </Accordion>
+
+  <Accordion title="Is there a bulk update mutation for many syncs?">
+    No. Use `project.syncs` with pagination (`cursor`, `limit`), filter the rows you need on the client, then call `syncMutations.update` once per sync. Set `triggerNow` only where you want an immediate run.
+  </Accordion>
+
+  <Accordion title="Why does immediate run fail after my update?">
+    If `triggerNow` is true and the sync is paused (`active: false`), the server rejects the immediate run. Call `syncMutations.setActive` with `active: true` first, then update again with `triggerNow: true`, or omit `triggerNow` until you are ready to run.
+  </Accordion>
+
+  <Accordion title="What is the difference between syncMutations and accSyncItemMutations?">
+    New integrations use `syncMutations` for create, update, delete, pause, and legacy migration. Older `accSyncItemMutations` fields are deprecated in favour of `syncMutations`. Prefer `syncMutations.update` for changing sync context going forward.
+  </Accordion>
+
+  <Accordion title="What if my ACC sync errors about migration?">
+    Older ACC syncs may still exist only in legacy storage until migrated. Run `syncMutations.migrateLegacy` with the sync id and project id, then run `syncMutations.update` again. The web app may expose a migrate action for the same step.
+  </Accordion>
+
+  <Accordion title="Can I automate sync updates with SpecklePy?">
+    Yes. SpecklePy does not yet expose dedicated sync mutation helpers, but you can run same GraphQL operations from Python. Authenticate with `authenticate_with_token`, then call [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries) or send direct POST requests to `{host}/graphql` with `requests`/`httpx`.
+  </Accordion>
+</AccordionGroup>
