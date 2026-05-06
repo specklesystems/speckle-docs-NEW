@@ -205,6 +205,46 @@ For batch operations:
 - Use `syncMutations.setActive` to resume a sync before requesting immediate execution.
 - Keep `context` keys aligned with integration UI and backend conventions in your environment.
 - For large batches, page through `syncs(cursor, limit)` and apply updates in controlled chunks.
+- If a legacy ACC sync has not been migrated yet, run `syncMutations.migrateLegacy` first, then retry update.
+
+## What developers need to know
+
+<AccordionGroup>
+  <Accordion title="Which token scopes and permissions do I need?">
+    Use a personal access token with `streams:read` and `streams:write`. The GraphQL mutation is gated on `streams:write`. Listing syncs reads project data, so `streams:read` is needed for the query step. Your account also needs permission to manage cloud integration syncs for that project (the same capability you use in the web app to create or edit ACC or ProjectWise syncs).
+  </Accordion>
+
+  <Accordion title="How do I find my project ID?">
+    The GraphQL `projectId` is the project's `id` string (same value you see in URLs as `/projects/{id}/`).
+
+    - **Web app:** Open the project and copy the id segment from the URL.
+    - **GraphQL:** Run any `project(id: "…") { id }` query (or use Step 1 once you have a candidate id).
+    - **SpecklePy:** List projects with [`workspace.get_projects`](/developers/sdks/python/api-reference/resources/workspace#get-projects) or [`active_user.get_projects`](/developers/sdks/python/api-reference/resources/active-user#get-projects), depending on whether the server is workspace-enabled (see [SpeckleClient → Resource Properties](/developers/sdks/python/api-reference/client#resource-properties)). Load one project with [`project.get`](/developers/sdks/python/api-reference/resources/project#get).
+    - **Sync row ids:** Read `items[].id` from the Step 1 `project.syncs` query. SpecklePy does not ship typed sync list helpers yet; use [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries) with the same document as Step 1, or reuse the curl example above.
+
+    For other SDKs, see [specklesharp (C#/.NET)](/developers/sdks/dotnet/introduction) and [speckle.js](/developers/sdks/typescript/introduction) and use whichever GraphQL or HTTP helpers those packages expose.
+  </Accordion>
+
+  <Accordion title="Is there a bulk update mutation for many syncs?">
+    No. Use `project.syncs` with pagination (`cursor`, `limit`), filter the rows you need on the client, then call `syncMutations.update` once per sync. Set `triggerNow` only where you want an immediate run.
+  </Accordion>
+
+  <Accordion title="Why does immediate run fail after my update?">
+    If `triggerNow` is true and the sync is paused (`active: false`), the server rejects the immediate run. Call `syncMutations.setActive` with `active: true` first, then update again with `triggerNow: true`, or omit `triggerNow` until you are ready to run.
+  </Accordion>
+
+  <Accordion title="What is the difference between syncMutations and accSyncItemMutations?">
+    New integrations use `syncMutations` for create, update, delete, pause, and legacy migration. Older `accSyncItemMutations` fields are deprecated in favour of `syncMutations`. Prefer `syncMutations.update` for changing sync context going forward.
+  </Accordion>
+
+  <Accordion title="What if my ACC sync errors about migration?">
+    Older ACC syncs may still exist only in legacy storage until migrated. Run `syncMutations.migrateLegacy` with the sync id and project id, then run `syncMutations.update` again. The web app may expose a migrate action for the same step.
+  </Accordion>
+
+  <Accordion title="Can I automate sync updates with SpecklePy?">
+    Yes. The Speckle Python SDK does not ship dedicated methods for sync mutations yet, but you can run the same GraphQL operations as this guide. Authenticate with `authenticate_with_token` using a PAT that includes `streams:read` and `streams:write`, then use raw GraphQL via `SpeckleClient.execute_query()` with the [`gql`](https://pypi.org/project/gql/) helper as described in [Custom GraphQL Queries](/developers/sdks/python/api-reference/client#custom-graphql-queries). Alternatively, POST JSON bodies to `{host}/graphql` from Python with `requests` or `httpx`, matching the `curl` example above.
+  </Accordion>
+</AccordionGroup>
 
 ## Related operations
 
