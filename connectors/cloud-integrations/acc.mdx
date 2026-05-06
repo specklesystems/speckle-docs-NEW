@@ -7,7 +7,7 @@ description: "Connect and sync models from Autodesk Forma Data Management — th
 import CoordinationWorkflowRevit from "/snippets/connectors/coordination-workflow-revit.mdx";
 
 <Note>
-  **Autodesk Forma Data Management** is the current name for **Autodesk Construction Cloud (ACC)**; labels and URLs may still say ACC. Before anyone can sign in, the integration must be enabled on your **ACC Hub**. If workspace settings do not show a Forma / ACC login option, your IT administrator needs to add the integration in Autodesk admin first — see [Enabling the integration (IT Admin)](#enabling-the-integration-on-acc-it-admin).
+  **Autodesk Forma Data Management** is the current name for **Autodesk Construction Cloud (ACC)**; labels and URLs may still say ACC. Before anyone can sign in, the integration must be enabled on your **ACC Hub**. If workspace settings do not show a Forma / ACC login option, ask your IT administrator to follow [Enable Autodesk Forma Data Management integration](/workspaces/it-admin-acc-integration).
 </Note>
 
 <Info>
@@ -21,7 +21,7 @@ import CoordinationWorkflowRevit from "/snippets/connectors/coordination-workflo
 
 ## Setup
 
-These steps assume the Speckle integration has already been enabled on your organisation's ACC Hub for Forma Data Management. If it hasn't, your IT administrator must complete the steps in [Enabling the integration (IT Admin)](#enabling-the-integration-on-acc-it-admin) first.
+These steps assume the Speckle integration has already been enabled on your organisation's ACC Hub for Forma Data Management. If it hasn't, your IT administrator must complete [Enable Autodesk Forma Data Management integration](/workspaces/it-admin-acc-integration) first.
 
 <Steps>
   <Step title="Sign in to Autodesk Forma Data Management">
@@ -54,7 +54,7 @@ These steps assume the Speckle integration has already been enabled on your orga
        <Frame>
          <img src="/images/connectors/cloud-integrations/acc/acc-select file.png" alt="Select file" />
        </Frame>
-    3. _Optionally_, define the view to export and set a reference point for coordinated placement. See [View Selection](#view-selection) below for details on how this affects what gets synced.
+    3. For **Revit** files (`.rvt`) only, optionally define the view to export, choose the **coordination system**, and set a reference point for coordinated placement. Coordination system and reference point selection are not offered for IFC, Navisworks, or other formats in ACC sync. See [View Selection](#view-selection) and [Coordination system](#coordination-system).
       <Frame>
          <img src="/images/connectors/cloud-integrations/acc/acc-confirm selection.png" alt="Confirm selection" />
        </Frame>
@@ -95,51 +95,6 @@ The following file formats are currently supported for syncing from Autodesk For
 
 <CoordinationWorkflowRevit />
 
-<a id="enabling-the-integration-on-acc-it-admin" />
-
-## Enabling the integration (IT Admin)
-
-If your organisation hasn't enabled the Speckle integration on the ACC Hub yet, an IT administrator (or anyone with **Account Admin** access — Forma Data Management still uses **acc.autodesk.com** and ACC-branded admin) must add it first. After that, users can sign in from Speckle workspace settings and sync projects as described in [Setup](#setup) above.
-
-<Info>
-  If **Custom Integrations** is not visible in the Account Admin panel, the
-  account may not have the required role. Contact your Autodesk administrator.
-</Info>
-
-<Steps>
-  <Step title="Add a custom integration in Autodesk admin">
-    1. Go to [Autodesk Account Admin](https://acc.autodesk.com/) — URL still uses **acc.** — or [acc.autodesk.eu](https://acc.autodesk.eu/) for the European region.
-    2. In the Account Admin panel, select **Custom Integrations**.
-    3. Select **Add custom integrations**.
-    4. Enter the integration details (copy the Client ID exactly, with no extra spaces):
-       - **Client ID**: `5Y2LzxsL3usaD1xAMyElBY8mcN6XKyfHfulZDV3up0jfhN5Y`
-       - **Name**: `Speckle`
-
-       <Frame>
-                <img src="/images/connectors/cloud-integrations/acc/acc-add custom integration.png" alt="Add custom integration" />
-       </Frame>
-    5. Select **Next**.
-    6. On the permission warning, select **Proceed Anyway**.
-
-       <Frame>
-         <img src="/images/connectors/cloud-integrations/acc/acc-premission warning.png" alt="Permission warning" />
-       </Frame>
-
-    <Note>
-      **The warning comes from Autodesk, not Speckle.** Autodesk does not offer granular permission controls for Custom Integrations, so the dialog cannot show the actual scope.
-
-      **Speckle requests only read-only scopes** (`account:read`, `user-profile:read`, `data:read`, `data:search`, `bucket:read`, `viewables:read`, `openid`) to reach files and metadata for conversion. See [Autodesk's scope definitions](https://aps.autodesk.com/en/docs/oauth/v2/developers_guide/scopes/) for details.
-
-      **Speckle inherits each user's existing permissions in Autodesk Forma Data Management (ACC).** Users see only hubs, projects, and folders they already have access to. There is no elevation of access. Autodesk's API enforces these boundaries.
-
-      For extra control, create a dedicated Autodesk account with limited access to specific projects or folders and use it for Speckle syncs.
-    </Note>
-
-    The Speckle integration is now enabled for your Autodesk account. Users can sign in from Speckle workspace settings and sync projects.
-
-  </Step>
-</Steps>
-
 ## View Selection
 
 When syncing a Revit file from Forma Data Management, you can optionally specify a view name to control which elements are included in the sync.
@@ -170,6 +125,30 @@ This is useful when you want to:
   Make sure the view name matches exactly.
 </Warning>
 
+## Coordination system
+
+<Note>
+In ACC sync, coordination system and reference point controls apply **only** to **Revit** (`.rvt`) files. They do not apply when syncing IFC or Navisworks files from Forma Data Management.
+</Note>
+
+When creating a sync **for a Revit model**, you can choose which coordination system to use from the sync setup UI. This setting controls how the model is positioned for downstream coordination and review workflows.
+
+### Default behavior
+
+If you do not change this setting, the Revit sync uses the default coordination system shown in the UI.
+
+### Choosing a coordination system explicitly
+
+Choose a specific coordination system when you need predictable placement across models, disciplines, or tools.
+
+This is useful when you want to:
+
+- Align multiple synced Revit-linked models to the same spatial baseline
+- Match a known project coordination setup
+- Reduce placement drift between different source files
+
+If you are aligning multiple models, use the same coordination system approach across related Revit syncs to avoid placement mismatches.
+
 <AccordionGroup>
   <Accordion title="Is the connection read-only?">
     Yes. Speckle establishes a read-only connection with Autodesk Forma Data Management (ACC), which means we can sync and analyze your data but can't modify the original files. This ensures data integrity and security.
@@ -178,8 +157,7 @@ This is useful when you want to:
     Once you've created a sync model, it automatically syncs whenever a new version of the file is published to Autodesk Forma Data Management. You don't need to manually trigger ongoing synchronization.
   </Accordion>
   <Accordion title="Why are my models in the wrong location?">
-    Use the reference point input in the sync configuration to control placement for coordination workflows. If the
-    selected reference point in Forma Data Management sync does not match your downstream model setup, placement can still appear offset.
+    For **Revit** ACC syncs, use the reference point input in the sync configuration to control placement for coordination workflows. If the selected reference point does not match your downstream model setup, placement can still appear offset. Reference point and coordination system options are **not** available for IFC or Navisworks ACC syncs—adjust placement in those workflows using your authoring tool or the relevant connector where applicable.
     For project-by-project control and advanced receive options, you can also use the [Revit connector](/connectors/revit/revit).
   </Accordion>
   <Accordion title="What if my sync fails?">
