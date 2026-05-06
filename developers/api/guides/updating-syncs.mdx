@@ -19,7 +19,7 @@ The supported flow is:
 
 - A personal access token with `streams:read` and `streams:write` scopes
 - Access to the target project with edit permissions
-- The target `projectId`
+- The target Speckle `projectId` string (retrieve from the web app URL, GraphQL `project(id: …)`, or [SpecklePy project helpers](/developers/sdks/python/api-reference/resources/project); listing patterns live under [SpeckleClient → Resource Properties](/developers/sdks/python/api-reference/client#resource-properties))
 
 For all GraphQL calls, include:
 
@@ -30,6 +30,28 @@ Authorization: Bearer YOUR_TOKEN
 <Info>
 This flow is suitable for citizen developers. It uses standard PAT scopes and does not require server admin permissions.
 </Info>
+
+## Before you start: IDs and quick test
+
+You need two IDs:
+
+- `projectId`: the Speckle project ID
+- `sync.id`: the sync entry you want to update
+
+If you are not sure where to get `projectId`, list or fetch projects via your SDK (SpecklePy: [`workspace.get_projects`](/developers/sdks/python/api-reference/resources/workspace#get-projects), [`active_user.get_projects`](/developers/sdks/python/api-reference/resources/active-user#get-projects), then [`project.get`](/developers/sdks/python/api-reference/resources/project#get); workspace vs personal hosts described on [SpeckleClient](/developers/sdks/python/api-reference/client#resource-properties)). Sync row IDs still come from the Step 1 `project.syncs` query—until SpecklePy exposes them, call that query through [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries) or substitute `YOUR_PROJECT_ID` in the curl example and read `items[].id` from the response.
+
+Quick test with `curl`:
+
+```bash
+curl -X POST "https://app.speckle.systems/graphql" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "operationName":"ProjectSyncs",
+    "variables":{"projectId":"YOUR_PROJECT_ID","limit":25,"cursor":null},
+    "query":"query ProjectSyncs($projectId: String!, $limit: Int, $cursor: String) { project(id: $projectId) { syncs(limit: $limit, cursor: $cursor) { items { id fileName active context } cursor totalCount } } }"
+  }'
+```
 
 ## Overview
 
