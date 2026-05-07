@@ -1,0 +1,161 @@
+---
+title: 'Checks'
+sidebarTitle: 'Checks'
+description: 'Author and run Validation Checks with WHERE/CHECK logic in Data Validation.'
+---
+
+Use this page for **Validation Check** authoring and execution.
+
+<Info>
+  Checks are executable validation definitions tied to tracked models. For reusable
+  templates, use [Standards](/analytics/data-validation/standards).
+</Info>
+
+<Note>
+  **v0 release behavior (available today):**
+  checks can be defined and run against all models in a project. Editing an existing
+  check is currently limited to its name; scope and rules are not yet editable after
+  creation.
+
+This will evolve. We would value feedback on the expected **versioning behavior** for
+checks (for example: mutable checks vs immutable versions/forks).
+
+</Note>
+
+## Run a first check
+
+Use **Run check** from the project sidebar when you want to test rule logic on
+real project data.
+
+- The first screen can look empty before a preview model is loaded. This is expected.
+- Load a preview model first to unlock suggested starter rules.
+- Select model/version context.
+- Define `WHERE` and `CHECK` logic.
+- Run preview and inspect initial outcomes before saving. Use **Run Preview** or keyboard
+  shortcut `Ctrl+Enter` (`Cmd+Enter` on Mac).
+- The first preview run returns an aggregate result plus an individual result for each
+  rule you defined.
+- Preview results are ephemeral. Use them to tighten scope filters or confirm each rule
+  is behaving as intended before saving.
+- If you edit a rule after running it, the UI prompts you to run the rule again so
+  results stay in sync with the latest rule logic.
+- For large models, 3D preview can be skipped in this screen. Checks still run, but
+  you may not see the visualized result state in the viewer unless you explicitly load
+  the model preview.
+- You are done when the check appears in **Checks** with an initial score/status card.
+
+## Build a check with many rules
+
+A single check can include a list of rules for related requirements (for example,
+fire-rating completeness across walls, doors, and windows).
+
+- Use **Add rule** to expand the rules list inside one check.
+- Keep one requirement per rule so failures stay actionable.
+- Use per-rule **Run** while authoring to iterate faster.
+- Use duplicate/copy controls when rules share similar scope logic.
+
+This pattern lets you keep one coherent check for a topic while still reviewing
+rule-level outcomes in detail.
+
+## Operate checks over time
+
+- Save checks against tracked models so results update over time.
+- Use auto-run or manual trigger mode based on project workflow.
+- Track trends from latest + historical outcomes.
+- Expand each rule in results to inspect logic flow (`WHERE` -> `CHECK`) and counts at
+  each step.
+- Use [What you see on the page](/analytics/data-validation/viewing-results#what-you-see-on-the-page)
+  for result layout orientation.
+- Use [Practical review flow](/analytics/data-validation/viewing-results#practical-review-flow)
+  for review sequence.
+
+When the rules in a check are representative of your requirements, use **Save check**.
+In the save dialog, provide:
+
+- check name
+- optional description
+- project models to include in scope
+
+After saving, the check runs across selected models and produces both
+model-level scores and an aggregate check score. See
+[Viewing Results](/analytics/data-validation/viewing-results) for how these
+outcomes are presented and reviewed.
+
+After save, you land on the check results page. On first load, especially with many
+rules, many models, or deep model/version history, you may see a loading state while
+results are computed.
+
+## Rule structure in checks
+
+Every rule combines filters and an assertion:
+
+| Component       | Description                                                                 |
+| --------------- | --------------------------------------------------------------------------- |
+| `WHERE`         | Filter scope of objects evaluated by the rule                               |
+| `AND`           | Optional additional filters within the same scope                           |
+| `CHECK`         | Final validation assertion                                                  |
+| Property path   | Target property (`category`, `baseline.length`, `parameters.Width.value`)   |
+| Predicate       | Comparison operator (**Equals**, **Exists**, **Matches pattern**, and more) |
+| Value           | Reference value for the predicate                                           |
+| Report severity | `ERROR`, `WARNING`, or `INFO`                                               |
+| Message         | Human-facing explanation for failed outcomes                                |
+
+## Default scope
+
+Checks start with a default scope filter:
+
+- `speckle_type` **Contains** `DataObject`
+
+This means rules evaluate objects matching that scope unless you adjust scope
+filters. You can add additional scope filters to narrow the checked set further.
+
+<Warning>
+  Keep one terminal `CHECK` per rule. If you need multiple assertions, create multiple
+  rules.
+</Warning>
+
+## Thresholds and status
+
+Checks use percentage thresholds to convert rule outcomes into statuses.
+
+- **Pass threshold**: minimum pass-rate required for a rule to be marked `PASS`.
+- **Warn threshold** (optional): lower bound for `WARN`.
+
+Status logic:
+
+- `PASS` when pass-rate is at or above the pass threshold.
+- `WARN` when pass-rate is below pass threshold but at or above warn threshold.
+- `FAIL` when pass-rate is below both thresholds.
+- `PENDING` when no completed evaluation exists yet.
+
+If warn threshold is not set, outcomes below pass threshold go directly to `FAIL`.
+
+## Predicates and matching
+
+Predicate labels are type-aware:
+
+- Text: **Exists**, **Equals**, **Contains**, **Matches pattern**
+- Number: **Is greater than**, **Is less than**, **Is between**
+- Boolean: **Is true**, **Is false**
+
+`Matches pattern` supports wildcard and regex-style validation depending on input
+syntax.
+
+## Best practices
+
+- Start with narrow `WHERE` scope to avoid noisy failures.
+- Keep rule messages actionable so fix owners can act quickly.
+- Review preview output before saving to avoid false positives.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can I create a check from a standard?">
+    Yes. Create a check from a standard, then choose tracked models and trigger settings
+    for execution.
+  </Accordion>
+  <Accordion title="How do I know a check is too strict?">
+    If failures are mostly non-actionable, narrow `WHERE` scope, refine predicates, or
+    adjust severity to reflect real impact.
+  </Accordion>
+</AccordionGroup>

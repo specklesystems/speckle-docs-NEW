@@ -1,318 +1,65 @@
 ---
-title: "Getting Started with Automated Validation (Formerly Model Checker)"
-sidebarTitle: "Automated Validation Quickstart"
-description: "Set up Automated Validation using the validation rules UI and Speckle Automate."
-tag: Enterprise
+title: 'Getting Started with Data Validation'
+sidebarTitle: 'Data Validation Quickstart'
+description: 'Create your first Validation Check, track models, and review run history.'
 ---
 
-<Note>
-**Under development.** Automated Validation is being evolved to support scale deployments. We are solving the problem of validation at scale across many models and projects. [Talk to us](https://speckle.community/) to share your requirements and use cases.
-</Note>
+This quickstart covers the primary Data Validation checks-and-standards flow.
 
-**Prerequisites:**
+## Prerequisites
 
-- An **Enterprise plan** workspace (Automated Validation requires Speckle Automate)
-- A Speckle project with a model
+- Access to a Speckle project with at least one model version
+- Permission to open project Data Validation
+- Plan level that supports your intended save/run scope
 
-Automated Validation is the Automate-powered validation facility. To set it up:
+## Create your first check
 
 <Steps>
-  <Step title="Access the Validation Rules UI">
-    Navigate to [Model Checker](https://model-checker.speckle.systems) and sign in with your Speckle account.
-
-    <Frame>
-     <img src="/images/model-checker/signin.png" alt="sign in to model checker" />
-    </Frame>
+  <Step title="Open project Data Validation">
+    In your project, open **Data Validation** and choose **check** mode.
   </Step>
-  <Step title="Select a project">
-    Browse your Speckle projects and select the project you want to create validation rules for.
-
-    <Frame>
-     <img src="/images/model-checker/project-selection.png" alt="select a project" />
-    </Frame>
+  <Step title="Select a model version for preview">
+    Pick model/version context so preview runs against relevant data.
   </Step>
-  <Step title="Create a ruleset">
-    Click **Create New Ruleset** to start defining validation rules for your project. Give your ruleset a name and description.
-
-    <Frame>
-     <img src="/images/model-checker/edit-ruleset.png" alt="create a ruleset" />
-    </Frame>
+  <Step title="Author rules">
+    Add `WHERE` and `CHECK` conditions for target requirements.
   </Step>
-  <Step title="Add rules">
-    Add rules to your ruleset. Each rule consists of conditions that filter and validate model elements. See the [Rules and Rulesets](/analytics/data-validation/rules-and-rulesets) guide for details.
-
-    <Frame>
-     <img src="/images/model-checker/rules.png" alt="edit the rules" />
-    </Frame>
-  </Step>
-  <Step title="Copy your ruleset URL">
-    Once your rules are defined, click **Copy Link** to get the URL for your ruleset. This URL can be used in Speckle Automate to connect your rules to the Automated Validation automation.
-
-    <Frame>
-     <img src="/images/model-checker/copy.png" alt="copy link" /><br />
-    </Frame>
-    <Frame>
-     <img src="/images/model-checker/copied.png" alt="link copied" />
-    </Frame>
-  </Step>
-  <Step title="Set up the automation">
-    In your Speckle project, navigate to the **Automations** tab and create a new automation:
-
-    1. **Select the Model Checker function** from the function library and click **Next**.
-
-    2. **Configure the ruleset URL**: In the function parameters, paste the ruleset URL you copied from the validation rules UI. This connects your validation rules to the automation.
-
-    3. **Choose a Speckle Model**: Select the model from the current project that will trigger the automation. The automation will run automatically whenever a new version of this model is published.
-
-    4. **Name your automation**: Provide a meaningful name for reference (e.g., "Building Code Compliance Check").
-
-    5. **Create the automation**: Click **Create** to finalize the setup.
-
-    <Frame>
-     <img src="/images/model-checker/configuration.png" alt="configure the automation" />
-    </Frame>
-
-    <Tip>
-    The automation will automatically run whenever a new version of the selected model is published. You don't need to manually trigger it.
-    </Tip>
-  </Step>
-  <Step title="Review results">
-    When models are published, Automated Validation automatically runs. Check results in Speckle's 3D viewer, where elements with warnings or errors are flagged.
-
-    <Frame>
-     <img src="/images/model-checker/results.png" alt="view the results" />
-    </Frame>
+  <Step title="Run preview">Validate rule behavior before saving.</Step>
+  <Step title="Save check">
+    Name the check, select tracked model(s), and choose trigger mode (manual or auto-run
+    on new versions).
   </Step>
 </Steps>
 
-## Exporting Rulesets and Getting Your Ruleset URL
+## Create reusable standards
 
-Once you've created a ruleset:
+Use **standard** mode when rules should be reused across checks.
 
-1. Navigate to your project's rulesets page
-2. Find the ruleset you want to use
-3. Click **Copy Link** to get the URL for your ruleset
+You can:
 
-This URL is a permanent link to your ruleset. When you update your rules in the validation rules UI, the URL automatically reflects the latest version.
+- author standards from scratch
+- import IDS, COBie, or Speckle rule definitions
+- create checks from standards for execution
 
-<Tip>
-The ruleset URL automatically updates when you modify your rules. You don't need to regenerate the URL or update your automation configuration.
-</Tip>
+## Understand run behavior
 
-Rulesets can also be exported as files for backup or sharing. Use the export option on your rulesets page. Exported files use the TSV (Tab-Separated Values) format. See [Rules and Rulesets](/analytics/data-validation/rules-and-rulesets) for the file format and import details.
+- Auto-run checks execute when tracked models publish new versions.
+- Manual checks run on demand.
+- Saved runs appear in latest + history views.
 
-## How It Works
+## Review and export outcomes
 
-When you publish a model to Speckle:
+After runs complete:
 
-1. The Automated Validation automation is triggered
-2. It fetches your rules from the ruleset URL
-3. It validates the model against all rules in the ruleset
-4. Results are stored and can be viewed in the 3D viewer
+1. open check detail
+2. inspect `PASS`, `WARN`, `FAIL`, `PENDING` status distribution
+3. compare historical trend
+4. export BCF when issue workflow handoff is required
 
-## Updating Rules
+## Migration note
 
-When you update rules in the validation rules UI:
-
-1. Make changes to your rules in the interface
-2. The ruleset URL automatically reflects the latest version
-3. Your automations will use the updated rules without needing to reconfigure
-
-No need to update automation configurations or regenerate URLs.
-
-## Importing Rules and TSV for Automations
-
-If you have existing rules in a TSV file, you can import them via your project's rulesets page. The [Rules and Rulesets](/analytics/data-validation/rules-and-rulesets) page describes the file format and columns.
-
-<Warning>
-**TSV file hosting for automations:** If you create TSV files manually (outside of the validation rules UI), the file must be hosted somewhere and served with the MIME-type `text/tab-separated-values`. The URL to that hosted file can then be used in automation configurations.
-</Warning>
-
-## Viewing Results in the 3D Viewer
-
-Automated Validation results are integrated into Speckle's 3D viewer. Elements that fail validation rules are flagged with warnings or errors, making it easy to identify issues visually.
-
-<Frame>
-  <img src="/images/model-checker/results.png" alt="view the results" />
-</Frame>
-
-### Visual Indicators
-
-- **Errors** - Critical issues that must be fixed
-- **Warnings** - Moderate concerns that should be reviewed
-- **Info** - Informational notifications
-
-### Filtering by Results
-
-You can filter the 3D viewer to show only elements that:
-
-- Passed all rules
-- Failed specific rules
-- Have errors or warnings
-- Match specific severity levels
-
-## Viewing Results in Speckle Connectors
-
-Automated Validation reports are also viewable in the Speckle connectors interface. You can view validation results directly in your host application (Revit, Rhino, etc.) and interact with failed elements.
-
-### Isolating and Highlighting Elements
-
-When viewing Automated Validation results in a connector:
-
-- **Isolate elements** that failed validation rules
-- **Highlight elements** in your host application based on validation results
-- **Navigate to specific elements** that need attention
-- **Review validation messages** directly in the connector interface
-
-This allows you to fix validation issues directly in your modeling software without switching between applications.
-
-<Frame>
-  <img src="/images/model-checker/connector-results.png" alt="view the results" />
-</Frame>
-
-## Viewing Results in Power BI
-
-Automated Validation results can be visualized and analyzed in Power BI, allowing you to create custom dashboards and track model data quality over time.
-
-### What You Can Do
-
-- **Query validation results** for one or multiple model versions using Speckle's GraphQL API
-- **Establish relationships** between validation results and 3D model objects
-- **Track model health over time** using interactive Power BI charts
-- **Create custom reports** tailored to your project needs
-
-### Getting Started
-
-To view Automated Validation results in Power BI:
-
-1. Use Power BI Desktop with the **Speckle Data Connector** or query Speckle's GraphQL API directly
-2. Query the `automationsStatus` field from model versions to access validation results
-3. Extract validation data including:
-   - **Category** (validation rule applied)
-   - **Level** (error, warning, info)
-   - **Object IDs** (affected elements)
-   - **Message** (rule description)
-   - **Metadata** (custom rule details)
-4. Link validation results to model objects using Object IDs
-5. Create visualizations to track trends and analyze model quality
-
-This approach is particularly useful for **Project Managers, BIM Coordinators, and Engineers** who need deeper insights into model validation beyond what's available in the 3D viewer.
-
-### Power Query M Code Examples
-
-<AccordionGroup>
-<Accordion title="Step 1: Parse the Speckle URL">
-Extract project and model IDs from your Speckle URL:
-
-```m
-let
-    projectUrl = "https://your-speckle-server/projects/{your-project-id}/models/{your-model-id}",
-    parsedUrl = Speckle.Parser(projectUrl)
-in
-    parsedUrl
-```
-
-Rename this query to **ParsedSpeckleURL**.
-</Accordion>
-<Accordion title="Step 2: Query Automated Validation Results">
-Query validation results for a single model version:
-
-```m
-let
-    query = """
-    query GetCheckerResults($projectId: String!, $modelId: String!, $limit: Int!) {
-        project(id: $projectId) {
-            model(id: $modelId) {
-                versions(limit: $limit) {
-                    items {
-                        automationsStatus {
-                            automationRuns {
-                                functionRuns {
-                                    results 
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    """,
-    variables = [
-        projectId = ParsedSpeckleURL[projectId],
-        modelId = ParsedSpeckleURL[modelId],
-        limit = 1
-    ],
-    response = Speckle.Api.Fetch(ParsedSpeckleURL[baseUrl], query, variables)
-in
-    response
-```
-
-Rename this query to **ModelCheckerResults**.
-</Accordion>
-<Accordion title="Step 3: Extract Automation Runs">
-Get all automation runs from the response:
-
-```m
-objects = response[project][model][versions][items]{0}[automationsStatus][automationsRuns]
-```
-
-Expand **objectResults** in Power Query to extract:
-- **Category** (validation rule applied)
-- **Level** (error, warning, info)
-- **Object IDs** (affected elements)
-- **Message** (rule description)
-- **Metadata** (custom rule details)
-</Accordion>
-<Accordion title="Step 4: Query Multiple Versions">
-To track model health over time, modify the query to fetch multiple versions:
-
-```m
-let
-    variables = [
-        projectId = ParsedSpeckleURL[projectId],
-        modelId = ParsedSpeckleURL[modelId],
-        limit = 3
-    ]
-in
-    // Use the same query structure with increased limit
-```
-
-This allows you to create trend charts showing validation results across multiple model versions.
-</Accordion>
-</AccordionGroup>
-
-## FAQ
-
-<AccordionGroup>
-<Accordion title="Can I use the same ruleset URL in multiple automations?">
-Yes, you can use the same ruleset URL in multiple automations. All automations will use the latest version of your rules whenever they run.
-</Accordion>
-<Accordion title="What happens if I delete a ruleset?">
-If you delete a ruleset, any automations using that ruleset's URL will no longer be able to fetch the rules. Update or remove those automations.
-</Accordion>
-<Accordion title="Do I need to update my automation when I change rules?">
-No, the ruleset URL automatically reflects the latest version of your rules. Your automations will use the updated rules without needing to reconfigure.
-</Accordion>
-<Accordion title="Why TSV and not CSV?">
-TSV (Tab-Separated Values) is used instead of CSV (Comma-Separated Values) to cope with commas that may be present in properties or messages. TSV is the same as CSV but uses tabs in place of commas to separate values, preventing issues when property values or messages contain commas.
-</Accordion>
-<Accordion title="Can I create the file in Excel?">
-Yes, you can create TSV files in Excel. When saving, choose "Tab delimited" or "Text (Tab delimited)" as the file format. Make sure to save with the .tsv extension.
-</Accordion>
-<Accordion title="How do I know which elements failed validation?">
-Elements that fail validation are visually flagged in the 3D viewer. You can click on flagged elements to see which rules they failed and the associated messages.
-</Accordion>
-<Accordion title="Can I filter results by specific rules?">
-Yes, you can filter the 3D viewer to show only elements that failed specific rules. This helps you focus on particular validation issues.
-</Accordion>
-<Accordion title="How often are results updated?">
-Results are updated automatically when new model versions are published and Automated Validation runs.
-</Accordion>
-<Accordion title="Can I view Automated Validation results in Power BI?">
-Yes, you can query Automated Validation results using Speckle's GraphQL API and visualize them in Power BI. This allows you to create custom dashboards, track model quality over time, and establish relationships between validation results and model objects. Access validation results through the `automationsStatus` field in model versions.
-</Accordion>
-<Accordion title="Can I view Automated Validation results in my host application?">
-Yes, Automated Validation reports are viewable in the Speckle connectors interface. You can isolate and highlight elements that failed validation directly in your host application (Revit, Rhino, etc.), making it easy to fix issues without leaving your modeling software.
-</Accordion>
-</AccordionGroup>
+<Note>
+  If your team previously used dashboard Property Checker or Model Validation widgets as
+  the primary flow, use [Validation Widgets in
+  Dashboards](/analytics/dashboards/validation-widgets) guidance for that workflow.
+</Note>
