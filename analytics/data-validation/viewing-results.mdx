@@ -1,132 +1,85 @@
 ---
-title: "Viewing Results"
-sidebarTitle: "Viewing Results"
-description: "Learn how to view and analyze validation results from Property Checker and Model Validation in Intelligence dashboards."
+title: 'Viewing Results'
+sidebarTitle: 'Viewing Results'
+description: 'Interpret latest and historical Data Validation outcomes, including status badges and trend context.'
 ---
 
-## In Intelligence Dashboards
+Use this page to interpret check outcomes in frontend-3 Data Validation.
 
-There are two validation widgets available in Intelligence dashboards:
+<Info>
+  This page covers `Current` check detail and history views. For dashboard widget result
+  reading, see [Classic Viewing
+  Results](/classic/analytics/data-validation/viewing-results).
+</Info>
 
-### Property Checker
+## Result states
 
-The **Property Checker** is an Intelligence widget that provides spot checking of one property at a time:
+Rule and check summaries use these statuses:
 
-- **Create validation rules** directly in the dashboard widget
-- **View pass/fail results** in a donut chart with percentages
-- **See validation steps** showing how many elements pass each WHERE, AND, and CHECK condition
-- **Colorize the 3D viewer** based on pass/fail results
-- **Get real-time validation** against dashboard data sources
-- **View breakdown by property** to analyze validation results across different property values
+- `PASS`: rule or run met pass threshold
+- `WARN`: partially compliant range between warning and pass thresholds
+- `FAIL`: below warning/pass requirements
+- `PENDING`: no completed evaluation yet (or awaiting run data)
 
-<Frame>
-  <img src="/images/model-checker/widget-results.png" alt="view the results" />
-</Frame>
+## Latest result vs history
 
-Property Checker shows the outcome of each rule you configure:
-- **Pass rate percentage** displayed in the center of the donut chart
-- **Passed vs. Failed counts** for elements that reached the CHECK step
-- **Validation chain steps** showing how many elements pass each filter condition
-- **Human-readable rule description** explaining what the rule checks
+- **Latest result** gives your current project signal for a check.
+- **History** shows trend over time as tracked model versions change.
+- Use both views together to avoid overreacting to one transient run.
 
-This is particularly useful for **quick, ad-hoc validation checks** of individual properties within a dashboard.
+When reading history, always confirm:
 
-<Tip>
-Property Checker validates against the data sources in your dashboard, making it perfect for ad-hoc validation checks of individual properties. For validation at scale with automation integration, use [Model Validation](/analytics/data-validation/overview) (Enterprise) or [Automated Validation](/analytics/data-validation/overview) (Enterprise).
-</Tip>
+- Which model version triggered each run
+- Whether rule edits changed baseline expectations
+- Whether failures cluster by specific model or time period
 
-### Model Validation
+## Model and version context
 
-**Model Validation** is an Intelligence widget that checks a single model against a ruleset defined as many Property Checks. It uses Automated Validation (Automate) under the hood to enable validation at scale and is an Enterprise feature.
+Checks can track one or multiple models depending on workspace plan. Each run is
+tied to specific model version context, so trend interpretation should include:
 
-- Validates a single model against a complete ruleset
-- Rules can be defined as ERROR, WARNING, or INFO which will proportionally contribute to an overall validation score.
-- View comprehensive validation results in dashboards
-- Uses Automated Validation for comprehensive validation
-- Enterprise feature (requires Automate)
+- model coverage in that run
+- trigger mode (manual vs auto-run)
+- timestamp and authoring context
 
-When multiple sources are present, validation recalculates only for selected loaded sources. This keeps results focused
-on what you are actively reviewing and improves responsiveness.
+## Coordination handoff
 
+When teams need issue-driven handoff to coordination workflows, you can export
+BCF from validation outcomes.
 
+BCF export includes topic metadata based on validation outcomes so recipients can
+triage failed objects with supporting context.
 
-#### Breakdown Tab
+## Practical review flow
 
-The **Breakdown** tab allows you to analyze validation results by grouping them according to properties from your model objects. This helps you identify patterns in validation failures across different categories, types, or other property values.
-
-**To use the Breakdown tab:**
-
-1. Ensure validation has run and results are available (check the Summary tab)
-2. Navigate to the **Breakdown** tab
-3. Select a property from the dropdown to view validation results grouped by that property's values
-4. The chart will update to show pass/fail rates for each property value
-
-**Property Selection Requirements:**
-
-The property dropdown in the Breakdown tab will only be usable when:
-- Validation rules are configured and have been executed
-- Validation results are available (check the Summary tab to confirm)
-- Model objects with validation results are accessible
-- Properties exist on the model objects that have validation results
-
-If the property dropdown is disabled even though validation has run:
-- Verify that the model source is properly connected and loaded
-- Check that validation results include object references
-- Ensure the model objects have properties that can be used for breakdown
-- Try refreshing the validation results or re-running the validation
-
-#### Rules tab
-
-For every Rule in a Model Validation ruleset you can review the results as per the Property Checker widget.
-
-
-
-## Understanding Results
-
-### Rule Status
-
-Each rule in your ruleset will show:
-- **Pass** - All elements passed the validation
-- **Fail** - Some elements failed the validation
-- **Not Applied** - Rule couldn't be evaluated (e.g., no matching elements)
-
-### Element Status
-
-Each model element will show:
-- Which rules it passed or failed
-- The severity of any failures
-- The message associated with each failure
-
-## Best Practices
-
-### Regular Review
-Set up regular reviews of validation results to catch issues early in your workflow.
-
-### Team Collaboration
-Share results with your team to ensure everyone is aware of validation issues and can address them promptly.
+<Steps>
+  <Step title="Open latest check result">
+    Start with current check score and top failing rules.
+  </Step>
+  <Step title="Drill into failing rules">
+    Inspect object counts and rule conditions to separate systemic issues from edge
+    cases.
+  </Step>
+  <Step title="Compare with history">
+    Confirm whether failures are regressions, recurring debt, or resolved trends.
+  </Step>
+  <Step title="Share and coordinate">
+    If external coordination tooling is used, include BCF export in handoff.
+  </Step>
+</Steps>
 
 ## FAQ
 
 <AccordionGroup>
-<Accordion title="Why does validation run only on some sources?">
-Validation recalculates only for selected loaded sources. This is expected behavior and helps avoid recomputing models
-that are not currently in scope. If you need additional sources included, load and select them, then run validation
-again.
-</Accordion>
-<Accordion title="What does 'Not Applied' mean?">
-A rule shows as "Not Applied" when it couldn't be evaluated, typically because no elements matched the `WHERE` condition. This is normal and doesn't indicate an error.
-</Accordion>
-<Accordion title="Can I see individual rule outcomes in a dashboard?">
-Yes, Property Checker in Intelligence dashboards lets you create validation rules directly in your dashboard and see the outcomes of individual rules. Property Checker displays pass/fail percentages, validation step counts, and can colorize the 3D viewer based on results. This is perfect for quick, ad-hoc validation checks of individual properties within a dashboard.
-
-For validating a single model against a complete ruleset, use Model Validation (Enterprise feature), which uses Automated Validation under the hood.
-</Accordion>
-<Accordion title="Why is the property selection dropdown disabled in the Breakdown tab?">
-The property selection dropdown in the Breakdown tab requires that:
-- Validation has been executed and results are available
-- Model objects with validation results are accessible and have properties
-- The model source is properly connected to the validation widget
-
-If the dropdown remains disabled after validation has run, it may indicate that the model objects need to be loaded or that properties aren't available on the validated objects. Try refreshing the validation results or ensuring the model viewer widget is properly connected as the data source.
-</Accordion>
+  <Accordion title="Why does a rule show PENDING?">
+    `PENDING` appears when no completed evaluation exists yet for that rule/run context.
+  </Accordion>
+  <Accordion title="Can warning thresholds be customized?">
+    Yes. Warning and pass thresholds can be configured globally and per rule in
+    authoring flow.
+  </Accordion>
+  <Accordion title="Should I use latest only or history only?">
+    Use both. Latest helps with immediate action; history helps with governance and
+    trend confidence.
+  </Accordion>
 </AccordionGroup>
