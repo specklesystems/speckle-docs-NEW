@@ -100,18 +100,35 @@ Every rule combines filters and an assertion:
 | Report severity | `ERROR`, `WARNING`, or `INFO`                                               |
 | Message         | Human-facing explanation for failed outcomes                                |
 
+## Default scope
+
+Checks start with a default scope filter:
+
+- `speckle_type` **Contains** `DataObject`
+
+This means rules evaluate objects matching that scope unless you adjust scope
+filters. You can add additional scope filters to narrow the checked set further.
+
 <Warning>
   Keep one terminal `CHECK` per rule. If you need multiple assertions, create multiple
   rules.
 </Warning>
 
-## Creating checks
+## Thresholds and status
 
-- Use checks when rule logic is attached to tracked model runs.
-- Set trigger mode (manual or auto-run) based on project workflow.
-- Track trends from latest + historical outcomes.
-- Expand each rule in results to inspect logic flow (`WHERE` -> `CHECK`) and counts at
-  each step.
+Checks use percentage thresholds to convert rule outcomes into statuses.
+
+- **Pass threshold**: minimum pass-rate required for a rule to be marked `PASS`.
+- **Warn threshold** (optional): lower bound for `WARN`.
+
+Status logic:
+
+- `PASS` when pass-rate is at or above the pass threshold.
+- `WARN` when pass-rate is below pass threshold but at or above warn threshold.
+- `FAIL` when pass-rate is below both thresholds.
+- `PENDING` when no completed evaluation exists yet.
+
+If warn threshold is not set, outcomes below pass threshold go directly to `FAIL`.
 
 ## Predicates and matching
 
