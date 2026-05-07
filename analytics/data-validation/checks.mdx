@@ -1,0 +1,81 @@
+---
+title: 'Checks'
+sidebarTitle: 'Checks'
+description: 'Author and run Validation Checks with WHERE/CHECK logic in Data Validation.'
+---
+
+Use this page for **Validation Check** authoring and execution.
+
+<Info>
+  Checks are executable validation definitions tied to tracked models. For reusable
+  templates, use [Standards](/analytics/data-validation/standards).
+</Info>
+
+<Note>
+  **v0 release behavior (available today):**
+  checks can be defined and run against all models in a project. Editing an existing
+  check is currently limited to its name; scope and rules are not yet editable after
+  creation.
+
+This will evolve. We would value feedback on the expected **versioning behavior** for
+checks (for example: mutable checks vs immutable versions/forks).
+
+</Note>
+
+## Rule structure in checks
+
+Every rule combines filters and an assertion:
+
+| Component       | Description                                                                 |
+| --------------- | --------------------------------------------------------------------------- |
+| `WHERE`         | Filter scope of objects evaluated by the rule                               |
+| `AND`           | Optional additional filters within the same scope                           |
+| `CHECK`         | Final validation assertion                                                  |
+| Property path   | Target property (`category`, `baseline.length`, `parameters.Width.value`)   |
+| Predicate       | Comparison operator (**Equals**, **Exists**, **Matches pattern**, and more) |
+| Value           | Reference value for the predicate                                           |
+| Report severity | `ERROR`, `WARNING`, or `INFO`                                               |
+| Message         | Human-facing explanation for failed outcomes                                |
+
+<Warning>
+  Keep one terminal `CHECK` per rule. If you need multiple assertions, create multiple
+  rules.
+</Warning>
+
+## Creating checks
+
+- Use checks when rule logic is attached to tracked model runs.
+- Set trigger mode (manual or auto-run) based on project workflow.
+- Track trends from latest + historical outcomes.
+- Expand each rule in results to inspect logic flow (`WHERE` -> `CHECK`) and counts at
+  each step.
+
+## Predicates and matching
+
+Predicate labels are type-aware:
+
+- Text: **Exists**, **Equals**, **Contains**, **Matches pattern**
+- Number: **Is greater than**, **Is less than**, **Is between**
+- Boolean: **Is true**, **Is false**
+
+`Matches pattern` supports wildcard and regex-style validation depending on input
+syntax.
+
+## Best practices
+
+- Start with narrow `WHERE` scope to avoid noisy failures.
+- Keep rule messages actionable so fix owners can act quickly.
+- Review preview output before saving to avoid false positives.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can I create a check from a standard?">
+    Yes. Create a check from a standard, then choose tracked models and trigger settings
+    for execution.
+  </Accordion>
+  <Accordion title="How do I know a check is too strict?">
+    If failures are mostly non-actionable, narrow `WHERE` scope, refine predicates, or
+    adjust severity to reflect real impact.
+  </Accordion>
+</AccordionGroup>
