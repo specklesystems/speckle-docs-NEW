@@ -32,7 +32,7 @@ When you open a check result page, you will typically see:
 - model cards for each model included in the check scope
 - latest run details (time, model/version context)
 - historical trend for previous runs
-- object-level detail for investigation
+- object-level detail table for investigation, including passing and failing objects
 
 This top section is the **aggregate result** for the check across all models in scope.
 Selecting **View result** from a model card opens that model’s detailed result, where
@@ -46,7 +46,8 @@ you can inspect rule-by-rule breakdown, the 3D viewer state, and the data table.
   </Step>
   <Step title="Drill into failing rules">
     Expand a rule to inspect its logic flow (`WHERE` and `CHECK`) and step-by-step
-    counts, then separate systemic issues from edge cases.
+    counts. Rule-level viewing also populates the object table with pass/fail rows so
+    you can inspect individual objects directly.
   </Step>
   <Step title="Compare with history">
     Confirm whether failures are regressions, recurring debt, or resolved trends.
@@ -61,9 +62,12 @@ you can inspect rule-by-rule breakdown, the 3D viewer state, and the data table.
 Rule and check summaries use these statuses:
 
 - `PASS`: rule or run met pass threshold
-- `WARN`: partially compliant range between warning and pass thresholds
-- `FAIL`: below warning/pass requirements
+- `WARN`: pass-rate is below pass threshold and at/above warn threshold
+- `FAIL`: pass-rate is below configured thresholds
 - `PENDING`: no completed evaluation yet (or awaiting run data)
+
+For threshold setup details, see
+[Checks — Thresholds and status](/analytics/data-validation/checks#thresholds-and-status).
 
 ## Latest result vs history
 
@@ -85,6 +89,16 @@ tied to specific model version context, so trend interpretation should include:
 - model coverage in that run
 - trigger mode (manual vs auto-run)
 - timestamp and authoring context
+
+## First run loading and pending status
+
+After saving a check and selecting model scope, the first page you see is the check
+results page. If the check has many rules, many models, or extensive model/version
+history, you may see a loading state initially.
+
+During this phase, checks run in the background per model and per version, then roll
+up into aggregate check results. `PENDING` is primarily visible during this initial
+computation window before completed results are available.
 
 ## Coordination handoff
 
