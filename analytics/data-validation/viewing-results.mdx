@@ -4,122 +4,71 @@ sidebarTitle: 'Viewing Results'
 description: 'Interpret latest and historical Data Validation outcomes, including status badges and trend context.'
 ---
 
-Use this page to understand what you are seeing on a check result page.
-
-<Info>
-  This page covers **Data Validation (checks and standards)** detail and history views.
-  For **dashboard-based validation widget** result reading, see [Validation Widgets in
-  Dashboards](/analytics/dashboards/validation-widgets).
-</Info>
+Interpret a saved **check results** route. Dashboard widgets differ—see [Validation Widgets in
+Dashboards](/analytics/dashboards/validation-widgets) (draft doc).
 
 ## What you see on the page
 
-There are two high-level result views used for quick status checks:
+Orienting terminology for screenshots:
 
-- **Project page Data Validation widget**: compact check cards in the project page for
-  quick scanning.
-- **Checks page cards**: check cards with score, status, trend hint, and scoped model
-  count.
-
-These high-level views are a KPI heads-up layer for rules defined by your team. Use
-them to spot drift quickly, then drill into a specific check for detailed analysis.
-
-When you open a check result page, you will typically see:
-
-- a top-level check score and status
-- a per-rule list showing pass/warn/fail outcomes
-- expandable rule rows to inspect logic flow (`WHERE` -> `CHECK`) and counts at each step
-- model cards for each model included in the check scope
-- latest run details (time, model/version context)
-- historical trend for previous runs
-- object-level detail table for investigation, including passing and failing objects
-
-This top section is the **aggregate result** for the check across all models in scope.
-Selecting **View result** from a model card opens that model’s detailed result, where
-you can inspect rule-by-rule breakdown, the 3D viewer state, and the data table.
+- Rollups: project **Data Validation** widget cards and **Checks** list cards with score, hints, and tracked-model totals.
+- Drill-down view: aggregate score, rule summaries, expandable `WHERE` → `CHECK` counts, per-model result tiles, latest-run caption, and history/object grids.
 
 ## Practical review flow
 
 <Steps>
   <Step title="Open latest check result">
-    Start with current check score and top failing rules.
+    Highest signal: score + worst rules first.
   </Step>
   <Step title="Drill into failing rules">
-    Expand a rule to inspect its logic flow (`WHERE` and `CHECK`) and step-by-step
-    counts. Rule-level viewing also populates the object table with pass/fail rows so
-    you can inspect individual objects directly.
+    Expand for logic counters; table fills so you inspect elements directly.
   </Step>
   <Step title="Compare with history">
-    Confirm whether failures are regressions, recurring debt, or resolved trends.
+    Separate regression noise from chronic debt versus resolved regressions.
   </Step>
   <Step title="Share and coordinate">
-    If external coordination tooling is used, include BCF export in handoff.
+    On that result route, header **Export** / **Actions** → **BCF export** bundles topic
+    meta, failing refs, Speckle validation context for downstream BCF tools.
   </Step>
 </Steps>
 
 ## Result states
 
-Rule and check summaries use these statuses:
+| Status    | Meaning                                                   |
+| --------- | --------------------------------------------------------- |
+| `PASS`    | Pass-rate ≥ configured pass threshold.                    |
+| `WARN`    | Between warn/pass band when configured.                   |
+| `FAIL`    | Below thresholds.                                         |
+| `PENDING` | Evaluation still running in background for that rollup across models, versions, and rules. |
 
-- `PASS`: rule or run met pass threshold
-- `WARN`: pass-rate is below pass threshold and at/above warn threshold
-- `FAIL`: pass-rate is below configured thresholds
-- `PENDING`: no completed evaluation yet (or awaiting run data)
+Threshold tuning: [Checks — Thresholds and status](/analytics/data-validation/checks#thresholds-and-status).
 
-For threshold setup details, see
-[Checks — Thresholds and status](/analytics/data-validation/checks#thresholds-and-status).
+## If a result looks unexpected, check:
 
-## Latest result vs history
-
-- **Latest result** gives your current project signal for a check.
-- **History** shows trend over time as tracked model versions change.
-- Use both views together to avoid overreacting to one transient run.
-
-When reading history, always confirm:
-
-- Which model version triggered each run
-- Whether rule edits changed baseline expectations
-- Whether failures cluster by specific model or time period
+1. Same model/version you expected auditing?
+2. Predicates/threshold edits since that baseline snapshot?
+3. Failures clustered by stream or timeframe (data drift) vs sporadic flake?
 
 ## Model and version context
 
-Checks can track one or multiple models depending on workspace plan. Each run is
-tied to specific model version context, so trend interpretation should include:
-
-- model coverage in that run
-- trigger mode (manual vs auto-run)
-- timestamp and authoring context
-
-## First run loading and pending status
-
-After saving a check and selecting model scope, the first page you see is the check
-results page. If the check has many rules, many models, or extensive model/version
-history, you may see a loading state initially.
-
-During this phase, checks run in the background per model and per version, then roll
-up into aggregate check results. `PENDING` is primarily visible during this initial
-computation window before completed results are available.
+Plans cap how many models attach. Every row references explicit version ids plus trigger +
+timestamp—carry that along when debating trends.
 
 ## Coordination handoff
 
-When teams need issue-driven handoff to coordination workflows, you can export
-BCF from validation outcomes.
-
-BCF export includes topic metadata based on validation outcomes so recipients can
-triage failed objects with supporting context.
+BCF export from validation emits topic scaffolding plus failures so coordinators triage outside
+Speckle.
 
 ## FAQ
 
 <AccordionGroup>
   <Accordion title="Why does a rule show PENDING?">
-    `PENDING` appears when no completed evaluation exists yet for that rule/run context.
+    See **Result states** above.
   </Accordion>
   <Accordion title="Can warning thresholds be customized?">
-    Yes. Warning and pass thresholds can be configured globally and per rule in
-    authoring flow.
+    Yes globally and per rule inside authoring flows.
   </Accordion>
   <Accordion title="Should I use latest only or history only?">
-    Use both. Latest helps with immediate action; history helps with governance and
-    trend confidence.
+    Pair them—latest catches today’s miss; history shows persistence.
   </Accordion>
 </AccordionGroup>
