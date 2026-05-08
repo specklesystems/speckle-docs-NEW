@@ -5,96 +5,84 @@ tag: Enterprise
 description: Create reusable Standards for Data Validation and apply them across checks.
 ---
 
-Use this page for **Standards** authoring and reuse.
-
-<Info>
-  Standards are reusable templates for validation logic. They are intended for
-  cross-check consistency and broader governance workflows.
-</Info>
-
-<Note>
-  In the beta release, standards are stored as **project standards** for reuse within
-  that project. Workspace- and organization-level standards are planned for a later
-  stage. Get in touch with feedback — we actively use it to shape this roadmap.
-</Note>
+**Standards** are **project-scoped** today, so they are useful when teams need reusable rule sets
+inside one project before workspace- or org-wide catalogs are available.
 
 ## What standards are for
 
-- Define reusable rule templates once.
-- Apply standards across multiple checks.
-- Keep rule logic consistent across teams and projects.
+Standards become useful once several checks need the same rule contract and you want one source
+to clone from. They reduce repeated authoring and keep naming, severity, and predicate intent
+consistent across checks.
+
+<Info>
+  Standards compile to Speckle `WHERE` / `CHECK` definitions when spawning checks—they
+  are not a separate DSL from Data Validation authoring.
+</Info>
 
 ## Create first standard
 
-First step: create or import your standard.
+This flow is for rules you plan to reuse across checks.
 
-Use **Create standard** from project sidebar when you want reusable validation
-logic before creating checks.
+Steps mirror checks: optionally load preview, pick model/version, author or import (`WHERE`
+/ `CHECK`—see [Rule structure in checks](/analytics/data-validation/checks#rule-structure-in-checks)),
+preview, rerun after edits.
 
-- First screen can look empty before preview model is loaded. This is expected.
-- Load preview model first to unlock suggested starter rules.
-- Select model/version context for authoring and preview.
-- Define `WHERE` and `CHECK` logic. For full rule-construction guidance, use
-  [Rule structure in checks](/analytics/data-validation/checks#rule-structure-in-checks).
-- Run preview while authoring to confirm rule behavior before saving standard.
-- If you edit rule after running preview, UI prompts rerun so results stay in sync.
-- For large models, 3D preview can be skipped in this screen.
-- Standard authoring still works, but viewer may not render result state unless model
-  preview is loaded.
-- You are done when standard appears in **Standards** and can be selected when creating
-  checks.
+Skip heavy 3D when needed—the editor still validates.
+
+Finished when **Standards** lists the artifact for check creation/import pickers.
 
 ### Save or import outcome
 
-- If you created a new standard from rule authoring, choose **Save standard**.
-- If you imported a standard (IDS, COBie, or Speckle), import completes directly into
-  project standards.
-- In both paths, your project standard appears in the **Project standards** list.
+Saved authoring → **Save standard**. IDS / COBie / Speckle imports land straight under
+**Project standards** once complete.
 
 ## Build standard with many rules
 
-Single standard can hold list of related rules (for example, handover completeness
-across multiple object categories).
-
-- Use **Add rule** to expand rules list.
-- Keep one requirement per rule so downstream check failures stay actionable.
-- Use per-rule **Run** while authoring to iterate faster.
-- Use duplicate/copy controls when rules share similar scope logic.
-
-This pattern keeps one reusable standard for topic while preserving clear,
-rule-level outcomes in checks.
+Group related clauses in one standard so downstream checks duplicate less—**Add rule**,
+one mandate per rule, per-rule preview, duplicate shared filters.
 
 ## Import formats
 
-You can import standards from:
+**IDS:** IFC-aligned facets import into standard rules, then open in the same editor for
+preview and adjustment. Some advanced applicability/property mappings may need manual fixes before
+use in checks.
 
-- **IDS**: strong fit for IFC-aligned requirements exchange.
-- **COBie**: strong fit for asset/information delivery requirements.
-- **Speckle**: migration path from dashboard widget rules or older Speckle Automate
-  Model Checker definitions (JSON/TSV/CSV flows).
+**COBie:** Worksheet fields map into rules and are saved under project standards after import.
+Unusual columns or macro-heavy sheets can lose fidelity, so verify property paths, severities, and
+messages before spawning checks.
+
+**Speckle:** JSON/tab exports from dashboards, Automate, or related tooling import directly as
+standards entries. Rows with widget-specific semantics may still need rewrite into explicit
+`WHERE` / `CHECK` logic.
+
+New rows appear instantly in **Project standards**—no extra publish step.
+
+Regardless of vendor, rerun preview on a representative revision to catch importer blind
+spots.
 
 ## Standards to checks flow
 
 <Steps>
   <Step title="Create or import your standard">
-    Author rules directly (including preview iterations) using the same rule-building
-    pattern as checks. See [Rule structure in
-    checks](/analytics/data-validation/checks#rule-structure-in-checks). Or import from
-    IDS, COBie, or Speckle formats.
+    Same authoring loop as checks, or ingest IDS / COBie / Speckle—see [Rule structure
+    in checks](/analytics/data-validation/checks#rule-structure-in-checks).
   </Step>
   <Step title="Refine rule logic">
-    Confirm predicates, scope, severity, and message quality before reuse.
+    Lock scope, predicates, severities, and copy before clones ship.
   </Step>
   <Step title="Create checks from standard">
-    Use standard as base. Configure tracked models and trigger mode for each check. Then
-    review outcomes in [Viewing Results](/analytics/data-validation/viewing-results).
-    Running **Run check** from a standard card takes you into the same check-creation
-    flow documented in [Checks](/analytics/data-validation/checks).
+    Spawn checks with per-check models and triggers. Read runs on [Viewing
+    Results](/analytics/data-validation/viewing-results). Standard-card **Run check**
+    jumps into [Checks](/analytics/data-validation/checks) authoring.
   </Step>
 </Steps>
 
+Editing an existing standard does **not** auto-mutate already-saved checks—fork or recreate
+checks when breaking logic shifts.
+
 ## Best practices
 
-- Keep standards focused by purpose (e.g. naming, compliance, handover).
-- Version standards with clear naming so downstream checks remain interpretable.
-- Communicate updates before broad rollout.
+Use one naming convention such as `Topic-Scope-v2` (`FireRating-Walls-v2`) so owners can identify
+intent and revision quickly. Create a new standard when predicates, thresholds, or scope change
+behaviour; update the same record only for non-behavioural metadata edits. Existing checks do not
+auto-update after standard changes because they keep the cloned logic from creation time.
