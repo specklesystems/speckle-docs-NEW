@@ -85,60 +85,67 @@ Each rule is filters plus one assertion.
 
 ## Default scope
 
-Checks start with a default scope filter:
+Default filter: `speckle_type` **Contains** `DataObject`, the connector-produced base BIM
+bucket (Revit, IFC, ...). `DataObject` is the base type Speckle connectors produce, so most BIM
+objects match it. Narrow with category/type/parameters—dropping `DataObject` widens noise risk.
 
-- `speckle_type` **Contains** `DataObject`
-
-This means rules evaluate objects matching that scope unless you adjust scope
-filters. You can add additional scope filters to narrow the checked set further.
-
-<Warning>
-  Keep one terminal `CHECK` per rule. If you need multiple assertions, create multiple
-  rules.
-</Warning>
+<Warning>One terminal `CHECK` per rule—extra assertions belong in extra rules.</Warning>
 
 ## Thresholds and status
 
-Checks use percentage thresholds to convert rule outcomes into statuses.
+Rates map through thresholds:
 
-- **Pass threshold**: minimum pass-rate required for a rule to be marked `PASS`.
-- **Warn threshold** (optional): lower bound for `WARN`.
+| Setting           | Effect                                                      |
+| ----------------- | ----------------------------------------------------------- |
+| Pass threshold    | Minimum pass-rate for `PASS`.                               |
+| Warn threshold    | Optional lower bound yielding `WARN` between warn and pass. |
+| No warn threshold | Below pass ⇒ `FAIL` (no intermediate `WARN`).               |
 
-Status logic:
-
-- `PASS` when pass-rate is at or above the pass threshold.
-- `WARN` when pass-rate is below pass threshold but at or above warn threshold.
-- `FAIL` when pass-rate is below both thresholds.
-- `PENDING` when no completed evaluation exists yet.
-
-If warn threshold is not set, outcomes below pass threshold go directly to `FAIL`.
+Statuses: **`PASS`** (≥ pass), **`WARN`** (between thresholds when warn is set), **`FAIL`**
+(under thresholds), **`PENDING`** (evaluation not finished).
 
 ## Predicates and matching
 
-Predicate labels are type-aware:
+Type-aware predicates:
 
 - Text: **Exists**, **Equals**, **Contains**, **Matches pattern**
 - Number: **Is greater than**, **Is less than**, **Is between**
 - Boolean: **Is true**, **Is false**
 
-`Matches pattern` supports wildcard and regex-style validation depending on input
-syntax.
+**Matches pattern** accepts wildcard or regex-like syntax per field help.
 
 ## Best practices
 
-- Start with narrow `WHERE` scope to avoid noisy failures.
-- Keep rule messages actionable so fix owners can act quickly.
-- Review preview output before saving to avoid false positives.
+Tighten `WHERE` first so broad scopes do not flood triage.
+
+Write descriptive **Message** text so fix owners can act without extra clarification.
+
+Run preview before save so you catch false positives before history is recorded.
 
 ## FAQ
 
 <AccordionGroup>
   <Accordion title="Can I create a check from a standard?">
-    Yes. Create a check from a standard, then choose tracked models and trigger settings
-    for execution.
+    Yes—pick models and triggers after choosing the standard as the base.
   </Accordion>
   <Accordion title="How do I know a check is too strict?">
-    If failures are mostly non-actionable, narrow `WHERE` scope, refine predicates, or
-    adjust severity to reflect real impact.
+    Noise usually means tighten `WHERE`, tune predicates, or downgrade severity.
+  </Accordion>
+  <Accordion title="What happens to check results when a tracked model is deleted?">
+    Existing results stay in history because they store the evaluated model/version ids from
+    run time. The deleted model no longer appears in live scope, so future runs exclude it.
+  </Accordion>
+  <Accordion title="Can rules inside one check be reordered?">
+    Rule order follows how rules were authored and saved. Reordering is not supported in v0, so
+    duplicate/delete is the fallback when order matters for review.
+  </Accordion>
+  <Accordion title="What is the difference between preview and saving a check?">
+    Preview runs against the current session model/version and is not persisted after you leave.
+    Saving persists tracked models, trigger mode, thresholds, and result history.
+  </Accordion>
+  <Accordion title="How do I recover when a version update spikes unexpected failures?">
+    First confirm the result used the model/version you expected, then inspect failing rules for
+    missing or changed properties in the new version. If needed, duplicate the check for debug
+    narrowing, export BCF for issue handoff, then create a replacement check once root cause is clear.
   </Accordion>
 </AccordionGroup>
