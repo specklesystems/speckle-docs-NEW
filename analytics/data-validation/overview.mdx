@@ -4,88 +4,87 @@ sidebarTitle: 'Overview'
 description: 'Use Validation Checks and Standards to validate models and track results over time.'
 ---
 
-Data Validation helps teams define quality rules once, run them consistently,
-and catch issues before they become downstream coordination problems.
+This page covers Data Validation concepts, core objects, setup flow, and project-level entry
+points. It does not cover dashboard widget validation paths; for widget-based validation, see
+[Validation Widgets in Dashboards](/analytics/dashboards/validation-widgets) (draft).
 
-<Info>
-  This page covers **Data Validation (checks and standards)** in the project Data
-  Validation area. If you are using **dashboard-based validation widgets** such as
-  Property Checker or Model Validation, use [Validation Widgets in Dashboards
-  docs](/analytics/dashboards/validation-widgets).
-</Info>
+## Why teams adopt it
 
-## Navigate from project sidebar
+Use it when validation rules must stay stable across iterations or across people—for
+repeatable QA, shared predicates and thresholds, and pass-rate comparison as versions ship.
 
-From an open project, use the left sidebar:
+## Core objects
 
-- Open **Data Validation**
-- Use **Run check** to start a new check
-- Use **Checks** to browse and open saved checks
-- Use **Project standards** to create/import reusable standards
+**Validation checks** execute saved rules against tracked models when you run manually or when
+auto-run triggers on new versions.
 
-## Progressive implementation sequence
+**Standards** store project-scoped rule templates that you reuse when creating checks.
 
-Use this three-step sequence to implement Data Validation in your project:
+A **result** captures one completed run with scores, per-rule statuses, counts, and failing
+element links.
 
-1. **Explore quickly**  
-   Run an ephemeral check to test rule logic and understand how checks behave on
-   real model data. Start at [Run a first
-   check](/analytics/data-validation/checks#run-a-first-check).
-2. **Persist useful checks**  
-   Save checks against models so results become an ongoing quality signal, not a
-   one-off review. Continue with [Operate checks over
-   time](/analytics/data-validation/checks#operate-checks-over-time) and
-   [Practical review flow](/analytics/data-validation/viewing-results#practical-review-flow).
-3. **Scale with standards**  
-   Store reusable standards and run them across multiple models in a single
-   check to align teams at project scale. Use [Standards to checks
-   flow](/analytics/data-validation/standards#standards-to-checks-flow).
-
-This sequence is the practical path from experimentation to durable quality
-governance.
+**History** orders past results for a check so you can compare trends across versions.
 
 ## Quickstart
 
-### Prerequisites
+The [end-to-end flow](#end-to-end-flow) is the single setup path from authoring to result review.
 
-- Access to a Speckle project with at least one model version
-- Permission to open project Data Validation
-- Plan level that supports your intended save/run scope
+## End-to-end flow
 
-### First run
+You need at least one published model version in the project.
 
 <Steps>
-  <Step title="Open Data Validation">
-    In your project, open **Data Validation** and choose **check** mode.
+  <Step title="Choose mode">
+    Open **Data Validation** and pick **check** or **standard**.
   </Step>
-  <Step title="Select model version for preview">
-    Pick model/version context so preview runs against relevant data.
-  </Step>
-  <Step title="Author rules">
-    Add `WHERE` and `CHECK` conditions for target requirements.
+  <Step title="Author or import rules">
+    Use `WHERE` / `CHECK`, or import **IDS**, **COBie**, or **Speckle** bundles.
   </Step>
   <Step title="Run preview">
-    Validate rule behavior before saving. Use **Run Preview** or `Ctrl+Enter`
-    (`Cmd+Enter` on Mac).
+    Validate filters on real data before save. **Run Preview** or `Ctrl+Enter` /
+    `Cmd+Enter`.
   </Step>
-  <Step title="Save check">
-    Name check, select tracked model(s), choose trigger mode (manual or auto-run on new
-    versions).
+  <Step title="Save">
+    **Check:** name, optional description, scoped models, manual or auto-run on new
+    versions. **Standard:** stored for spawning checks later.
+  </Step>
+  <Step title="Track results">
+    Open the check result page; expand rules and models to see filter-step counts when
+    debugging failures.
+  </Step>
+  <Step title="Share outcomes">
+    Export **BCF** from result views where coordination tooling expects it.
   </Step>
 </Steps>
 
-### Next scale step
+### After the first pass
 
-- Use [Operate checks over time](/analytics/data-validation/checks#operate-checks-over-time)
-  to make results persistent.
-- Use [Standards to checks flow](/analytics/data-validation/standards#standards-to-checks-flow)
-  to reuse rule logic across checks.
-- Use [Practical review flow](/analytics/data-validation/viewing-results#practical-review-flow)
-  to review outcomes consistently.
+For authoring details and run analysis, see [Checks](/analytics/data-validation/checks),
+[Standards](/analytics/data-validation/standards), and
+[Viewing Results](/analytics/data-validation/viewing-results).
+
+## Navigate from project sidebar
+
+In the project sidebar:
+
+- **Data Validation**
+- **Run check** — draft / preview without persisting yet
+- **Checks** — saved checks (rename only in v0; see Checks page)
+- **Project standards** — create / import standards
+
+## Progressive implementation sequence
+
+**Explore** — run preview on real revisions first so scope errors show before saving ([Run a first
+check](/analytics/data-validation/checks#run-a-first-check)).
+
+**Persist** — save against tracked models so reruns stay comparable over time ([Operate checks over
+time](/analytics/data-validation/checks#operate-checks-over-time), [Practical review
+flow](/analytics/data-validation/viewing-results#practical-review-flow)).
+
+**Scale** — reuse one standard across checks so shared logic stays aligned ([Standards to checks
+flow](/analytics/data-validation/standards#standards-to-checks-flow)).
 
 ## Start here
-
-Choose the page that matches what you need to do next:
 
 <CardGroup cols={2}>
   <Card
@@ -93,82 +92,45 @@ Choose the page that matches what you need to do next:
     icon="play"
     href="/analytics/data-validation/checks"
   >
-    Define checks, run them against project models, and review check-level behavior.
+    Rules, preview, thresholds, saves, tracked models.
   </Card>
   <Card
     title="Create project standards"
     icon="file-text"
     href="/analytics/data-validation/standards"
   >
-    Build reusable project standards and apply them across checks.
+    Templates and interoperability imports inside a project.
   </Card>
   <Card
     title="Interpret results"
     icon="chart-column"
     href="/analytics/data-validation/viewing-results"
   >
-    Read aggregate and model-level outcomes, then drill into rule logic and trends.
+    Latest versus history, statuses, drills.
   </Card>
   <Card
     title="Using dashboard widgets instead?"
     icon="layout-grid"
     href="/analytics/dashboards/validation-widgets"
   >
-    Follow the widget-based validation path in Intelligence dashboards.
+    Dashboard widget validation is documented in [Validation Widgets in
+    Dashboards](/analytics/dashboards/validation-widgets) (draft).
   </Card>
 </CardGroup>
 
-## Why teams adopt it
-
-Use Data Validation when quality expectations must be explicit, repeatable, and
-visible across a project. Teams typically adopt it to reduce manual QA, align
-disciplines around shared rule definitions, and track quality drift over time.
-
-## Core objects
-
-- **Validation Check**: execution object that runs rules against selected models
-- **Standard**: reusable rule set template that can seed new checks
-- **Result**: outcome for a run (score, statuses, affected objects)
-- **History**: timeline of run outcomes for a check and tracked models
-
-## End-to-end flow
-
-<Steps>
-  <Step title="Choose mode">
-    Open Data Validation in a project and choose whether you are creating a **check** or
-    a **standard**.
-  </Step>
-  <Step title="Author or import rules">
-    Define check logic with `WHERE` and `CHECK`, or start from standards imported from
-    **IDS**, **COBie**, or **Speckle** formats.
-  </Step>
-  <Step title="Run preview">
-    Validate your rule logic before saving so you can adjust filters and thresholds.
-  </Step>
-  <Step title="Save">
-    Save as a check (runs over tracked models) or as a standard (reused across checks).
-  </Step>
-  <Step title="Track results">
-    Review latest result and history trends for each check, then investigate
-    fails/warnings.
-  </Step>
-  <Step title="Share outcomes">
-    If needed, export BCF for downstream issue coordination workflows.
-  </Step>
-</Steps>
-
 ## Plan availability
+
+Caps differ mainly on whether checks persist and whether multiple models attach per check.
 
 <AccordionGroup>
   <Accordion title="What Model Validation (beta) features do I get on each plan?">
-    **Speckle Explore (Free):** in-session check and preview experience; no
-    persistent saved checks and no saved results history.
+    **Explore (Free):** in-session authoring and preview only; no saved checks or preserved
+    history.
 
-    **Speckle Team (Business):** persistent checks with trend/history tracking
-    for one tracked model per check.
+    **Team (Business):** saved checks and trends for **one** tracked model per check.
 
-    **Speckle Enterprise:** multi-model checks, reusable standards, and
-    governance-oriented history at broader team scale.
+    **Enterprise:** multi-model checks and **project standards** on the same authoring
+    stack.
 
   </Accordion>
 </AccordionGroup>
