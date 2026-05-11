@@ -1,0 +1,249 @@
+---
+title: "Security"
+description: "Architecture, governance, and operational controls for evaluating Speckle in regulated environments."
+---
+
+This page is for enterprise IT, security reviewers, BIM and VDC technology leads, and procurement teams evaluating Speckle for governed AEC collaboration. It is a conceptual and routing reference. Operational specifics — network requirements, role matrices, billing limits, and residency tables — live on linked pages.
+
+## How to use this page
+
+- Use this page to understand Speckle's architecture and governance model.
+- Use the linked pages for canonical operational detail.
+- Where a control depends on plan or contract, the page says so.
+- Where formal evidence (attestations, security packages) is required, the page directs the request to the right channel.
+
+## Hosted platform overview
+
+Speckle is hosted SaaS at `app.speckle.systems`, supported by an open-source core that organisations can also self-host. The hosted platform is multi-tenant and operated by Speckle. The self-hosted form gives organisations infrastructure-level control. See [Compare Open Source, Hosted, and Enterprise Speckle](/developers/server/self-hosted-vs-cloud-hosted-speckle).
+
+Speckle is an object-based data platform, not a file repository. When Speckle ingests data — through connectors or cloud integrations — it stores that data as structured, versioned objects inside Speckle. Once data exists in Speckle, governance and permissions apply independently of the original source system.
+
+This model has several governance implications:
+
+- A Speckle project is the access boundary for ingested data, not the source CDE.
+- Speckle does not act as a live pass-through proxy to external systems. It replicates data into its own object store.
+- Permissions in Speckle do not automatically reflect changes in the source system. They are administered in Speckle.
+
+For Speckle's data and version model, see [Data schema overview](/developers/data-schema/overview).
+
+## Encryption
+
+### In transit
+
+Traffic to and from `app.speckle.systems` and its associated services uses HTTPS/TLS. This applies to:
+
+- Web application access from browsers.
+- Connector traffic to the Speckle API.
+- WebSocket connections used for real-time features.
+
+For self-hosted deployments, TLS termination is configured by the operator. See [SSL Certificates](/developers/server/configuration/ssl-certificates) and [Kubernetes with Helm](/developers/server/deployment/kubernetes-with-helm).
+
+### At rest
+
+Encryption-at-rest implementation details, key management, and control descriptions are not published in public documentation. Customers conducting formal security review can request the security package by contacting [support@speckle.systems](mailto:support@speckle.systems).
+
+## Authentication and SSO
+
+Speckle supports several authentication paths:
+
+- **Email and password** with email verification at registration.
+- **Identity provider sign-in** for example Google, GitHub, or Autodesk, where configured for the workspace.
+- **Single Sign-On via OIDC** for organisations with their own identity provider. Available on the Enterprise plan. See [Single Sign-On (SSO)](/workspaces/sso).
+- **SCIM provisioning** for automated user lifecycle. Available on the Enterprise plan. See [SCIM](/workspaces/scim).
+
+When SSO is enabled:
+
+- Workspace members are required to authenticate with the configured identity provider.
+- Backchannel logout can be configured so the identity provider can terminate Speckle sessions when an upstream session ends. See [Configure backchannel logout](/workspaces/sso#configure-backchannel-logout).
+- Guests are external collaborators with project-scoped access and are not subject to SSO enforcement.
+
+Multi-factor authentication is delegated to the configured identity provider rather than enforced separately by Speckle.
+
+For workspaces that do not use SSO, [Domain protection](/workspaces/domain-protection) reduces the risk of account claim by users outside an organisation's verified domain.
+
+## Workspace, project, and guest permissioning
+
+Speckle uses a two-level access model. Full role definitions and current behaviour live in [Roles and Permissions](/workspaces/roles-and-seats). The summary below is a conceptual orientation only.
+
+### Workspace roles
+
+- **Admin** — Full ownership of the workspace and automatic ownership of all projects.
+- **Member** — Access to non-private projects in the workspace and ability to create projects.
+- **Guest** — Project-scoped external collaborator. Cannot create projects. Cannot hold the Owner project role. Not required to use SSO.
+
+### Project roles
+
+- **Owner** — Manages collaborators, settings, and visibility.
+- **Contributor** — Publishes and loads model versions.
+- **Reviewer** — Reads, comments, and reviews. Cannot publish.
+
+### How effective access is determined
+
+A user's effective access to data inside a project depends on three things together:
+
+1. Workspace role — does the user reach the workspace at all?
+2. Project visibility — Workspace, Private, or Public.
+3. Project role — what the user can do inside that project.
+
+Workspace admins are project Owners on every project, including private ones. This is intentional and supports administrative recovery, audit, and access removal.
+
+For project structure and visibility controls, see [Projects](/workspaces/projects) and [Configuration](/workspaces/configuration#project-configuration).
+
+## Public vs private sharing behaviour
+
+Projects have one visibility state at a time:
+
+- **Workspace** — Visible to authenticated workspace members.
+- **Private** — Visible only to explicitly added collaborators and workspace admins.
+- **Public** — Accessible to anyone with the link, including users without a Speckle account, via the web interface and API.
+
+Visibility is set at the project level and applies to the entire project. Public visibility should be used intentionally. Validate project content before changing a project to Public, and confirm that the workspace's external sharing policy permits public exposure.
+
+## Public links and external sharing
+
+This section describes the surface area for external access and how administrators retain control. Operational steps live in [Share your Models](/3d-viewer/sharing) and [Configuration](/workspaces/configuration#project-configuration).
+
+### What "public" means
+
+A public project exposes that project's content to anyone who has the project URL. There is no sign-in requirement for read access in this state. This is a project-level setting, not a per-link setting.
+
+A share token is a separate mechanism. Tokens provide scoped, read-only access to a specific project for a defined audience. Tokens are commonly used for:
+
+- Embedded viewers in presentations and dashboards.
+- External review without granting workspace membership.
+- Read-only Power BI and similar integrations.
+
+### Token controls
+
+Share tokens support:
+
+- **Expiry dates** so links stop working automatically after a defined time.
+- **Optional passwords** so recipients must authenticate before the model loads.
+- **Internal labels** so administrators can identify what each token was issued for.
+
+### Administrative visibility and revocation
+
+- Issued share tokens are listed in **Project settings → Tokens**.
+- Project Owners and Workspace Admins can revoke tokens at any time.
+- Revocation takes effect immediately for new requests using that token.
+- Changing a project's visibility from Public to Workspace or Private removes anonymous access via the project URL. Existing share tokens continue to operate under their own controls until they are revoked.
+
+### Recommended operating practice
+
+Treat external sharing as governed access, not as one-off convenience URLs. The recommended baseline is described in [Plans and Governance](/workspaces/plans-and-governance#secure-sharing-governance-model):
+
+- Apply expiry dates to external links by default.
+- Require passwords for sensitive or externally distributed links.
+- Label tokens with owner and purpose.
+- Review active tokens on a fixed cadence.
+- Revoke tokens when access purpose ends.
+
+## Auditability and access visibility
+
+The current administrative visibility surfaces are:
+
+- **Project collaborators** in the project's **Collaborators** tab.
+- **Workspace members and guests** in **Settings → Team**.
+- **Active share tokens** in **Project settings → Tokens**.
+- **Active automations and live syncs** in **Project settings → Automations** and on the project home.
+
+Speckle does not publish a documented general-purpose audit log or formal log retention period. Audit and evidence requirements for Enterprise customers are handled through commercial and security review. Customers requiring logging or evidence beyond what the product UI exposes should request scope confirmation via [support@speckle.systems](mailto:support@speckle.systems).
+
+For SSO-driven session termination, see [Configure backchannel logout](/workspaces/sso#configure-backchannel-logout).
+
+## Data residency
+
+Speckle Cloud workspaces start in Speckle's default region. Customers on the Enterprise plan can place their workspace in a specific region for compliance reasons. Project-level residency control is available as the **Extra data region** add-on. See [Data Residency](/workspaces/data-residency) for the current set of regions and add-on details.
+
+Data residency controls where data is stored. Data sovereignty — which jurisdiction can compel access — depends on legal entity, hosting model, and applicable cross-border laws. Customers with strict sovereignty requirements typically use a self-hosted Enterprise deployment so the operating jurisdiction is theirs, not Speckle's.
+
+## Hosted SaaS and the self-hosted open source core
+
+Speckle's core platform — projects, models, versions, GraphQL and REST APIs, and the 3D viewer — is open source. Speckle Cloud is the same core operated by Speckle, with managed services (ingestion, integrations, automation) on top.
+
+Two governance shapes follow from this:
+
+- **Speckle Cloud (Team or Enterprise)** — Speckle operates the platform. Governance controls and the SOC 2 attestation apply to the operated service.
+- **Self-hosted (open source or Enterprise license)** — The customer operates the platform. Infrastructure, jurisdiction, backups, monitoring, and patch cadence are owned by the customer.
+
+For the responsibility split, see [Compare Open Source, Hosted, and Enterprise Speckle](/developers/server/self-hosted-vs-cloud-hosted-speckle) and [Hosting Your Own Speckle Server](/developers/server/introduction).
+
+Some managed capabilities — notably [Automate](/developers/automate/introduction) — run only on Speckle-operated infrastructure. Self-hosted deployments can integrate with external compute via webhooks rather than running these services in-cluster.
+
+## Data replication for cloud integrations
+
+Cloud integrations such as Autodesk Forma Data Management (still widely known as ACC) and Bentley ProjectWise are not live pass-through proxies. Speckle reads source files from the external system, parses them into Speckle's object schema, and stores the result as versioned objects within the Speckle project.
+
+Operational consequences:
+
+- Once a sync completes, the data inside the Speckle project is governed by Speckle workspace and project permissions, independently of the source system's permissions.
+- Sync runs use the credentials of the account that established the connection. Access to source content is bounded by what that account can already see in the source system. To minimise scope, use a dedicated, least-privilege source account for sync.
+- Cloud integrations are read-only from Speckle to Autodesk cloud sources. Speckle does not write back to source files.
+- Subsequent updates in the source system propagate into Speckle on the integration's defined schedule or on file publish events, not in real time as a transparent proxy.
+
+For ACC integration specifics, see [Autodesk Forma Data Management (ACC)](/connectors/cloud-integrations/acc) and the IT-side [Enable Autodesk Forma Data Management Integration](/workspaces/it-admin-acc-integration). For ProjectWise, see [Bentley ProjectWise](/connectors/cloud-integrations/projectwise).
+
+## Backups and operational resilience
+
+Backup and resilience responsibilities differ by deployment.
+
+### Speckle Cloud
+
+Operational reliability for Speckle Cloud is managed by Speckle. Specific backup frequencies, retention periods, and recovery objectives (RPO and RTO) are not published as universal public values across all plans. Customers requiring formal recovery commitments should confirm these as part of Enterprise commercial and security review via [support@speckle.systems](mailto:support@speckle.systems).
+
+### Self-hosted
+
+For self-hosted deployments, backup policy, restore testing, and recovery operations are owned by the operator. See [Backup, Upgrade, and Restore](/developers/server/deployment/backup-upgrade-restore) and the production guidance in [Kubernetes with Helm](/developers/server/deployment/kubernetes-with-helm).
+
+### What customers should define before go-live
+
+A minimum baseline (covered in more detail in [Plans and Governance](/workspaces/plans-and-governance#implementation-baseline)):
+
+1. Backup frequency and retention policy.
+2. Restore testing cadence and acceptance criteria.
+3. Named recovery owners and escalation path.
+4. Target RPO and RTO aligned to business impact.
+5. Required audit artefacts.
+6. A documented failover and communication runbook.
+
+## Responsible disclosure and security contact
+
+Customers and external researchers should report suspected vulnerabilities to Speckle directly rather than disclosing them publicly.
+
+{/* TODO: Confirm whether a dedicated security disclosure address (for example security@speckle.systems) or a published vulnerability disclosure policy exists. If yes, replace the contact and routing below. */}
+
+Until a dedicated channel is published, route initial reports to [support@speckle.systems](mailto:support@speckle.systems) with the subject line marked as a security report. Enterprise customers may also have a named contact in their commercial agreement.
+
+A useful report includes:
+
+- A description of the issue and impact.
+- Reproduction steps.
+- Affected URLs, endpoints, or components.
+- Whether the report is intended for coordinated disclosure.
+
+The open-source core is published at [github.com/specklesystems](https://github.com/specklesystems). Issues for that codebase can also be raised in the relevant repository.
+
+## Compliance posture
+
+Speckle maintains a current SOC 2 attestation covering the current reporting year. SOC 2 documentation is made available to Enterprise prospect customers as part of the security and procurement review process. Request access via [support@speckle.systems](mailto:support@speckle.systems).
+
+This page does not list certifications that Speckle does not hold. If your evaluation requires assurance against a specific framework — for example ISO 27001, HIPAA, FedRAMP, or specific GDPR Article 28 attestations — confirm scope explicitly during commercial and security review. Speckle Cloud is a multi-tenant SaaS. Customers with strict regulatory or sovereignty requirements that the hosted offering does not meet are typically directed to a self-hosted Enterprise deployment so those controls can be implemented in the customer's own environment.
+
+## What this page is not
+
+- Not a feature matrix. See [Plans and Governance](/workspaces/plans-and-governance) and [Billing](/workspaces/billing).
+- Not a permission matrix. See [Roles and Permissions](/workspaces/roles-and-seats).
+- Not a residency table. See [Data Residency](/workspaces/data-residency).
+- Not a self-host operations runbook. See [Hosting Your Own Speckle Server](/developers/server/introduction).
+- Not an exhaustive list of every administrative control.
+
+## Related pages
+
+- [Plans and Governance](/workspaces/plans-and-governance) — governance hub, plan-linked controls, and secure sharing baseline.
+- [Roles and Permissions](/workspaces/roles-and-seats) — workspace and project role definitions.
+- [Projects](/workspaces/projects) — project structure, visibility, and access.
+- [Configuration](/workspaces/configuration) — workspace and project configuration surfaces.
+- [Data Residency](/workspaces/data-residency) — region selection and project-level residency.
+- [Hosting Your Own Speckle Server](/developers/server/introduction) — self-host overview.
+- [Compare Open Source, Hosted, and Enterprise Speckle](/developers/server/self-hosted-vs-cloud-hosted-speckle) — responsibility boundaries.
+- [IT Setup Guide](/workspaces/it-setup) — network, allowlisting, and email deliverability.
