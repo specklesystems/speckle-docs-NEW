@@ -1,0 +1,282 @@
+---
+title: 'SpecklePy Model Data Analytics'
+sidebarTitle: 'SpecklePy Analytics'
+description: 'Use SpecklePy to prepare queryable model datasets for analytics workflows.'
+---
+
+This workflow shows how to use SpecklePy with Speckle Server model datasets for analytics use cases.
+
+<Info>
+  This notebook currently targets Revit-oriented analytics paths (for example `category`
+  and `proxy.level` examples in EAV queries).
+  It expects versions published from Speckle Connectors `>3.20`.
+</Info>
+
+You will:
+
+1. Resolve a model version with SpecklePy.
+2. Check whether analytics datasets are available for that version.
+3. Download both artifacts from server endpoints.
+4. Query them locally with DuckDB.
+
+## Why this workflow
+
+For analytics, this path is usually faster and more repeatable than traversing the full object graph:
+
+- The main dataset (`.duckdb`) provides `objects` and `root` tables.
+- The EAV dataset (`.eav.duckdb`) provides query-ready `properties` and `proxies` tables.
+
+## Prerequisites
+
+- Python 3.10+
+- Personal access token with project read access
+- A version published from Speckle Connectors `>3.20`
+- A model URL (recommended), or `projectId` + `modelId` (version optional)
+- Packages:
+
+```bash
+pip install specklepy duckdb pandas requests python-dotenv
+```
+
+Create a `.env` file in your working folder:
+
+```bash
+SPECKLE_TOKEN=your_personal_access_token
+SPECKLE_MODEL_URL=https://app.speckle.systems/projects/your_project_id/models/your_model_id
+# Optional:
+# SPECKLE_HOST=https://app.speckle.systems
+# SPECKLE_VERSION_ID=optional_specific_version
+```
+
+The tutorial assumes credentials and IDs come from environment variables rather than hardcoded values.
+If you need to create a token first, use [Building with PATs](/developers/authentication/pats).
+
+<Warning>
+  Older published versions created before automatic dataset generation may return
+  availability or download errors. In that case, run this tutorial on a newer published
+  version.
+</Warning>
+
+## Endpoint shape
+
+Given `projectId`, `modelId`, `versionId`, the server exposes:
+
+- Main dataset: `/api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/download`
+- EAV dataset: `/api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/download`
+
+Both require auth (Bearer token or share token headers).
+
+## Step-by-step tutorial
+
+### 1) Authenticate with SpecklePy
+
+```python
+import os
+from specklepy.api.client import SpeckleClient
+from dotenv import load_dotenv
+
+load_dotenv()
+
+HOST = os.getenv("SPECKLE_HOST", "https://app.speckle.systems")
+TOKEN = os.getenv("SPECKLE_TOKEN")
+
+if not TOKEN:
+    raise ValueError("Set SPECKLE_TOKEN in your environment.")
+
+client = SpeckleClient(host=HOST)
+client.authenticate_with_token(TOKEN)
+```
+
+### 2) Resolve IDs with minimal input and check dataset availability
+
+`objectKey` is the server-side signal that a version has a generated primary dataset.
+
+```python
+import os
+import requests
+from urllib.parse import urlparse
+
+model_url = os.getenv("SPECKLE_MODEL_URL", "").strip()
+if not model_url:
+    raise ValueError("Set SPECKLE_MODEL_URL in your .env file.")
+
+parsed = urlparse(model_url)
+parts = [p for p in parsed.path.split("/") if p]
+if len(parts) < 4 or parts[0] != "projects" or parts[2] != "models":
+    raise ValueError("Model URL must look like /projects/{projectId}/models/{modelRef}")
+
+project_id = parts[1]
+model_ref = parts[3]
+version_id = os.getenv("SPECKLE_VERSION_ID", "").strip() or None
+if "@" in model_ref:
+    model_id, parsed_version_id = model_ref.split("@", 1)
+    version_id = version_id or parsed_version_id
+else:
+    model_id = model_ref
+
+def graphql_post(query: str, variables: dict) -> dict:
+    response = requests.post(
+        f"{HOST}/graphql",
+        headers={"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"},
+        json={"query": query, "variables": variables},
+        timeout=60,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if payload.get("errors"):
+        raise RuntimeError(payload["errors"])
+    return payload["data"]
+
+if not version_id:
+    latest_query = """
+    query LatestVersion($projectId: String!, $modelId: String!) {
+      project(id: $projectId) {
+        model(id: $modelId) {
+          versions(limit: 1) {
+            items {
+              id
+            }
+          }
+        }
+      }
+    }
+    """
+    latest_data = graphql_post(latest_query, {"projectId": project_id, "modelId": model_id})
+    items = latest_data["project"]["model"]["versions"]["items"]
+    if not items:
+        raise RuntimeError("No versions found for this model.")
+    version_id = items[0]["id"]
+
+availability_query = """
+query DatasetAvailability($projectId: String!, $modelId: String!, $versionId: String!) {
+  project(id: $projectId) {
+    model(id: $modelId) {
+      version(id: $versionId) {
+        id
+        objectKey
+        packfileSize
+        referencedObject
+        createdAt
+      }
+    }
+  }
+}
+"""
+
+availability_data = graphql_post(
+    availability_query,
+    {"projectId": project_id, "modelId": model_id, "versionId": version_id},
+)
+version = availability_data["project"]["model"]["version"]
+if not version:
+    raise RuntimeError("Version not found.")
+if not version.get("objectKey"):
+    raise RuntimeError(
+        "Primary dataset not available for this version. "
+        "This often means the version is historical (published before auto-generation)."
+    )
+
+print(f"Resolved IDs: project={project_id}, model={model_id}, version={version_id}")
+```
+
+### 3) Download datasets
+
+```python
+from pathlib import Path
+import requests
+
+output_dir = Path("packfiles") / project_id / model_id / version_id
+output_dir.mkdir(parents=True, exist_ok=True)
+
+main_url = f"{HOST}/api/v1/projects/{project_id}/models/{model_id}/versions/{version_id}/download"
+eav_url = f"{HOST}/api/v1/projects/{project_id}/models/{model_id}/versions/{version_id}/eav/download"
+
+main_path = output_dir / f"{version_id}.duckdb"
+eav_path = output_dir / f"{version_id}.eav.duckdb"
+headers = {"Authorization": f"Bearer {TOKEN}"}
+
+def download_file(url: str, target: Path) -> None:
+    with requests.get(url, headers=headers, stream=True, timeout=300) as response:
+        response.raise_for_status()
+        with target.open("wb") as file:
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    file.write(chunk)
+
+download_file(main_url, main_path)
+```
+
+### 4) Query with DuckDB
+
+```python
+import duckdb
+import pandas as pd
+
+con = duckdb.connect()
+con.execute(f"ATTACH '{main_path.as_posix()}' AS main_pf (READ_ONLY)")
+
+summary = con.execute(
+    """
+    SELECT
+      (SELECT COUNT(*) FROM main_pf.objects) AS object_count
+    """
+).fetchdf()
+
+summary
+```
+
+### 5) Optional EAV analytics queries
+
+```python
+download_file(eav_url, eav_path)
+con.execute(f"ATTACH '{eav_path.as_posix()}' AS eav_pf (READ_ONLY)")
+
+category_counts = con.execute(
+    """
+    SELECT value_text AS category, COUNT(*) AS count
+    FROM eav_pf.properties
+    WHERE path = 'category' AND value_text IS NOT NULL
+    GROUP BY value_text
+    ORDER BY count DESC
+    LIMIT 25
+    """
+).fetchdf()
+
+level_counts = con.execute(
+    """
+    SELECT value_text AS level_name, COUNT(*) AS count
+    FROM eav_pf.properties
+    WHERE path = 'proxy.level' AND value_text IS NOT NULL
+    GROUP BY value_text
+    ORDER BY count DESC
+    LIMIT 25
+    """
+).fetchdf()
+```
+
+## Notebook
+
+A ready-to-run notebook for this workflow is available here:
+
+- [SpecklePy analytics notebook](./notebooks/specklepy-model-data-analytics.ipynb)
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="404 on dataset download">
+    Check `projectId`, `modelId`, and `versionId` first. Then confirm the version has
+    `objectKey` in GraphQL metadata.
+  </Accordion>
+  <Accordion title="Why does this fail on older published versions?">
+    Some historical versions were published before dataset auto-generation was enabled.
+    Those versions can return availability or download errors for this workflow. Use a
+    newer published version where datasets are generated.
+  </Accordion>
+  <Accordion title="403 or 401 on download">
+    Verify token scope and project access. Use a PAT with read access to that project.
+  </Accordion>
+  <Accordion title="EAV dataset missing but main dataset exists">
+    The version may not have completed EAV extraction yet. Retry later, or use only the
+    main dataset until EAV is ready.
+  </Accordion>
+</AccordionGroup>
