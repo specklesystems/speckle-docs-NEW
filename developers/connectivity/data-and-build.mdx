@@ -1,0 +1,85 @@
+---
+title: Data model and build order
+sidebarTitle: Data & Build Order
+description: Shared Speckle data concepts and a suggested development sequence for any connectivity architecture.
+---
+
+Applies to every architecture in this section. For full detail see [Data schema](/developers/data-schema/overview).
+
+Before the steps below, decide **publish only** or **publish and load** for your host (receive-only is rare—mainly consumption apps like Power BI). See [Publish & load](/developers/connectivity/integration-depth) for integration depth.
+
+## Projects, models, and versions
+
+- **Project** — groups work for a team or deliverable
+- **Model** — logical dataset (often per discipline or file)
+- **Version** — immutable snapshot after a send; design send, receive, and automation around versions
+
+[Workspaces and projects](/workspaces/projects) · API: [Project](/developers/sdks/python/api-reference/resources/project) · [Model](/developers/sdks/python/api-reference/resources/model) · [Version](/developers/sdks/python/api-reference/resources/version)
+
+## Extraction, conversion, serialization, transport
+
+Speckle exchanges **objects** in a **directed acyclic graph**, not opaque files:
+
+1. **Extraction** — read native entities or files
+2. **Conversion** — map to Speckle types and metadata
+3. **Serialization** — build the graph (collections, proxies)
+4. **Transport** — authenticate, send, create a **version**
+
+## Semantic data, geometry, and display values
+
+- **Semantic data** — [Object schema](/developers/data-schema/object-schema)
+- **Geometry** — [Geometry schema](/developers/data-schema/geometry-schema)
+- **Display values** — packaging for the [Viewer](/developers/viewer/introduction); see [Display values](/developers/sdks/python/concepts/display-values)
+
+Populate semantic fields and `displayValue` (or equivalent) so viewers and downstream tools stay aligned.
+
+## Suggested build order
+
+Skip steps that do not apply (for example receive-only integrations).
+
+<Steps>
+  <Step title="Authentication">
+    PAT, OAuth2, or app credentials — [Authentication](/developers/authentication/introduction).
+  </Step>
+  <Step title="Minimal object send">
+    Create a project and model, send a trivial graph, confirm a **version** in the web app. [Python quickstart](/developers/sdks/python/getting-started/quickstart) or [Object Sender](/developers/packages/objectsender).
+  </Step>
+  <Step title="Metadata mapping">
+    Stable properties and `applicationId` before scaling geometry.
+  </Step>
+  <Step title="Geometry extraction">
+    Convert primitives your consumers need — [Geometry schema](/developers/data-schema/geometry-schema).
+  </Step>
+  <Step title="Incremental updates">
+    Define change sets (selection, delta, full resend) and version relationships for sync.
+  </Step>
+  <Step title="Performance">
+    Batch and deduplicate — [Optimise complexity](/developers/sdks/python/guides/how-to-optimize-and-handle-complexity).
+  </Step>
+  <Step title="Receive and update">
+    Bidirectional flows: study receive paths in [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors).
+  </Step>
+  <Step title="Deployment">
+    Installers, logging, updates — [Manual installation](/connectors/manual-installation/introduction) for .NET connector patterns.
+  </Step>
+</Steps>
+
+## Architectures
+
+<CardGroup cols={2}>
+  <Card title="Publish & load" icon="arrow-up-down" href="/developers/connectivity/integration-depth">
+    Publish/load direction and integration depth.
+  </Card>
+  <Card title="Desktop host" icon="desktop" href="/developers/connectivity/desktop-host">
+    Host add-ins and native desktop agents.
+  </Card>
+  <Card title="Cloud & automation" icon="cloud" href="/developers/connectivity/cloud-automation">
+    ETL, orchestration, and version-driven jobs.
+  </Card>
+  <Card title="Middleware" icon="shuffle" href="/developers/connectivity/middleware">
+    Enterprise orchestration between Speckle and other systems.
+  </Card>
+  <Card title="Hybrid" icon="layers" href="/developers/connectivity/hybrid">
+    Multi-tier publish and consume patterns.
+  </Card>
+</CardGroup>
