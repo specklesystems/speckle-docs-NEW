@@ -1,0 +1,507 @@
+---
+title: Read and Write Project Metadata via GraphQL
+sidebarTitle: Project metadata
+description: Read and write workspace metadata templates and per-project values using GraphQL
+tag: Enterprise
+---
+
+This guide shows how to work with **project metadata** using GraphQL.
+
+Use this when you need a stable project code, client name, ERP or ACC correlation ID, or other structured fields on every project in a workspace — and you want automations or integrations to read and write those values programmatically.
+
+Project metadata is separate from [Speckle object data schema](/developers/data-schema/overview) (`properties` on committed models). Metadata is workspace configuration stored on each project record.
+
+The supported flow is:
+
+1. Confirm permissions (optional but recommended)
+2. Read or set the workspace metadata template (admins)
+3. Read per-project values
+4. Update values with a partial merge (`null` clears a key)
+
+For the complete GraphQL schema, see [Apollo Studio — Speckle Server API](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems). This guide covers the project-metadata operations only.
+
+<Note>
+  Project metadata is in active development. **Today**, the GraphQL API backs the **Metadata** card on project **Home**. We are seeking feedback on how you want to use it next—for example **user-facing project filters**, **automation context**, or **reference bounds for Speckle Intelligence** chat responses. Share feedback on [Speckle Community](https://speckle.community).
+</Note>
+
+## Prerequisites
+
+- A personal access token for your Speckle server
+- **Workspace admin** role to set or delete the workspace metadata template
+- **Project owner** role (or workspace admin) to update values on a project
+- An **Enterprise** workspace with project metadata enabled
+- Target `workspaceId` and `projectId` strings (from the web app URL or GraphQL)
+
+For all GraphQL calls, include:
+
+```bash
+Authorization: Bearer YOUR_TOKEN
+```
+
+<Note>
+  Project metadata is available on the **Enterprise** plan. The workspaces module must be enabled on the server.
+</Note>
+
+<Info>
+  End-user setup: [Project metadata](/workspaces/configuration/project-metadata) (template builder) and [Metadata on Projects](/workspaces/projects#metadata) (**Home** card, drift, layout).
+</Info>
+
+## Before you start: IDs and permission checks
+
+You typically need:
+
+- `workspaceId` — from the workspace URL or `workspace(id: …) { id }`
+- `projectId` — from `/projects/{id}/` in the web app or `project(id: …) { id }`
+
+Some operations declare `workspaceId` as `String!` and others as `ID!` in the GraphQL schema. Use the same identifier string in both cases.
+
+Query permission checks before you build automation:
+
+**POST** `/graphql`
+
+**Query:**
+
+```graphql
+query WorkspaceProjectMetadataPermissions($workspaceId: String!) {
+  workspace(id: $workspaceId) {
+    permissions {
+      canManageProjectMetadataSchema {
+        authorized
+        code
+        message
+      }
+    }
+  }
+}
+```
+
+```graphql
+query ProjectMetadataPermissions($projectId: String!) {
+  project(id: $projectId) {
+    permissions {
+      canUpdateMetadata {
+        authorized
+        code
+        message
+      }
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "workspaceId": "your-workspace-id",
+  "projectId": "your-project-id"
+}
+```
+
+| Check | Who is authorized |
+| ----- | ----------------- |
+| `canManageProjectMetadataSchema` | Workspace **Admin** |
+| `canUpdateMetadata` | Project **Owner** or workspace **Admin** |
+
+Workspace members, reviewers, and contributors without owner role cannot update values.
+
+## Overview
+
+Two layers work together:
+
+- **Workspace schema** — a JSON Schema template (`workspace.projectMetadataSchema`) that defines which fields exist
+- **Project values** — stored data (`project.metadata.values`) keyed by field name
+
+<Warning>
+  Changing the workspace schema does **not** migrate or delete existing project values. Removed template fields disappear from the web UI but can remain in `metadata.values` until you clear them with `null`.
+</Warning>
+
+## Step 1: Read the workspace schema
+
+Use this to discover the template before reading or writing project values.
+
+**POST** `/graphql`
+
+**Query:**
+
+```graphql
+query GetWorkspaceProjectMetadataSchema($workspaceId: String!) {
+  workspace(id: $workspaceId) {
+    id
+    projectMetadataSchema {
+      schema
+      createdAt
+      updatedAt
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "workspaceId": "your-workspace-id"
+}
+```
+
+**Response example:**
+
+```json
+{
+  "data": {
+    "workspace": {
+      "id": "your-workspace-id",
+      "projectMetadataSchema": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "department": {
+              "type": "string",
+              "title": "Department",
+              "maxLength": 32,
+              "x-ui-type": "text"
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["low", "med", "high"],
+              "x-ui-type": "dropdown"
+            }
+          },
+          "required": ["department"],
+          "propertyOrder": ["department", "priority"],
+          "additionalProperties": false
+        },
+        "createdAt": "2026-01-15T10:00:00.000Z",
+        "updatedAt": "2026-02-04T14:30:00.000Z"
+      }
+    }
+  }
+}
+```
+
+Returns `null` for `projectMetadataSchema` when no template is configured yet.
+
+The response includes `additionalProperties: false` after save even if you omitted it in the mutation input.
+
+## Step 2: Set the workspace schema
+
+Workspace admins define or replace the template for all projects in the workspace.
+
+**POST** `/graphql`
+
+**Mutation:**
+
+```graphql
+mutation SetWorkspaceProjectMetadataSchema(
+  $input: SetWorkspaceProjectMetadataSchemaInput!
+) {
+  workspaceMutations {
+    setProjectMetadataSchema(input: $input) {
+      id
+      projectMetadataSchema {
+        schema
+        updatedAt
+      }
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "input": {
+    "workspaceId": "your-workspace-id",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "erpProjectId": {
+          "type": "string",
+          "title": "ERP project ID",
+          "pattern": "^[A-Z0-9-]+$",
+          "x-ui-type": "text"
+        },
+        "accProjectId": {
+          "type": "string",
+          "title": "ACC project ID",
+          "x-ui-type": "text"
+        },
+        "projectClassification": {
+          "type": "string",
+          "title": "Classification",
+          "enum": ["commercial", "infrastructure", "residential"],
+          "x-ui-type": "dropdown"
+        }
+      },
+      "required": ["erpProjectId"],
+      "propertyOrder": ["erpProjectId", "accProjectId", "projectClassification"]
+    }
+  }
+}
+```
+
+**Response example:**
+
+```json
+{
+  "data": {
+    "workspaceMutations": {
+      "setProjectMetadataSchema": {
+        "id": "your-workspace-id",
+        "projectMetadataSchema": {
+          "schema": { "...": "..." },
+          "updatedAt": "2026-06-02T12:00:00.000Z"
+        }
+      }
+    }
+  }
+}
+```
+
+Invalid schema documents return `PROJECT_METADATA_SCHEMA_DOC_VALIDATION_ERROR` with JSON Pointer paths (for example `/properties/nested/type`).
+
+<Note>
+  Include `propertyOrder` with every property key when you care about display order. The web app builder sets it from drag order ([Field types](/workspaces/configuration/project-metadata#field-types)). PostgreSQL `jsonb` does not preserve key insertion order.
+</Note>
+
+## Step 3: Read project metadata
+
+**POST** `/graphql`
+
+**Query:**
+
+```graphql
+query GetProjectMetadata($projectId: String!) {
+  project(id: $projectId) {
+    id
+    metadata {
+      values
+      updatedAt
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "projectId": "your-project-id"
+}
+```
+
+**Response example:**
+
+```json
+{
+  "data": {
+    "project": {
+      "id": "your-project-id",
+      "metadata": {
+        "values": {
+          "erpProjectId": "PRJ-1042",
+          "accProjectId": "b.example-acc-project-id",
+          "projectClassification": "commercial"
+        },
+        "updatedAt": "2026-06-01T09:15:00.000Z"
+      }
+    }
+  }
+}
+```
+
+`metadata` is `null` when the project has no stored values yet. The response may still include keys that are no longer in the workspace template (legacy data). The web app hides those keys; the API returns them until cleared.
+
+## Step 4: Update project metadata
+
+`updateMetadata` accepts a **partial** `values` object. Only keys in the input are validated and written. Pass `null` for a key to clear it.
+
+**POST** `/graphql`
+
+**Mutation:**
+
+```graphql
+mutation UpdateProjectMetadata($input: UpdateProjectMetadataInput!) {
+  projectMutations {
+    updateMetadata(input: $input) {
+      id
+      metadata {
+        values
+        updatedAt
+      }
+    }
+  }
+}
+```
+
+**Variables example (partial update):**
+
+```json
+{
+  "input": {
+    "projectId": "your-project-id",
+    "values": {
+      "erpProjectId": "PRJ-1042",
+      "projectClassification": "infrastructure"
+    }
+  }
+}
+```
+
+**Variables example (clear one key):**
+
+```json
+{
+  "input": {
+    "projectId": "your-project-id",
+    "values": {
+      "legacyKey": null
+    }
+  }
+}
+```
+
+**Response example:**
+
+```json
+{
+  "data": {
+    "projectMutations": {
+      "updateMetadata": {
+        "id": "your-project-id",
+        "metadata": {
+          "values": {
+            "erpProjectId": "PRJ-1042",
+            "projectClassification": "infrastructure"
+          },
+          "updatedAt": "2026-06-02T12:05:00.000Z"
+        }
+      }
+    }
+  }
+}
+```
+
+**Common errors:**
+
+- `PROJECT_METADATA_SCHEMA_NOT_CONFIGURED` — workspace has no template yet
+- `PROJECT_METADATA_VALUES_VALIDATION_ERROR` — value fails type, enum, pattern, or URI format checks
+
+## Step 5: Delete the workspace schema (optional)
+
+Workspace admins can remove the template and all stored values. This is irreversible.
+
+**POST** `/graphql`
+
+**Mutation:**
+
+```graphql
+mutation DeleteWorkspaceProjectMetadataSchema($workspaceId: ID!) {
+  workspaceMutations {
+    deleteProjectMetadataSchema(workspaceId: $workspaceId) {
+      id
+      projectMetadataSchema {
+        schema
+      }
+    }
+  }
+}
+```
+
+**Variables example:**
+
+```json
+{
+  "workspaceId": "your-workspace-id"
+}
+```
+
+<Warning>
+  `deleteProjectMetadataSchema` deletes the template and **all** per-project metadata values in the workspace across every data region. This cannot be undone.
+</Warning>
+
+## Operational notes
+
+- The server does **not** enforce `required` on `updateMetadata`. Required flags are UI guidance; your integration can enforce them or ignore them.
+- The server adds `additionalProperties: false` when a schema is stored. You can omit it in `setProjectMetadataSchema` input; read responses include it. Value writes reject unknown keys against the stored schema.
+- Property keys are locked in the web UI after the first template save. Treat renames as a new key and clear the old key with `null`.
+- Enum and pattern constraints must match the workspace schema exactly or writes fail validation.
+- Drift warnings (**N problem(s)**) are a web-app concern for project owners and workspace admins only. The API does not expose drift; integrations may validate full documents client-side or ignore drift.
+
+## What developers need to know
+
+<AccordionGroup>
+  <Accordion title="What is the workspace schema format?">
+    The template is a constrained JSON Schema 2020-12 document. Top level: `type: object`, non-empty `properties`, optional `required`, optional `propertyOrder` listing every property key once, and `additionalProperties: false` (added on save if omitted).
+
+    Property keys must match `^[a-zA-Z_][a-zA-Z0-9_]*$`.
+
+    Supported property types:
+
+    | `type` | Extras |
+    | ------ | ------ |
+    | `string` | `title`, `description`, `maxLength`, `pattern`, `format` (`uri` only), `enum`, `x-ui-type` |
+    | `number` | `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum` |
+    | `boolean` | `title`, `description` |
+
+    Not supported: nested objects, arrays, `integer`, `$ref`, `oneOf`, `anyOf`, `format: email`.
+  </Accordion>
+
+  <Accordion title="How do web app field types map to JSON Schema?">
+    Match the [Field types](/workspaces/configuration/project-metadata#field-types) table in the user guide:
+
+    | Web app field type | JSON Schema |
+    | ------------------ | ----------- |
+    | Text | `type: "string"`, `"x-ui-type": "text"` |
+    | Long text | `type: "string"`, `"x-ui-type": "textarea"` |
+    | URL | `type: "string"`, `"format": "uri"`, `"x-ui-type": "url"` |
+    | Dropdown | `type: "string"`, `"enum": ["option1", "option2"]`, `"x-ui-type": "dropdown"` |
+    | Number | `type: "number"` (optional min/max) |
+    | Yes / No | `type: "boolean"` |
+  </Accordion>
+
+  <Accordion title="What is x-ui-type?">
+    Optional hint for the web app JSONForms renderer. Valid values: `text`, `textarea`, `url`, `dropdown`. Omit it only when `enum` or `format: uri` already implies the control (dropdown and URL fields). Invalid values fail schema validation. Integrations that only read or write API values can ignore `x-ui-type`; it does not affect server value validation.
+  </Accordion>
+
+  <Accordion title="How does schema evolution affect stored values?">
+    Updating the template does not rewrite project data. If you remove a field from the template, existing values for that key can remain in `metadata.values` until cleared.
+
+    Example: the template had `city` with value `"London"`. You replace `city` with `stadt` in the template. A read still returns both keys until you run:
+
+    ```json
+    {
+      "input": {
+        "projectId": "your-project-id",
+        "values": { "city": null }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="What is drift and does the server enforce it?">
+    The web app flags drift (missing required values, type mismatches, constraint violations) for **project owners and workspace admins** on project **Home**. Project members see read-only values without drift warnings. The server does not block writes based on `required` or drift.
+
+    Integrations may replicate drift checks client-side or ignore them. Orphaned keys (removed from the template) are not writable until the key exists in the schema again. See [Metadata on Projects](/workspaces/projects#metadata).
+  </Accordion>
+
+  <Accordion title="Which GraphQL error codes should I handle?">
+    | Code | When |
+    | ---- | ---- |
+    | `PROJECT_METADATA_SCHEMA_DOC_VALIDATION_ERROR` | Invalid workspace schema document |
+    | `PROJECT_METADATA_VALUES_VALIDATION_ERROR` | Invalid values on `updateMetadata` |
+    | `PROJECT_METADATA_SCHEMA_NOT_CONFIGURED` | `updateMetadata` when no workspace template exists |
+  </Accordion>
+
+  <Accordion title="Can I automate this with SpecklePy?">
+    Yes. Use `authenticate_with_token`, then [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries) or POST the same payloads to `{host}/graphql` with `requests` or `httpx`. Pass the operations from this guide as query strings and variables.
+  </Accordion>
+</AccordionGroup>
+
+## Related Documentation
+
+- [GraphQL API reference](/developers/api/graphql) — Apollo Studio and general API usage
+- [Project metadata (user guide)](/workspaces/configuration/project-metadata) — workspace template and field types
+- [Metadata on Projects](/workspaces/projects#metadata) — **Home** card, layout, drift, and edit workflows
