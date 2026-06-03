@@ -32,29 +32,52 @@ category at the bottom. Drag the **Parameter Updater** widget onto the canvas.
 
 <Steps>
   <Step title="Publish a model">
-    Open your model and use the Speckle connector to publish it to your target project and model. Wait for the publish to complete so you have at least one model version available as a dashboard data source.
+    Open your model and use the Speckle connector to publish it to your target
+    project and model. Wait for the publish to complete so you have at least one
+    model version available as a dashboard data source.
     <Tip>
       If you want to edit or populate empty parameters, make sure to enable
       **Send null/empty parameters** in the connector settings before publishing
       your model to Speckle.
-    </Tip>  
+    </Tip>
   </Step>
   <Step title="Create a dashboard with that model">
-    In the Speckle web app, go to your workspace **Dashboards**, create or open a dashboard, and add a **Model Viewer** widget that points at the published model and version. You should see the model rendered so the dashboard can read elements and parameters.
+    In the Speckle web app, go to your workspace **Dashboards**, create or open
+    a dashboard, and add a **Model Viewer** widget that points at the published
+    model and version. You should see the model rendered so the dashboard can
+    read elements and parameters.
   </Step>
   <Step title="Configure the Parameter Updater widget">
-    Add the **Parameter Updater** widget from the **Data Conditioning** category and configure its settings. Pick one or more model versions as data sources, choose editable and read-only columns (fields under `properties` are editable), and optionally group rows by a property such as level or type so you see a grouped table of elements.
+    Add the **Parameter Updater** widget from the **Data Conditioning** category
+    and configure its settings. Pick one or more model versions as data sources,
+    choose editable and read-only columns (fields under `properties` are
+    editable), and optionally group rows by a property such as level or type so
+    you see a grouped table of elements.
     {/* IMAGE: Widget configuration sidebar showing data sources, Columns, and Group by */}
   </Step>
   <Step title="Review and edit parameters">
-    In the table, edit parameters directly in cells, set values for an entire group from the group header, or update only selected elements using the selection row; cells may be editable, read-only, or marked as “Missing parameter” when the element does not have that field. When you have unsaved edits, a footer bar appears at the bottom of the widget showing the number of pending changes with **Discard** and **Submit change requests** actions.
+    In the table, edit parameters directly in cells, set values for an entire
+    group from the group header, or update only selected elements using the
+    selection row; cells may be editable, read-only, or marked as “Missing
+    parameter” when the element does not have that field. When you have unsaved
+    edits, a footer bar appears at the bottom of the widget showing the number
+    of pending changes with **Discard** and **Submit change requests** actions.
     {/* IMAGE: Parameter Updater table with editable, read-only, and missing parameter cells plus footer bar */}
   </Step>
   <Step title="Submit a change request as an Issue">
-    Click **Submit change requests** in the footer bar and fill in the dialog with a title, status, optional tracking fields, and a description that summarises the changes. When you submit, Speckle creates an **Issue** with a screenshot, viewer state, and the parameter changes stored as `objectDeltas` so you can track what changed and why.
+    Click **Submit change requests** in the footer bar and fill in the dialog
+    with a title, status, optional tracking fields, and a description that
+    summarises the changes. When you submit, Speckle creates an **Issue** with a
+    screenshot, viewer state, and the parameter changes stored as `objectDeltas`
+    so you can track what changed and why.
   </Step>
   <Step title="Apply the approved changes">
-    Open the same project in your authoring tool, find the published model card in the Speckle connector, and open the related Issue via the **Issues** icon. Use the **Apply changes** action so the connector sends the batch of parameter updates, validates each one, and applies them in a single transaction, showing a toast that reports whether all, some, or none of the parameters were updated.
+    Open the same project in your authoring tool, find the published model card
+    in the Speckle connector, and open the related Issue via the **Issues**
+    icon. Use the **Apply changes** action so the connector sends the batch of
+    parameter updates, validates each one, and applies them in a single
+    transaction, showing a toast that reports whether all, some, or none of the
+    parameters were updated.
     {/* IMAGE: Connector Issue panel with Apply changes action and success toast */}
   </Step>
 </Steps>
@@ -77,20 +100,20 @@ category at the bottom. Drag the **Parameter Updater** widget onto the canvas.
   connector reports “Cannot modify elements from a linked model”.
 - **Parameters not published** – parameters that were not included when the
   model was published will not appear in the widget.
-{/* IMAGE: Full Parameter Updater widget: table with editable, read-only, and missing parameter cells highlighted, footer bar with pending changes and Submit button */}
+  {/* IMAGE: Full Parameter Updater widget: table with editable, read-only, and missing parameter cells highlighted, footer bar with pending changes and Submit button */}
 
 ## Known limitations
 
-| Limitation                 | Detail                                                                                                                                                               |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Supported connectors       | Parameter Updater currently supports Revit, Rhino, and Civil3D. Other connectors are not yet supported.                                                              |
-| Linked models              | Elements from linked models cannot be updated. Requests targeting linked elements are skipped with an error.                                                         |
-| Path format                | The parameter path must resolve to three segments (scope, group, name) after stripping prefixes. If the path structure does not match, the update is rejected.       |
-| Renamed or removed params  | If a parameter no longer exists or has been renamed since the model was published, the connector reports “Parameter not found”.                                      |
-| Read-only enforcement      | (Revit) Some parameters appear editable in the dashboard but are marked read-only by the Revit API. The connector rejects these at apply time.                      |
-| Unit handling              | (Revit) Numeric values are scaled to Revit internal units. Extreme values or unit mismatches can produce failures.                                                   |
+| Limitation                 | Detail                                                                                                                                                                       |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supported connectors       | Parameter Updater currently supports Revit, Rhino, and Civil3D. Other connectors are not yet supported.                                                                      |
+| Path format                | The parameter path must resolve to three segments (scope, group, name) after stripping prefixes. If the path structure does not match, the update is rejected.               |
+| Renamed or removed params  | If a parameter no longer exists or has been renamed since the model was published, the connector reports “Parameter not found”.                                              |
+| Linked models              | (Revit) Elements from linked models cannot be updated. Requests targeting linked elements are skipped with an error.                                                         |
+| Read-only enforcement      | (Revit) Some parameters appear editable in the dashboard but are marked read-only by the Revit API. The connector rejects these at apply time.                               |
+| Unit handling              | (Revit) Numeric values are scaled to Revit internal units. Extreme values or unit mismatches can produce failures.                                                           |
 | ElementId parameters       | (Revit) Setting ElementId values by raw ID is not yet supported. The connector attempts to resolve by element name (materials, levels, phases). Other types may not resolve. |
-| No automatic Issue polling | The connector does not automatically poll for Issues. You must open the UI and trigger the apply action.                                                             |
+| No automatic Issue polling | The connector does not automatically poll for Issues. You must open the UI and trigger the apply action.                                                                     |
 
 ## What to test
 
