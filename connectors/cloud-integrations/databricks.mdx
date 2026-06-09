@@ -1,0 +1,175 @@
+---
+title: "Databricks"
+sidebarTitle: "Databricks"
+description: "Connect a Databricks SQL warehouse and register read-only tables as data sources in Speckle for the AI chat and data tools."
+tag: "Beta"
+---
+
+<Note>
+  The Databricks integration is in **Beta** and is enabled per workspace. If you
+  don't see Databricks under your project's **Integrations**, ask Speckle to
+  turn it on for your workspace.
+</Note>
+
+<Info>
+  To request access,
+  <a href="mailto:office@speckle.systems?subject=Databricks%20integration%20access">get in touch</a>.
+</Info>
+
+## Overview
+
+The Databricks integration lets a workspace admin connect a **Databricks SQL warehouse** and register individual tables as **read-only** data sources in Speckle. Once registered, a table can be queried by Speckle tools — for example the AI chat — alongside your model data.
+
+A few things to know up front:
+
+- **Read-only.** Speckle only runs `SELECT` queries against the tables you register. It never writes to, alters, or deletes anything in your warehouse.
+- **Connected via a service principal.** Speckle authenticates as a Databricks **service principal** (OAuth machine-to-machine). The service principal's Databricks permissions are the boundary — Speckle can only read what that principal is granted (see the [FAQ](#faq)). A personal access token (PAT) is also supported for development.
+- **You choose the data.** Nothing is read until you explicitly register a table, and you pick which **columns** are included.
+- **Snapshots, not a live connection.** When you register a table (and on a refresh schedule afterwards), Speckle reads the selected columns and caches a **snapshot**. Tools query that snapshot, so they stay fast and don't hit your warehouse on every request. See [How snapshots are stored and refreshed](#how-snapshots-are-stored-and-refreshed).
+- **Credentials are protected.** Connection secrets are encrypted before they leave your browser, stored encrypted, and never returned by the API.
+
+## Before you connect
+
+Your Databricks workspace admin prepares a service principal and gathers a few connection details. Speckle reads through this service principal, so its grants define exactly what's reachable. Do this once in the Databricks UI.
+
+<Steps>
+  <Step title="Create a service principal">
+    In your Databricks account console, go to **User management \> Service principals** and add a new service principal for Speckle.
+
+    <Frame>
+      <img src="/images/connectors/data-warehouses/databricks_create_service_principal.png" alt="Create a service principal in Databricks" />
+    </Frame>
+  </Step>
+  <Step title="Generate an OAuth secret">
+    On the service principal, open **Secrets** and generate a new **OAuth secret**.
+
+    <Frame>
+      <img src="/images/connectors/data-warehouses/databricks_create_secret.png" alt="Generate an OAuth secret for the service principal" />
+    </Frame>
+  </Step>
+  <Step title="Copy the Client ID and secret">
+    Copy the **Client ID** (the service principal's Application ID) and the **Client secret**.
+
+    <Warning>
+      The secret is shown only once at creation — copy it now and store it
+      securely. You'll paste both into Speckle.
+    </Warning>
+
+    <Frame>
+      <img src="/images/connectors/data-warehouses/databricks_clientid_secret.png" alt="Client ID and secret for the service principal" />
+    </Frame>
+  </Step>
+  <Step title="Get your SQL warehouse connection details">
+    Open **SQL Warehouses \> your warehouse \> Connection details** and note the **Server hostname** (your *Workspace host*) and the **HTTP path**.
+
+    <Frame>
+      <img src="/images/connectors/data-warehouses/databricks_warehouse_configs.png" alt="SQL warehouse connection details: server hostname and HTTP path" />
+    </Frame>
+  </Step>
+  <Step title="Grant access to the data you want to expose">
+    Grant the service principal `USE CATALOG`, `USE SCHEMA`, and `SELECT` on the specific catalogs, schemas, and tables Speckle should read — plus access to the SQL warehouse. Grant only what's needed; this is the boundary of what Speckle can see.
+
+    Run the grants in a Databricks SQL editor or notebook. The grantee is the service principal's **Client ID** (its Application ID, from the earlier step):
+
+    ```sql title="Grant read access to the Speckle service principal"
+    -- Replace the catalog/schema/table names and the Client ID with your own.
+    GRANT USE CATALOG ON CATALOG `speckle`                       TO `9918081b-778e-469a-a69b-acc950b08e09`;
+    GRANT USE SCHEMA  ON SCHEMA  `speckle`.`cost`                TO `9918081b-778e-469a-a69b-acc950b08e09`;
+    GRANT SELECT      ON TABLE   `speckle`.`cost`.`diamonds`     TO `9918081b-778e-469a-a69b-acc950b08e09`;
+    GRANT SELECT      ON TABLE   `speckle`.`cost`.`walls`        TO `9918081b-778e-469a-a69b-acc950b08e09`;
+    ```
+
+    <Tip>
+      `SELECT` on a table requires `USE CATALOG` on its catalog **and** `USE SCHEMA`
+      on its schema — grant all three. To expose every table in a schema at once,
+      grant `SELECT` on the schema instead of listing each table.
+    </Tip>
+  </Step>
+</Steps>
+
+<Note>
+  On Databricks **Free Edition**, service-principal OAuth can be restricted. In
+  that case use a **personal access token (PAT)** instead when connecting.
+</Note>
+
+## Connect Databricks
+
+<Steps>
+  <Step title="Open the Databricks integration">
+    In Speckle, open your project's **Integrations \> Databricks** and select **Connect to Databricks**. The connection form opens.
+  </Step>
+  <Step title="Enter your warehouse details">
+    Fill in:
+    - **Workspace host** — e.g. `dbc-xxxxxxxx.cloud.databricks.com` (hostname only, no `https://`).
+    - **SQL warehouse HTTP path** — e.g. `/sql/1.0/warehouses/abcd1234efgh5678`.
+    - **Authentication method** — **OAuth (service principal)** with your **Client ID** and **Client secret**, or **Personal access token** with your token.
+
+    <Frame>
+      <img src="/images/connectors/data-warehouses/connect_databricks.png" alt="Connect Databricks connection form" />
+    </Frame>
+  </Step>
+  <Step title="Test the connection">
+    Select **Test connection**. Speckle runs a `SELECT 1` round-trip and shows a success message with the response time, or an error explaining what failed.
+  </Step>
+  <Step title="Save">
+    Select **Connect** (or **Save changes**). The connection is now stored for your workspace and you can browse it.
+  </Step>
+</Steps>
+
+<Tip>
+  Auto-stopped or Free-Edition warehouses can take a minute to wake on the first
+  query — if a test or registration times out on a cold warehouse, try again
+  once it's running.
+</Tip>
+
+## Register a table as a data source
+
+<Steps>
+  <Step title="Browse to your table">
+    On the Databricks page, expand **catalog \> schema** to find the table you want. Only catalogs, schemas, and tables your service principal can read will appear. Select a table to preview its rows.
+
+    <Frame>
+      <img src="/images/connectors/data-warehouses/databricks_preview_table.png" alt="Browsing and previewing a Databricks table" />
+    </Frame>
+  </Step>
+  <Step title="Choose the columns and register">
+    Pick the **columns** to include — only the columns you choose are ever read or cached — then select **Register**. Speckle validates access, reads the selected columns, and builds the first snapshot. The table now appears as a registered data source.
+
+    <Frame>
+      <img src="/images/connectors/data-warehouses/databricks_register_table.png" alt="Registering a Databricks table as a data source" />
+    </Frame>
+  </Step>
+</Steps>
+
+Registered data sources are available to Speckle tools such as the **AI chat**, where you can query the table and combine it with your model data.
+
+## How snapshots are stored and refreshed
+
+When you register a table, Speckle reads the allowlisted columns and stores a cached **snapshot** in your workspace's object storage. Tools query the snapshot rather than your live warehouse.
+
+- **Automatic refresh.** A snapshot is rebuilt from the warehouse when it goes stale (default freshness window: 24 hours), the next time it's used.
+- **Manual refresh.** You can force an immediate refresh from the registered table's controls — useful right after the source data changes.
+- **Disconnecting.** If the Databricks connection is removed, registered sources keep serving their **last snapshot read-only**. Reconnecting the same warehouse relinks them and resumes refreshing.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Will Speckle access everything in my Databricks workspace?">
+    No. Speckle connects through a **service principal**, and your Databricks workspace admin is responsible for granting it access to the relevant catalogs, schemas, and tables. Speckle can only read what that service principal is explicitly granted — nothing more.
+  </Accordion>
+  <Accordion title="Can Speckle modify or write to my warehouse?">
+    No. The integration is **read-only** — Speckle issues `SELECT` queries only and never writes, updates, or deletes data in Databricks.
+  </Accordion>
+  <Accordion title="Which columns does Speckle read?">
+    Only the columns you select when registering a table. Columns you don't include are never queried or cached.
+  </Accordion>
+  <Accordion title="Is the data live or cached?">
+    Cached. Speckle stores a snapshot of the registered columns and refreshes it when it goes stale (about every 24 hours) or when you trigger a manual refresh. Tools query the snapshot, not your live warehouse.
+  </Accordion>
+  <Accordion title="How are my credentials protected?">
+    Connection secrets are encrypted in your browser before they're sent, stored encrypted at rest, and never returned through the API. Speckle decrypts them server-side only to connect to your warehouse.
+  </Accordion>
+  <Accordion title="What happens if I disconnect Databricks?">
+    Your registered sources keep serving their last cached snapshot read-only, so existing tools don't break. Reconnecting the same warehouse relinks them and refreshing resumes.
+  </Accordion>
+</AccordionGroup>
