@@ -57,11 +57,11 @@ import NoLoad from '/snippets/connectors/no-load.mdx';
     </Accordion>
 
     <Accordion title="How do I see the custom properties on my published ETABS elements, like sections or area metrics?">
-    All custom properties can be found under the `properties` field when you select and view an ETABS object in your browser.Custom properties vary depending on the type of ETABS element, and can include:
+    All custom properties can be found under the `properties` field when you select and view an ETABS object in your browser. Custom properties vary depending on the type of ETABS element, and can include:
 
     - Assignments (e.g. `material` and `section`)
     - Geometry metrics (e.g. length or area)
-    - Object ID (e.g. sub-classification for `Frame` -> `Column`, `Beam`, or `Brace` , label, and associated level)
+    - Object ID (e.g. sub-classification for `Frame` -> `Column`, `Beam`, or `Brace`, label, and associated level)
     </Accordion>
 
     <Accordion title="Where can I find the material or section used for an object in my Speckle model?">
@@ -69,16 +69,23 @@ import NoLoad from '/snippets/connectors/no-load.mdx';
     1. Open the `Scene Explorer` tab in the Navigation Bar to the left (or press `Shift` + `E`)
     2. Click `Switch to Dev Mode`. This will give you full access to all objects and properties in your model.
     3. Expand the `sectionProxies` or `materialProxies` item.
-    4. Expand any item in this list to see a `Section` or `Material` with all of its properties.The section can be matched back to any element based on its `name`, and the material can be matched to any section based on its `name`.
+    4. Expand any item in this list to see a `Section` or `Material` with all of its properties. The section can be matched back to any element based on its `name`, and the material can be matched to any section based on its `name`.
+    </Accordion>
+
+    <Accordion title="Does the ETABS connector publish model analysis results?">
+    Yes. ETABS analysis results are published as model-level data, not as properties on each individual object.
+
+    In the published Speckle model, the model version points to a root object, also called the Root Collection. That root object is the top level of the published data package. ETABS stores available model analysis results there under `info.analysisResults`.
+
+    To inspect them in the browser, open the model version, switch the `Scene Explorer` to Dev Mode, and inspect the root object instead of selecting an individual frame, shell, joint, or link.
     </Accordion>
 
     <Accordion title="Which object properties do not get published with the ETABS connector?">
-    Currently**,** the following properties are *not* published on objects:
+    The following data is not published as properties on individual ETABS objects:
 
     - Load cases, patterns and combinations
-    - Analysis results
     - Grids and grid information
-    - Levels information
+    - Analysis results, which are published at the root object level under `info.analysisResults`
     </Accordion>
 
     <PublishFaq app="ETABS" />
