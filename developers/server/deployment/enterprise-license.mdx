@@ -189,6 +189,8 @@ Multi-regional deployments allow you to provide [data residency](/workspaces/dat
 
 For each region you wish to support, you will need to deploy a Postgres and Blob Storage instance in that region. Depending on your networking requirements, you may need to set up a VPN or VPC peering connection between your Kubernetes cluster and the database/storage instances.
 
+You will need to configure postgres to handle transactions, `max_prepared_transactions` should be set to at least 100, preferably 1000. Please refer to your Postgres documentation for instructions on how to configure this setting.
+
 #### Configuration
 
 1. Create a json file containing the connection details for your existing 'main' region, as follows:
@@ -198,10 +200,12 @@ For each region you wish to support, you will need to deploy a Postgres and Blob
      "defaultProjectRegionKey": null,
      "main": {
        "blobStorage": {
+         "protocol": "<s3 or azure>",
          "accessKey": "<YOUR_BLOB_STORAGE_ACCESS_KEY>",
          "bucket": "<YOUR_BLOB_STORAGE_BUCKET>",
          "createBucketIfNotExists": true,
          "endpoint": "<YOUR_BLOB_STORAGE_ENDPOINT>",
+         "publicEndpoint": "<YOUR_BLOB_STORAGE_PUBLIC_ENDPOINT>",
          "s3Region": "<YOUR_BLOB_STORAGE_REGION>",
          "secretKey": "<YOUR_BLOB_STORAGE_SECRET_KEY>"
        },
