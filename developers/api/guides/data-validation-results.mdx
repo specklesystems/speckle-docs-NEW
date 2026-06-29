@@ -1,0 +1,681 @@
+---
+title: Get Data Validation Results with GraphQL
+sidebarTitle: Validation Results
+description: Fetch saved Data Validation check results and KPIs using GraphQL and SpecklePy in a Jupyter notebook or Python script, with pandas DataFrames for reporting.
+---
+
+Use this guide when you need validation KPIs outside the Speckle web app—for example custom dashboards, CI gates, or scheduled reports.
+
+You will use [SpecklePy](/developers/sdks/python/introduction) to run GraphQL queries with `SpeckleClient` and [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries), fetch saved **Data Validation checks**, read pass/fail summaries, and optionally flatten rule results into a pandas DataFrame. The Python examples are split into notebook cells so you can run them in Jupyter or save as a script. In GraphQL, checks are queried with `type: "model_validation"`.
+
+This guide is GraphQL-only and read-only. For what checks and results mean in the product UI, see [Data Validation overview](/analytics/data-validation/overview). For authentication and the `/graphql` endpoint, see [GraphQL API](/developers/api/graphql).
+
+<Tip>
+  **Quick start:** Download the [notebook](#notebook) and run it cell by cell, or skim
+  [Find your IDs](#find-your-ids) then [Step 4](#step-4-build-a-kpi-dataframe). Steps
+  1–3 show the GraphQL operations the notebook calls.
+</Tip>
+
+## Prerequisites
+
+- A personal access token with `streams:read` scope ([Building with PATs](/developers/authentication/pats))
+- Read access to a project that has at least one saved validation check
+- Python 3.10+ with `specklepy`, `pandas`, and `python-dotenv`
+- JupyterLab or VS Code with a Python kernel (optional — the same cells run as a `.py` script)
+
+<Info>
+  Python examples authenticate with `SpeckleClient.authenticate_with_token`. SpecklePy
+  attaches the Bearer token to GraphQL requests — you do not need to set headers
+  manually. This flow uses standard project read access and `streams:read`; you do not
+  need server admin permissions or write scopes to consume saved results.
+</Info>
+
+<Note>
+  On self-hosted Speckle Enterprise Server, Intelligence and Data Validation may require
+  the Intelligence feature flag. See [Enterprise deployment —
+  Intelligence](/developers/server/deployment/enterprise-license) for setup; this page
+  does not reproduce Helm configuration.
+</Note>
+
+## Find your IDs
+
+Use one consistent example set across this guide. Copy the segment after each path prefix from your browser URL, or read `id` fields from the discovery query below.
+
+| ID                     | Example value | Full URL pattern                                                              |
+| ---------------------- | ------------- | ----------------------------------------------------------------------------- |
+| `projectId`            | `0d1f93ec13`  | `https://app.speckle.systems/projects/0d1f93ec13/data-validation`             |
+| Check ID (`insightId`) | `abc456def7`  | `https://app.speckle.systems/projects/0d1f93ec13/data-validation/abc456def7/` |
+| `modelId`              | `f2a8b1c9d0`  | `https://app.speckle.systems/projects/0d1f93ec13/models/f2a8b1c9d0`           |
+| `versionId`            | `7e3c21a8b4`  | From `latestResults[].versionId` or the model version URL                     |
+
+Replace example values with IDs from your project when you run queries against live data.
+
+**POST** `/graphql`
+
+<Tabs>
+  <Tab title="Query">
+    ```graphql
+    query DiscoverValidationChecks($projectId: String!) {
+      projectInsights(projectId: $projectId, type: "model_validation") {
+        id
+        name
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Variables">
+    ```json
+    {
+      "projectId": "0d1f93ec13"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+**You should see…** a JSON `projectInsights` array; each item's `id` is the check ID (`insightId` in GraphQL) for later steps.
+
+Run the query in [Apollo Studio](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems) to explore the schema, or from Python in the [notebook](#notebook).
+
+## Overview
+
+The read-only flow:
+
+<Steps>
+  <Step title="List validation checks">
+    Call `projectInsights` with `type: "model_validation"`. Read each check's latest KPI
+    from `aggregateResults(limit: 1)` summary — omit `result` here.
+  </Step>
+  <Step title="Fetch check history">
+    Open one check by `insightId`. Use `aggregateResults` for score history and
+    `latestResults` for the newest result per tracked model.
+  </Step>
+  <Step title="Load model results">
+    Call `modelResults(modelId, limit)` when you need version history for one model.
+    Request the `result` field only in this step — it is the heaviest payload.
+  </Step>
+  <Step title="Build a KPI DataFrame">
+    Transform aggregate summaries into a pandas table for dashboards, exports, or
+    scheduled reporting.
+  </Step>
+</Steps>
+
+Use aggregate `summary` for dashboards and score history. Request `result` only when you need per-rule rows.
+
+<Tip>
+  For dashboard KPIs, use `aggregateResults(limit: 1)` and omit `result` from your
+  selection set until Step 3.
+</Tip>
+
+## Step 1: List validation checks
+
+List saved checks and the latest aggregate pass/fail counts for each.
+
+**POST** `/graphql`
+
+<Tabs>
+  <Tab title="Query">
+    ```graphql
+    query ProjectValidationChecks($projectId: String!) {
+      projectInsights(projectId: $projectId, type: "model_validation") {
+        id
+        name
+        modelIds
+        metadata
+        updatedAt
+        aggregateResults(limit: 1) {
+          id
+          timestamp
+          summary
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Variables">
+    ```json
+    {
+      "projectId": "0d1f93ec13"
+    }
+    ```
+  </Tab>
+  <Tab title="Response">
+    ```json
+    {
+      "data": {
+        "projectInsights": [
+          {
+            "id": "abc456def7",
+            "name": "COBie room checks",
+            "modelIds": ["f2a8b1c9d0"],
+            "metadata": {
+              "displayConfig": {
+                "passThreshold": 0.9
+              }
+            },
+            "updatedAt": "2026-06-28T14:00:00.000Z",
+            "aggregateResults": [
+              {
+                "id": "result99",
+                "timestamp": "2026-06-28T14:22:00.000Z",
+                "summary": { "pass": 870, "fail": 130 }
+              }
+            ]
+          }
+        ]
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+**You should see…** one or more checks with `name`, `modelIds`, and `aggregateResults[0].summary` containing numeric `pass` and `fail`.
+
+## Step 2: Fetch check history
+
+Load aggregate history and per-model latest summaries for one check. Do not request `result` yet.
+
+**POST** `/graphql`
+
+<Tabs>
+  <Tab title="Query">
+    ```graphql
+    query ValidationCheckHistory($projectId: String!, $insightId: String!) {
+      insight(id: $insightId, projectId: $projectId) {
+        id
+        name
+        aggregateResults(limit: 20) {
+          id
+          timestamp
+          summary
+        }
+        latestResults {
+          id
+          modelId
+          versionId
+          timestamp
+          summary
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Variables">
+    ```json
+    {
+      "projectId": "0d1f93ec13",
+      "insightId": "abc456def7"
+    }
+    ```
+  </Tab>
+  <Tab title="Response">
+    ```json
+    {
+      "data": {
+        "insight": {
+          "id": "abc456def7",
+          "name": "COBie room checks",
+          "aggregateResults": [
+            {
+              "timestamp": "2026-06-28T14:22:00.000Z",
+              "summary": { "pass": 870, "fail": 130 }
+            }
+          ],
+          "latestResults": [
+            {
+              "modelId": "f2a8b1c9d0",
+              "versionId": "7e3c21a8b4",
+              "timestamp": "2026-06-28T14:22:00.000Z",
+              "summary": { "pass": 450, "fail": 12 }
+            }
+          ]
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+**You should see…** up to 20 historical aggregate rows (`summary`, `timestamp`) plus `latestResults` with one entry per tracked model.
+
+## Step 3: Load model results
+
+Request the full `result` payload for one model's history. Results are ordered newest first.
+
+**POST** `/graphql`
+
+<Tabs>
+  <Tab title="Query">
+    ```graphql
+    query ModelValidationResults(
+      $projectId: String!
+      $insightId: String!
+      $modelId: String!
+      $limit: Int
+    ) {
+      insight(id: $insightId, projectId: $projectId) {
+        id
+        modelResults(modelId: $modelId, limit: $limit) {
+          id
+          versionId
+          timestamp
+          summary
+          result
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Variables">
+    ```json
+    {
+      "projectId": "0d1f93ec13",
+      "insightId": "abc456def7",
+      "modelId": "f2a8b1c9d0",
+      "limit": 5
+    }
+    ```
+  </Tab>
+</Tabs>
+
+For a single version snapshot, use `versionResults(modelId: $modelId, versionId: $versionId)` with `"versionId": "7e3c21a8b4"`.
+
+**You should see…** `modelResults` ordered newest-first, each with `versionId`, `summary`, and a `result` object with `columns` and `rows`.
+
+<Warning>
+  In Step 3, `result` can be large and may include object IDs. Fetch one model at a
+  time, keep `limit` small, and treat the payload as sensitive project data.
+</Warning>
+
+## Step 4: Build a KPI DataFrame
+
+Run the Python below as notebook cells (see [Notebook](#notebook)) or concatenate into a
+script. It authenticates with SpecklePy, runs the Step 1 query through the SDK GraphQL
+handler, and builds a KPI table. Helpers for score and status are defined in [Compute KPI
+score and status](#compute-kpi-score-and-status).
+
+Queries with GraphQL variables use the same authenticated client as
+[`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries),
+with `variable_values` passed to the underlying GraphQL client.
+
+Create a `.env` file next to your notebook or script:
+
+```bash
+SPECKLE_HOST=https://app.speckle.systems
+SPECKLE_TOKEN=your_personal_access_token
+SPECKLE_PROJECT_ID=0d1f93ec13
+```
+
+**Cell 1 — install dependencies** (notebook only):
+
+```python
+%pip install -q specklepy pandas python-dotenv
+```
+
+**Cell 2 — imports:**
+
+```python
+import os
+from collections import defaultdict
+
+import pandas as pd
+from dotenv import load_dotenv
+from gql import gql
+from specklepy.api.client import SpeckleClient
+
+load_dotenv()
+```
+
+**Cell 3 — authenticate:**
+
+```python
+HOST = os.getenv("SPECKLE_HOST", "https://app.speckle.systems")
+TOKEN = os.getenv("SPECKLE_TOKEN")
+PROJECT_ID = os.getenv("SPECKLE_PROJECT_ID", "0d1f93ec13")
+
+if not TOKEN:
+    raise ValueError("Set SPECKLE_TOKEN in your environment.")
+
+client = SpeckleClient(host=HOST)
+client.authenticate_with_token(TOKEN)
+```
+
+**Cell 4 — query handler and KPI helpers:**
+
+```python
+DEFAULT_DISPLAY_CONFIG = {
+    "passThreshold": 0.9,
+    "warningThreshold": None,
+    "rulePassThreshold": {},
+    "ruleWarningThreshold": {},
+    "ruleSeverity": {},
+}
+
+LIST_CHECKS_QUERY = gql("""
+query ProjectValidationChecks($projectId: String!) {
+  projectInsights(projectId: $projectId, type: "model_validation") {
+    id
+    name
+    metadata
+    aggregateResults(limit: 1) {
+      timestamp
+      summary
+    }
+  }
+}
+""")
+
+
+def run_query(query, variables: dict | None = None) -> dict:
+    if variables:
+        return client.httpclient.execute(query, variable_values=variables)
+    return client.execute_query(query)
+
+
+def resolve_thresholds(display_config: dict, rule_name: str | None = None) -> dict:
+    cfg = {**DEFAULT_DISPLAY_CONFIG, **(display_config or {})}
+    if rule_name:
+        pass_t = cfg["rulePassThreshold"].get(rule_name, cfg["passThreshold"])
+        warn_map = cfg.get("ruleWarningThreshold") or {}
+        warn_t = warn_map[rule_name] if rule_name in warn_map else cfg.get("warningThreshold")
+        severity = cfg.get("ruleSeverity", {}).get(rule_name, "error")
+        return {"passThreshold": pass_t, "warningThreshold": warn_t, "severity": severity}
+    return {
+        "passThreshold": cfg["passThreshold"],
+        "warningThreshold": cfg.get("warningThreshold"),
+        "severity": "error",
+    }
+
+
+def compute_pass_rate(summary: dict) -> float | None:
+    pass_n = summary.get("pass", 0) or 0
+    fail_n = summary.get("fail", 0) or 0
+    total = pass_n + fail_n
+    if total == 0:
+        return None
+    return pass_n / total
+
+
+def compute_score_pct(summary: dict) -> int | None:
+    rate = compute_pass_rate(summary)
+    if rate is None:
+        return None
+    return round(rate * 100)
+
+
+def compute_status(
+    pass_rate: float | None,
+    display_config: dict,
+    rule_name: str | None = None,
+) -> str:
+    if pass_rate is None:
+        return "na"
+    thresholds = resolve_thresholds(display_config, rule_name)
+    if rule_name and thresholds.get("severity") == "info":
+        return "info"
+    pass_t = thresholds["passThreshold"]
+    warn_t = thresholds.get("warningThreshold")
+    if pass_rate >= pass_t:
+        return "pass"
+    if warn_t is not None and pass_rate >= warn_t:
+        return "warning"
+    return "fail"
+
+
+def checks_to_kpi_df(checks: list[dict]) -> pd.DataFrame:
+    rows = []
+    for check in checks:
+        agg_list = check.get("aggregateResults") or []
+        agg = agg_list[0] if agg_list else None
+        summary = (agg or {}).get("summary") or {}
+        metadata = check.get("metadata") or {}
+        display_config = metadata.get("displayConfig") or {}
+        pass_rate = compute_pass_rate(summary)
+        rows.append(
+            {
+                "name": check.get("name"),
+                "insight_id": check.get("id"),
+                "pass": summary.get("pass", 0),
+                "fail": summary.get("fail", 0),
+                "score_pct": compute_score_pct(summary),
+                "status": compute_status(pass_rate, display_config),
+                "evaluated_at": (agg or {}).get("timestamp"),
+            }
+        )
+    return pd.DataFrame(rows)
+```
+
+**Cell 5 — list checks and show the KPI table:**
+
+```python
+result = run_query(LIST_CHECKS_QUERY, {"projectId": PROJECT_ID})
+checks = result.get("projectInsights") or []
+kpi_df = checks_to_kpi_df(checks)
+kpi_df
+```
+
+In Jupyter, the last line renders the table. In a script, use `print(kpi_df.to_string(index=False))`.
+
+**You should see…** one row per check with columns `name`, `score_pct`, `status`, `pass`, `fail`, and `evaluated_at`.
+
+For related GraphQL and Python patterns, see [SpecklePy model data analytics](/workflows/specklepy-model-data-analytics).
+
+## Notebook
+
+A ready-to-run copy of Step 4 is available here:
+
+- [Data Validation results notebook](./notebooks/data-validation-results.ipynb)
+
+Download it, add your `.env` file in the same folder, and run the cells top to bottom.
+
+## Compute KPI score and status
+
+The web app score is not returned pre-computed. Derive it from `summary` and `metadata.displayConfig`:
+
+1. Read `summary.pass` and `summary.fail` from the latest `aggregateResults[0]`.
+2. Set `total = pass + fail`. If `total == 0`, status is pending / no data (`na`).
+3. Set `pass_rate = pass / total` (a decimal between 0 and 1).
+4. Set `score_pct = round(pass_rate * 100)` — the large percentage on check cards.
+5. Load thresholds from `metadata.displayConfig` on each check. Defaults when absent: `passThreshold: 0.9`, optional `warningThreshold`.
+6. Apply status rules:
+   - `pass_rate >= passThreshold` → **pass**
+   - else if `warningThreshold` is set and `pass_rate >= warningThreshold` → **warning**
+   - else → **fail**
+7. Per-rule status uses the same logic on each rule's pass/fail ratio.
+
+**Worked example:** `pass=870`, `fail=130` → `pass_rate=0.87` → `score_pct=87`. With project `passThreshold=0.9`, status is **warning**. The same counts yield **pass** for a rule with `rulePassThreshold` of `0.85`.
+
+Thresholds are stored in `metadata.displayConfig` on each check (returned on `projectInsights` / `insight` queries). They are set in the Data Validation UI. Consumers read the stored config; updating checks via API is out of scope for this guide.
+
+| Key                    | Scope                      | Example                          |
+| ---------------------- | -------------------------- | -------------------------------- |
+| `passThreshold`        | Project-wide default (0–1) | `0.9`                            |
+| `warningThreshold`     | Project-wide optional band | `0.7`                            |
+| `rulePassThreshold`    | Per-rule override map      | `{ "Room name required": 0.95 }` |
+| `ruleWarningThreshold` | Per-rule warn override     | `{ "Room name required": 0.8 }`  |
+| `ruleSeverity`         | Per-rule advisory vs error | `{ "Optional note": "info" }`    |
+
+<Note>
+  For PASS, WARN, and FAIL meaning in the UI, see [Viewing results — result
+  states](/analytics/data-validation/viewing-results#result-states). For threshold
+  tuning in the product, see [Checks — thresholds and
+  status](/analytics/data-validation/checks#thresholds-and-status).
+</Note>
+
+## Build a rule breakdown DataFrame
+
+The `result` field is a tabular JSON object with `columns` and `rows`. Validation rows use dimensions `rule`, `status`, and `gate`, plus measure `count`.
+
+```python
+def query_result_to_rules_df(result: dict, display_config: dict) -> pd.DataFrame:
+    rule_entries: dict[str, list[dict]] = defaultdict(list)
+    for row in result.get("rows", []):
+        vals = row.get("values", {})
+        rule_name = vals.get("rule")
+        status = vals.get("status")
+        if rule_name == "_total" or status not in ("pass", "fail"):
+            continue
+        rule_entries[rule_name].append(vals)
+
+    out = []
+    for rule_name, entries in rule_entries.items():
+        max_gate = max(int(e.get("gate", 0)) for e in entries)
+        pass_n = sum(
+            int(e.get("count", 0))
+            for e in entries
+            if e.get("status") == "pass" and int(e.get("gate", 0)) == max_gate
+        )
+        fail_n = sum(
+            int(e.get("count", 0))
+            for e in entries
+            if e.get("status") == "fail" and int(e.get("gate", 0)) == max_gate
+        )
+        total = pass_n + fail_n
+        ratio = pass_n / total if total else 0.0
+        out.append(
+            {
+                "rule": rule_name,
+                "pass": pass_n,
+                "fail": fail_n,
+                "ratio": ratio,
+                "status": compute_status(ratio if total else None, display_config, rule_name),
+            }
+        )
+    return pd.DataFrame(out)
+
+
+def aggregate_history_to_df(aggregate_results: list[dict], display_config: dict) -> pd.DataFrame:
+    rows = []
+    for entry in reversed(aggregate_results):
+        summary = entry.get("summary") or {}
+        rate = compute_pass_rate(summary)
+        rows.append(
+            {
+                "timestamp": entry.get("timestamp"),
+                "pass": summary.get("pass", 0),
+                "fail": summary.get("fail", 0),
+                "score_pct": compute_score_pct(summary),
+                "status": compute_status(rate, display_config),
+            }
+        )
+    return pd.DataFrame(rows)
+```
+
+`aggregate_results` from the API is newest-first; reverse for chronological charts.
+
+## Wait for new results
+
+Results are computed asynchronously after a new model version is published. Poll until data appears, then stop.
+
+| Situation                       | Suggested interval | Stop when                               | Max wait guidance             |
+| ------------------------------- | ------------------ | --------------------------------------- | ----------------------------- |
+| New check or new version pushed | 15 seconds         | `aggregateResults` has at least one row | ~10 minutes; then investigate |
+| Waiting for aggregate rollup    | 30 seconds         | aggregate non-empty                     | ~15 minutes for large checks  |
+| Steady-state monitoring         | No polling         | —                                       | Query on a schedule instead   |
+
+```python
+import time
+from gql import gql
+from specklepy.api.client import SpeckleClient
+
+WAIT_FOR_AGGREGATE_QUERY = gql("""
+query WaitForAggregate($projectId: String!, $insightId: String!) {
+  insight(id: $insightId, projectId: $projectId) {
+    aggregateResults(limit: 1) {
+      timestamp
+      summary
+    }
+  }
+}
+""")
+
+
+def wait_for_aggregate_result(
+    client: SpeckleClient,
+    project_id: str,
+    insight_id: str,
+    interval_sec: float = 15.0,
+    max_attempts: int = 40,
+) -> dict | None:
+    variables = {"projectId": project_id, "insightId": insight_id}
+    for _ in range(max_attempts):
+        result = client.httpclient.execute(WAIT_FOR_AGGREGATE_QUERY, variable_values=variables)
+        results = (result.get("insight") or {}).get("aggregateResults") or []
+        if results:
+            return results[0]
+        time.sleep(interval_sec)
+    return None
+```
+
+<Warning>
+  Do not poll faster than every 15 seconds. For production dashboards, prefer scheduled
+  queries over tight polling loops.
+</Warning>
+
+## Common errors and troubleshooting
+
+| Error / symptom                                   | Likely cause                                  | What to do                                                                           |
+| ------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `"Insights module is not enabled on this server"` | Intelligence feature disabled on self-hosted  | Enable per [Enterprise deployment](/developers/server/deployment/enterprise-license) |
+| `401` / auth errors                               | Missing or invalid token                      | Call `authenticate_with_token` with a valid PAT                                      |
+| `403` / forbidden                                 | No project read or scoped token wrong project | Verify `streams:read` and project access                                             |
+| Empty `aggregateResults`                          | Check still processing or no models attached  | Poll [Wait for new results](#wait-for-new-results); confirm `modelIds`               |
+| Empty `projectInsights`                           | Wrong `projectId` or no checks saved          | Run [Find your IDs](#find-your-ids) discovery query; confirm checks in UI            |
+| GraphQL `errors` array                            | Malformed query or wrong variable types       | Match variables to `$projectId: String!` and other declared types                    |
+| Slow / timeout responses                          | Requesting `result` for many models at once   | Drop `result`; reduce `limit`; fetch one model at a time                             |
+| HTTP `429` Too Many Requests                      | Rate limit (common when polling too fast)     | Poll ≥15s; slow down or use scheduled queries instead                                |
+| Score differs from UI                             | Threshold overrides or per-rule severity      | Read `metadata.displayConfig`; use `resolve_thresholds(..., rule_name=...)`          |
+
+Scoped tokens must include the target `projectId`.
+
+## Verify your notebook or script
+
+After running Step 4:
+
+- The DataFrame has one row per check with `score_pct`, `status`, and `evaluated_at`.
+- Re-run with your project's `projectId`; row count matches the number of checks in the UI.
+- If the table is empty, see [Common errors and troubleshooting](#common-errors-and-troubleshooting).
+
+## What developers need to know
+
+<AccordionGroup>
+  <Accordion title="How do I find my project ID?">
+    Copy the segment after `/projects/` in the web app URL, for example `0d1f93ec13` from `https://app.speckle.systems/projects/0d1f93ec13/`. You can also list projects via SpecklePy or GraphQL. Check IDs come from the [discovery query](#find-your-ids) (`projectInsights[].id`).
+  </Accordion>
+
+<Accordion title="What is the difference between aggregateResults, latestResults, and modelResults?">
+  `aggregateResults` returns project-wide rollup history for a check (use `limit: 1` for
+  the latest KPI). `latestResults` returns the newest stored result per tracked model
+  (excludes the aggregate row). `modelResults(modelId, limit)` returns version history
+  for one model, newest first.
+</Accordion>
+
+<Accordion title="Why is aggregateResults empty?">
+  The check may still be processing after a version push, or no models are attached.
+  Poll every 15–30 seconds for up to 10–15 minutes. Confirm the check lists `modelIds`
+  and those models have published versions.
+</Accordion>
+
+<Accordion title="How do I run the GraphQL queries from Python?">
+  Download the [notebook](#notebook) or copy the Step 4 cells into your own Jupyter
+  project. Authenticate a `SpeckleClient` with `authenticate_with_token`, wrap each
+  operation in `gql()`, then call
+  [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries)
+  or pass `variable_values` to the same authenticated GraphQL client when the operation
+  declares variables.
+</Accordion>
+
+<Accordion title="Where is the full GraphQL schema?">
+  See [GraphQL API](/developers/api/graphql) and the [Apollo Studio
+  reference](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems)
+  for the full schema, including `projectInsights`, `insight`, and related fields.
+</Accordion>
+
+  <Accordion title="What is not covered in this guide?">
+    Creating or updating checks (`insightMutations.create`, `update`, `delete`). Ad-hoc validation without saving (`executeQuery`, `executeVersionQuery`). Webhooks or subscriptions when a result is ready (poll instead). REST endpoints for validation results. Authoring EAV query or rule DSL from scratch. Linking validation failures to Speckle issues (`syncValidationIssues`).
+  </Accordion>
+</AccordionGroup>
+
+## Related documentation
+
+- [GraphQL API](/developers/api/graphql)
+- [Data Validation overview](/analytics/data-validation/overview)
