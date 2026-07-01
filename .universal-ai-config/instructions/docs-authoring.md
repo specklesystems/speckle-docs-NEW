@@ -27,6 +27,28 @@ This project uses **universal-ai-config** for canonical doc rules. Generated ins
 - **Tutorials**: keep tutorials separate; if a flow needs more than 3–5 steps, link out.
 - **Cross-link and naming**: cross-link related pages; name sections by user intent.
 
+## Downloadable assets
+
+Mintlify serves only a limited set of file types from the deployed docs site (for example images, `.json`, `.yaml`, `.css`, `.js`, and fonts). It does **not** serve direct downloads for notebooks (`.ipynb`), archives, PDFs on standard plans, and many other asset types.
+
+**Rules:**
+
+- **Never** link downloadable files with relative paths that expect the docs site to serve them (for example `./notebooks/example.ipynb` or `/workflows/notebooks/foo.ipynb`). Those URLs return 404 in production.
+- **Always** use a raw GitHub URL to [speckle-docs-new](https://github.com/specklesystems/speckle-docs-new) as the download target.
+- Keep the notebook or asset in the repo next to the guide (for example `developers/api/guides/notebooks/`, `workflows/notebooks/`).
+- Use this URL pattern:
+
+  `https://raw.githubusercontent.com/specklesystems/speckle-docs-new/refs/heads/main/<path-in-repo>`
+
+**Example** (validation results guide):
+
+```markdown
+[Download the notebook](https://raw.githubusercontent.com/specklesystems/speckle-docs-new/refs/heads/main/developers/api/guides/notebooks/data-validation-results.ipynb)
+from the [documentation repository](https://github.com/specklesystems/speckle-docs-new) on GitHub.
+```
+
+Do not explain the platform limitation to readers unless they hit a broken link during migration. Give a clear download link only.
+
 ## Steps (Mintlify)
 
 - Use **`<Steps>` / `<Step>`** for short, linear sequences.
