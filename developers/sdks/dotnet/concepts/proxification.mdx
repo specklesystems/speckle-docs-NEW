@@ -1,0 +1,84 @@
+---
+title: "Proxification"
+description: "Working with Speckle proxies in .NET"
+---
+
+## What Are Proxies?
+
+Proxies let an object participate in multiple organizational systems (material, level, group, instance definition) without duplicating data. They're stored at the root level of a data package and reference objects by `applicationId`.
+
+<Info>
+This page covers the C# types that represent proxies. For the underlying schema — proxy structure, `objects` field semantics, Definition/Instance relationships — see [Proxy Schemas](/developers/data-schema/proxy-schema).
+</Info>
+
+## Proxy Types in Speckle.Sdk
+
+Proxy classes implement `IProxyCollection`, which requires an `objects` list of the source application IDs the proxy applies to:
+
+```csharp
+using Speckle.Sdk.Models.Proxies;
+
+public interface IProxyCollection : ISpeckleObject
+{
+    public List<string> objects { get; set; }
+}
+```
+
+Built-in proxy types include:
+
+```csharp
+using Speckle.Sdk.Models.Proxies;
+
+var groupProxy = new GroupProxy
+{
+    name = "Exterior Walls",
+    objects = ["wall-app-id-1", "wall-app-id-2"]
+};
+
+var colorProxy = new ColorProxy
+{
+    name = "Concrete",
+    value = unchecked((int)0xFF808080), // ARGB
+    objects = ["wall-app-id-1", "column-app-id-1"]
+};
+```
+
+<Note>
+Additional proxy types (materials, levels, instance definitions) follow the same `IProxyCollection` pattern with an `objects` field. Their exact shapes are documented in [Proxy Schemas](/developers/data-schema/proxy-schema).
+</Note>
+
+## Resolving Proxies After Receive
+
+Proxies are typically found at the root of a received data package, not nested inside the objects they describe. After `Receive`, look for proxy collections and cross-reference their `objects` lists against the `applicationId` of objects found during traversal:
+
+```csharp
+var allObjects = receivedData.Flatten()
+    .Where(b => b.applicationId is not null)
+    .ToDictionary(b => b.applicationId!);
+
+if (receivedData["groupProxies"] is IEnumerable<object> proxies)
+{
+    foreach (var proxy in proxies.OfType<GroupProxy>())
+    {
+        var groupedObjects = proxy.objects
+            .Where(allObjects.ContainsKey)
+            .Select(id => allObjects[id]);
+        // groupedObjects now share proxy.name's grouping
+    }
+}
+```
+
+<Warning>
+Exact root-level property names for proxy collections (`groupProxies`, `colorProxies`, and so on) depend on which sender populated them — check [Proxy Schemas](/developers/data-schema/proxy-schema) and, for connector-produced data, the relevant [connector schema page](/developers/data-schema/connector-index).
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Working with Proxies" icon="link" href="/developers/sdks/dotnet/guides/working-with-proxies">
+    Consumer-facing resolution recipes
+  </Card>
+  <Card title="Proxy Schemas" icon="diagram-project" href="/developers/data-schema/proxy-schema">
+    Full proxy structure and relationship model
+  </Card>
+</CardGroup>
