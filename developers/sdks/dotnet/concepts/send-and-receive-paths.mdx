@@ -1,0 +1,119 @@
+---
+title: "Send and Receive Paths"
+description: "Choose the right Speckle.Sdk pathway for sending and receiving data"
+---
+
+## Why Multiple Paths?
+
+Speckle.Sdk has evolved through several send/receive implementations while staying backward compatible. As a result, `IOperations` exposes more than one way to move data — this page is a decision guide, not an exhaustive API reference (see [Operations](/developers/sdks/dotnet/api-reference/operations) for signatures).
+
+<Info>
+If you only remember one thing from this page: for a **quickstart or simple script**, use `Send`/`Receive` with a `ServerTransport` (Path B below) — it's what the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) uses. Come back here once you're building something production-scale.
+</Info>
+
+## The Paths at a Glance
+
+| Path | Entry point | Transport / upload | Best for |
+|------|-------------|---------------------|----------|
+| **A. Serialize only** | `Serialize` / `DeserializeAsync` | None (in-memory JSON string) | Inspecting or saving raw JSON; no server involved |
+| **B. Send / Receive** | `Send`, `Receive` | `ITransport` (`ServerTransport`, `SQLiteTransport`, `MemoryTransport`) | Quickstarts, scripts, small-to-medium object graphs |
+| **C. Send2 / Receive2** | `Send2`, `Receive2` | Direct URL + project id + token | Recommended for new server-facing work at scale |
+| **D. SerializeNew** | `SerializeNew` | None | Experimental — not yet the default; avoid for now |
+| **E. SendPipeline** | `ISendPipelineFactory` + `client.Ingestion` | NDJSON upload via `Uploader` | Connector-scale ingestion of large host-application models |
+
+<Warning>
+Path naming is misleading: `Send2`/`Receive2` are the **newer, recommended** server-facing implementation, not a fallback. Internal benchmarks label the older path `Send_old` and the V2 path `Send_new`.
+</Warning>
+
+## Path A: Serialize Only
+
+Turns a `Base` graph into a JSON string with no transport involved.
+
+```csharp
+string json = operations.Serialize(myData);
+Base restored = await operations.DeserializeAsync(json);
+```
+
+Use this when you need the raw JSON representation — for example, writing to a file, or a custom transport you're implementing yourself. Most application code should use Path B or C instead.
+
+## Path B: Send / Receive with a Transport
+
+The classic path, and what the quickstart uses. Works with any `ITransport`.
+
+```csharp
+using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
+
+var (objectId, _) = await operations.Send(myData, transport, useDefaultCache: true);
+var received = await operations.Receive(objectId, remoteTransport: transport);
+```
+
+Swap `ServerTransport` for `SQLiteTransport` or `MemoryTransport` to send/receive without a server — useful for tests or local-only workflows.
+
+## Path C: Send2 / Receive2
+
+Talks to the server directly by URL, project id, and token, using a newer serialization pipeline. Prefer this for new server-facing features once you're past the quickstart.
+
+```csharp
+var results = await operations.Send2(client.ServerUrl, project.id, account.token, myData, onProgressAction: null, cancellationToken);
+var received = await operations.Receive2(client.ServerUrl, project.id, results.RootId, account.token, onProgressAction: null, cancellationToken);
+```
+
+<Note>
+The `streamId` parameter name in these signatures refers to the project id — the transport and serialization layers haven't yet been renamed to match the GraphQL API's `projectId` terminology.
+</Note>
+
+## Path D: SerializeNew
+
+An experimental `System.Text.Json`-based serializer intended to eventually replace `Serialize`. It is not the default and has no paired transport-level send yet.
+
+<Warning>
+Don't build production workflows on `SerializeNew` — it's still evolving and may change without notice.
+</Warning>
+
+## Path E: SendPipeline (Connector-Scale Ingestion)
+
+For uploading large host-application models (thousands of objects, proxies, materials), connectors use a dedicated ingestion pipeline instead of `Send`/`Send2`. It serializes to NDJSON and uploads via `client.Ingestion`.
+
+```csharp
+var sourceData = new SourceDataInput("my-app", "1.0.0", fileName: null, fileSizeBytes: null);
+var ingestion = await client.Ingestion.Create(new ModelIngestionCreateInput(model.id, project.id, "Starting ingestion", sourceData));
+
+var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
+    .CreateInstance(ingestion, client.Account, uploadProgress, cancellationToken);
+var reference = await pipeline.Process(myData);
+await pipeline.WaitForUpload();
+```
+
+This path does not automatically create a version — see [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends) for the full workflow, and [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors) for production examples.
+
+<Note>
+Requires Speckle Server version 3.0.3 or later.
+</Note>
+
+## Decision Guide
+
+<AccordionGroup>
+  <Accordion title="I'm following the quickstart or writing a small script">
+    Use **Path B** (`Send`/`Receive` with `ServerTransport`).
+  </Accordion>
+  <Accordion title="I'm building a production service that sends to Speckle Server at scale">
+    Use **Path C** (`Send2`/`Receive2`).
+  </Accordion>
+  <Accordion title="I'm building a desktop connector that converts a whole host-application model">
+    Use **Path E** (`SendPipeline` + `client.Ingestion`), and study [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors) for real conversion patterns.
+  </Accordion>
+  <Accordion title="I just need the JSON, no server involved">
+    Use **Path A** (`Serialize`/`DeserializeAsync`).
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Operations API Reference" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
+    Full method signatures for every path
+  </Card>
+  <Card title="Building Connector-Scale Sends" icon="upload" href="/developers/sdks/dotnet/guides/building-connector-scale-sends">
+    Worked example of the SendPipeline path
+  </Card>
+</CardGroup>
