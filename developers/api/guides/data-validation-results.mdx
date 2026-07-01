@@ -692,42 +692,47 @@ def wait_for_aggregate_result(
   queries over tight polling loops.
 </Warning>
 
-## Common errors and troubleshooting
+## Troubleshooting
 
-| Error / symptom                                   | Likely cause                                  | What to do                                                                           |
-| ------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `"Insights module is not enabled on this server"` | Intelligence feature disabled on self-hosted  | Enable per [Enterprise deployment](/developers/server/deployment/enterprise-license) |
-| `401` / auth errors                               | Missing or invalid token                      | Call `authenticate_with_token` with a valid PAT                                      |
-| `403` / forbidden                                 | No project read or scoped token wrong project | Verify `streams:read` and project access                                             |
-| Empty `aggregateResults`                          | Check still processing or no models attached  | Poll [Wait for new results](#wait-for-new-results); confirm `modelIds`               |
-| Empty `projectInsights`                           | Wrong `projectId` or no checks saved          | Run [Find your IDs](#find-your-ids) discovery query; confirm checks in UI            |
-| GraphQL `errors` array                            | Malformed query or wrong variable types       | Match variables to `$projectId: String!` and other declared types                    |
-| Slow / timeout responses                          | Requesting `result` for many models at once   | Drop `result`; reduce `limit`; fetch one model at a time                             |
-| HTTP `429` Too Many Requests                      | Rate limit (common when polling too fast)     | Poll ≥15s; slow down or use scheduled queries instead                                |
-| Score differs from UI                             | Threshold overrides or per-rule severity      | Read `metadata.displayConfig`; use `resolve_thresholds(..., rule_name=...)`          |
+### Common errors
+
+| Error / symptom                                   | Likely cause                                  | What to do                                                                                   |
+| ------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `"Insights module is not enabled on this server"` | Intelligence feature disabled on self-hosted  | Enable per [Enterprise deployment](/developers/server/deployment/enterprise-license)         |
+| `401` / auth errors                               | Missing or invalid token                      | Call `authenticate_with_token` with a valid PAT                                              |
+| `403` / forbidden                                 | No project read or scoped token wrong project | Verify `streams:read` and project access                                                     |
+| Empty `modelResults` / `versionResults`           | Model not in check `modelIds` or no run yet   | Confirm `MODEL_ID` in check's `modelIds`; poll [Wait for new results](#wait-for-new-results) |
+| Empty `aggregateResults`                          | Check still processing or no models attached  | Poll [Wait for new results](#wait-for-new-results); confirm `modelIds`                       |
+| Empty `projectInsights`                           | Wrong `projectId` or no checks saved          | Run [Find your IDs](#find-your-ids) discovery query; confirm checks in UI                    |
+| GraphQL `errors` array                            | Malformed query or wrong variable types       | Match variables to `$projectId: String!` and other declared types                            |
+| Slow / timeout responses                          | Requesting `result` for many models at once   | Drop `result`; reduce `limit`; fetch one model at a time                                     |
+| HTTP `429` Too Many Requests                      | Rate limit (common when polling too fast)     | Poll ≥15s; slow down or use scheduled queries instead                                        |
+| Score differs from UI                             | Threshold overrides or per-rule severity      | Read `metadata.displayConfig`; use `resolve_thresholds(..., rule_name=...)`                  |
 
 Scoped tokens must include the target `projectId`.
 
-## Verify your notebook or script
+### Verify your notebook or script
 
 After running Step 4:
 
 - The DataFrame has one row per check with `score_pct`, `status`, and `evaluated_at`.
 - Re-run with your project's `projectId`; row count matches the number of checks in the UI.
-- If the table is empty, see [Common errors and troubleshooting](#common-errors-and-troubleshooting).
+- If the table is empty, see [Common errors](#common-errors) above.
 
 ## What developers need to know
 
 <AccordionGroup>
   <Accordion title="How do I find my project ID?">
-    Copy the segment after `/projects/` in the web app URL, for example `0d1f93ec13` from `https://app.speckle.systems/projects/0d1f93ec13/`. You can also list projects via SpecklePy or GraphQL. Check IDs come from the [discovery query](#find-your-ids) (`projectInsights[].id`).
+    Copy the segment after `/projects/` in the web app URL — that value is your `PROJECT_ID` in `https://app.speckle.systems/projects/{PROJECT_ID}/`. You can also list projects via SpecklePy or GraphQL. Check IDs come from the [discovery query](#find-your-ids) (`projectInsights[].id`).
   </Accordion>
 
 <Accordion title="What is the difference between aggregateResults, latestResults, and modelResults?">
   `aggregateResults` returns project-wide rollup history for a check (use `limit: 1` for
   the latest KPI). `latestResults` returns the newest stored result per tracked model
   (excludes the aggregate row). `modelResults(modelId, limit)` returns version history
-  for one model, newest first.
+  for one model, newest first. If you know `MODEL_ID` already, use Step 1 to resolve
+  `INSIGHT_ID`, Step 2 for latest summary per model, or Step 3 for history or a single
+  version snapshot.
 </Accordion>
 
 <Accordion title="Why is aggregateResults empty?">
