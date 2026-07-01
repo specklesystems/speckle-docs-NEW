@@ -43,8 +43,8 @@ Mintlify serves only a limited set of file types from the deployed docs site (fo
 **Example** (validation results guide):
 
 ```markdown
-[Download the notebook](https://raw.githubusercontent.com/specklesystems/speckle-docs-new/refs/heads/main/developers/api/guides/notebooks/data-validation-results.ipynb)
-from the [documentation repository](https://github.com/specklesystems/speckle-docs-new) on GitHub.
+[Download the notebook](https://raw.githubusercontent.com/specklesystems/speckle-docs-new/refs/heads/main/developers/api/guides/notebooks/data-validation-results.ipynb).
+Save the file locally, add your `.env` in the same folder, and run top to bottom.
 ```
 
 Do not explain the platform limitation to readers unless they hit a broken link during migration. Give a clear download link only.
