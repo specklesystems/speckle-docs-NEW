@@ -194,6 +194,7 @@ If you already have `INSIGHT_ID` from the check URL or your environment, skip St
       insight(id: $insightId, projectId: $projectId) {
         id
         name
+        metadata
         aggregateResults(limit: 20) {
           id
           timestamp
@@ -213,8 +214,8 @@ If you already have `INSIGHT_ID` from the check URL or your environment, skip St
   <Tab title="Variables">
     ```json
     {
-      "projectId": "0d1f93ec13",
-      "insightId": "abc456def7"
+      "projectId": "PROJECT_ID",
+      "insightId": "INSIGHT_ID"
     }
     ```
   </Tab>
@@ -287,18 +288,73 @@ Use when you need multiple snapshots for one model, or the full `result` payload
   <Tab title="Variables">
     ```json
     {
-      "projectId": "0d1f93ec13",
-      "insightId": "abc456def7",
-      "modelId": "f2a8b1c9d0",
+      "projectId": "PROJECT_ID",
+      "insightId": "INSIGHT_ID",
+      "modelId": "MODEL_ID",
       "limit": 5
     }
     ```
   </Tab>
 </Tabs>
 
-For a single version snapshot, use `versionResults(modelId: $modelId, versionId: $versionId)` with `"versionId": "7e3c21a8b4"`.
-
 **You should see…** `modelResults` ordered newest-first, each with `versionId`, `summary`, and a `result` object with `columns` and `rows`.
+
+### One version snapshot
+
+Use when you know `VERSION_ID` as well — from the model version URL (`.../models/{MODEL_ID}@{VERSION_ID}`) or a publish webhook — and want that snapshot only.
+
+**POST** `/graphql`
+
+<Tabs>
+  <Tab title="Query">
+    ```graphql
+    query ModelVersionValidationResults(
+      $projectId: String!
+      $insightId: String!
+      $modelId: String!
+      $versionId: String!
+    ) {
+      insight(id: $insightId, projectId: $projectId) {
+        id
+        versionResults(modelId: $modelId, versionId: $versionId) {
+          id
+          versionId
+          timestamp
+          summary
+          result
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Variables">
+    ```json
+    {
+      "projectId": "PROJECT_ID",
+      "insightId": "INSIGHT_ID",
+      "modelId": "MODEL_ID",
+      "versionId": "VERSION_ID"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Omit `result` from the selection set for summary-only CI gates. Add it when you need per-rule rows.
+
+**You should see…** a (usually single-item) `versionResults` array for that version, or an empty array if validation has not run yet — see [Wait for new results](#wait-for-new-results).
+
+<Tip>
+  Single-model pipeline `.env` example:
+
+```bash
+SPECKLE_PROJECT_ID=your_project_id
+SPECKLE_INSIGHT_ID=your_check_id
+SPECKLE_MODEL_ID=your_model_id
+```
+
+`INSIGHT_ID` is the segment after `/data-validation/` in the check URL.
+
+</Tip>
 
 <Warning>
   In Step 3, `result` can be large and may include object IDs. Fetch one model at a
