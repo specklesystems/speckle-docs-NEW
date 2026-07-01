@@ -1,7 +1,7 @@
 ---
 name: document-dev-speckle-feature
 description: Explore a new feature in a local Speckle Server deployment and create documentation pages for it. Handles codebase exploration, screenshot capture, doc placement, and page creation.
-argumentHint: "[feature name or description]"
+argumentHint: '[feature name or description]'
 ---
 
 # Document a New Speckle Feature
@@ -90,6 +90,7 @@ Generate the doc pages following these rules:
 - Frame by user action, not system architecture
 - Include: overview, step-by-step workflow, FAQ (AccordionGroup), tips
 - Cross-link related existing pages
+- For notebooks and other downloadable assets, follow **Downloadable assets** in docs-authoring (raw GitHub links only; never relative `.ipynb` paths on the docs site)
 - Add frontmatter: title, description, sidebarTitle
 
 ### For each page:
