@@ -1,0 +1,62 @@
+---
+title: "VersionResource"
+description: "client.Version — create, read, update, and manage versions"
+---
+
+## Overview
+
+`client.Version` manages Versions — immutable snapshots of a model, each pointing at a root object sent via [`Operations`](/developers/sdks/dotnet/api-reference/operations).
+
+## Methods
+
+<ResponseField name="Get" type="Task<Version> Get(string versionId, string projectId, CancellationToken cancellationToken = default)">
+  Retrieves a version by id.
+</ResponseField>
+
+<ResponseField name="GetVersions" type="Task<ResourceCollection<Version>> GetVersions(string modelId, string projectId, int limit = 25, string? cursor = null, ModelVersionsFilter? filter = null, CancellationToken cancellationToken = default)">
+  Lists versions of a model.
+</ResponseField>
+
+<ResponseField name="Create" type="Task<Version> Create(CreateVersionInput input, CancellationToken cancellationToken = default)">
+  Creates a version pointing at an already-sent object. `CreateVersionInput(string objectId, string modelId, string projectId, string? message = null, string? sourceApplication = ".net", int? totalChildrenCount = null, IReadOnlyList<string>? parents = null)`.
+</ResponseField>
+
+<ResponseField name="Update" type="Task<Version> Update(UpdateVersionInput input, CancellationToken cancellationToken = default)">
+  Updates a version's message.
+</ResponseField>
+
+<ResponseField name="MoveToModel" type="Task<string> MoveToModel(MoveVersionsInput input, CancellationToken cancellationToken = default)">
+  Moves one or more versions to a different model. Returns the target model id.
+</ResponseField>
+
+<ResponseField name="Delete" type="Task Delete(DeleteVersionsInput input, CancellationToken cancellationToken = default)">
+  Deletes one or more versions.
+</ResponseField>
+
+<ResponseField name="Received" type="Task Received(MarkReceivedVersionInput input, CancellationToken cancellationToken = default)">
+  Marks a version as received by the current application, for telemetry/analytics purposes.
+</ResponseField>
+
+## Usage
+
+```csharp
+using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
+var (objectId, _) = await provider.GetRequiredService<IOperations>().Send(myData, transport, useDefaultCache: true);
+
+var version = await client.Version.Create(new CreateVersionInput(objectId, model.id, project.id, "Initial version"));
+```
+
+<Note>
+Sending an object with `IOperations` does not create a version by itself — always follow up with `client.Version.Create` to make the data discoverable in the model's history and viewer.
+</Note>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Operations" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
+    Send an object before creating a version
+  </Card>
+  <Card title="ModelResource" icon="cube" href="/developers/sdks/dotnet/api-reference/resources/model">
+    The model a version belongs to
+  </Card>
+</CardGroup>
