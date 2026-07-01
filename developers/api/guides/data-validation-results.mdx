@@ -363,10 +363,10 @@ SPECKLE_MODEL_ID=your_model_id
 
 ## Step 4: Build a KPI DataFrame
 
-Run the Python below as notebook cells (see [Notebook](#notebook)) or concatenate into a
-script. It authenticates with SpecklePy, runs the Step 1 query through the SDK GraphQL
-handler, and builds a KPI table. Helpers for score and status are defined in [Compute KPI
-score and status](#compute-kpi-score-and-status).
+Run the Python below as notebook cells or concatenate into a script. It authenticates with
+SpecklePy, runs the Step 1 query through the SDK GraphQL handler, and builds a KPI table.
+Helpers for score and status are in [Extend the examples](#extend-the-examples) — start with
+[Compute KPI score and status](#compute-kpi-score-and-status).
 
 Queries with GraphQL variables use the same authenticated client as
 [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries),
@@ -377,7 +377,7 @@ Create a `.env` file next to your notebook or script:
 ```bash
 SPECKLE_HOST=https://app.speckle.systems
 SPECKLE_TOKEN=your_personal_access_token
-SPECKLE_PROJECT_ID=0d1f93ec13
+SPECKLE_PROJECT_ID=your_project_id
 ```
 
 **Cell 1 — install dependencies** (notebook only):
@@ -405,10 +405,12 @@ load_dotenv()
 ```python
 HOST = os.getenv("SPECKLE_HOST", "https://app.speckle.systems")
 TOKEN = os.getenv("SPECKLE_TOKEN")
-PROJECT_ID = os.getenv("SPECKLE_PROJECT_ID", "0d1f93ec13")
+PROJECT_ID = os.getenv("SPECKLE_PROJECT_ID")
 
 if not TOKEN:
     raise ValueError("Set SPECKLE_TOKEN in your environment.")
+if not PROJECT_ID:
+    raise ValueError("Set SPECKLE_PROJECT_ID in your environment.")
 
 client = SpeckleClient(host=HOST)
 client.authenticate_with_token(TOKEN)
