@@ -1,0 +1,62 @@
+---
+title: "ModelResource"
+description: "client.Model — create, read, update, and manage models"
+---
+
+## Overview
+
+`client.Model` manages Models — branches within a project that group related versions (for example, "structural", "MEP", "design-option-a").
+
+## Methods
+
+<ResponseField name="Get" type="Task<Model> Get(string modelId, string projectId, CancellationToken cancellationToken = default)">
+  Retrieves a model by id.
+</ResponseField>
+
+<ResponseField name="GetWithVersions" type="Task<ModelWithVersions> GetWithVersions(string modelId, string projectId, int versionsLimit = 25, string? versionsCursor = null, ModelVersionsFilter? versionsFilter = null, CancellationToken cancellationToken = default)">
+  Retrieves a model along with a paginated list of its versions.
+</ResponseField>
+
+<ResponseField name="GetModels" type="Task<ResourceCollection<Model>> GetModels(string projectId, int modelsLimit = 25, string? modelsCursor = null, ProjectModelsFilter? modelsFilter = null, CancellationToken cancellationToken = default)">
+  Lists models in a project.
+</ResponseField>
+
+<ResponseField name="Create" type="Task<Model> Create(CreateModelInput input, CancellationToken cancellationToken = default)">
+  Creates a model. `CreateModelInput(string name, string? description, string projectId)`.
+</ResponseField>
+
+<ResponseField name="Update" type="Task<Model> Update(UpdateModelInput input, CancellationToken cancellationToken = default)">
+  Updates a model's name or description.
+</ResponseField>
+
+<ResponseField name="Delete" type="Task Delete(DeleteModelInput input, CancellationToken cancellationToken = default)">
+  Deletes a model.
+</ResponseField>
+
+<ResponseField name="GetPermissions" type="Task<ModelPermissionChecks> GetPermissions(string projectId, string modelId, CancellationToken cancellationToken = default)">
+  Checks the active user's permissions on the model (update, delete, create version).
+</ResponseField>
+
+<ResponseField name="CanCreateModelIngestion" type="Task<PermissionCheckResult> CanCreateModelIngestion(string projectId, string modelId, CancellationToken cancellationToken = default)">
+  Checks whether the active user can create a connector-scale ingestion for this model. Requires server version 3.0.11 or later.
+</ResponseField>
+
+## Usage
+
+```csharp
+var model = await client.Model.Create(new CreateModelInput("Structural Model", "Structural analysis model", project.id));
+
+var withVersions = await client.Model.GetWithVersions(model.id, project.id);
+Console.WriteLine($"{withVersions.name}: {withVersions.versions.totalCount} versions");
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="VersionResource" icon="code-branch" href="/developers/sdks/dotnet/api-reference/resources/version">
+    Versions within a model
+  </Card>
+  <Card title="ProjectResource" icon="folder" href="/developers/sdks/dotnet/api-reference/resources/project">
+    Projects that contain models
+  </Card>
+</CardGroup>
