@@ -1,0 +1,283 @@
+---
+title: "Quickstart"
+description: "Build your first Speckle integration with Speckle.Sdk"
+---
+
+## What You'll Build
+
+In this quickstart, you'll learn how to:
+
+1. Register Speckle.Sdk with dependency injection
+2. Authenticate with Speckle Server
+3. Create a project and model
+4. Send geometry data to Speckle
+5. Create a version (commit)
+6. Receive geometry data from Speckle
+
+Let's get started.
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install the packages">
+    ```bash
+    dotnet add package Speckle.Sdk
+    dotnet add package Speckle.Objects
+    ```
+  </Step>
+  <Step title="Set up authentication">
+    Get a [personal access token](https://app.speckle.systems) from your Speckle profile<br />
+    *(Avatar → Settings → Developer → Access Tokens)*
+  </Step>
+</Steps>
+
+## Full Workflow
+
+### Step 1: Register the SDK
+
+Register Speckle.Sdk with dependency injection once, at startup. Pass the `Speckle.Objects` assembly so the geometry types used below can be deserialized later.
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Speckle.Sdk;
+
+var services = new ServiceCollection();
+services.AddSpeckleSdk(
+    new Application("Quickstart", "quickstart"),
+    "1.0.0",
+    assemblies: [typeof(Speckle.Objects.Geometry.Point).Assembly]
+);
+var provider = services.BuildServiceProvider();
+```
+
+<Tip>
+You don't need to understand dependency injection to follow this guide — copy this block once, then resolve services from `provider` as shown below. The [Dependency Injection](/developers/sdks/dotnet/concepts/dependency-injection) concept page explains why this exists.
+</Tip>
+
+### Step 2: Authenticate
+
+```csharp
+using Speckle.Sdk.Api;
+using Speckle.Sdk.Credentials;
+
+var account = await provider.GetRequiredService<IAccountFactory>()
+    .CreateAccount(new Uri("https://app.speckle.systems"), "your_token_here"); // Replace with your token
+
+using var client = provider.GetRequiredService<IClientFactory>().Create(account);
+
+Console.WriteLine($"✓ Authenticated as {account.userInfo.name}");
+```
+
+<Check>
+If this works, you'll see your name printed!
+</Check>
+
+### Step 3: Create a Project
+
+Projects are the top-level containers for your data:
+
+```csharp
+using Speckle.Sdk.Api.GraphQL.Inputs;
+using Speckle.Sdk.Api.GraphQL.Models;
+
+var project = await client.Project.Create(new ProjectCreateInput(
+    "My First Speckle Project",
+    "Learning Speckle.Sdk",
+    ProjectVisibility.Private
+));
+
+Console.WriteLine($"✓ Created project: {project.id}");
+```
+
+<Note>
+If the workspace plan is already at your maximum project limit, you'll need to delete some projects before creating a new one.
+</Note>
+<Info>
+Projects replace what used to be called "Streams" in prior versions of Speckle.
+</Info>
+
+### Step 4: Create Geometry
+
+```csharp
+using Speckle.Objects.Geometry;
+using Speckle.Sdk.Models;
+
+// Create some points
+var p1 = new Point(0, 0, 0, "m");
+var p2 = new Point(10, 0, 0, "m");
+var p3 = new Point(10, 10, 0, "m");
+var p4 = new Point(0, 10, 0, "m");
+
+// Create a line
+var line = new Line { start = p1, end = p2, units = "m" };
+
+// Wrap geometry in a Base object for viewer visibility
+var myData = new Base();
+myData["line"] = line;
+myData["points"] = new List<Point> { p1, p2, p3, p4 };
+
+Console.WriteLine("✓ Created geometry objects");
+```
+
+<Warning>
+**Important:** Sending geometry primitives directly will **not** make them visible in the 3D viewer! You must wrap them in a container object. This is why we use `Base` above to group the geometry.
+</Warning>
+
+<Tip>
+`Base` is the foundation of all Speckle objects. You can attach any property to it dynamically using the string indexer. Wrapping geometry in `Base` ensures it's visible in the 3D viewer.
+</Tip>
+
+### Step 5: Send Data to Speckle
+
+```csharp
+using Speckle.Sdk.Transports;
+
+// Create a transport (the vehicle for sending data)
+using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
+
+// Send the data; the operation returns the object ID and cache local copies too
+var (objectId, _) = await provider.GetRequiredService<IOperations>().Send(myData, transport, useDefaultCache: true);
+
+Console.WriteLine($"✓ Sent data! Object ID: {objectId}");
+```
+
+<Info>
+`objectId` is a unique hash of the serialized data. You'll use it to create a version.
+</Info>
+
+<Note>
+Server transports and some lower-level APIs still use the term `streamId` for what the GraphQL API and UI call `projectId`. They refer to the same value.
+</Note>
+
+### Step 6: Create a Version
+
+```csharp
+using Speckle.Sdk.Api.GraphQL.Inputs;
+
+// Create a model
+var model = await client.Model.Create(new CreateModelInput("My first model", "This is my first model", project.id));
+
+// Create a version pointing at the sent object
+var version = await client.Version.Create(new CreateVersionInput(objectId, model.id, project.id, "My first version!"));
+
+Console.WriteLine($"✓ Created version: {version.id}");
+Console.WriteLine($"View it: https://app.speckle.systems/projects/{project.id}/models/{model.id}");
+```
+
+<Check>
+Go to that URL to see your data in the 3D viewer!
+</Check>
+
+### Step 7: Receive Data
+
+```csharp
+// Get the version and read the referenced object id
+var fetchedVersion = await client.Version.Get(version.id, project.id);
+var rootObjectId = fetchedVersion.referencedObject;
+
+// Receive the data using the same transport used to send it
+var receivedData = await provider.GetRequiredService<IOperations>().Receive(rootObjectId!, remoteTransport: transport);
+
+Console.WriteLine("✓ Received data!");
+Console.WriteLine($"Points received: {((List<object>)receivedData["points"]!).Count}");
+```
+
+<Info>
+**Why two steps?**
+
+Versions store metadata (author, timestamp, message) separately from the actual object data. This keeps version history fast and lightweight. You only download the full object graph when you explicitly call `Receive`.
+</Info>
+
+<Note>
+You've now completed your first full Speckle workflow with .NET! 🎉
+</Note>
+
+## Complete Example
+
+```csharp expandable
+using Microsoft.Extensions.DependencyInjection;
+using Speckle.Objects.Geometry;
+using Speckle.Sdk;
+using Speckle.Sdk.Api;
+using Speckle.Sdk.Api.GraphQL.Inputs;
+using Speckle.Sdk.Api.GraphQL.Models;
+using Speckle.Sdk.Credentials;
+using Speckle.Sdk.Models;
+using Speckle.Sdk.Transports;
+
+// 1. Register the SDK
+var services = new ServiceCollection();
+services.AddSpeckleSdk(
+    new Application("Quickstart", "quickstart"),
+    "1.0.0",
+    assemblies: [typeof(Point).Assembly]
+);
+var provider = services.BuildServiceProvider();
+
+// 2. Authenticate
+var account = await provider.GetRequiredService<IAccountFactory>()
+    .CreateAccount(new Uri("https://app.speckle.systems"), "your_token_here");
+using var client = provider.GetRequiredService<IClientFactory>().Create(account);
+Console.WriteLine($"✓ Authenticated as {account.userInfo.name}");
+
+// 3. Create project
+var project = await client.Project.Create(new ProjectCreateInput(
+    "My First Speckle Project",
+    "Learning Speckle.Sdk",
+    ProjectVisibility.Private
+));
+Console.WriteLine($"✓ Created project: {project.id}");
+
+// 4. Create geometry
+var p1 = new Point(0, 0, 0, "m");
+var p2 = new Point(10, 0, 0, "m");
+var p3 = new Point(10, 10, 0, "m");
+var p4 = new Point(0, 10, 0, "m");
+var line = new Line { start = p1, end = p2, units = "m" };
+
+var myData = new Base();
+myData["line"] = line;
+myData["points"] = new List<Point> { p1, p2, p3, p4 };
+Console.WriteLine("✓ Created geometry");
+
+// 5. Send data
+using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
+var (objectId, _) = await provider.GetRequiredService<IOperations>().Send(myData, transport, useDefaultCache: true);
+Console.WriteLine($"✓ Sent data: {objectId}");
+
+// 6. Create model and version
+var model = await client.Model.Create(new CreateModelInput("My first model", "This is my first model", project.id));
+var version = await client.Version.Create(new CreateVersionInput(objectId, model.id, project.id, "My first version!"));
+Console.WriteLine($"✓ Created version: {version.id}");
+Console.WriteLine($"View: https://app.speckle.systems/projects/{project.id}/models/{model.id}");
+
+// 7. Receive data
+var fetchedVersion = await client.Version.Get(version.id, project.id);
+var receivedData = await provider.GetRequiredService<IOperations>().Receive(fetchedVersion.referencedObject!, remoteTransport: transport);
+Console.WriteLine($"✓ Received data: {((List<object>)receivedData["points"]!).Count} points");
+```
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Core Concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+    Learn about Projects, Models, Versions, and send/receive paths
+  </Card>
+  <Card title="Working with Geometry" icon="cube" href="/developers/sdks/dotnet/guides/working-with-geometry">
+    Explore all available geometry types
+  </Card>
+  <Card title="API Reference" icon="code" href="/developers/sdks/dotnet/api-reference/client">
+    Dive into the complete API documentation
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+<CardGroup cols={2}>
+  <Card title="Community Forum" icon="comments" href="https://speckle.community">
+    Ask questions and get help
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/specklesystems/speckle-sharp-sdk">
+    View source code and report issues
+  </Card>
+</CardGroup>
