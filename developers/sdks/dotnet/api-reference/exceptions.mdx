@@ -1,0 +1,101 @@
+---
+title: "Exceptions"
+description: "The Speckle.Sdk exception hierarchy and common failure modes"
+---
+
+## Exception Hierarchy
+
+Every Speckle-specific exception derives from `SpeckleException` (itself a plain `Exception`), so catching `SpeckleException` catches everything the SDK throws intentionally.
+
+```
+Exception
+└─ SpeckleException
+   ├─ InvalidPropNameException          // invalid dynamic property name on Base
+   ├─ Transports.TransportException     // a transport failed to send/receive
+   ├─ Serialisation.SpeckleDeserializeException
+   └─ Api.SpeckleGraphQLException       // base for all GraphQL response errors
+      ├─ SpeckleGraphQLForbiddenException
+      ├─ SpeckleGraphQLInternalErrorException
+      ├─ SpeckleGraphQLStreamNotFoundException
+      ├─ SpeckleGraphQLBadInputException
+      ├─ SpeckleGraphQLInvalidQueryException
+      ├─ SpeckleGraphQLWorkspaceNotEnabledException
+      ├─ WorkspacePermissionException
+      └─ CannotCreateCommitException
+```
+
+## Core Exceptions
+
+<ResponseField name="SpeckleException" type="Exception">
+  Base type for all intentional Speckle.Sdk errors. Catch this to handle any SDK-thrown failure generically.
+</ResponseField>
+
+<ResponseField name="TransportException" type="SpeckleException">
+  A transport (`ServerTransport`, `SQLiteTransport`, `MemoryTransport`) failed to save or retrieve an object. Exposes the failing `Transport` instance.
+</ResponseField>
+
+<ResponseField name="SpeckleDeserializeException" type="SpeckleException">
+  Deserialization of a received object graph failed — often due to a missing type registration (see the warning below) or corrupted/incompatible data.
+</ResponseField>
+
+<ResponseField name="InvalidPropNameException" type="SpeckleException">
+  Thrown when setting a dynamic property on a `Base` with an invalid name (empty, `.`/`/` characters, or a double `@@` prefix).
+</ResponseField>
+
+## GraphQL Exceptions
+
+All GraphQL response errors surface as a `SpeckleGraphQLException` subtype, mapped from the server's GraphQL error code:
+
+| Exception | Maps to server error |
+|--------------------------------------------|--------------------------------------------------|
+| `SpeckleGraphQLForbiddenException`         | `FORBIDDEN` / `UNAUTHENTICATED` / `UNAUTHORIZED`  |
+| `SpeckleGraphQLInternalErrorException`     | `INTERNAL_SERVER_ERROR`                           |
+| `SpeckleGraphQLStreamNotFoundException`    | `STREAM_NOT_FOUND` (project not found)            |
+| `SpeckleGraphQLBadInputException`          | `BAD_USER_INPUT`                                  |
+| `SpeckleGraphQLInvalidQueryException`      | `GRAPHQL_PARSE_FAILED` / `GRAPHQL_VALIDATION_FAILED` |
+| `SpeckleGraphQLWorkspaceNotEnabledException` | Workspace resources requested against a non-workspace server |
+| `WorkspacePermissionException`             | Workspace-scoped permission denied                |
+| `CannotCreateCommitException`              | Version/commit creation rejected by the server    |
+
+```csharp
+try
+{
+    var project = await client.Project.Get("invalid-id");
+}
+catch (SpeckleGraphQLStreamNotFoundException)
+{
+    Console.WriteLine("Project not found.");
+}
+catch (SpeckleGraphQLForbiddenException)
+{
+    Console.WriteLine("Not authorized — check the token's scopes.");
+}
+```
+
+## Common Failure Modes
+
+<AccordionGroup>
+  <Accordion title="SpeckleDeserializeException or objects come back as plain Base">
+    The type's assembly wasn't passed to `AddSpeckleSdk`. See [Dependency Injection: Registering Your Own Types](/developers/sdks/dotnet/concepts/dependency-injection#registering-your-own-types).
+  </Accordion>
+  <Accordion title="SpeckleException: ActiveUser could not be found">
+    The account's token is invalid or expired. Re-authenticate — see [Authentication](/developers/sdks/dotnet/getting-started/authentication).
+  </Accordion>
+  <Accordion title="SpeckleGraphQLWorkspaceNotEnabledException">
+    You called a `client.Workspace` method against a server without workspaces enabled. Check with `client.Server.IsWorkspaceEnabled()` first.
+  </Accordion>
+  <Accordion title="TransportException with no fallback remote">
+    `Receive` was called with a `localTransport` that doesn't have the object, and no `remoteTransport` was provided to fall back to.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Operations" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
+    Which methods throw which exceptions
+  </Card>
+  <Card title="Authentication" icon="key" href="/developers/sdks/dotnet/getting-started/authentication">
+    Common authentication errors
+  </Card>
+</CardGroup>
