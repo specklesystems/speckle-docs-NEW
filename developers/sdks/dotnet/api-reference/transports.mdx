@@ -1,0 +1,80 @@
+---
+title: "Transports"
+description: "ServerTransport, SQLiteTransport, and MemoryTransport"
+---
+
+## Overview
+
+An `ITransport` is where `Send`/`Receive` read and write serialized objects. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) for when to use a transport at all versus `Send2`/`Receive2`.
+
+## ServerTransport
+
+Sends and receives objects (and blobs) over HTTP to a Speckle Server project.
+
+<ResponseField name="IServerTransportFactory.Create" type="ServerTransport Create(Account account, string streamId, int timeoutSeconds = 60, string? blobStorageFolder = null)">
+  Constructs a `ServerTransport`. Always use this factory — `ServerTransport`'s constructor has DI-resolved dependencies (`ISpeckleHttp`, `ISdkActivityFactory`) that aren't convenient to supply manually.
+</ResponseField>
+
+```csharp
+using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
+```
+
+<Note>
+`streamId` here is the project id — a naming holdover from Speckle's v2 terminology.
+</Note>
+
+## SQLiteTransport
+
+A general-purpose local disk cache, used automatically as the default local cache when `useDefaultCache: true` is passed to `Send`/`Receive`.
+
+<ResponseField name="SQLiteTransport" type="SQLiteTransport(string? basePath = null, string? applicationName = null, string? scope = null)">
+  Creates or opens a local SQLite database for caching objects. Defaults to a per-user application data path.
+</ResponseField>
+
+```csharp
+using var localCache = new SQLiteTransport();
+```
+
+<Note>
+`SQLiteTransport2` is a related, per-project variant used internally as the default local cache alongside `ServerTransport` — you generally won't construct it directly.
+</Note>
+
+## MemoryTransport
+
+An in-memory, non-persistent transport. Fastest option; data is lost when the process ends.
+
+<ResponseField name="MemoryTransport" type="MemoryTransport(ConcurrentDictionary<string, string>? objects = null, bool blobStorageEnabled = false, string? basePath = null, string? applicationName = null)">
+  Creates an in-memory object store. Useful for tests and short-lived scripts that don't need persistence.
+</ResponseField>
+
+```csharp
+var transport = new MemoryTransport();
+var (objectId, _) = await operations.Send(myData, transport, useDefaultCache: false);
+```
+
+## ITransport
+
+All transports implement `ITransport`, which supports:
+
+| Member | Purpose |
+|-------------------------|------------------------------------------------|
+| `SaveObject`             | Persist a serialized object string by id       |
+| `GetObject`               | Retrieve a serialized object string by id      |
+| `CopyObjectAndChildren`   | Copy an object and its closures into another transport |
+| `OnProgressAction`        | Progress reporting callback                    |
+| `TransportName`           | Human-readable name, used in diagnostics        |
+
+<Info>
+`IBlobCapableTransport` (implemented by `ServerTransport`, `SQLiteTransport`, and `MemoryTransport`) adds blob sidecar storage for binary attachments alongside object graphs.
+</Info>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Operations" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
+    Send, Receive, and the other data-movement methods
+  </Card>
+  <Card title="Send and Receive Paths" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+    When to use a transport at all
+  </Card>
+</CardGroup>
