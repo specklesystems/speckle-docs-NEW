@@ -1,7 +1,7 @@
 ---
 name: document-dev-speckle-feature
 description: Explore a new feature in a local Speckle Server deployment and create documentation pages for it. Handles codebase exploration, screenshot capture, doc placement, and page creation.
-argumentHint: "[feature name or description]"
+argumentHint: '[feature name or description]'
 ---
 
 # Document a New Speckle Feature
