@@ -1,0 +1,179 @@
+---
+title: "Authentication"
+description: "Learn how to authenticate with Speckle Server from .NET"
+---
+
+## Overview
+
+Speckle.Sdk authenticates by building an `Account` — a token plus server and user information — and passing it to `IClientFactory` to create an `IClient`. There are three ways to get an `Account`, depending on your application.
+
+<Info>
+For how to create a personal access token or register an OAuth application, see [Building with PATs](/developers/authentication/pats) and [OAuth 2.0](/developers/authentication/oauth2). This page covers the .NET-specific code that consumes them.
+</Info>
+
+## Token-Based Authentication (Recommended for Scripts and Services)
+
+The most direct path: build an `Account` from an existing personal access token using `IAccountFactory`.
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Speckle.Sdk.Credentials;
+
+var accountFactory = provider.GetRequiredService<IAccountFactory>();
+var account = await accountFactory.CreateAccount(
+    new Uri("https://app.speckle.systems"),
+    speckleToken: "your_token_here" // In production, use environment variables!
+);
+
+using var client = provider.GetRequiredService<IClientFactory>().Create(account);
+Console.WriteLine($"Authenticated as: {account.userInfo.name}");
+```
+
+<Note>
+`IAccountFactory.CreateAccount` fetches user and server info from the token and returns an `Account` object. It does not write to the local account store — it's a lightweight factory for in-memory use, ideal for scripts, services, and CI.
+</Note>
+
+## Use Environment Variables (Recommended)
+
+```csharp
+var token = Environment.GetEnvironmentVariable("SPECKLE_TOKEN")
+    ?? throw new InvalidOperationException("SPECKLE_TOKEN environment variable not set");
+var serverUrl = Environment.GetEnvironmentVariable("SPECKLE_SERVER") ?? "https://app.speckle.systems";
+
+var account = await accountFactory.CreateAccount(new Uri(serverUrl), token);
+```
+
+<Tabs>
+  <Tab title="Linux/macOS">
+    ```bash
+    export SPECKLE_TOKEN="your_token_here"
+    export SPECKLE_SERVER="https://app.speckle.systems"
+    ```
+  </Tab>
+  <Tab title="Windows (PowerShell)">
+    ```powershell
+    $env:SPECKLE_TOKEN="your_token_here"
+    $env:SPECKLE_SERVER="https://app.speckle.systems"
+    ```
+  </Tab>
+  <Tab title="CI/CD">
+    ```yaml
+    # .github/workflows/example.yml
+    env:
+      SPECKLE_TOKEN: ${{ secrets.SPECKLE_TOKEN }}
+    ```
+  </Tab>
+</Tabs>
+
+## Interactive Login (Desktop Applications)
+
+For desktop or connector-style applications where a user should sign in through the browser, use `IAccountManager.AuthenticateAccount`. This opens a browser window, completes an OAuth PKCE flow, and stores the resulting account in a local SQLite database for reuse.
+
+```csharp
+using Speckle.Sdk.Credentials;
+
+var accountManager = provider.GetRequiredService<IAccountManager>();
+var account = await accountManager.AuthenticateAccount(
+    new Uri("https://app.speckle.systems"),
+    TimeSpan.FromMinutes(1),
+    cancellationToken
+);
+```
+
+<Note>
+Accounts authenticated this way are stored under the current user's application data folder (`.../Speckle/Accounts`) as a local SQLite database — the same store used by Speckle's desktop connectors.
+</Note>
+
+## Reusing Locally Stored Accounts
+
+If a user has already signed in via a Speckle desktop connector, or via `AuthenticateAccount` above, retrieve their stored accounts instead of prompting again:
+
+```csharp
+var accountManager = provider.GetRequiredService<IAccountManager>();
+
+// All accounts for a specific server
+var accounts = accountManager.GetAccounts(new Uri("https://app.speckle.systems"));
+
+// Or the user's default account across all servers
+var defaultAccount = accountManager.GetDefaultAccount();
+
+if (defaultAccount is not null)
+{
+    using var client = provider.GetRequiredService<IClientFactory>().Create(defaultAccount);
+}
+```
+
+<Warning>
+Older `AccountManager` methods such as `AddAccount` and `GetLocalAccounts` are obsolete and throw at runtime. Use `AuthenticateAccount`, `GetAccounts`, and `GetDefaultAccount` instead.
+</Warning>
+
+## Different Speckle Servers
+
+```csharp
+// Public Speckle server
+var account = await accountFactory.CreateAccount(new Uri("https://app.speckle.systems"), token);
+
+// Self-hosted server
+var account = await accountFactory.CreateAccount(new Uri("https://speckle.mycompany.com"), token);
+```
+
+## Checking Authentication Status
+
+```csharp
+if (!string.IsNullOrEmpty(account.token))
+{
+    Console.WriteLine("✓ Authenticated");
+    Console.WriteLine($"Logged in as: {account.userInfo.name} ({account.userInfo.email})");
+}
+```
+
+## Common Authentication Errors
+
+<AccordionGroup>
+  <Accordion title="SpeckleException: ActiveUser could not be found">
+    **Cause:** The token is invalid, expired, or has been revoked.
+
+    **Solution:** Generate a new personal access token and verify there are no extra spaces when copying it.
+  </Accordion>
+
+  <Accordion title="No accounts returned by GetAccounts / GetDefaultAccount">
+    **Cause:** No account has been authenticated on this machine yet.
+
+    **Solution:** Use token-based authentication via `IAccountFactory.CreateAccount`, or call `AuthenticateAccount` to sign in interactively first.
+  </Accordion>
+
+  <Accordion title="HTTP connection errors to a self-hosted server">
+    **Cause:** The server URL is incorrect, or the server uses a self-signed certificate.
+
+    **Solution:** Verify the server URL, check network/firewall settings, and ensure the certificate is trusted by the host machine — Speckle.Sdk does not expose a certificate-bypass option.
+  </Accordion>
+</AccordionGroup>
+
+## Security Best Practices
+
+<Check>
+**Do:**
+- Store tokens in environment variables or a secret manager
+- Use scoped tokens with the minimum permissions your application needs
+- Revoke tokens when they're no longer needed
+</Check>
+
+<Warning>
+**Don't:**
+- Commit tokens to version control
+- Share tokens between team members or applications
+- Use personal access tokens in client-side or distributed desktop code — prefer OAuth for multi-user applications
+</Warning>
+
+## Next Steps
+
+Now that you're authenticated, start sending and receiving data:
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/developers/sdks/dotnet/getting-started/quickstart">
+    Build your first Speckle integration
+  </Card>
+  <Card title="Core Concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+    Understand Projects, Models, and Versions
+  </Card>
+</CardGroup>
