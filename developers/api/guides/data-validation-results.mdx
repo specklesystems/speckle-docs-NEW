@@ -105,12 +105,19 @@ Use aggregate `summary` for dashboards and score history. Request `result` only 
 
 <Tip>
   For dashboard KPIs, use `aggregateResults(limit: 1)` and omit `result` from your
-  selection set until Step 3.
+  selection set until Step 3. If you already know `INSIGHT_ID` or `MODEL_ID`, each step
+  notes what you can skip.
 </Tip>
 
 ## Step 1: List validation checks
 
 List saved checks and the latest aggregate pass/fail counts for each.
+
+<Tip>
+  **Only have `MODEL_ID`?** After this query, keep checks whose `modelIds` array
+  includes your model. Use that check's `id` as `INSIGHT_ID` in Step 2 or 3. A model can
+  appear in multiple checks — pick the one you care about.
+</Tip>
 
 **POST** `/graphql`
 
@@ -176,6 +183,8 @@ List saved checks and the latest aggregate pass/fail counts for each.
 
 Load aggregate history and per-model latest summaries for one check. Do not request `result` yet.
 
+If you already have `INSIGHT_ID` from the check URL or your environment, skip Step 1.
+
 **POST** `/graphql`
 
 <Tabs>
@@ -239,9 +248,17 @@ Load aggregate history and per-model latest summaries for one check. Do not requ
 
 **You should see…** up to 20 historical aggregate rows (`summary`, `timestamp`) plus `latestResults` with one entry per tracked model.
 
+If you also know `MODEL_ID`, pick the `latestResults` row where `modelId` matches — that gives pass/fail for the newest stored result on that model without fetching `result`. Derive score and status from `summary` and `metadata.displayConfig`; see [Compute KPI score and status](#compute-kpi-score-and-status).
+
 ## Step 3: Load model results
 
-Request the full `result` payload for one model's history. Results are ordered newest first.
+Request stored results for one model. Results are ordered newest first. If you already have `PROJECT_ID`, `INSIGHT_ID`, and `MODEL_ID` (common for CI gates or post-publish scripts), skip Steps 1–2.
+
+`modelResults` and `versionResults` require the model to appear in the check's `modelIds` (visible in Step 1); otherwise responses are empty.
+
+### Version history
+
+Use when you need multiple snapshots for one model, or the full `result` payload for rule breakdown.
 
 **POST** `/graphql`
 
