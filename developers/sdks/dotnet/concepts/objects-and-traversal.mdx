@@ -1,0 +1,167 @@
+---
+title: "Objects and Traversal"
+description: "The Base class, detachment, and walking a Speckle object graph in .NET"
+---
+
+## The Base Class
+
+Everything sent to or received from Speckle inherits from `Base`. It supports both **static** (typed C# properties) and **dynamic** (runtime, string-keyed) properties on the same object.
+
+```csharp
+using Speckle.Sdk.Models;
+
+// Dynamic properties, added via the string indexer
+var custom = new Base();
+custom["name"] = "My Object";
+custom["count"] = 42;
+
+// Nested Base objects work the same way
+var nested = new Base();
+custom["nested"] = nested;
+nested["value"] = 42;
+```
+
+<Info>
+Objects are content-addressed: once sent, an object's `id` is a hash of its serialized content. Identical content always produces the same id.
+</Info>
+
+### Static vs Dynamic Properties
+
+Typed geometry classes (from `Speckle.Objects`) declare static properties with full C# type support, but every `Base`-derived type also accepts arbitrary dynamic properties for application-specific data:
+
+```csharp
+using Speckle.Objects.Geometry;
+
+var point = new Point(1, 2, 3, "m"); // static properties: x, y, z, units
+
+// Dynamic properties, added at runtime
+point["customId"] = "POINT_001";
+point["metadata"] = new Dictionary<string, object> { ["author"] = "Alice" };
+```
+
+<Note>
+Property names starting with `__` are ignored entirely (not hashed, not serialized). Property names cannot contain `.` or `/`.
+</Note>
+
+## Detachment
+
+By default, nested `Base` objects are serialized **inline** with their parent. Detachment tells the serializer to persist a nested object separately and store a reference instead — useful for large or frequently-shared sub-graphs.
+
+<Tabs>
+  <Tab title="Dynamic (@ prefix)">
+    ```csharp
+    // Prefixing a dynamic property key with "@" detaches it
+    parent["@heavyMesh"] = meshObject;
+    ```
+  </Tab>
+  <Tab title="Typed ([DetachProperty])">
+    ```csharp
+    public class Wall : Base
+    {
+        [DetachProperty]
+        public required Mesh DisplayGeometry { get; set; }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Chunking
+
+Very large lists (thousands of simple values) can be split into chunks during serialization and recomposed transparently on receive. Pair `[Chunkable]` with `[DetachProperty]`:
+
+```csharp
+public class LargeDataset : Base
+{
+    [DetachProperty]
+    [Chunkable(maxObjCountPerChunk: 5000)]
+    public required List<double> Measurements { get; set; }
+}
+```
+
+<Tip>
+Use a high `maxObjCountPerChunk` for simple value types (numbers), and a lower one for lists of nested objects, depending on their serialized size.
+</Tip>
+
+<Warning>
+`[DetachProperty(false)]` (the non-detachable overload) is obsolete — the parameterless `[DetachProperty]` is the only supported form.
+</Warning>
+
+## Custom Types
+
+Define your own type by inheriting from `Base`:
+
+```csharp
+using Speckle.Sdk.Models;
+
+[SpeckleType("MyCompany.Wall")]
+public class Wall : Base
+{
+    public required double Height { get; set; }
+    public required double Thickness { get; set; }
+    public required string Material { get; set; }
+}
+```
+
+<Warning>
+**Connector compatibility:** most Speckle connectors will not recognize custom types when receiving data into a host application, and will ignore them during conversion. Include a `displayValue` property with mesh geometry so your custom objects are at least visible in the 3D viewer.
+</Warning>
+
+## Traversing the Object Graph
+
+The simplest way to walk an entire object graph is `BaseExtensions.Flatten` or `Traverse`:
+
+```csharp
+using Speckle.Sdk.Models.Extensions;
+
+// Depth-first, deduplicated flat list of every Base in the graph
+IEnumerable<Base> allObjects = receivedData.Flatten();
+
+foreach (var obj in allObjects)
+{
+    Console.WriteLine(obj.speckle_type);
+}
+```
+
+`Flatten` walks every dynamic and typed property, following `Base` values, and values inside lists and dictionaries. Pass a `recursionBreaker` predicate to stop descending into specific branches:
+
+```csharp
+// Stop traversing once we hit an object with geometry
+var shallow = receivedData.Flatten(b => b["displayValue"] != null);
+```
+
+### Rule-Based Traversal
+
+For connector-style traversal that needs to distinguish "convertible" objects from organizational containers, use `GraphTraversal` with `DefaultTraversal`:
+
+```csharp
+using Speckle.Sdk.Models.GraphTraversal;
+
+var traversalFunc = DefaultTraversal.CreateTraversalFunc();
+var results = traversalFunc.Traverse(receivedData);
+
+foreach (var traversalContext in results)
+{
+    var current = traversalContext.Current;
+    if (DefaultTraversal.HasDisplayValue(current))
+    {
+        // This object has geometry to convert
+    }
+}
+```
+
+`DefaultTraversal` understands Speckle's common property aliases (`elements`/`@elements`, `displayValue`/`@displayValue`, `definition`/`@definition`) so you don't have to check both detached and inline forms yourself.
+
+<Info>
+See [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data) for worked recipes — filtering by type, extracting properties, and building indices — and [Data Schema: Concepts](/developers/data-schema/concepts) for the language-agnostic model these traversal rules assume (Collections, `elements`, `displayValue`).
+</Info>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Finding and Extracting Data" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
+    Traversal recipes for real workflows
+  </Card>
+  <Card title="Working with Objects and Detachment" icon="cube" href="/developers/sdks/dotnet/guides/working-with-objects-and-detachment">
+    Practical Base usage patterns
+  </Card>
+</CardGroup>
