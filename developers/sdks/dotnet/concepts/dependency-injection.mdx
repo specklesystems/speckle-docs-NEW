@@ -1,0 +1,93 @@
+---
+title: "Dependency Injection"
+description: "What AddSpeckleSdk registers, and why Speckle.Sdk is built around DI"
+---
+
+## Why Dependency Injection?
+
+Unlike specklepy's import-and-go model, Speckle.Sdk resolves almost everything you'll use — the client factory, account manager, operations, transports — from an `Microsoft.Extensions.DependencyInjection` container. This lets host applications (Revit, Rhino, ASP.NET services) share a single DI container with the SDK, and lets the SDK swap implementations (logging, activity tracing, metrics) without changing your code.
+
+<Info>
+You don't need to understand this page to complete the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) — copy the bootstrap snippet once. This page explains what that snippet does, for when you need to customize it.
+</Info>
+
+## What `AddSpeckleSdk` Registers
+
+```csharp
+var services = new ServiceCollection();
+services.AddSpeckleSdk(new Application("My App", "my-app"), "1.0.0");
+var provider = services.BuildServiceProvider();
+```
+
+`AddSpeckleSdk` is an extension method on `IServiceCollection` that:
+
+1. Initializes `TypeLoader` with the assemblies you provide (plus the SDK's own assembly), so custom `Base`-derived types can be resolved by `speckle_type` during deserialization.
+2. Registers an `ISpeckleApplication` singleton describing your host application (name, version, Speckle version).
+3. Registers default `ISdkActivityFactory` and `ISdkMetricsFactory` implementations (no-ops unless you supply your own).
+4. Scans the SDK assembly and registers every class that implements an interface as transient — this is how `IOperations`, `IClientFactory`, `IAccountManager`, `IServerTransportFactory`, and others become resolvable.
+
+```csharp
+public record Application(string Name, string Slug);
+```
+
+## Registering Your Own Types
+
+If you use `Speckle.Objects` or define custom `Base`-derived types, pass their assemblies so `TypeLoader` can resolve them:
+
+```csharp
+services.AddSpeckleSdk(
+    new Application("My App", "my-app"),
+    "1.0.0",
+    assemblies: [typeof(Speckle.Objects.Geometry.Point).Assembly, typeof(MyCustomType).Assembly]
+);
+```
+
+<Warning>
+If you send or receive a custom type whose assembly wasn't passed to `AddSpeckleSdk`, deserialization falls back to a plain `Base` instead of your concrete type. This is a common source of "why did I get a `Base` instead of my type?" confusion.
+</Warning>
+
+## Resolving Services
+
+Resolve what you need from the built `IServiceProvider`:
+
+```csharp
+var operations = provider.GetRequiredService<IOperations>();
+var accountFactory = provider.GetRequiredService<IAccountFactory>();
+var clientFactory = provider.GetRequiredService<IClientFactory>();
+var transportFactory = provider.GetRequiredService<IServerTransportFactory>();
+```
+
+| Service | Resolves | Used for |
+|---------------------------|-----------------------------------|-----------------------------------|
+| `IOperations`             | `Operations`                      | Send, Receive, Serialize          |
+| `IClientFactory`          | `ClientFactory`                   | Building `IClient` from an `Account` |
+| `IAccountFactory`         | `AccountFactory`                  | Building an `Account` from a token |
+| `IAccountManager`         | `AccountManager`                  | Interactive login, stored accounts |
+| `IServerTransportFactory` | `ServerTransportFactory`          | Constructing `ServerTransport`    |
+
+<Note>
+Transports like `ServerTransport` have constructor dependencies (`ISpeckleHttp`, `ISdkActivityFactory`) that come from the container. Always construct them via their `*Factory` interface rather than `new ServerTransport(...)` directly.
+</Note>
+
+## Sharing a Container with a Host Application
+
+If you're building a connector or a service that already has its own `IServiceCollection` (for example, an ASP.NET Core app), call `AddSpeckleSdk` on that same collection rather than creating a separate container:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSpeckleSdk(new Application("My Service", "my-service"), "1.0.0");
+var app = builder.Build();
+```
+
+This lets Speckle.Sdk share your application's logging configuration (`AddLogging` is called internally, but respects any logging providers you've already registered) and lifetime management.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Send and Receive Paths" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+    Choose the right pathway for your workflow
+  </Card>
+  <Card title="API Reference: Service Registration" icon="code" href="/developers/sdks/dotnet/api-reference/service-registration">
+    Full AddSpeckleSdk signature and options
+  </Card>
+</CardGroup>
