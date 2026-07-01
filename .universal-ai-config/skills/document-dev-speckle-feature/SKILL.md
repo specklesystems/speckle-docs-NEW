@@ -90,6 +90,7 @@ Generate the doc pages following these rules:
 - Frame by user action, not system architecture
 - Include: overview, step-by-step workflow, FAQ (AccordionGroup), tips
 - Cross-link related existing pages
+- For notebooks and other downloadable assets, follow **Downloadable assets** in docs-authoring (raw GitHub links only; never relative `.ipynb` paths on the docs site)
 - Add frontmatter: title, description, sidebarTitle
 
 ### For each page:
