@@ -1,0 +1,84 @@
+---
+title: "Display Values"
+description: "Making objects visible in the Speckle viewer from .NET"
+---
+
+## Why Display Values Matter
+
+The 3D viewer only renders objects that carry a `displayValue` property containing geometry. Sending typed data without one makes it invisible in the viewer, even though it was sent successfully.
+
+<Info>
+This page covers .NET-specific usage. For the underlying schema — what `displayValue` contains and how it relates to `DataObject` — see [Data Schema Overview](/developers/data-schema/overview#core-glossary) and [Object Schema](/developers/data-schema/object-schema).
+</Info>
+
+## Adding a Display Value
+
+```csharp
+using Speckle.Objects.Geometry;
+using Speckle.Sdk.Models;
+
+var wall = new Base();
+wall["name"] = "Wall 01";
+wall["displayValue"] = new List<Mesh> { wallMesh };
+```
+
+<Warning>
+Wrapping raw geometry primitives (`Point`, `Line`, `Mesh`) directly at the root of your sent object does **not** guarantee viewer visibility if the primitive itself isn't recognized as displayable. Wrap geometry in a `Base` (or a `DataObject`-style container) with an explicit `displayValue` property — this is what the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) does.
+</Warning>
+
+## Checking for a Display Value
+
+Use `BaseExtensions` to check whether a received object is displayable, rather than manually checking both the detached and inline property names:
+
+```csharp
+using Speckle.Sdk.Models.Extensions;
+
+if (someObject.IsDisplayableObject())
+{
+    var displayGeometry = someObject.TryGetDisplayValue();
+    // displayGeometry is IReadOnlyList<Base>?
+}
+```
+
+`TryGetDisplayValue` checks both `displayValue` and its detached form `@displayValue` automatically.
+
+## Custom Types and Display Values
+
+If you define a custom type (see [Objects and Traversal](/developers/sdks/dotnet/concepts/objects-and-traversal#custom-types)), most Speckle connectors won't recognize it during conversion — but they will still render it if it has a `displayValue`:
+
+```csharp
+[SpeckleType("MyCompany.Structure")]
+public class CustomStructure : Base
+{
+    public required double LoadCapacity { get; set; }
+    public required string Material { get; set; }
+
+    [DetachProperty]
+    public required List<Mesh> DisplayValue { get; set; }
+}
+```
+
+## Troubleshooting Invisible Objects
+
+<AccordionGroup>
+  <Accordion title="Sent an object but nothing shows in the viewer">
+    Check that the object (or one of its `elements`) has a `displayValue` containing `Mesh`, `Line`, or `Point` geometry. Sending a bare `Point` or `Line` at the root without a container object is a common cause.
+  </Accordion>
+  <Accordion title="Custom type isn't converted by a connector">
+    This is expected — connectors convert known types. Add a `displayValue` so the object is at least visible and generically convertible, even if its custom properties are ignored.
+  </Accordion>
+  <Accordion title="displayValue is present but empty in the viewer">
+    Confirm the geometry inside `displayValue` was sent successfully and isn't `null` after receive — detached properties (`@displayValue`) that failed to resolve during a partial receive will appear as `null`.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Working with Geometry" icon="cube" href="/developers/sdks/dotnet/guides/working-with-geometry">
+    Available geometry types for display values
+  </Card>
+  <Card title="Object Schema" icon="sitemap" href="/developers/data-schema/object-schema">
+    Full DataObject and displayValue field reference
+  </Card>
+</CardGroup>
