@@ -1,0 +1,105 @@
+---
+title: "Operations"
+description: "IOperations: Serialize, Send, Receive, Send2, Receive2, and SendPipeline"
+---
+
+## Overview
+
+`IOperations` (resolved via DI) is the entry point for moving `Base` object graphs to and from storage. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) for guidance on which method to use.
+
+```csharp
+var operations = provider.GetRequiredService<IOperations>();
+```
+
+## Serialize / Deserialize
+
+<ResponseField name="Serialize" type="string Serialize(Base value, CancellationToken cancellationToken = default)">
+  Serializes an object graph to a JSON string with no transport involved. No detachment occurs beyond what's declared via `[DetachProperty]`/`@` prefixes; nested objects are still inlined unless detached.
+</ResponseField>
+
+<ResponseField name="DeserializeAsync" type="Task<Base> DeserializeAsync(string value, CancellationToken cancellationToken = default)">
+  Reconstructs a `Base` graph from a JSON string previously produced by `Serialize`.
+</ResponseField>
+
+## Send / Receive
+
+<ResponseField name="Send" type="Task<(string rootObjId, IReadOnlyDictionary<string, ObjectReference> convertedReferences)> Send(Base value, IReadOnlyCollection<ITransport> transports, IProgress<ProgressArgs>? onProgressAction = null, CancellationToken cancellationToken = default)">
+  Sends `value` to every transport in `transports`. Returns the root object's id and a map of converted references.
+
+  Overloads accept a single `IServerTransport`/`ITransport` plus a `useDefaultCache` flag, which adds a matching local `SQLiteTransport`/`SQLiteTransport2` automatically.
+</ResponseField>
+
+<ResponseField name="Receive" type="Task<Base> Receive(string objectId, ITransport? remoteTransport = null, ITransport? localTransport = null, IProgress<ProgressArgs>? onProgressAction = null, CancellationToken cancellationToken = default)">
+  Receives the object graph identified by `objectId`. Checks `localTransport` first (defaults to a new `SQLiteTransport` if omitted); falls back to `remoteTransport` and copies the result into the local transport.
+</ResponseField>
+
+```csharp
+using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
+
+var (objectId, _) = await operations.Send(myData, transport, useDefaultCache: true);
+var received = await operations.Receive(objectId, remoteTransport: transport);
+```
+
+<Warning>
+`ServerTransport` has DI-resolved constructor dependencies. Always construct it via `IServerTransportFactory.Create(account, projectId)`, not `new ServerTransport(...)`.
+</Warning>
+
+## Send2 / Receive2
+
+<ResponseField name="Send2" type="Task<SerializeProcessResults> Send2(Uri url, string streamId, string? authorizationToken, Base value, IProgress<ProgressArgs>? onProgressAction, CancellationToken cancellationToken, SerializeProcessOptions? options = null)">
+  Sends `value` directly to the server at `url` for project `streamId` (the project id), using the newer V2 serialization pipeline. Recommended over `Send` for new server-facing work.
+</ResponseField>
+
+<ResponseField name="Receive2" type="Task<Base> Receive2(Uri url, string streamId, string objectId, string? authorizationToken, IProgress<ProgressArgs>? onProgressAction, CancellationToken cancellationToken, DeserializeProcessOptions? options = null)">
+  Receives an object graph directly from the server, using the V2 deserialization pipeline.
+</ResponseField>
+
+```csharp
+var results = await operations.Send2(client.ServerUrl, project.id, account.token, myData, null, cancellationToken);
+var received = await operations.Receive2(client.ServerUrl, project.id, results.RootId, account.token, null, cancellationToken);
+```
+
+<Note>
+The `streamId` parameter name is a legacy holdover — pass your project id.
+</Note>
+
+## SerializeNew
+
+<ResponseField name="SerializeNew" type="string SerializeNew(Base value)">
+  An experimental `System.Text.Json`-based serializer, not yet the default. Avoid for production workflows — see [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths#path-d-serializenew).
+</ResponseField>
+
+## SendPipeline
+
+Connector-scale ingestion is a separate factory-created pipeline, not a method on `IOperations`. See [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends) for the full workflow.
+
+```csharp
+var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
+    .CreateInstance(ingestion, account, uploadProgress, cancellationToken);
+var reference = await pipeline.Process(myData);
+await pipeline.WaitForUpload();
+```
+
+## Exceptions
+
+| Exception | Thrown when |
+|--------------------------------|------------------------------------------------------|
+| `ArgumentException`            | No transports specified, or an invalid argument       |
+| `ArgumentNullException`        | `value` or `transport` was null                       |
+| `SpeckleException`             | Serialization or send/receive operation failed        |
+| `TransportException`           | One or more transports failed to send                 |
+| `SpeckleDeserializeException`  | Deserialization of the requested object(s) failed     |
+| `OperationCanceledException`   | The cancellation token requested cancellation          |
+
+See [Exceptions](/developers/sdks/dotnet/api-reference/exceptions) for the full hierarchy.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Send and Receive Paths" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+    Decision guide across all methods above
+  </Card>
+  <Card title="Transports" icon="server" href="/developers/sdks/dotnet/api-reference/transports">
+    ServerTransport, SQLiteTransport, and MemoryTransport
+  </Card>
+</CardGroup>
