@@ -536,15 +536,19 @@ In Jupyter, the last line renders the table. In a script, use `print(kpi_df.to_s
 
 For related GraphQL and Python patterns, see [SpecklePy model data analytics](/workflows/specklepy-model-data-analytics).
 
-## Notebook
+### Notebook
 
-A ready-to-run copy of Step 4 is available here:
+Ready-to-run copy of the cells above:
 
 - [Data Validation results notebook](./notebooks/data-validation-results.ipynb)
 
-Download it, add your `.env` file in the same folder, and run the cells top to bottom.
+Download it, add your `.env` file in the same folder, and run top to bottom.
 
-## Compute KPI score and status
+## Extend the examples
+
+Optional depth after the main flow: how scores map to the UI, rule-level DataFrames, and polling when results are still processing.
+
+### Compute KPI score and status
 
 The web app score is not returned pre-computed. Derive it from `summary` and `metadata.displayConfig`:
 
@@ -578,7 +582,7 @@ Thresholds are stored in `metadata.displayConfig` on each check (returned on `pr
   status](/analytics/data-validation/checks#thresholds-and-status).
 </Note>
 
-## Build a rule breakdown DataFrame
+### Build a rule breakdown DataFrame
 
 The `result` field is a tabular JSON object with `columns` and `rows`. Validation rows use dimensions `rule`, `status`, and `gate`, plus measure `count`.
 
@@ -639,7 +643,7 @@ def aggregate_history_to_df(aggregate_results: list[dict], display_config: dict)
 
 `aggregate_results` from the API is newest-first; reverse for chronological charts.
 
-## Wait for new results
+### Wait for new results
 
 Results are computed asynchronously after a new model version is published. Poll until data appears, then stop.
 
