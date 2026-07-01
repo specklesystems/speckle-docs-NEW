@@ -1,0 +1,50 @@
+---
+title: "WorkspaceResource"
+description: "client.Workspace — read workspace details and projects"
+---
+
+## Overview
+
+`client.Workspace` reads Workspaces — organization-level containers for projects, available on workspace-enabled servers (such as app.speckle.systems).
+
+<Warning>
+Workspace features are only available on servers with the workspaces module enabled. Check with `client.Server.IsWorkspaceEnabled()` before relying on this resource — see [ServerResource](/developers/sdks/dotnet/api-reference/resources/server).
+</Warning>
+
+## Methods
+
+<ResponseField name="Get" type="Task<Workspace> Get(string workspaceId, CancellationToken cancellationToken = default)">
+  Retrieves a workspace by id, including role, slug, and permission checks (`canCreateProject`).
+</ResponseField>
+
+<ResponseField name="GetProjects" type="Task<ResourceCollection<Project>> GetProjects(string workspaceId, int limit = 25, string? cursor = null, WorkspaceProjectsFilter? filter = null, CancellationToken cancellationToken = default)">
+  Lists projects within a workspace.
+</ResponseField>
+
+## Usage
+
+```csharp
+var workspaces = await client.ActiveUser.GetWorkspaces();
+var workspace = workspaces.items.First();
+
+var projects = await client.Workspace.GetProjects(workspace.id);
+foreach (var project in projects.items)
+{
+    Console.WriteLine(project.name);
+}
+```
+
+<Note>
+This resource is read-only. Workspace creation and membership management are not exposed via `Speckle.Sdk` — use the Speckle web app.
+</Note>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="ActiveUserResource & OtherUserResource" icon="user" href="/developers/sdks/dotnet/api-reference/resources/users">
+    List the workspaces a user belongs to
+  </Card>
+  <Card title="ProjectResource" icon="folder" href="/developers/sdks/dotnet/api-reference/resources/project">
+    Create a project inside a workspace
+  </Card>
+</CardGroup>
