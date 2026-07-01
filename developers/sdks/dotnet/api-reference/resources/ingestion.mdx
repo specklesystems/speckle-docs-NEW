@@ -1,0 +1,85 @@
+---
+title: "ModelIngestionResource"
+description: "client.Ingestion — track connector-scale sends through the SendPipeline"
+---
+
+## Overview
+
+`client.Ingestion` manages Model Ingestion jobs — the server-side tracking record used by [`SendPipeline`](/developers/sdks/dotnet/api-reference/operations#sendpipeline) for connector-scale uploads. Most applications will use `Send2` and never touch this resource directly; see [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) for when `SendPipeline` is the right choice.
+
+<Warning>
+Requires server version 3.0.3 or later. Check with [`model.CanCreateModelIngestion`](/developers/sdks/dotnet/api-reference/resources/model#methods) before relying on this API.
+</Warning>
+
+## Lifecycle
+
+```
+Create → (StartProcessing) → UpdateProgress* → Complete
+                                              ↘ FailWithError / FailWithCancel / FailWithInvalid
+```
+
+An ingestion starts in a `processing` state (via `Create`) and must end in exactly one terminal state: `Complete`, or one of the `FailWith*` methods.
+
+## Methods
+
+<ResponseField name="Create" type="Task<ModelIngestion> Create(ModelIngestionCreateInput input, CancellationToken cancellationToken = default)">
+  Creates an ingestion job in the `processing` state. `ModelIngestionCreateInput(string modelId, string projectId, string message, SourceDataInput sourceData)`.
+</ResponseField>
+
+<ResponseField name="Get" type="Task<ModelIngestion> Get(string modelIngestionId, string projectId, CancellationToken cancellationToken = default)">
+  Retrieves an ingestion job's current status.
+</ResponseField>
+
+<ResponseField name="StartProcessing" type="Task<ModelIngestion> StartProcessing(ModelIngestionStartProcessingInput input, CancellationToken cancellationToken = default)">
+  For file-import/cloud integrations only — moves a `queued` ingestion into `processing`.
+</ResponseField>
+
+<ResponseField name="UpdateProgress" type="Task<ModelIngestion> UpdateProgress(ModelIngestionUpdateInput input, CancellationToken cancellationToken = default)">
+  Reports incremental progress (used internally by `SendPipeline`'s progress reporting).
+</ResponseField>
+
+<ResponseField name="Complete" type="Task<string> Complete(ModelIngestionSuccessInput input, CancellationToken cancellationToken = default)">
+  Marks the ingestion successful and creates a version from the uploaded data. Returns the new version id.
+</ResponseField>
+
+<ResponseField name="FailWithError" type="Task<ModelIngestion> FailWithError(ModelIngestionFailedInput input, CancellationToken cancellationToken = default)">
+  Fails the ingestion due to an internal/infrastructure error. Use for unexpected failures.
+</ResponseField>
+
+<ResponseField name="FailWithInvalid" type="Task<ModelIngestion> FailWithInvalid(ModelIngestionInvalidInput input, CancellationToken cancellationToken = default)">
+  Fails the ingestion because the input (file, settings, or target) was deterministically invalid or unsupported.
+</ResponseField>
+
+<ResponseField name="FailWithCancel" type="Task<ModelIngestion> FailWithCancel(ModelIngestionCancelledInput input, CancellationToken cancellationToken = default)">
+  Fails the ingestion with a `cancelled` status. Only use this after the user explicitly requested cancellation.
+</ResponseField>
+
+<ResponseField name="RequestCancellation" type="Task<ModelIngestion> RequestCancellation(ModelIngestionCancelledInput input, CancellationToken cancellationToken = default)">
+  Requests cancellation of a running ingestion. This does not cancel immediately — the client performing the ingestion must observe the request (via a subscription) and call `FailWithCancel` cooperatively.
+</ResponseField>
+
+<ResponseField name="Requeue" type="Task<ModelIngestion> Requeue(ModelIngestionRequeueInput input, CancellationToken cancellationToken = default)">
+  Returns a failed or stuck ingestion to the `queued` state for retry. For file-import/cloud integrations.
+</ResponseField>
+
+## Usage
+
+```csharp
+var sourceData = new SourceDataInput("my-connector", "1.0.0", fileName: null, fileSizeBytes: null);
+var ingestion = await client.Ingestion.Create(
+    new ModelIngestionCreateInput(model.id, project.id, "Starting ingestion", sourceData)
+);
+
+// SendPipeline drives progress/upload internally — see the Operations reference.
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Operations: SendPipeline" icon="upload" href="/developers/sdks/dotnet/api-reference/operations#sendpipeline">
+    The pipeline that drives ingestion uploads
+  </Card>
+  <Card title="Send and Receive Paths" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+    When to use SendPipeline vs Send2
+  </Card>
+</CardGroup>
