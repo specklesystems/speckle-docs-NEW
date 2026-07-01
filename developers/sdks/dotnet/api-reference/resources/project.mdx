@@ -1,0 +1,74 @@
+---
+title: "ProjectResource"
+description: "client.Project — create, read, update, and manage projects"
+---
+
+## Overview
+
+`client.Project` manages Projects — the top-level containers for related work.
+
+## Methods
+
+<ResponseField name="Get" type="Task<Project> Get(string projectId, CancellationToken cancellationToken = default)">
+  Retrieves a project by id.
+</ResponseField>
+
+<ResponseField name="GetWithModels" type="Task<ProjectWithModels> GetWithModels(string projectId, int modelsLimit = 25, string? modelsCursor = null, ProjectModelsFilter? modelsFilter = null, CancellationToken cancellationToken = default)">
+  Retrieves a project along with a paginated list of its models.
+</ResponseField>
+
+<ResponseField name="GetWithTeam" type="Task<ProjectWithTeam> GetWithTeam(string projectId, CancellationToken cancellationToken = default)">
+  Retrieves a project along with its team members and pending invites.
+</ResponseField>
+
+<ResponseField name="GetPermissions" type="Task<ProjectPermissionChecks> GetPermissions(string projectId, CancellationToken cancellationToken = default)">
+  Checks the active user's permissions on the project (create model, delete, load, publish).
+</ResponseField>
+
+<ResponseField name="Create" type="Task<Project> Create(ProjectCreateInput input, CancellationToken cancellationToken = default)">
+  Creates a personal (non-workspace) project. `ProjectCreateInput(string? name, string? description, ProjectVisibility? visibility)`.
+</ResponseField>
+
+<ResponseField name="CreateInWorkspace" type="Task<Project> CreateInWorkspace(WorkspaceProjectCreateInput input, CancellationToken cancellationToken = default)">
+  Creates a project inside a workspace. Only supported on workspace-enabled servers.
+</ResponseField>
+
+<ResponseField name="Update" type="Task<Project> Update(ProjectUpdateInput input, CancellationToken cancellationToken = default)">
+  Updates project fields (name, description, visibility, and others).
+</ResponseField>
+
+<ResponseField name="UpdateRole" type="Task<ProjectWithTeam> UpdateRole(ProjectUpdateRoleInput input, CancellationToken cancellationToken = default)">
+  Updates a team member's role on the project.
+</ResponseField>
+
+<ResponseField name="Delete" type="Task Delete(string projectId, CancellationToken cancellationToken = default)">
+  Deletes a project.
+</ResponseField>
+
+## Usage
+
+```csharp
+var project = await client.Project.Create(new ProjectCreateInput(
+    "My Project",
+    "Description",
+    ProjectVisibility.Private
+));
+
+var withModels = await client.Project.GetWithModels(project.id);
+Console.WriteLine($"{withModels.name}: {withModels.models.totalCount} models");
+```
+
+<Note>
+Projects replace what used to be called "Streams" in prior versions of Speckle.
+</Note>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="ModelResource" icon="cube" href="/developers/sdks/dotnet/api-reference/resources/model">
+    Models within a project
+  </Card>
+  <Card title="WorkspaceResource" icon="building" href="/developers/sdks/dotnet/api-reference/resources/workspace">
+    Workspaces that contain projects
+  </Card>
+</CardGroup>
