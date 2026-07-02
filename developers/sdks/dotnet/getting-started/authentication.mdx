@@ -13,9 +13,20 @@ For how to create a personal access token or register an OAuth application, see 
 
 Speckle.Sdk exposes three ways to get an `Account`:
 
-- **Personal access token** — scripts, services, and CI (recommended for automation)
-- **Interactive browser login** — desktop and connector apps
+- **Personal access token** — scripts, services, and CI (recommended default)
+- **Interactive browser login** — desktop and connector apps that should integrate with Speckle's existing account store
 - **Locally stored accounts** — reuse a login from Speckle desktop connectors
+
+<Warning>
+**Prefer a personal access token or your own OAuth flow over `accounts.db`.** `IAccountManager.AuthenticateAccount` (below) always writes the resulting account to a local SQLite database (`accounts.db`) — there's no way to opt out. That's the right behavior for a desktop connector that should share login state with Rhino, Revit, Grasshopper, and other Speckle apps on the same machine. It's very rarely what you want in a script, a server-side service, a CI pipeline, or a multi-user web backend, where a token you manage yourself (env var, secret manager, or your own OAuth exchange) is simpler and doesn't leave credentials on disk outside your control.
+</Warning>
+
+## Choosing an Authentication Method
+
+- **A script, service, automation, or CI/CD pipeline** — use a [personal access token](#token-based-authentication-recommended-for-scripts-and-services) via `IAccountFactory.CreateAccount`. Doesn't touch `accounts.db` — in-memory only.
+- **A multi-user server or web backend that already manages its own user tokens** — perform your own OAuth exchange (see [OAuth 2.0](/developers/authentication/oauth2)), then pass the resulting token to `IAccountFactory.CreateAccount`. Doesn't touch `accounts.db` — in-memory only.
+- **A desktop connector or CLI tool meant to share login state with Speckle's desktop ecosystem** — use [interactive login](#interactive-login-desktop-applications) via `IAccountManager.AuthenticateAccount`. Always writes to `accounts.db`, by design.
+- **Any app reusing a login a user already created via a Speckle desktop connector or `AuthenticateAccount`** — use [locally stored accounts](#reusing-locally-stored-accounts) via `GetAccounts`/`GetDefaultAccount`. Read-only access to `accounts.db`.
 
 ## Token-Based Authentication (Recommended for Scripts and Services)
 
@@ -23,6 +34,7 @@ The most direct path: build an `Account` from an existing personal access token 
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
+using Speckle.Sdk.Api;
 using Speckle.Sdk.Credentials;
 
 var accountFactory = provider.GetRequiredService<IAccountFactory>();
@@ -73,7 +85,7 @@ var account = await accountFactory.CreateAccount(new Uri(serverUrl), token);
 
 ## Interactive Login (Desktop Applications)
 
-For desktop or connector-style applications where a user should sign in through the browser, use `IAccountManager.AuthenticateAccount`. This opens a browser window, completes an OAuth PKCE flow, and stores the resulting account in a local SQLite database for reuse.
+For desktop or connector-style applications where a user should sign in through the browser **and** you want that login to be reusable across Speckle's desktop ecosystem (so the user doesn't have to sign in again in Rhino, Revit, Grasshopper, or your own tool), use `IAccountManager.AuthenticateAccount`. This opens a browser window and completes an OAuth PKCE flow.
 
 ```csharp
 using Speckle.Sdk.Credentials;
@@ -82,13 +94,13 @@ var accountManager = provider.GetRequiredService<IAccountManager>();
 var account = await accountManager.AuthenticateAccount(
     new Uri("https://app.speckle.systems"),
     TimeSpan.FromMinutes(1),
-    cancellationToken
+    CancellationToken.None
 );
 ```
 
-<Note>
-Accounts authenticated this way are stored under the current user's application data folder (`.../Speckle/Accounts`) as a local SQLite database — the same store used by Speckle's desktop connectors.
-</Note>
+<Warning>
+`AuthenticateAccount` **unconditionally** persists the resulting account to a local SQLite database file at the current user's application data folder (`.../Speckle/Accounts.db`) — the same store used by Speckle's desktop connectors. There is no in-memory-only mode for this method. If you need interactive OAuth login **without** writing to that shared store — for example, a web backend performing OAuth on behalf of many users — implement your own PKCE/authorization-code exchange (see [OAuth 2.0](/developers/authentication/oauth2)) and build the `Account` from the resulting token with `IAccountFactory.CreateAccount` instead, which never touches disk.
+</Warning>
 
 ## Reusing Locally Stored Accounts
 
