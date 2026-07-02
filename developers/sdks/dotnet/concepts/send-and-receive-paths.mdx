@@ -1,48 +1,53 @@
 ---
-title: "Send and Receive Paths"
-description: "Choose the right Speckle.Sdk pathway for sending and receiving data"
+title: "Load and publish model data"
+description: "Choose how to load and publish Speckle model data — Receive2, Send2, transports, and connector-scale ingestion"
+sidebarTitle: "Send & receive"
 ---
 
-When you move a `Base` graph to or from Speckle Server, you pick one of several `IOperations` entry points — legacy transports, direct `Send2`/`Receive2`, serialize-only JSON, or connector-scale `SendPipeline`.
+## Goal
 
-**When to read this:** before reading method signatures in the API reference. **Read next:** [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) (Path C) or [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) (Path B).
+Pick the right SpeckleSharp API for loading model data from Speckle Server and publishing results back.
 
-## Why Multiple Paths?
+## What you will learn
 
-Speckle.Sdk has evolved through several send/receive implementations while staying backward compatible. As a result, `IOperations` exposes more than one way to move data — this page is a decision guide, not an exhaustive API reference (see [Operations](/developers/sdks/dotnet/api-reference/operations) for signatures).
+When to use `Receive2`/`Send2` (recommended for scripts), `Send`/`Receive` with transports, or `SendPipeline` (connectors only).
 
-<Info>
-If you only remember one thing from this page: for a **script, notebook, or Grasshopper C# component**, use `Send2`/`Receive2` (Path C) after the [one-time bootstrap](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) — no transport factory. For the full step-by-step tour, the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) uses Path B with `ServerTransport`. Come back here once you're building something production-scale or connector-oriented.
-</Info>
+## When to use this
 
-## The Paths at a Glance
+Before reading [Operations](/developers/sdks/dotnet/api-reference/operations) method signatures — or when you are unsure which send/receive path fits your workflow.
 
-| Path | Entry point | Transport / upload | Best for |
-|------|-------------|---------------------|----------|
-| **A. Serialize only** | `Serialize` / `DeserializeAsync` | None (in-memory JSON string) | Inspecting or saving raw JSON; no server involved |
-| **B. Send / Receive** | `Send`, `Receive` | `ITransport` (`ServerTransport`, `SQLiteTransport`, `MemoryTransport`) | [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) tour, local-only transports, learning `ITransport` |
-| **C. Send2 / Receive2** | `Send2`, `Receive2` | Direct URL + project id + token | Scripts, notebooks, Grasshopper C#, and recommended server-facing work |
-| **D. SerializeNew** | `SerializeNew` | None | Experimental — not yet the default; avoid for now |
-| **E. SendPipeline** | `ISendPipelineFactory` + `client.Ingestion` | NDJSON upload via `Uploader` | Connector-scale ingestion of large host-application models |
+## Recommended approach
+
+**For AEC automation scripts, notebooks, and Grasshopper C#:** use **`Receive2`/`Send2`** (Path C) after the [one-time bootstrap](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). No transport factory required.
+
+**Avoid `SendPipeline` unless** you are building a desktop connector that uploads an entire host-application model.
+
+## The paths at a glance
+
+| Your goal | API | When |
+| --------- | --- | ---- |
+| Inspect JSON locally | `Serialize` / `DeserializeAsync` | No server; debugging object shape |
+| Learn how transports work | `Send` / `Receive` + `ITransport` | [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart), local-only tests |
+| **Load or publish model data (recommended)** | **`Receive2` / `Send2`** | **Scripts, notebooks, Grasshopper C#, most AEC automation** |
+| Experimental serializer | `SerializeNew` | Avoid in production |
+| Publish whole host-app model | `SendPipeline` + `client.Ingestion` | Desktop connectors only |
 
 <Warning>
-Path naming is misleading: `Send2`/`Receive2` are the **newer, recommended** server-facing implementation, not a fallback. Internal benchmarks label the older path `Send_old` and the V2 path `Send_new`.
+Path naming is misleading: `Send2`/`Receive2` are the **newer, recommended** server-facing implementation, not a fallback.
 </Warning>
 
-## Path A: Serialize Only
-
-Turns a `Base` graph into a JSON string with no transport involved.
+## Path A: Serialize only
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 string json = operations.Serialize(myData);
 Base restored = await operations.DeserializeAsync(json);
 ```
 
-Use this when you need the raw JSON representation — for example, writing to a file, or a custom transport you're implementing yourself. Most application code should use Path B or C instead.
+Use when you need raw JSON — for example, previewing a Grasshopper graph locally. For server work, use Path C.
 
-## Path B: Send / Receive with a Transport
+## Path B: Send / Receive with a transport
 
-The classic path, and what the quickstart uses. Works with any `ITransport`.
+The classic path used in the [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart):
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
@@ -51,79 +56,67 @@ var (objectId, _) = await operations.Send(myData, transport, useDefaultCache: tr
 var received = await operations.Receive(objectId, remoteTransport: transport);
 ```
 
-Swap `ServerTransport` for `SQLiteTransport` or `MemoryTransport` to send/receive without a server — useful for tests or local-only workflows.
+Swap `ServerTransport` for `MemoryTransport` or `SQLiteTransport` for local-only workflows.
 
-## Path C: Send2 / Receive2
+## Path C: Receive2 / Send2 (recommended)
 
-Talks to the server directly by URL, project id, and token, using a newer serialization pipeline. This is the default for [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) and for new server-facing code that does not need a custom `ITransport`.
+The simplest path for most AEC automation scripts — direct URL, project id, and token:
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var root = await operations.Receive2(client.ServerUrl, project.id, objectId, account.token, onProgressAction: null, cancellationToken: default);
+
 var results = await operations.Send2(client.ServerUrl, project.id, account.token, myData, onProgressAction: null, cancellationToken: default);
-var received = await operations.Receive2(client.ServerUrl, project.id, results.RootId, account.token, onProgressAction: null, cancellationToken: default);
 ```
 
 <Note>
-The `streamId` parameter name in these signatures refers to the project id — the transport and serialization layers haven't yet been renamed to match the GraphQL API's `projectId` terminology.
+The `streamId` parameter name in these signatures refers to the project id.
 </Note>
 
 ## Path D: SerializeNew
 
-An experimental `System.Text.Json`-based serializer intended to eventually replace `Serialize`. It is not the default and has no paired transport-level send yet.
+Experimental — avoid for production workflows.
 
-<Warning>
-Don't build production workflows on `SerializeNew` — it's still evolving and may change without notice.
-</Warning>
+## Path E: SendPipeline (connectors only)
 
-## Path E: SendPipeline (Connector-Scale Ingestion)
-
-For uploading large host-application models (thousands of objects, proxies, materials), connectors use a dedicated ingestion pipeline instead of `Send`/`Send2`. It serializes to NDJSON and uploads via `client.Ingestion`.
+**Avoid this unless you are building a connector.** For uploading large host-application models, connectors use `SendPipeline` and `client.Ingestion`:
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
-var sourceData = new SourceDataInput("my-connector", "1.0.0", fileName: null, fileSizeBytes: null);
 var ingestion = await client.Ingestion.Create(new ModelIngestionCreateInput(model.id, project.id, "Starting ingestion", sourceData));
-
 var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
     .CreateInstance(ingestion, client.Account, new Progress<StreamProgressArgs>(), cancellationToken: default);
-var reference = await pipeline.Process(myData);
+await pipeline.Process(myData);
 await pipeline.WaitForUpload();
 ```
 
-This path does not hand you a version id synchronously — after `WaitForUpload`, the server processes the pack and creates the version **asynchronously**. Do not call `client.Ingestion.Complete` or `client.Version.Create` on this pathway. See [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends) for the full workflow, and [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors) for production examples.
+See [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends). Do not call `Version.Create` on this pathway.
 
-<Note>
-Requires Speckle Server version 3.0.3 or later.
-</Note>
-
-## Decision Guide
+## Decision guide
 
 <AccordionGroup>
-  <Accordion title="I'm writing a script, notebook, or Grasshopper C# component">
-    Use **Path C** (`Send2`/`Receive2`) after the [one-time bootstrap](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) — no transport factory required.
+  <Accordion title="I'm loading or analysing an existing published model">
+    Use **Path C** — `Receive2` after [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool).
   </Accordion>
-  <Accordion title="I'm following the quickstart to learn the full workflow">
-    Use **Path B** (`Send`/`Receive` with `ServerTransport`) — the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) teaches this path on purpose so you see how transports fit together.
+  <Accordion title="I'm writing a script or Grasshopper C# component">
+    Use **Path C** (`Send2`/`Receive2`) — see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
   </Accordion>
-  <Accordion title="I need local-only send/receive (tests or offline work)">
-    Use **Path B** with `MemoryTransport` or `SQLiteTransport` instead of `ServerTransport`.
+  <Accordion title="I want to understand transports step by step">
+    Use **Path B** — [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart).
   </Accordion>
-  <Accordion title="I'm building a desktop connector that converts a whole host-application model">
-    Use **Path E** (`SendPipeline` + `client.Ingestion`), and study [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors) for real conversion patterns.
-  </Accordion>
-  <Accordion title="I just need the JSON, no server involved">
-    Use **Path A** (`Serialize`/`DeserializeAsync`).
+  <Accordion title="I'm building a desktop connector">
+    Use **Path E** — [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends).
   </Accordion>
 </AccordionGroup>
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={3}>
-  <Card title="Core Concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
-    Projects, models, versions, orphaned objects
+  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+    Load and analyse with Receive2
   </Card>
-  <Card title="Scripts and Notebooks" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
-    Path C — Send2 without transports
+  <Card title="Send analysis results back" icon="upload" href="/developers/sdks/dotnet/guides/send-analysis-results-back">
+    Publish with Send2
   </Card>
   <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
-    Full method signatures for every path
+    Full method signatures
   </Card>
 </CardGroup>
