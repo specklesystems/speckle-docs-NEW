@@ -3,9 +3,15 @@ title: "Building Connector-Scale Sends"
 description: "Upload large host-application models using SendPipeline and Model Ingestion"
 ---
 
-## Overview
+When a desktop connector converts an entire host-application model — tens of thousands of Revit, Rhino, or ArchiCAD elements — `Send` and `Send2` cannot hold the full graph in memory. `SendPipeline` streams objects to a local NDJSON pack, uploads once, and tracks progress through `client.Ingestion`.
 
-`Send`/`Send2` load an entire object graph into memory before serializing it. For host applications with tens of thousands of elements (Revit, Rhino, ArchiCAD models), that memory profile doesn't scale. `SendPipeline` serializes objects one at a time to a local, compressed NDJSON file as you convert them, then uploads that single file once you're done — tracked server-side by a Model Ingestion job.
+## When to Read This Page
+
+| You are… | Use instead |
+|----------|-------------|
+| Writing a script, notebook, or Grasshopper C# component | [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) with `Send2`/`Receive2` |
+| Following the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) or sending a small graph | `Send`/`Receive` or `Send2` — see [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) |
+| Building a production desktop connector for a host app | This page |
 
 <Warning>
 **Connector-only pathway.** This guide is for production desktop connectors uploading large host-application models. If you are writing a script, Grasshopper C# component, notebook cell, or service — not converting a whole host-application model — use [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) with `Send2`/`Receive2` instead. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) for the decision guide.
