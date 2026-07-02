@@ -1,32 +1,33 @@
 ---
-title: "Building Connector-Scale Sends"
-description: "Upload large host-application models using SendPipeline and Model Ingestion"
+title: "Publish large models (connectors)"
+description: "Upload large host-application models using SendPipeline and Model Ingestion — connector authors only"
+sidebarTitle: "Connector sends"
 ---
 
 When a desktop connector converts an entire host-application model, **`Send`** and **`Send2`** cannot hold the full graph in memory. **`SendPipeline`** streams to a local pack, uploads once, and tracks progress through **`client.Ingestion`**.
 
-**When to read this:** production desktop connectors only — scripts use [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). **Read next:** [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) Path E.
+**When to read this:** production desktop connectors only — scripts use [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). **Read next:** [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) Path E.
 
 ## When to Skip This Page
 
 | You are… | Use instead |
 |----------|-------------|
-| Writing a script, notebook, or Grasshopper C# component | [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) with `Send2`/`Receive2` |
-| Following the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) or sending a small graph | `Send`/`Receive` or `Send2` — see [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) |
+| Writing a script, notebook, or Grasshopper C# component | [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) with `Send2`/`Receive2` |
+| Following the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) or sending a small graph | `Send`/`Receive` or `Send2` — see [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) |
 | Building a production desktop connector for a host app | This page |
 
 <Warning>
-**Connector-only pathway.** This guide is for production desktop connectors uploading large host-application models. If you are writing a script, Grasshopper C# component, notebook cell, or service — not converting a whole host-application model — use [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) with `Send2`/`Receive2` instead. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) for the decision guide.
+**Connector-only pathway.** This guide is for production desktop connectors uploading large host-application models. If you are writing a script, Grasshopper C# component, notebook cell, or service — not converting a whole host-application model — use [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) with `Send2`/`Receive2` instead. See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) for the decision guide.
 </Warning>
 
 ## Prerequisites
 
 - Speckle Server version 3.0.3 or later ([`client.Server.IsWorkspaceEnabled()`](/developers/sdks/dotnet/api-reference/resources/server) doesn't gate this). On server 3.0.11+, call [`client.Model.CanCreateModelIngestion(project.id, model.id)`](/developers/sdks/dotnet/api-reference/resources/model#methods) to verify availability; on 3.0.3–3.0.10, confirm with your server admin.
 - [Authentication](/developers/sdks/dotnet/getting-started/authentication) and a [project and model](/developers/sdks/dotnet/api-reference/resources/model) already created
-- Familiarity with [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths)
+- Familiarity with [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths)
 
 <Info>
-Detecting whether a server supports model ingestion at all, and telling that apart from a user simply lacking permission, is exactly the pattern covered in [Handling Server Capabilities and Permissions](/developers/sdks/dotnet/guides/handling-server-capabilities) — read it before writing the availability check below for anything beyond a one-off script.
+Detecting whether a server supports model ingestion at all, and telling that apart from a user only lacking permission, is exactly the pattern covered in [Handling server capabilities](/developers/sdks/dotnet/guides/handling-server-capabilities) — read it before writing the availability check below for anything beyond a one-off script.
 </Info>
 
 ## Complete Example
@@ -191,20 +192,20 @@ await client.Ingestion.FailWithCancel(
     `Process` does correctly serialize and write an entire nested object graph — including detached children — from a single call at the root. The reason to avoid this pattern at connector scale isn't correctness, it's memory: converting every element of a large host-application model before calling `Process` means holding the whole converted graph in memory at once. Convert and `Process` bottom-up instead, replacing each processed child with its `ObjectReference` in the parent, so converted objects can be released from memory as soon as they're written to disk.
   </Accordion>
   <Accordion title="Object IDs don't match IDs from Operations.Send">
-    `SendPipeline` uses a different serializer than `Send`/`Send2`. Don't compare or reuse IDs across the two pathways — see [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths).
+    `SendPipeline` uses a different serializer than `Send`/`Send2`. Don't compare or reuse IDs across the two pathways — see [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths).
   </Accordion>
   <Accordion title="404 or unsupported errors calling client.Ingestion methods">
-    The Model Ingestion API requires server version 3.0.3 or later. On 3.0.11+, use `client.Model.CanCreateModelIngestion(project.id, model.id)` to verify availability before enabling this pathway; on 3.0.3–3.0.10, confirm compatibility with your server admin. Don't wrap the whole pathway in a broad `try`/`catch` to detect this — see [Handling Server Capabilities and Permissions](/developers/sdks/dotnet/guides/handling-server-capabilities) for the narrow-catch pattern that tells "server too old" apart from "not authorized."
+    The Model Ingestion API requires server version 3.0.3 or later. On 3.0.11+, use `client.Model.CanCreateModelIngestion(project.id, model.id)` to verify availability before enabling this pathway; on 3.0.3–3.0.10, confirm compatibility with your server admin. Don't wrap the whole pathway in a broad `try`/`catch` to detect this — see [Handling server capabilities](/developers/sdks/dotnet/guides/handling-server-capabilities) for the narrow-catch pattern that tells "server too old" apart from "not authorized."
   </Accordion>
 </AccordionGroup>
 
 ## Next Steps
 
 <CardGroup cols={3}>
-  <Card title="Send and Receive Paths" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+  <Card title="Load and publish model data" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
     Path E decision guide
   </Card>
-  <Card title="Handling Server Capabilities" icon="shield-check" href="/developers/sdks/dotnet/guides/handling-server-capabilities">
+  <Card title="Handling server capabilities" icon="shield-check" href="/developers/sdks/dotnet/guides/handling-server-capabilities">
     Permission and version checks
   </Card>
   <Card title="ModelIngestionResource" icon="code" href="/developers/sdks/dotnet/api-reference/resources/ingestion">
