@@ -94,6 +94,10 @@ Use a high `maxObjCountPerChunk` for simple value types (numbers), and a lower o
 
 ## Custom Types
 
+<Info>
+Before defining a fully custom type, consider whether `DataObject` already fits — see [Base, DataObject, and Collection](/developers/sdks/dotnet/concepts/overview#base-dataobject-and-collection). Most current Speckle connectors emit `DataObject` (name, `properties` dictionary, `displayValue`) rather than bespoke typed classes, so it's the more ecosystem-compatible default. Reach for a fully custom type when you want compile-time-checked properties, or when the object is internal to your own application and never needs to interoperate outside it.
+</Info>
+
 Define your own type by inheriting from `Base`:
 
 ```csharp
@@ -109,7 +113,7 @@ public class Wall : Base
 ```
 
 <Warning>
-**Connector compatibility:** most Speckle connectors will not recognize custom types when receiving data into a host application, and will ignore them during conversion. Include a `displayValue` property with mesh geometry so your custom objects are at least visible in the 3D viewer.
+**Connector compatibility:** most Speckle connectors will not recognize custom types when receiving data into a host application, and will ignore them during conversion — `DataObject` doesn't have this problem, since connectors already know how to receive it generically. If you do define a custom type, include a `displayValue` property with mesh geometry so it's at least visible in the 3D viewer.
 </Warning>
 
 ## Traversing the Object Graph
@@ -128,7 +132,7 @@ foreach (var obj in allObjects)
 }
 ```
 
-`Flatten` walks every dynamic and typed property, following `Base` values, and values inside lists and dictionaries. Pass a `recursionBreaker` predicate to stop descending into specific branches:
+`Flatten` walks every dynamic and typed property, following `Base` values and the **values** inside lists. For dictionaries it only inspects the **keys** — a `Dictionary<string, Base>` will not have its values traversed. Pass a `recursionBreaker` predicate to stop descending into specific branches:
 
 ```csharp
 // Stop traversing once we hit an object with geometry
