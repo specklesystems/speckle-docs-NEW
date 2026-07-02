@@ -1,15 +1,16 @@
 ---
-title: "Quickstart"
-description: "Full send/receive tour using Send, Receive, and ServerTransport"
+title: "Full send/receive tour"
+description: "Optional deep dive — create a project, send geometry, publish a version, and receive with Send and ServerTransport"
+sidebarTitle: "Quickstart"
 ---
 
-When you want to see how project creation, sending, versioning, and receiving fit together, this page walks the complete workflow step by step using **Path B** (`Send`/`Receive` with `ServerTransport`).
+## Goal
 
-**When to use it:** first full tour of the SDK — not the shortest script path ([Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) uses `Send2`). **Read next:** [Authentication](/developers/sdks/dotnet/getting-started/authentication) before Step 2.
+Understand how project creation, sending, versioning, and receiving fit together — including how `ServerTransport` relates to the newer `Send2` path.
 
-## What You'll Build
+## What you will build
 
-In this quickstart, you'll learn how to:
+In this optional deep dive, you will:
 
 1. Paste the one-time SDK bootstrap (dependency injection setup you copy, not a concept you study)
 2. Authenticate with Speckle Server
@@ -17,6 +18,18 @@ In this quickstart, you'll learn how to:
 4. Send geometry data to Speckle
 5. Create a version (commit)
 6. Receive geometry data from Speckle
+
+## When to use this
+
+Use this page when you want the **full publish workflow** from scratch. For most AEC automation — loading connector-published models, QA checks, CSV exports — start with [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) instead. That path uses `Receive2` on existing model data; creating geometry is optional and less common in practice.
+
+<Note>
+In practice, most workflows **receive** model data published by connectors rather than creating geometry in code. This tour teaches sending so you understand how versions and object graphs relate.
+</Note>
+
+## Recommended approach
+
+For day-to-day scripts after this tour, switch to `Send2`/`Receive2` — see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). This quickstart uses **Path B** (`Send`/`Receive` with `ServerTransport`) to show how transports work.
 
 ## Prerequisites
 
@@ -51,7 +64,7 @@ var provider = services.BuildServiceProvider();
 ```
 
 <Tip>
-This is **boilerplate**, not a DI tutorial. You are not expected to register your own services or understand container lifetimes. [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) shows how to wrap this in a static helper for notebook cells and Grasshopper scripts.
+This is **boilerplate**, not a DI tutorial. You are not expected to register your own services or understand container lifetimes. [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) shows how to wrap this in a static helper for notebook cells and Grasshopper scripts.
 </Tip>
 
 ### Step 2: Authenticate
@@ -129,7 +142,7 @@ Console.WriteLine("✓ Created geometry objects");
 </Tip>
 
 <Info>
-This quickstart uses plain `Base` to keep the first workflow simple. For real BIM-like data — especially anything meant to interoperate with other Speckle connectors and scripts — model it with `DataObject` and `Collection` instead once you're past this tour. See [Objects, detachment, and traversal](/developers/sdks/dotnet/concepts/objects-and-traversal).
+This quickstart uses plain `Base` to keep the first workflow simple. For real BIM-like data — especially anything meant to interoperate with other Speckle connectors and scripts — model it with `DataObject` and `Collection` instead once you're past this tour. See [Work with model objects](/developers/sdks/dotnet/concepts/objects-and-traversal).
 </Info>
 
 ### Step 5: Send Data to Speckle
@@ -194,7 +207,7 @@ Versions store metadata (author, timestamp, message) separately from the actual 
 </Info>
 
 <Note>
-You have now completed your first full Speckle workflow with .NET using `Send`/`Receive` and `ServerTransport`. For day-to-day scripts, switch to `Send2`/`Receive2` — see [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
+You have now completed your first full Speckle workflow with .NET using `Send`/`Receive` and `ServerTransport`. For day-to-day scripts, switch to `Send2`/`Receive2` — see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
 </Note>
 
 ## Complete Example
@@ -267,8 +280,8 @@ Console.WriteLine($"✓ Received data: {((List<object>)receivedData["points"]!).
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Should I use this quickstart or Scripts and Notebooks?">
-    Use **Scripts and Notebooks** for Grasshopper, notebooks, and one-off automations — it uses `Send2`/`Receive2` with less ceremony. Use **this quickstart** when you want a guided tour of the full workflow, including how `ServerTransport` fits in.
+  <Accordion title="Should I use this quickstart or Automate with scripts?">
+    Use **Automate with scripts** for Grasshopper, notebooks, and one-off automations — it uses `Send2`/`Receive2` with less ceremony. Use **this quickstart** when you want a guided tour of the full workflow, including how `ServerTransport` fits in.
   </Accordion>
   <Accordion title="Why doesn't my geometry show in the 3D viewer?">
     Primitives sent as the root object are not visible. Nest them under a root `Base` container, as in Step 4. For connector-style BIM objects, set `displayValue` on `DataObject` — see [Display values](/developers/sdks/dotnet/concepts/objects-and-traversal#display-values).
@@ -277,21 +290,21 @@ Console.WriteLine($"✓ Received data: {((List<object>)receivedData["points"]!).
     The GraphQL API and UI use `projectId`. Some transport and `Send`/`Receive` signatures still use `streamId` for the same value — pass your project's `id` in both cases.
   </Accordion>
   <Accordion title="I sent data but cannot find it in the UI">
-    You must create a **version** after send — see [Core Concepts: orphaned objects](/developers/sdks/dotnet/concepts/overview#orphaned-objects).
+    You must create a **version** after send — see [Core concepts: orphaned objects](/developers/sdks/dotnet/concepts/overview#orphaned-objects).
   </Accordion>
 </AccordionGroup>
 
 ## Next Steps
 
 <CardGroup cols={3}>
-  <Card title="Core Concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
-    Projects, models, versions, orphaned objects
+  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+    Recommended next — load and analyse existing models
   </Card>
-  <Card title="Send and Receive Paths" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+  <Card title="Load and publish model data" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
     Path B vs Path C decision guide
   </Card>
-  <Card title="VersionResource" icon="code-branch" href="/developers/sdks/dotnet/api-reference/resources/version">
-    Publish after Send in Step 6
+  <Card title="Automate with scripts" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
+    Send2/Receive2 for everyday scripts
   </Card>
 </CardGroup>
 
