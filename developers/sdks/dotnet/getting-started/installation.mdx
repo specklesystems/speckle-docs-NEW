@@ -3,6 +3,8 @@ title: "Installation"
 description: "Install Speckle.Sdk and set up your .NET project"
 ---
 
+When you add Speckle to a .NET app, script, or connector, you install the NuGet package, register the SDK once at startup, and optionally add `Speckle.Objects` for geometry types. This page covers those steps and how to confirm the SDK resolves correctly.
+
 ## Requirements
 
 Speckle.Sdk targets three frameworks, so it runs in both modern and legacy host apps:
@@ -114,10 +116,27 @@ Speckle.Sdk brings in these dependencies automatically:
 You don't need to install these manually — NuGet handles them automatically. `Speckle.Sdk.Dependencies` bundles additional transitive dependencies and should not be referenced directly.
 </Info>
 
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do I need both Speckle.Sdk and Speckle.Objects?">
+    **Speckle.Sdk** is required for sending, receiving, and the object model. Add **Speckle.Objects** only when you use built-in geometry types (`Point`, `Line`, `Mesh`, and so on). Pass the `Speckle.Objects` assembly in `AddSpeckleSdk` so those types deserialize on receive.
+  </Accordion>
+  <Accordion title="Do I need to understand dependency injection to install the SDK?">
+    No. You paste a short `AddSpeckleSdk` block once — see [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). Read [Dependency Injection](/developers/sdks/dotnet/concepts/dependency-injection) only if you are building a connector or sharing a container with a host app.
+  </Accordion>
+  <Accordion title="Which target framework should I use?">
+    Match your host app. Use `netstandard2.0` for older hosts such as Revit on .NET Framework 4.8. Use `net8.0` or `net10.0` for new standalone apps and services.
+  </Accordion>
+</AccordionGroup>
+
 ## Next Steps
 
-Now that you have Speckle.Sdk installed, learn how to authenticate:
-
-<Card title="Authentication" icon="key" href="/developers/sdks/dotnet/getting-started/authentication">
-  Set up authentication with Speckle Server
-</Card>
+<CardGroup cols={2}>
+  <Card title="Scripts and Notebooks" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
+    Shortest path — bootstrap and Send2
+  </Card>
+  <Card title="Authentication" icon="key" href="/developers/sdks/dotnet/getting-started/authentication">
+    Set up authentication with Speckle Server
+  </Card>
+</CardGroup>
