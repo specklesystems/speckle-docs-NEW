@@ -15,7 +15,7 @@ Speckle organizes data as **projects → models → versions → object graphs**
 
 `IClient` exposes each level as a typed resource:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var project = await client.Project.Create(new ProjectCreateInput("Office Renovation", null, ProjectVisibility.Private));
 var model = await client.Model.Create(new CreateModelInput("Structural Model", null, project.id));
 var version = await client.Version.Create(new CreateVersionInput(objectId, model.id, project.id, "Updated beam sizing"));
@@ -41,7 +41,7 @@ Every sent object has a unique **object ID**, deterministically generated from i
 
 For scripts and notebooks, `Send2`/`Receive2` is the usual choice. The [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) teaches the classic `Send`/`Receive` + `ServerTransport` pair:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
 
 var (objectId, _) = await operations.Send(myData, transport, useDefaultCache: true);
@@ -54,7 +54,7 @@ var received = await operations.Receive(objectId, remoteTransport: transport);
 Objects sent to the server but not referenced by any version are **orphaned** — stored with an object ID but unreachable through the Speckle UI until a version references them.
 </Warning>
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var (objectId, _) = await operations.Send(myData, transport, true);
 // Without creating a version, this object is a "zombie"
 
@@ -67,7 +67,7 @@ Always create a version after sending data you want users to find.
 
 Every object carries a `speckle_type`, derived from its .NET type, which lets `Receive` reconstruct the correct concrete type:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Objects.Geometry;
 
 var point = new Point(1, 2, 3, "m");

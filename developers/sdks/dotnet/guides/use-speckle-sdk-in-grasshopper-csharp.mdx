@@ -99,14 +99,15 @@ Do not add `category` or `loads` as dumb inputs — those values are **derived**
 
 Install NuGet packages from the C# Script editor (**box icon** > **Specify Package(s)**). Copy the `#r` lines from the [Speckle.Sdk](https://www.nuget.org/packages/Speckle.Sdk) and [Speckle.Objects](https://www.nuget.org/packages/Speckle.Objects) **Script & Interactive** tabs (version numbers will match the latest release):
 
-```csharp
+```csharp NuGet references lines icon="/images/developers/sdks/csharp.svg"
+// Grasshopper C# Script — NuGet references
 #r "nuget: Speckle.Sdk, 3.5.5"
 #r "nuget: Speckle.Objects, 3.5.5"
 ```
 
 Paste a minimal bootstrap once per script. It registers the object model and gives you `Flatten` helpers plus optional `Serialize` — **no account or `IClientFactory` required** for the main exercise:
 
-```csharp
+```csharp Bootstrap lines icon="/images/developers/sdks/csharp.svg"
 using Microsoft.Extensions.DependencyInjection;
 using Speckle.Sdk;
 using Speckle.Sdk.Api;
@@ -149,7 +150,9 @@ On large lists, cache the `summary` string in a script field and only rebuild it
 
 ### Complete example
 
-```csharp
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
+// Grasshopper C# Script — structural layout enrichment
 #r "nuget: Speckle.Sdk, 3.5.5"
 #r "nuget: Speckle.Objects, 3.5.5"
 
@@ -277,30 +280,40 @@ static string BuildSummary(List<DataObject> footings)
 }
 ```
 
-### Step 6a — Geometry on `displayValue`
+<Steps>
+  <Step title="Put geometry on `displayValue`">
+    Convert each Rhino `Point3d` to a Speckle `Point` and assign it to `DataObject.displayValue`. The viewer and connector expect renderable geometry here — the same field [Deconstruct](/connectors/grasshopper/grasshopper-developer) reads on a published param.
 
-Each Rhino `Point3d` becomes a Speckle `Point` on the `DataObject.displayValue` list. The viewer and connector both expect renderable geometry here — same field [Deconstruct](/connectors/grasshopper/grasshopper-developer) reads on a published param.
+    In the script, `BuildFooting` creates `specklePoint` and sets `displayValue = new List<Base> { specklePoint }`. Each footing `DataObject` now carries geometry the viewer can render.
+  </Step>
 
-### Step 6b — Compute properties on `DataObject`
+  <Step title="Compute properties on each `DataObject`">
+    Store BIM-like fields in `DataObject.properties`, not on the root `Base` indexer. Derive every field from point position, grid proximity, and `capacity` — that is the justification for code over passthrough nodes.
 
-BIM-like fields live in `DataObject.properties`, not on the root `Base` indexer. The script derives every field from point position, grid proximity, and `capacity` — that is the justification for code over passthrough nodes.
+    After this step, each footing has computed keys such as `distanceFromOrigin`, `quadrant`, `bearing`, `utilization`, and `nearestGridLine` in its `properties` dictionary.
+  </Step>
 
-### Step 6c — `Collection` hierarchy
+  <Step title="Group footings into a `Collection` hierarchy">
+    Nest footings into child collections by computed `quadrant`. `Collection.elements` mirrors how [Create Collection](/connectors/grasshopper/grasshopper-collections) nodes organize a canvas — except the grouping rule runs in C#.
 
-Footings group into child collections by computed `quadrant`. Nested `Collection.elements` mirrors how [Create Collection](/connectors/grasshopper/grasshopper-collections) nodes organize a canvas — except the grouping rule runs in C#.
+    `BuildRootByQuadrant` returns a root `Collection` named `Structural layout` with one child collection per quadrant. The full graph is ready to traverse.
+  </Step>
 
-### Step 6d — Inspect locally
+  <Step title="Inspect the graph locally">
+    Call `root.Flatten()` to count every `Base` in the graph and wire `elementCount`. Build `summary` from aggregated computed fields. Optionally preview JSON:
 
-`root.Flatten()` counts every `Base` in the graph. `summary` reports aggregated computed fields. Optionally preview JSON:
+    <AccordionGroup>
+      <Accordion title="Optional — Serialize for JSON preview">
+        ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+        string json = SpeckleBootstrap.Operations.Serialize(root);
+        ```
+        Use this to sanity-check property names and nesting before exchange. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths#path-a-serialize-only).
+      </Accordion>
+    </AccordionGroup>
 
-<AccordionGroup>
-  <Accordion title="Optional — Serialize for JSON preview">
-    ```csharp
-    string json = SpeckleBootstrap.Operations.Serialize(root);
-    ```
-    Use this to sanity-check property names and nesting before exchange. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths#path-a-serialize-only).
-  </Accordion>
-</AccordionGroup>
+    When `status` reads `OK`, `elementCount` matches the flattened graph and `summary` reports footing counts and average utilization.
+  </Step>
+</Steps>
 
 You now have a **publish-ready data model in memory**. Success means a correct `DataObject` / `Collection` graph and a trustworthy `summary`. When you are ready to **exchange** it, use **Publish** on the connector (normal workflow) or [Appendix A](#a-publish-the-same-graph-from-code) (programmatic). Do not rebuild the same graph with Collection nodes on the canvas.
 
@@ -314,7 +327,7 @@ The graph shape aligns with [`GrasshopperRootObjectBuilder`](https://github.com/
 
 **Line geometry between pairs** — add Speckle `Line` objects to `displayValue` or as sibling `DataObject` entries:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var link = new DataObject
 {
     name = "Brace",
@@ -388,7 +401,7 @@ Production connector code lives in [speckle-sharp-connectors](https://github.com
   <Accordion title="A. Publish the same graph from code" id="a-publish-the-same-graph-from-code">
     If you already built `root` in the script and need to send it without the Publish component, add account bootstrap and follow [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks):
 
-    ```csharp
+    ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
     var sendResult = await SpeckleBootstrap.Operations.Send2(
         client.ServerUrl,
         project.id,

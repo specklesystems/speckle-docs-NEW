@@ -19,7 +19,8 @@ Examples filter with `obj["category"]` for readability. On `DataObject` instance
 
 ## Complete Example
 
-```csharp
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
 using Speckle.Sdk.Models;
 using Speckle.Sdk.Models.Extensions;
 
@@ -36,7 +37,7 @@ var byCategory = root.Flatten()
 
 `Flatten` returns every `Base` in the graph — the right default for filtering and indexing:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 foreach (var obj in root.Flatten())
 {
     Console.WriteLine(obj.TryGetName() ?? "unnamed");
@@ -45,7 +46,7 @@ foreach (var obj in root.Flatten())
 
 `GraphTraversal` adds **context** (parent, property name) and custom walk rules:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Sdk.Models.GraphTraversal;
 
 var traversal = DefaultTraversal.CreateTraversalFunc();
@@ -67,7 +68,7 @@ foreach (TraversalContext ctx in traversal.Traverse(root))
 
 Custom rule example — walk dynamic members but skip `displayValue`:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var skipDisplayValue = TraversalRule
     .NewTraversalRule()
     .When(_ => true)
@@ -83,7 +84,7 @@ var traversal = new GraphTraversal(skipDisplayValue);
 
 ## Finding Objects by Criteria
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 List<Base> FindByProperty(Base root, string key, object? value) =>
     root.Flatten().Where(obj => Equals(obj[key], value)).ToList();
 ```
@@ -92,7 +93,7 @@ List<Base> FindByProperty(Base root, string key, object? value) =>
 
 Each `Flatten()` is O(n). Build a dictionary once for multiple lookups:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var byCategory = root.Flatten()
     .GroupBy(o => o["category"] as string ?? "Unknown")
     .ToDictionary(g => g.Key, g => g.ToList());
@@ -102,7 +103,7 @@ var walls = byCategory.GetValueOrDefault("Walls", new());
 
 An `applicationId` index resolves [proxies](/developers/sdks/dotnet/guides/working-with-proxies):
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var byAppId = root.Flatten()
     .Where(o => o.applicationId is not null)
     .ToDictionary(o => o.applicationId!);
@@ -110,7 +111,7 @@ var byAppId = root.Flatten()
 
 For hierarchy depth and paths, use `TraverseWithPath`:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 foreach (var (path, obj) in root.TraverseWithPath(_ => false))
 {
     var indent = new string(' ', path.Length * 2);

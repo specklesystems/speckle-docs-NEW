@@ -32,7 +32,7 @@ Speckle.Sdk exposes three ways to get an `Account`:
 
 The most direct path: build an `Account` from an existing personal access token using `IAccountFactory`.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Microsoft.Extensions.DependencyInjection;
 using Speckle.Sdk.Api;
 using Speckle.Sdk.Credentials;
@@ -53,7 +53,7 @@ Console.WriteLine($"Authenticated as: {account.userInfo.name}");
 
 ## Use Environment Variables (Recommended)
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var token = Environment.GetEnvironmentVariable("SPECKLE_TOKEN")
     ?? throw new InvalidOperationException("SPECKLE_TOKEN environment variable not set");
 var serverUrl = Environment.GetEnvironmentVariable("SPECKLE_SERVER") ?? "https://app.speckle.systems";
@@ -87,7 +87,7 @@ var account = await accountFactory.CreateAccount(new Uri(serverUrl), token);
 
 For desktop or connector-style applications where a user should sign in through the browser **and** you want that login to be reusable across Speckle's desktop ecosystem (so the user doesn't have to sign in again in Rhino, Revit, Grasshopper, or your own tool), use `IAccountManager.AuthenticateAccount`. This opens a browser window and completes an OAuth PKCE flow.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Sdk.Credentials;
 
 var accountManager = provider.GetRequiredService<IAccountManager>();
@@ -106,7 +106,7 @@ var account = await accountManager.AuthenticateAccount(
 
 If a user has already signed in via a Speckle desktop connector, or via `AuthenticateAccount` above, retrieve their stored accounts instead of prompting again:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var accountManager = provider.GetRequiredService<IAccountManager>();
 
 // All accounts for a specific server
@@ -127,7 +127,7 @@ Older `AccountManager` methods such as `AddAccount` and `GetLocalAccounts` are o
 
 ## Different Speckle Servers
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 // Public Speckle server
 var account = await accountFactory.CreateAccount(new Uri("https://app.speckle.systems"), token);
 
@@ -137,7 +137,7 @@ var account = await accountFactory.CreateAccount(new Uri("https://speckle.mycomp
 
 ## Checking Authentication Status
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 if (!string.IsNullOrEmpty(account.token))
 {
     Console.WriteLine("✓ Authenticated");

@@ -31,7 +31,7 @@ Path naming is misleading: `Send2`/`Receive2` are the **newer, recommended** ser
 
 Turns a `Base` graph into a JSON string with no transport involved.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 string json = operations.Serialize(myData);
 Base restored = await operations.DeserializeAsync(json);
 ```
@@ -42,7 +42,7 @@ Use this when you need the raw JSON representation — for example, writing to a
 
 The classic path, and what the quickstart uses. Works with any `ITransport`.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
 
 var (objectId, _) = await operations.Send(myData, transport, useDefaultCache: true);
@@ -55,7 +55,7 @@ Swap `ServerTransport` for `SQLiteTransport` or `MemoryTransport` to send/receiv
 
 Talks to the server directly by URL, project id, and token, using a newer serialization pipeline. This is the default for [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) and for new server-facing code that does not need a custom `ITransport`.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var results = await operations.Send2(client.ServerUrl, project.id, account.token, myData, onProgressAction: null, cancellationToken: default);
 var received = await operations.Receive2(client.ServerUrl, project.id, results.RootId, account.token, onProgressAction: null, cancellationToken: default);
 ```
@@ -76,7 +76,7 @@ Don't build production workflows on `SerializeNew` — it's still evolving and m
 
 For uploading large host-application models (thousands of objects, proxies, materials), connectors use a dedicated ingestion pipeline instead of `Send`/`Send2`. It serializes to NDJSON and uploads via `client.Ingestion`.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var sourceData = new SourceDataInput("my-app", "1.0.0", fileName: null, fileSizeBytes: null);
 var ingestion = await client.Ingestion.Create(new ModelIngestionCreateInput(model.id, project.id, "Starting ingestion", sourceData));
 

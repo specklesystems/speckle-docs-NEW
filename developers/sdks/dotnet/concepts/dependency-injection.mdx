@@ -23,7 +23,7 @@ Unlike specklepy's import-and-go model, Speckle.Sdk resolves almost everything y
 
 ## What `AddSpeckleSdk` Registers
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Microsoft.Extensions.DependencyInjection;
 using Speckle.Sdk;
 
@@ -39,7 +39,7 @@ var provider = services.BuildServiceProvider();
 3. Registers default `ISdkActivityFactory` and `ISdkMetricsFactory` implementations (no-ops unless you supply your own).
 4. Scans the SDK assembly and registers every class that implements an interface as transient — this is how `IOperations`, `IClientFactory`, `IAccountManager`, `IServerTransportFactory`, and others become resolvable.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 public record Application(string Name, string Slug);
 ```
 
@@ -47,7 +47,7 @@ public record Application(string Name, string Slug);
 
 If you use `Speckle.Objects` or define custom `Base`-derived types, pass their assemblies so `TypeLoader` can resolve them:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 services.AddSpeckleSdk(
     new Application("My App", "my-app"),
     "1.0.0",
@@ -63,7 +63,7 @@ If you send or receive a custom type whose assembly wasn't passed to `AddSpeckle
 
 Resolve what you need from the built `IServiceProvider`:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var operations = provider.GetRequiredService<IOperations>();
 var accountFactory = provider.GetRequiredService<IAccountFactory>();
 var clientFactory = provider.GetRequiredService<IClientFactory>();
@@ -86,7 +86,7 @@ Transports like `ServerTransport` have constructor dependencies (`ISpeckleHttp`,
 
 If you're building a connector or a service that already has its own `IServiceCollection` (for example, an ASP.NET Core app), call `AddSpeckleSdk` on that same collection rather than creating a separate container:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSpeckleSdk(new Application("My Service", "my-service"), "1.0.0");
 var app = builder.Build();

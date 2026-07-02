@@ -17,9 +17,10 @@ This guide assumes familiarity with [Exceptions](/developers/sdks/dotnet/api-ref
 
 ## Complete Example
 
+
 This mirrors the pattern Speckle's own connectors use to decide whether a server supports connector-scale model ingestion, adapted from `SendOperation.CheckUseModelIngestionSend` in [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors):
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Sdk;
 using Speckle.Sdk.Api;
 
@@ -50,7 +51,7 @@ Two outcomes look similar from the outside (both mean "don't use this feature") 
 
 The simplest form: a boolean method that tells you whether a whole feature area exists on this deployment, with no exceptions involved.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 if (await client.Server.IsWorkspaceEnabled())
 {
     var workspaces = await client.ActiveUser.GetWorkspaces();
@@ -76,7 +77,7 @@ Several resources return permission information *with* the data, so you can gate
 
 Speckle's own connectors use these to disable menu items and show a tooltip explaining why, rather than letting the user click "send" and then showing an error:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 if (!project.permissions.canLoad.authorized)
 {
     projectMenuItem.Enabled = false;
@@ -93,7 +94,7 @@ For actions that aren't tied to an existing permission field on a resource, some
 
 `PermissionCheckResult` exposes `authorized`, `code`, `message`, and a convenience method:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 public void EnsureAuthorised(); // throws WorkspacePermissionException if authorized == false
 ```
 

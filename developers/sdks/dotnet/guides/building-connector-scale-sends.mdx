@@ -29,7 +29,8 @@ Detecting whether a server supports model ingestion at all, and telling that apa
 
 ## Complete Example
 
-```csharp
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
 using Microsoft.Extensions.DependencyInjection;
 using Speckle.Sdk.Api.GraphQL.Inputs;
 using Speckle.Sdk.Models.Collections;
@@ -84,7 +85,7 @@ This example follows the streaming pattern used by every Speckle desktop connect
 
 An ingestion is the server-side tracking record for this upload:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var sourceData = new SourceDataInput("my-connector", "1.0.0", fileName: null, fileSizeBytes: null);
 var ingestion = await client.Ingestion.Create(
     new ModelIngestionCreateInput(model.id, project.id, "Publishing model", sourceData)
@@ -97,7 +98,7 @@ var ingestion = await client.Ingestion.Create(
 
 `ISendPipelineFactory.CreateInstance` builds a pipeline bound to this specific ingestion:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
     .CreateInstance(ingestion, client.Account, new Progress<StreamProgressArgs>(), cancellationToken: default);
 ```
@@ -106,7 +107,7 @@ using var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
 `Process` **does** recursively serialize an entire object graph in one call — including nested `Base` values marked `[DetachProperty]` or prefixed with `@` — and writes every resulting object (root and detached children) to the local, gzip-compressed NDJSON file. The reason production connectors still call `Process` bottom-up, once per converted element, and substitute a lightweight `ObjectReference` in the parent instead of keeping the full child object, is **memory**, not a limitation of `Process` itself: converting an entire host-application model into one in-memory `Base` graph before calling `Process` would require holding every converted mesh and property in memory at once. Processing and writing each object as soon as it's converted lets you drop it from memory immediately afterward.
 </Warning>
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 ObjectReference reference = await pipeline.Process(convertedObject);
 parentCollection.elements.Add(reference); // parent references the child by ObjectReference, not the object itself
 // ...
@@ -128,7 +129,7 @@ Production connectors do not call `client.Ingestion.Complete` after `WaitForUplo
 
 To learn when the version is ready, subscribe to ingestion updates and read `versionId` off the success status:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using var subscription = client.Subscription.CreateProjectModelIngestionUpdatedSubscription(
     new ProjectModelIngestionSubscriptionInput(
         project.id,
@@ -151,7 +152,7 @@ If your application can't hold a subscription open, poll `client.Ingestion.Get(i
 
 If anything goes wrong on the client before `WaitForUpload` returns, report the failure so the ingestion doesn't stay stuck in `processing`. `ModelIngestionFailedInput.FromException` builds the input from a caught exception:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 await client.Ingestion.FailWithError(ModelIngestionFailedInput.FromException(ingestion.id, project.id, ex));
 ```
 
@@ -161,7 +162,7 @@ Use `FailWithError` for unexpected/infrastructure failures, `FailWithInvalid` wh
 
 If your connector supports cancelling an in-progress send, don't cancel the pipeline unilaterally — request cancellation, then let the sending client observe and report it:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 // Caller / UI side: request cancellation
 await client.Ingestion.RequestCancellation(
     new ModelIngestionCancelledInput(ingestion.id, project.id, "User cancelled")

@@ -17,7 +17,7 @@ Most Speckle connectors emit **`DataObject`** (`Speckle.Objects.Data`) — `name
 
 Everything sent to or received from Speckle inherits from `Base`. It supports both **static** (typed C# properties) and **dynamic** (runtime, string-keyed) properties on the same object.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Sdk.Models;
 
 var custom = new Base();
@@ -33,7 +33,7 @@ Objects are content-addressed: once sent, an object's `id` is a hash of its seri
 
 Typed geometry classes (from `Speckle.Objects`) declare static properties with full C# type support, but every `Base`-derived type also accepts arbitrary dynamic properties:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Objects.Geometry;
 
 var point = new Point(1, 2, 3, "m");
@@ -48,7 +48,8 @@ Property names starting with `__` are ignored entirely (not hashed, not serializ
 
 ## Complete Example
 
-```csharp
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
 using Speckle.Sdk.Models;
 
 public class Room : Base
@@ -95,12 +96,12 @@ By default, nested `Base` objects serialize **inline** with their parent. Detach
 
 <Tabs>
   <Tab title="Dynamic (@ prefix)">
-    ```csharp
+    ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
     parent["@heavyMesh"] = meshObject;
     ```
   </Tab>
   <Tab title="Typed ([DetachProperty])">
-    ```csharp
+    ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
     public class Wall : Base
     {
         [DetachProperty]
@@ -114,7 +115,7 @@ By default, nested `Base` objects serialize **inline** with their parent. Detach
 
 Pair `[Chunkable]` with `[DetachProperty]` to split very large lists across multiple stored objects:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 [DetachProperty]
 [Chunkable(maxObjCountPerChunk: 5000)]
 public required List<double> Measurements { get; set; }
@@ -132,7 +133,7 @@ public required List<double> Measurements { get; set; }
 
 Before defining a fully custom type, consider whether `DataObject` already fits. Reach for a custom type when you want compile-time-checked properties, or when the object is internal to your own application.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 [SpeckleType("MyCompany.Wall")]
 public class Wall : Base
 {
@@ -152,7 +153,7 @@ When you send data and expect it in the **3D viewer**, the object must expose a 
 
 The recommended container is `DataObject`:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Objects.Data;
 using Speckle.Sdk.Models;
 
@@ -168,7 +169,7 @@ You can also set `displayValue` dynamically on plain `Base` for quick scripts. W
 
 Use `BaseExtensions` after receive:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Sdk.Models.Extensions;
 
 if (someObject.IsDisplayableObject())
@@ -183,7 +184,7 @@ For custom types, the property name must be exact camelCase `displayValue`. Pasc
 
 The simplest walk is `BaseExtensions.Flatten` or `Traverse`:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Sdk.Models.Extensions;
 
 IEnumerable<Base> allObjects = receivedData.Flatten();
@@ -200,7 +201,7 @@ foreach (var obj in allObjects)
 
 For connector-style traversal, use `GraphTraversal` with `DefaultTraversal`:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Sdk.Models.GraphTraversal;
 
 var traversalFunc = DefaultTraversal.CreateTraversalFunc();

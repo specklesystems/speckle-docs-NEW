@@ -5,7 +5,7 @@ description: "IOperations: Serialize, Send, Receive, Send2, Receive2, and SendPi
 
 When you need to move `Base` object graphs — serialize to JSON, send to Speckle Server, receive by id, or run connector-scale ingestion — you call methods on `IOperations` (or `ISendPipelineFactory` for Path E). See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) for which method fits your workflow.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var operations = provider.GetRequiredService<IOperations>();
 ```
 
@@ -31,7 +31,7 @@ var operations = provider.GetRequiredService<IOperations>();
   Receives the object graph identified by `objectId`. Checks `localTransport` first (defaults to a new `SQLiteTransport` if omitted); falls back to `remoteTransport` and copies the result into the local transport.
 </ResponseField>
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
 
 var (objectId, _) = await operations.Send(myData, transport, useDefaultCache: true);
@@ -52,7 +52,7 @@ var received = await operations.Receive(objectId, remoteTransport: transport);
   Receives an object graph directly from the server, using the V2 deserialization pipeline.
 </ResponseField>
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var results = await operations.Send2(client.ServerUrl, project.id, account.token, myData, null, cancellationToken: default);
 var received = await operations.Receive2(client.ServerUrl, project.id, results.RootId, account.token, null, cancellationToken: default);
 ```
@@ -71,7 +71,7 @@ The `streamId` parameter name is a legacy holdover — pass your project id.
 
 Connector-scale ingestion is a separate factory-created pipeline, not a method on `IOperations`. See [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends) for the full workflow.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
     .CreateInstance(ingestion, account, uploadProgress: new Progress<StreamProgressArgs>(), cancellationToken: default);
 var reference = await pipeline.Process(myData);

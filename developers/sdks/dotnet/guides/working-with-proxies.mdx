@@ -9,7 +9,7 @@ When you receive connector-produced data and need objects grouped by level, mate
 
 Proxy classes implement `IProxyCollection`, which requires an `objects` list of source application IDs:
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Sdk.Models.Proxies;
 
 public interface IProxyCollection : ISpeckleObject
@@ -45,7 +45,8 @@ Additional proxy types (materials, levels, instance definitions) follow the same
 
 ## Complete Example
 
-```csharp
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
 using Speckle.Sdk.Models;
 using Speckle.Sdk.Models.Extensions;
 using Speckle.Sdk.Models.Proxies;
@@ -73,7 +74,7 @@ if (receivedData["groupProxies"] is IEnumerable<object> groupProxies)
 
 Every built-in proxy type implements `IProxyCollection`. Resolution is three steps: index by `applicationId`, look up each id in the proxy's `objects` list, pair resolved objects with proxy metadata.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 Dictionary<string, List<Base>> ResolveProxies<T>(
     IEnumerable<T> proxies,
     Dictionary<string, Base> byAppId
@@ -103,7 +104,7 @@ Not every `applicationId` in a proxy's `objects` list is guaranteed to resolve. 
 
 Instances are two-hop: an `InstanceProxy` references an `InstanceDefinitionProxy` by `definitionId`, and the definition's `objects` list holds geometry application IDs.
 
-```csharp
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Sdk.Models.Instances;
 
 var definitionsById = receivedData.Flatten()

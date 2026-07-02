@@ -75,4 +75,21 @@ Before completing an edit:
 1. First code sample achievable without connector knowledge?
 2. Connector-only sections warned before code?
 3. Script path linked where bootstrap or `GetRequiredService` appears?
-4. `pnpm valid` and `pnpm check-links` run from `speckle-docs-NEW` after substantive changes?
+4. C# fences use Mintlify metadata — ` ```csharp Example lines icon="/images/developers/sdks/csharp.svg" ` (title before `lines`; never ` ```csharp lines ...` alone); add `expandable` on Complete Example blocks?
+5. `pnpm valid` and `pnpm check-links` run from `speckle-docs-NEW` after substantive changes?
+
+## Code fences
+
+Match [specklepy](/developers/sdks/python) SDK pages. Mintlify expects a **title or filename before meta options** — do not put `lines` immediately after the language id (Mintlify treats it as the block title and breaks highlighting/header).
+
+| Block type | Fence |
+| --- | --- |
+| Typical C# sample | ` ```csharp Example lines icon="/images/developers/sdks/csharp.svg" ` |
+| Grasshopper `#r` NuGet lines | ` ```csharp NuGet references lines icon="/images/developers/sdks/csharp.svg" ` — add a `//` comment before `#r` so Mintlify keeps `csharp` highlighting (blocks starting with `#r` fall back to plain text) |
+| Full Grasshopper C# Script | ` ```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable ` |
+| Long complete example / full script | `Complete example` title + `expandable` |
+| Shell install (`dotnet add package`, etc.) | plain ` ```bash ` — no change |
+
+Font Awesome has no hosted C# icon (`icon="csharp"` resolves to a missing CDN asset). Use `/images/developers/sdks/csharp.svg` (Microsoft C# logo) for code blocks and SDK cards.
+
+Use descriptive titles where helpful (`Bootstrap`, `Send and receive`, `Bootstrap.cs`). Keep modifiers (`expandable`, `focus={…}`) after the title. Do not put code on the same line as the opening fence.
