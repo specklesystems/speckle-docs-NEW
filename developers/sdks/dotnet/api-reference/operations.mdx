@@ -3,7 +3,9 @@ title: "Operations"
 description: "IOperations: Serialize, Send, Receive, Send2, Receive2, and SendPipeline"
 ---
 
-When you need to move `Base` object graphs — serialize to JSON, send to Speckle Server, receive by id, or run connector-scale ingestion — you call methods on `IOperations` (or `ISendPipelineFactory` for Path E). See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) for which method fits your workflow.
+When you need to move `Base` object graphs — serialize to JSON, send to Speckle Server, receive by id, or run connector-scale ingestion — you call methods on **`IOperations`** (or **`ISendPipelineFactory`** for Path E).
+
+**When to read this:** after [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) tells you which path fits. **Read next:** [VersionResource](/developers/sdks/dotnet/api-reference/resources/version) to publish a version after `Send`/`Send2`.
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var operations = provider.GetRequiredService<IOperations>();
@@ -104,7 +106,7 @@ See [Exceptions](/developers/sdks/dotnet/api-reference/exceptions) for the full 
     Use **Send2**/`Receive2` — see [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). Use **Send**/`Receive` when you follow the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart), need `MemoryTransport`/`SQLiteTransport`, or integrate with existing transport-based code.
   </Accordion>
   <Accordion title="Does Send create a version automatically?">
-    No for **`Send`** and **`Send2`** — sending registers objects on the server; you must call `client.Version.Create` with the returned `objectId` to publish data to a model. **`SendPipeline`** is different: after `WaitForUpload`, the server creates the version asynchronously — do not call `Version.Create`. See [VersionResource](/developers/sdks/dotnet/api-reference/resources/version) and [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends).
+    No for **`Send`** and **`Send2`** — call `client.Version.Create` after send. **`SendPipeline`** creates the version on the server after upload — see [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends) and [VersionResource](/developers/sdks/dotnet/api-reference/resources/version).
   </Accordion>
   <Accordion title="When do I need SendPipeline instead of Send2?">
     When uploading a **whole host-application model** from a connector — thousands of elements converted incrementally. See [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends).
@@ -113,11 +115,14 @@ See [Exceptions](/developers/sdks/dotnet/api-reference/exceptions) for the full 
 
 ## Next Steps
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
   <Card title="Send and Receive Paths" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
-    Decision guide across all methods above
+    Path A–E decision guide
   </Card>
-  <Card title="Transports" icon="server" href="/developers/sdks/dotnet/api-reference/transports">
-    ServerTransport, SQLiteTransport, and MemoryTransport
+  <Card title="Quickstart" icon="rocket" href="/developers/sdks/dotnet/getting-started/quickstart">
+    Path B worked example
+  </Card>
+  <Card title="VersionResource" icon="code-branch" href="/developers/sdks/dotnet/api-reference/resources/version">
+    Publish after Send or Send2
   </Card>
 </CardGroup>
