@@ -19,9 +19,13 @@ When a desktop connector converts an entire host-application model — tens of t
 
 ## Prerequisites
 
-- Speckle Server version 3.0.3 or later ([`client.Server.IsWorkspaceEnabled()`](/developers/sdks/dotnet/api-reference/resources/server) doesn't gate this). On server 3.0.11+, call [`model.CanCreateModelIngestion`](/developers/sdks/dotnet/api-reference/resources/model#methods) to verify availability; on 3.0.3–3.0.10, confirm with your server admin.
+- Speckle Server version 3.0.3 or later ([`client.Server.IsWorkspaceEnabled()`](/developers/sdks/dotnet/api-reference/resources/server) doesn't gate this). On server 3.0.11+, call [`client.Model.CanCreateModelIngestion(project.id, model.id)`](/developers/sdks/dotnet/api-reference/resources/model#methods) to verify availability; on 3.0.3–3.0.10, confirm with your server admin.
 - [Authentication](/developers/sdks/dotnet/getting-started/authentication) and a [project and model](/developers/sdks/dotnet/api-reference/resources/model) already created
 - Familiarity with [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths)
+
+<Info>
+Detecting whether a server supports model ingestion at all, and telling that apart from a user simply lacking permission, is exactly the pattern covered in [Handling Server Capabilities and Permissions](/developers/sdks/dotnet/guides/handling-server-capabilities) — read it before writing the availability check below for anything beyond a one-off script.
+</Info>
 
 ## Complete Example
 
@@ -196,6 +200,9 @@ await client.Ingestion.FailWithCancel(
 <CardGroup cols={2}>
   <Card title="Send and Receive Paths" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
     When SendPipeline is the right choice
+  </Card>
+  <Card title="Handling Server Capabilities and Permissions" icon="shield-check" href="/developers/sdks/dotnet/guides/handling-server-capabilities">
+    Detect old-server incompatibility without brute-force try/catch
   </Card>
   <Card title="ModelIngestionResource" icon="upload" href="/developers/sdks/dotnet/api-reference/resources/ingestion">
     Full ingestion lifecycle API reference
