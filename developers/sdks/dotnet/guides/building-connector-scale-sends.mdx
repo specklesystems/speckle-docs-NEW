@@ -82,7 +82,7 @@ This example follows the streaming pattern used by every Speckle desktop connect
 
 ### 1. Create the Ingestion Job
 
-An ingestion is the server-side tracking record for this upload. It starts in a `processing` state:
+An ingestion is the server-side tracking record for this upload:
 
 ```csharp
 var sourceData = new SourceDataInput("my-connector", "1.0.0", fileName: null, fileSizeBytes: null);
@@ -99,11 +99,11 @@ var ingestion = await client.Ingestion.Create(
 
 ```csharp
 using var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
-    .CreateInstance(ingestion, client.Account, uploadProgress, cancellationToken);
+    .CreateInstance(ingestion, client.Account, new Progress<StreamProgressArgs>(), cancellationToken: default);
 ```
 
 <Warning>
-Don't call `Process` once with your entire object graph. `Process` serializes exactly the object you pass it (not its children) and writes it to a local, gzip-compressed NDJSON file — it does not recursively walk detached properties for you. Call it once per object, bottom-up, exactly like you'd traverse and convert the graph yourself: convert a leaf object, `Process` it, get back an `ObjectReference`, and attach that reference to the object's parent. Process the root object last, after every child it references has already been processed.
+`Process` **does** recursively serialize an entire object graph in one call — including nested `Base` values marked `[DetachProperty]` or prefixed with `@` — and writes every resulting object (root and detached children) to the local, gzip-compressed NDJSON file. The reason production connectors still call `Process` bottom-up, once per converted element, and substitute a lightweight `ObjectReference` in the parent instead of keeping the full child object, is **memory**, not a limitation of `Process` itself: converting an entire host-application model into one in-memory `Base` graph before calling `Process` would require holding every converted mesh and property in memory at once. Processing and writing each object as soon as it's converted lets you drop it from memory immediately afterward.
 </Warning>
 
 ```csharp
@@ -184,14 +184,14 @@ await client.Ingestion.FailWithCancel(
   <Accordion title="Calling client.Ingestion.Complete after WaitForUpload">
     This is unnecessary for the `SendPipeline` pathway and isn't how any current Speckle connector uses this API — see [Finding Out When the Version Is Ready](#3-finding-out-when-the-version-is-ready) above. `Complete` exists for a different, manual ingestion-tracking pattern built around `Send2`.
   </Accordion>
-  <Accordion title="Processing an entire object graph in one Process() call">
-    `Process` only serializes the single object you pass it; it does not recurse into detached children. Passing your whole root object without first processing its children means those children are never written to the pack, and deserialization on receive will fail to resolve their references.
+  <Accordion title="Building the whole model in memory before calling Process() once">
+    `Process` does correctly serialize and write an entire nested object graph — including detached children — from a single call at the root. The reason to avoid this pattern at connector scale isn't correctness, it's memory: converting every element of a large host-application model before calling `Process` means holding the whole converted graph in memory at once. Convert and `Process` bottom-up instead, replacing each processed child with its `ObjectReference` in the parent, so converted objects can be released from memory as soon as they're written to disk.
   </Accordion>
   <Accordion title="Object IDs don't match IDs from Operations.Send">
     `SendPipeline` uses a different serializer than `Send`/`Send2`. Don't compare or reuse IDs across the two pathways — see [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths).
   </Accordion>
   <Accordion title="404 or unsupported errors calling client.Ingestion methods">
-    The Model Ingestion API requires server version 3.0.3 or later. On 3.0.11+, use `model.CanCreateModelIngestion` to verify availability before enabling this pathway; on 3.0.3–3.0.10, confirm compatibility with your server admin.
+    The Model Ingestion API requires server version 3.0.3 or later. On 3.0.11+, use `client.Model.CanCreateModelIngestion(project.id, model.id)` to verify availability before enabling this pathway; on 3.0.3–3.0.10, confirm compatibility with your server admin. Don't wrap the whole pathway in a broad `try`/`catch` to detect this — see [Handling Server Capabilities and Permissions](/developers/sdks/dotnet/guides/handling-server-capabilities) for the narrow-catch pattern that tells "server too old" apart from "not authorized."
   </Accordion>
 </AccordionGroup>
 
