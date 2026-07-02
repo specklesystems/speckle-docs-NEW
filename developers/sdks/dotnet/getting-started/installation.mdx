@@ -1,19 +1,20 @@
 ---
 title: "Installation"
-description: "Install Speckle.Sdk and set up your .NET project"
+description: "Set up a C# project for Speckle automation — NuGet packages and one-time bootstrap"
+sidebarTitle: "Installation"
 ---
 
-When you add Speckle to a .NET app, you install NuGet packages, register the SDK once at startup, and optionally add `Speckle.Objects` for geometry types.
+Set up a C# project for Speckle automation: install NuGet packages, register the SDK once at startup, and optionally add `Speckle.Objects` when you work with geometry types.
 
-**When to read this:** before your first compile against Speckle.Sdk. **Read next:** [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) for copy-paste bootstrap, then [Authentication](/developers/sdks/dotnet/getting-started/authentication).
+**When to read this:** before your first compile against Speckle.Sdk. **Read next:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool), then [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) for the canonical bootstrap snippet.
 
 ## Requirements
 
 Speckle.Sdk targets three frameworks, so it runs in both modern and legacy host apps:
 
-| Target framework | Typical use case |
-|-------------------|--------------------------------------------------|
-| `net10.0`         | New standalone .NET applications and services    |
+| Target framework   | Typical use case                                    |
+| ------------------ | --------------------------------------------------- |
+| `net10.0`          | New standalone .NET applications and services       |
 | `net8.0`           | Current-generation .NET applications and services |
 | `netstandard2.0`   | Older host apps, such as Revit on .NET Framework 4.8 |
 
@@ -35,7 +36,7 @@ Or add the package reference directly to your `.csproj`:
 </ItemGroup>
 ```
 
-### Install a Specific Version
+### Install a specific version
 
 ```bash
 dotnet add package Speckle.Sdk --version 3.21.1
@@ -49,9 +50,9 @@ Check [NuGet](https://www.nuget.org/packages/Speckle.Sdk) for the latest publish
 Speckle.Sdk's public API may not be wholly stable between releases. Pin an explicit version rather than using a floating range in production projects, and review release notes before upgrading.
 </Warning>
 
-## Add Geometry Support (Optional)
+## Add geometry support (optional)
 
-If you plan to work with geometry (Point, Line, Mesh, Brep, and other primitives), also install `Speckle.Objects`:
+If you plan to work with geometry (`Point`, `Line`, `Mesh`, `Brep`, and other primitives), also install `Speckle.Objects`:
 
 ```bash
 dotnet add package Speckle.Objects
@@ -61,9 +62,9 @@ dotnet add package Speckle.Objects
 `Speckle.Objects` is a separate package from `Speckle.Sdk`. The core SDK handles sending, receiving, and the object model; `Speckle.Objects` adds the default geometry types built on top of it.
 </Note>
 
-## Register the SDK (One-Time Bootstrap)
+## Register the SDK (one-time bootstrap)
 
-Speckle.Sdk uses `Microsoft.Extensions.DependencyInjection` internally. **Scripts and notebook authors:** treat this as copy-paste boilerplate — see [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) for the citizen-developer path. **Connector and service authors:** register on your app's `IServiceCollection` as shown below.
+Speckle.Sdk uses `Microsoft.Extensions.DependencyInjection` internally. **Script authors:** use the canonical bootstrap in [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) — do not duplicate it here. **Connector authors:** register on your app's `IServiceCollection`:
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Microsoft.Extensions.DependencyInjection;
@@ -75,20 +76,10 @@ var provider = services.BuildServiceProvider();
 ```
 
 <Note>
-This is the only setup block you need for the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart). The [Dependency Injection](/developers/sdks/dotnet/concepts/dependency-injection) concept page explains what `AddSpeckleSdk` registers — read it only if you are building a connector or sharing a container with a host app.
+Pass `Speckle.Objects` or custom type assemblies in `AddSpeckleSdk` when you receive those types — see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) for the full bootstrap with assemblies.
 </Note>
 
-If you use `Speckle.Objects` or your own custom `Base`-derived types, pass their assemblies so the SDK can resolve them during deserialization:
-
-```csharp Example lines icon="/images/developers/sdks/csharp.svg"
-services.AddSpeckleSdk(
-    new Application("My App", "my-app"),
-    "1.0.0",
-    assemblies: [typeof(Speckle.Sdk.Models.Base).Assembly, typeof(Speckle.Objects.Geometry.Point).Assembly]
-);
-```
-
-## Verify Installation
+## Verify installation
 
 Confirm the package resolves and the SDK registers correctly:
 
@@ -109,14 +100,14 @@ Console.WriteLine("Speckle.Sdk registered successfully!");
 
 Speckle.Sdk brings in these dependencies automatically:
 
-| Package                              | Purpose                                  |
-|---------------------------------------|-------------------------------------------|
-| `Microsoft.Extensions.DependencyInjection` | Service registration and resolution   |
-| `Microsoft.Extensions.Logging`        | Structured logging                        |
-| `GraphQL.Client`                      | GraphQL client for Speckle Server's API   |
-| `Microsoft.Data.Sqlite`               | Local object and account caching          |
-| `Speckle.Newtonsoft.Json`             | Serialization                             |
-| `Speckle.DoubleNumerics`              | Numeric types used by the object model    |
+| Package                                    | Purpose                                 |
+| ------------------------------------------ | --------------------------------------- |
+| `Microsoft.Extensions.DependencyInjection` | Service registration and resolution     |
+| `Microsoft.Extensions.Logging`             | Structured logging                      |
+| `GraphQL.Client`                           | GraphQL client for Speckle Server's API |
+| `Microsoft.Data.Sqlite`                    | Local object and account caching        |
+| `Speckle.Newtonsoft.Json`                  | Serialization                           |
+| `Speckle.DoubleNumerics`                   | Numeric types used by the object model  |
 
 <Info>
 You don't need to install these manually — NuGet handles them automatically. `Speckle.Sdk.Dependencies` bundles additional transitive dependencies and should not be referenced directly.
@@ -126,10 +117,10 @@ You don't need to install these manually — NuGet handles them automatically. `
 
 <AccordionGroup>
   <Accordion title="Do I need both Speckle.Sdk and Speckle.Objects?">
-    **Speckle.Sdk** is required for sending, receiving, and the object model. Add **Speckle.Objects** only when you use built-in geometry types (`Point`, `Line`, `Mesh`, and so on). Pass the `Speckle.Objects` assembly in `AddSpeckleSdk` so those types deserialize on receive.
+    **Speckle.Sdk** is required for sending, receiving, and the object model. Add **Speckle.Objects** when you use built-in geometry types (`Point`, `Line`, `Mesh`, and so on). Pass the `Speckle.Objects` assembly in `AddSpeckleSdk` so those types deserialize on receive.
   </Accordion>
   <Accordion title="Do I need to understand dependency injection to install the SDK?">
-    No. You paste a short `AddSpeckleSdk` block once — see [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). Read [Dependency Injection](/developers/sdks/dotnet/concepts/dependency-injection) only if you are building a connector or sharing a container with a host app.
+    No. You paste a short `AddSpeckleSdk` block once — see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). Read [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection) only if you are building a connector or sharing a container with a host app.
   </Accordion>
   <Accordion title="Which target framework should I use?">
     Match your host app. Use `netstandard2.0` for older hosts such as Revit on .NET Framework 4.8. Use `net8.0` or `net10.0` for new standalone apps and services.
@@ -139,13 +130,13 @@ You don't need to install these manually — NuGet handles them automatically. `
 ## Next Steps
 
 <CardGroup cols={3}>
-  <Card title="Dependency Injection" icon="book" href="/developers/sdks/dotnet/concepts/dependency-injection">
-    What AddSpeckleSdk registers — for connectors
+  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+    End-to-end load, traverse, and CSV export
   </Card>
-  <Card title="Scripts and Notebooks" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
-    Copy-paste bootstrap and Send2
+  <Card title="Automate with scripts" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
+    Canonical bootstrap and Send2
   </Card>
-  <Card title="Service Registration" icon="code" href="/developers/sdks/dotnet/api-reference/service-registration">
-    AddSpeckleSdk signature and options
+  <Card title="Authentication" icon="key" href="/developers/sdks/dotnet/getting-started/authentication">
+    Connect with a personal access token
   </Card>
 </CardGroup>
