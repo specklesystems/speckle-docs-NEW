@@ -1,11 +1,12 @@
 ---
 title: "Authentication"
-description: "Learn how to authenticate with Speckle Server from .NET"
+description: "Connect your C# automation to Speckle Server — personal access tokens, environment variables, and desktop login"
+sidebarTitle: "Authentication"
 ---
 
-Before your code can create projects, send data, or call Speckle Server, Speckle.Sdk needs an **Account** (a token plus server and user metadata) and an **IClient** built from it.
+Connect your automation to Speckle Server. Before your code can load model data or publish results, SpeckleSharp needs an **Account** (a token plus server and user metadata) and an **IClient** built from it.
 
-**What this page covers:** the three .NET ways to obtain an Account — personal access token, interactive browser login, and locally stored accounts. **When to read it:** before any server call in a new app. **Read next:** [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) (token-based scripts) or [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) (full workflow tour).
+**What this page covers:** the three .NET ways to obtain an Account — personal access token, interactive browser login, and locally stored accounts. **When to read it:** before any server call in a new app. **Read next:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) or [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
 
 <Info>
 For how to create a personal access token or register an OAuth application, see [Building with PATs](/developers/authentication/pats) and [OAuth 2.0](/developers/authentication/oauth2). This page covers the .NET-specific code that consumes them.
@@ -23,14 +24,14 @@ Speckle.Sdk exposes three ways to get an `Account`:
 
 ## Choosing an Authentication Method
 
-- **A script, service, automation, or CI/CD pipeline** — use a [personal access token](#token-based-authentication-recommended-for-scripts-and-services) via `IAccountFactory.CreateAccount`. Doesn't touch `Accounts.db` — in-memory only.
+- **A script, service, automation, or CI/CD pipeline** — use a [personal access token](#token-based-authentication-recommended-for-aec-scripts) via `IAccountFactory.CreateAccount`. Doesn't touch `Accounts.db` — in-memory only.
 - **A multi-user server or web backend that already manages its own user tokens** — perform your own OAuth exchange (see [OAuth 2.0](/developers/authentication/oauth2)), then pass the resulting token to `IAccountFactory.CreateAccount`. Doesn't touch `Accounts.db` — in-memory only.
-- **A desktop connector or CLI tool meant to share login state with Speckle's desktop ecosystem** — use [interactive login](#interactive-login-desktop-applications) via `IAccountManager.AuthenticateAccount`. Always writes to `Accounts.db`, by design.
+- **A desktop connector or CLI tool meant to share login state with Speckle's desktop ecosystem** — use [interactive login](#interactive-login-connectors-and-desktop-apps) via `IAccountManager.AuthenticateAccount`. Always writes to `Accounts.db`, by design.
 - **Any app reusing a login a user already created via a Speckle desktop connector or `AuthenticateAccount`** — use [locally stored accounts](#reusing-locally-stored-accounts) via `GetAccounts`/`GetDefaultAccount`. Read-only access to `Accounts.db`.
 
-## Token-Based Authentication (Recommended for Scripts and Services)
+## Token-based authentication (recommended for AEC scripts)
 
-The most direct path: build an `Account` from an existing personal access token using `IAccountFactory`.
+The recommended approach for most AEC automation scripts: build an `Account` from a personal access token using `IAccountFactory`.
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Microsoft.Extensions.DependencyInjection;
@@ -83,9 +84,11 @@ var account = await accountFactory.CreateAccount(new Uri(serverUrl), token);
   </Tab>
 </Tabs>
 
-## Interactive Login (Desktop Applications)
+## Interactive login (connectors and desktop apps)
 
-For desktop or connector-style applications where a user should sign in through the browser **and** you want that login to be reusable across Speckle's desktop ecosystem (so the user doesn't have to sign in again in Rhino, Revit, Grasshopper, or your own tool), use `IAccountManager.AuthenticateAccount`. This opens a browser window and completes an OAuth PKCE flow.
+Avoid this section unless you are building a connector or desktop tool. For scripts, QA automations, and Grasshopper send/receive, use a PAT from the section above.
+
+For desktop or connector-style applications where a user should sign in through the browser **and** you want that login to be reusable across Speckle's desktop ecosystem, use `IAccountManager.AuthenticateAccount`. This opens a browser window and completes an OAuth PKCE flow.
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Sdk.Credentials;
@@ -186,13 +189,13 @@ if (!string.IsNullOrEmpty(account.token))
 ## Next Steps
 
 <CardGroup cols={3}>
-  <Card title="Core Concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
-    Platform map and send paths
+  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+    Load model data after authenticating
   </Card>
-  <Card title="Scripts and Notebooks" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
-    Send and receive with Send2
+  <Card title="Automate with scripts" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
+    Bootstrap and Receive2
   </Card>
-  <Card title="Client API" icon="code" href="/developers/sdks/dotnet/api-reference/client">
-    Build IClient from your Account
+  <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+    Platform map and mental model
   </Card>
 </CardGroup>
