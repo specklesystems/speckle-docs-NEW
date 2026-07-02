@@ -1,0 +1,179 @@
+---
+title: "Working with Geometry"
+description: "Create, read, and extract Mesh and Point geometry with Speckle.Objects"
+---
+
+## Overview
+
+`Speckle.Objects` (a separate package from `Speckle.Sdk`) defines the built-in geometry kit — `Mesh`, `Point`, `Line`, `Polyline`, `Brep`, and more — used for `displayValue` geometry and general 3D data exchange. This guide covers constructing a `Mesh`, reading its flat data arrays, and extracting geometry from received objects.
+
+<Info>
+Install the package separately: `dotnet add package Speckle.Objects`. It isn't a dependency of `Speckle.Sdk` — you only need it if you're producing or consuming geometry directly (most connector conversion code does; simple metadata-only integrations don't).
+</Info>
+
+## Prerequisites
+
+- [Display Values](/developers/sdks/dotnet/concepts/display-values)
+- [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data)
+
+## Complete Example
+
+```csharp
+using Speckle.Objects.Geometry;
+using Speckle.Sdk.Common;
+using Speckle.Sdk.Models;
+
+// Build a single-triangle mesh
+var mesh = new Mesh
+{
+    vertices = new List<double>
+    {
+        0, 0, 0,   // vertex 0
+        1, 0, 0,   // vertex 1
+        0, 1, 0,   // vertex 2
+    },
+    faces = new List<int> { 3, 0, 1, 2 }, // one triangle (3-gon) using vertices 0,1,2
+    units = Units.Meters,
+};
+
+var wall = new Base();
+wall["name"] = "Wall 01";
+wall["displayValue"] = new List<Mesh> { mesh };
+
+Console.WriteLine($"Mesh has {mesh.VerticesCount} vertices");
+```
+
+## Step-by-Step Explanation
+
+### Mesh Data Layout
+
+`Mesh.vertices` and `Mesh.faces` are flat lists, not arrays of structs — this keeps serialization compact for models with millions of vertices:
+
+- `vertices`: flat `x, y, z, x, y, z, ...` triples
+- `faces`: each face starts with its vertex count (n-gon size), followed by that many vertex indices — `[3, 0, 1, 2, 4, 1, 2, 3, 4]` is one triangle then one quad
+
+```csharp
+// Reading raw vertex data (fast path for large meshes)
+for (var i = 0; i < mesh.vertices.Count; i += 3)
+{
+    double x = mesh.vertices[i];
+    double y = mesh.vertices[i + 1];
+    double z = mesh.vertices[i + 2];
+}
+
+// Reading as Point objects (convenient, has allocation overhead)
+List<Point> points = mesh.GetPoints();
+Point first = mesh.GetPoint(0);
+```
+
+<Tip>
+Use `GetPoints()`/`GetPoint(index)` for convenience on small meshes or one-off inspection. For performance-sensitive code over large meshes, iterate `vertices` directly as shown above — `GetPoints()` allocates a `Point` per vertex.
+</Tip>
+
+Parsing `faces` requires walking the flat list respecting each face's declared length, since faces aren't fixed-size:
+
+```csharp
+var triangleCount = 0;
+var i = 0;
+while (i < mesh.faces.Count)
+{
+    int faceSize = mesh.faces[i];
+    // vertex indices for this face: mesh.faces[i+1 .. i+faceSize]
+    if (faceSize == 3) triangleCount++;
+    i += faceSize + 1;
+}
+```
+
+<Warning>
+Speckle meshes support n-gons, not just triangles. If your consumer requires triangles (most 3D engines do), triangulate n-gons with more than 3 vertices before rendering — see `MeshTriangulationHelper` in `Speckle.Objects.Utils` for a reference implementation.
+</Warning>
+
+### Units
+
+Every geometry type carries its own `units` string (one of the constants on `Speckle.Sdk.Common.Units` — `Units.Meters`, `Units.Millimeters`, `Units.Feet`, and so on). Geometry from different objects in the same graph can be in different units; don't assume a project-wide unit.
+
+```csharp
+using Speckle.Sdk.Common;
+
+var point = new Point(1.0, 2.0, 0.0, Units.Millimeters);
+```
+
+### Extracting Geometry from Received Data
+
+Combine `Flatten()` with a type check to collect all meshes in a received graph — see [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data) for the general traversal pattern this builds on:
+
+```csharp
+using Speckle.Objects.Geometry;
+using Speckle.Sdk.Models.Extensions;
+
+var meshes = receivedData.Flatten().OfType<Mesh>().ToList();
+Console.WriteLine($"Found {meshes.Count} meshes");
+```
+
+Most BIM objects don't carry geometry directly — it's nested in `displayValue`. Use `TryGetDisplayValue<T>` to read it, whether it's detached (`@displayValue`) or inline:
+
+```csharp
+using Speckle.Sdk.Models.Extensions;
+
+foreach (var obj in receivedData.Flatten())
+{
+    var displayMeshes = obj.TryGetDisplayValue<Mesh>();
+    if (displayMeshes is null)
+    {
+        continue;
+    }
+
+    foreach (var mesh in displayMeshes)
+    {
+        Console.WriteLine($"{obj.TryGetName()}: {mesh.VerticesCount} vertices");
+    }
+}
+```
+
+### Material
+
+`RenderMaterial` (in `Speckle.Objects.Other`) carries color and PBR-style properties, and is typically set as a dynamic `renderMaterial` property alongside `displayValue`, not as a typed property on the geometry:
+
+```csharp
+using Speckle.Objects.Other;
+using System.Drawing;
+
+var material = new RenderMaterial
+{
+    name = "Concrete",
+    diffuse = Color.LightGray.ToArgb(),
+    opacity = 1.0,
+};
+
+mesh["renderMaterial"] = material;
+```
+
+For materials shared across many objects, use `RenderMaterialProxy` instead of setting `renderMaterial` on every object individually — see [Working with Proxies](/developers/sdks/dotnet/guides/working-with-proxies).
+
+## Common Pitfalls
+
+<AccordionGroup>
+  <Accordion title="IndexOutOfRangeException reading vertices/faces">
+    `vertices.Count` must be a multiple of 3; a malformed `faces` list (wrong n-gon size prefix) throws indexing errors when walked manually. Validate list lengths before processing geometry from untrusted sources.
+  </Accordion>
+  <Accordion title="Mesh renders with holes or looks wrong in a triangle-only viewer">
+    The mesh likely contains n-gons (quads or larger). Triangulate before handing off to a rendering pipeline that only supports triangles.
+  </Accordion>
+  <Accordion title="GetPoints() is slow on large meshes">
+    It allocates one `Point` object per vertex. Iterate the `vertices` flat list directly in hot paths instead.
+  </Accordion>
+  <Accordion title="Sent geometry doesn't appear in the viewer">
+    Geometry must be reachable via a `displayValue` property on some object in the graph — see [Display Values](/developers/sdks/dotnet/concepts/display-values). A bare `Mesh` at the root of your sent object, with no container and no `displayValue` wrapper, will not render.
+  </Accordion>
+</AccordionGroup>
+
+## Related Guides
+
+<CardGroup cols={2}>
+  <Card title="Display Values" icon="eye" href="/developers/sdks/dotnet/concepts/display-values">
+    How displayValue makes objects visible in the viewer
+  </Card>
+  <Card title="Finding and Extracting Data" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
+    General traversal and filtering patterns
+  </Card>
+</CardGroup>
