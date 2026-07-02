@@ -1,53 +1,35 @@
 ---
 title: ".NET SDK concepts"
-description: "Understand the fundamental concepts of Speckle.Sdk and Speckle"
+description: "How Speckle.Sdk maps onto Speckle's platform — client, operations, transports, and object lifecycle"
 ---
 
-When you send or receive data with Speckle.Sdk, you work with **objects** (not files), organized in **projects**, **models**, and **versions**, moved by **operations** over a **transport**. This page explains that mental model in .NET terms before you dive into API reference or advanced guides.
+This page is the .NET-specific map: which SDK types talk to the server, how send/receive fits together, and footguns that only show up in code. For the platform model — object-based exchange, DataObject, Collection, proxies — start with [Data Schema Overview](/developers/data-schema/overview), [Object Schema](/developers/data-schema/object-schema), and [Key Concepts](/developers/key-concepts).
 
 <Info>
-**Scripts, notebooks, Grasshopper C#:** start at [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) if DI-heavy examples elsewhere feel unfamiliar. The object model on this page is the same regardless of how you bootstrap the SDK.
+**Scripts, notebooks, Grasshopper C#:** start at [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) if DI-heavy examples elsewhere feel unfamiliar.
 </Info>
 
-<Info>
-This page covers the .NET-specific mental model: the `Client`, `Operations`, and how they map onto Speckle's platform concepts. For the language-agnostic structure of that data — Collections, DataObjects, Proxies — see [Data Schema Overview](/developers/data-schema/overview).
-</Info>
+## Platform Concepts
 
-## The Speckle Data Model
-
-Speckle uses an **object-based** approach rather than a file-based one — data lives as individual objects, transferred incrementally, with built-in version control.
-
-## Projects, Models, and Versions
-
-Speckle organizes data in a three-level hierarchy:
-
-```
-Project
-  └─ Model
-      └─ Version
-          └─ Object (root object + children)
-```
+Speckle organizes data as **projects → models → versions → object graphs**, not files. The GraphQL API exposes projects, models, and versions; `IOperations` moves object graphs to and from storage. Full hierarchy and schema rationale: [Data Schema Overview](/developers/data-schema/overview#projects-models-and-versions-as-addresses).
 
 `IClient` exposes each level as a typed resource:
 
 ```csharp
-// Projects are top-level containers for related work
 var project = await client.Project.Create(new ProjectCreateInput("Office Renovation", null, ProjectVisibility.Private));
-
-// Models are branches within a project (e.g. "structural", "MEP")
 var model = await client.Model.Create(new CreateModelInput("Structural Model", null, project.id));
-
-// Versions are immutable snapshots referencing a sent object by its id
 var version = await client.Version.Create(new CreateVersionInput(objectId, model.id, project.id, "Updated beam sizing"));
 ```
 
 <Info>
-Projects replace what used to be called "Streams" in prior versions of Speckle — some lower-level APIs (transports, `Send`/`Receive`) still use `streamId` as a parameter name for what is now the project ID.
+Some lower-level APIs (transports, `Send`/`Receive`) still use `streamId` for what the GraphQL API calls `projectId`. Pass your project's `id` — they are the same value.
 </Info>
+
+Object modeling (`Base`, `DataObject`, `Collection`, detachment, `displayValue`): [Objects, detachment, and traversal](/developers/sdks/dotnet/concepts/objects-and-traversal).
 
 ## Object IDs (Hashes)
 
-Every sent object has a unique **object ID**, deterministically generated from its content. Identical content produces the identical ID, which enables deduplication and incremental sync.
+Every sent object has a unique **object ID**, deterministically generated from its content.
 
 <Warning>
 `Base.GetId()` is obsolete and does not match the IDs produced by every send path. Always use the ID returned by the send operation you actually called (`Operations.Send`, `Send2`, or `SendPipeline`) rather than computing it separately.
@@ -55,73 +37,35 @@ Every sent object has a unique **object ID**, deterministically generated from i
 
 ## Operations: Send and Receive
 
-`IOperations` provides the core methods for moving object graphs to and from storage. There are several distinct entry points — see [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) for when to use which.
+`IOperations` provides the core methods for moving object graphs. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) for when to use which entry point.
 
 For scripts and notebooks, `Send2`/`Receive2` is the usual choice. The [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) teaches the classic `Send`/`Receive` + `ServerTransport` pair:
 
 ```csharp
 using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
 
-// Send returns the object id and a map of converted references
 var (objectId, _) = await operations.Send(myData, transport, useDefaultCache: true);
-
-// Receive reconstructs the object graph from an id
 var received = await operations.Receive(objectId, remoteTransport: transport);
 ```
-
-<Info>
-`Send` automatically handles serialization, child object detection, chunking of large arrays, deduplication, and parallel uploads.
-</Info>
 
 ## Orphaned Objects
 
 <Warning>
-Objects sent to the server but not referenced by any version are "orphaned" or "zombie" objects. They exist in the database and have an object ID, but are effectively unreachable through the normal Speckle UI or workflows.
+Objects sent to the server but not referenced by any version are **orphaned** — stored with an object ID but unreachable through the Speckle UI until a version references them.
 </Warning>
 
 ```csharp
-// This object is sent but becomes orphaned until a version references it
 var (objectId, _) = await operations.Send(myData, transport, true);
-// ⚠️ Without creating a version, this object is a "zombie"
+// Without creating a version, this object is a "zombie"
 
 var version = await client.Version.Create(new CreateVersionInput(objectId, model.id, project.id, "My data"));
-// Now reachable via this version
 ```
 
-Always create a version after sending data you want users to be able to find.
-
-## The Object Lifecycle
-
-```mermaid
-graph LR
-    A["Create Base object"] --> B["Send<br/><i>(with serialization)</i>"]
-    B --> C["Get object id"]
-    C --> D["Create Version"]
-    D --> E["Get Version"]
-    E --> F["Receive<br/><i>(with deserialization)</i>"]
-```
-
-<Steps>
-  <Step title="Create">
-    Build a `Base`-derived object graph.
-  </Step>
-  <Step title="Send">
-    Send it via `IOperations.Send` and a transport.
-  </Step>
-  <Step title="Version">
-    Create a version referencing the returned object id.
-  </Step>
-  <Step title="Get Version">
-    Retrieve the version to read its `referencedObject`.
-  </Step>
-  <Step title="Receive">
-    Receive the object graph by id.
-  </Step>
-</Steps>
+Always create a version after sending data you want users to find.
 
 ## The Type System
 
-Every object carries a `speckle_type`, derived automatically from its .NET type, which lets `Receive` reconstruct the correct concrete type instead of a generic `Base`:
+Every object carries a `speckle_type`, derived from its .NET type, which lets `Receive` reconstruct the correct concrete type:
 
 ```csharp
 using Speckle.Objects.Geometry;
@@ -131,48 +75,21 @@ Console.WriteLine(point.speckle_type); // "Objects.Geometry.Point"
 ```
 
 <Info>
-For custom types, see [Objects and Traversal](/developers/sdks/dotnet/concepts/objects-and-traversal). For built-in geometry types, see [Working with Geometry](/developers/sdks/dotnet/guides/working-with-geometry).
-</Info>
-
-## Base, DataObject, and Collection
-
-Every Speckle object inherits from `Base`, but the wider Speckle ecosystem — connectors, the viewer, other SDKs — has largely standardized on two building blocks that extend it, rather than everyone hand-rolling their own `Base` subclasses:
-
-- **`DataObject`** (`Speckle.Objects.Data`) — a generic container with `name`, `properties` (a `Dictionary<string, object?>` for semantic data like category or material), and `displayValue` (geometry for the viewer). This is what most current connectors emit for BIM elements — walls, columns, doors — instead of a typed class per element kind.
-- **`Collection`** (`Speckle.Sdk.Models.Collections`) — the standard way to organize a hierarchy (a Rhino layer, a Revit category, a folder of related objects), with a `name` and a `[DetachProperty]` `elements` list. `Collection` ships in `Speckle.Sdk` itself — you don't need the `Speckle.Objects` package for it.
-
-```csharp
-using Speckle.Objects.Data;
-using Speckle.Sdk.Models;
-using Speckle.Sdk.Models.Collections;
-
-var wall = new DataObject
-{
-    name = "Wall 01",
-    properties = new Dictionary<string, object?> { ["material"] = "Concrete", ["category"] = "Walls" },
-    displayValue = new List<Base> { wallMesh },
-};
-
-var walls = new Collection { name = "Walls" };
-walls.elements.Add(wall);
-```
-
-<Info>
-Plain `Base` — dynamic properties, or your own `Base`-derived types (see [Objects and Traversal](/developers/sdks/dotnet/concepts/objects-and-traversal#custom-types)) — still works and is completely valid for self-contained applications where nothing outside your own code needs to interpret the data, such as an internal pipeline that only ever sends to and receives from itself. For anything meant to interoperate with the wider Speckle ecosystem — recognizable by connectors and other scripts, sensible defaults in the viewer — prefer `DataObject` and `Collection`. See [Data Schema Overview](/developers/data-schema/overview) and [Object Schema](/developers/data-schema/object-schema) for the full platform-level rationale and structure.
+Custom types and traversal: [Objects, detachment, and traversal](/developers/sdks/dotnet/concepts/objects-and-traversal). Geometry types: [Working with Geometry](/developers/sdks/dotnet/guides/working-with-geometry).
 </Info>
 
 ## Local Cache
 
-Speckle.Sdk maintains a local SQLite cache under the current user's application data folder (`.../Speckle/`), used automatically by `Send`/`Receive` when `useDefaultCache: true` — reducing network transfers and enabling offline work with previously received data.
+Speckle.Sdk maintains a local SQLite cache under the current user's application data folder (`.../Speckle/`), used automatically by `Send`/`Receive` when `useDefaultCache: true`.
 
 ## FAQ
 
 <AccordionGroup>
   <Accordion title="What happens if I send data but never create a version?">
-    The object is stored on the server with an object ID, but it is **orphaned** — not reachable through the Speckle UI or normal workflows until a version references it. Always create a version after sending data you want others to find.
+    The object is stored on the server with an object ID, but it is **orphaned** until a version references it. Always create a version after sending data you want others to find.
   </Accordion>
   <Accordion title="Should I use Send or Send2?">
-    Use **Send2**/`Receive2` for scripts, notebooks, and most new server-facing code. Use **Send**/`Receive` with an `ITransport` when you follow the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart), need `MemoryTransport`/`SQLiteTransport`, or are integrating with code that already uses transports. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths).
+    Use **Send2**/`Receive2` for scripts, notebooks, and most new server-facing code. Use **Send**/`Receive` with an `ITransport` when you follow the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart), need `MemoryTransport`/`SQLiteTransport`, or integrate with code that already uses transports. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths).
   </Accordion>
   <Accordion title="Why does streamId appear in transport code?">
     Older transport APIs use `streamId` for what the GraphQL API calls `projectId`. Pass your project's `id` — they are the same value.
