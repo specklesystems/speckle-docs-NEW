@@ -3,7 +3,9 @@ title: "Client"
 description: "IClient, ClientFactory, and the GraphQL resource surface"
 ---
 
-After you authenticate, you use `IClient` to call Speckle Server — create projects, list models, publish versions, and check server capabilities. Build it from an `Account` via `IClientFactory` and dispose it when done.
+After you authenticate, you use **`IClient`** to call Speckle Server — create projects, list models, publish versions, and check server capabilities.
+
+**When to use it:** any workflow that creates or reads server metadata (projects, models, versions). **Read next:** [Authentication](/developers/sdks/dotnet/getting-started/authentication) if you have not built an `Account` yet, then [Operations](/developers/sdks/dotnet/api-reference/operations) to send object graphs.
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using var client = provider.GetRequiredService<IClientFactory>().Create(account);
@@ -89,9 +91,23 @@ GraphQL calls automatically retry transient failures. Unrecoverable errors surfa
     Yes — `IClient` is scoped to an account, not a project. Pass different `projectId` values to resource methods as needed.
   </Accordion>
   <Accordion title="How do I know if a server supports workspaces?">
-    Call `client.Server.IsWorkspaceEnabled()`. Self-hosted servers may not have workspaces enabled, in which case `Workspace` resource calls will fail.
+    Call `client.Server.IsWorkspaceEnabled()`. See [Handling Server Capabilities and Permissions](/developers/sdks/dotnet/guides/handling-server-capabilities).
   </Accordion>
   <Accordion title="Do I need to call InitializeWebsocket before using Subscription?">
     No — it's called automatically the first time you subscribe. Call it explicitly only if you want to avoid the ~100ms delay on your first subscription.
   </Accordion>
 </AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Core Concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+    Projects, models, and versions
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/developers/sdks/dotnet/getting-started/quickstart">
+    End-to-end workflow with IClient
+  </Card>
+  <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
+    Send and receive object graphs
+  </Card>
+</CardGroup>
