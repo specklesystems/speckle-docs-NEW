@@ -20,7 +20,7 @@ When you need the authenticated user's profile, their project list, workspace me
 </ResponseField>
 
 <ResponseField name="GetProjectsWithPermissions" type="Task<ResourceCollection<ProjectWithPermissions>> GetProjectsWithPermissions(int limit = 25, string? cursor = null, UserProjectsFilter? filter = null, CancellationToken cancellationToken = default)">
-  Same as `GetProjects`, but each project includes permission checks (`canCreateModel`, `canDelete`, `canLoad`).
+  Same as `GetProjects`, but each project includes a `permissions` field typed as `ProjectPermissionChecks`. This query populates `canCreateModel`, `canDelete`, and `canLoad` only — not `canPublish` (which `client.Project.GetPermissions` still queries but is obsolete in the SDK; use `client.Model.GetPermissions(...).canCreateVersion` for publish checks).
 </ResponseField>
 
 <ResponseField name="GetProjectInvites" type="Task<List<PendingStreamCollaborator>> GetProjectInvites(CancellationToken cancellationToken = default)">
