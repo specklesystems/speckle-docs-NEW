@@ -1,17 +1,22 @@
 ---
-title: "Dependency Injection"
-description: "What AddSpeckleSdk registers, and why Speckle.Sdk is built around DI"
+title: "Dependency injection (connectors)"
+description: "What AddSpeckleSdk registers — for connectors and ASP.NET services only"
+sidebarTitle: "DI (advanced)"
 ---
+
+<Warning>
+**Skip this page** unless you are building a desktop connector, ASP.NET service, or app that shares a DI container with Speckle.Sdk. For scripts, notebooks, and Grasshopper C#, use the bootstrap in [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) and read [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) instead.
+</Warning>
 
 When you build a **connector**, **ASP.NET service**, or any app that shares a DI container with Speckle.Sdk, you register the SDK on your **`IServiceCollection`** and resolve services from that container.
 
-**What this page covers:** what **`AddSpeckleSdk`** registers and why. **When to read it:** connector or service authors only — scripts paste bootstrap from [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). **Read next:** [Service Registration](/developers/sdks/dotnet/api-reference/service-registration) for the full signature.
+**What this page covers:** what **`AddSpeckleSdk`** registers and why. **When to read it:** connector or service authors only — scripts paste bootstrap from [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). **Read next:** [Service Registration](/developers/sdks/dotnet/api-reference/service-registration) for the full signature.
 
 ## When to Read This Page
 
 | You are… | Start here instead |
 |----------|-------------------|
-| Writing a script, notebook cell, or Grasshopper C# component | [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) — copy the bootstrap, skip this page |
+| Writing a script, notebook cell, or Grasshopper C# component | [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) — copy the bootstrap, skip this page |
 | Following the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) for the first time | Finish the quickstart first; come back here only if you need to customize registration |
 | Building a connector, ASP.NET service, or app that shares a DI container with Speckle.Sdk | This page |
 
@@ -20,7 +25,7 @@ When you build a **connector**, **ASP.NET service**, or any app that shares a DI
 Unlike specklepy's import-and-go model, Speckle.Sdk resolves almost everything you'll use — the client factory, account manager, operations, transports — from an `Microsoft.Extensions.DependencyInjection` container. This lets host applications (Revit, Rhino, ASP.NET services) share a single DI container with the SDK, and lets the SDK swap implementations (logging, activity tracing, metrics) without changing your code.
 
 <Info>
-**Scripts and notebooks:** you still call `AddSpeckleSdk` once, but you do not need this page. See [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
+**Scripts and notebooks:** you still call `AddSpeckleSdk` once, but you do not need this page. See [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
 </Info>
 
 ## What `AddSpeckleSdk` Registers
@@ -102,7 +107,7 @@ This lets Speckle.Sdk share your application's logging configuration (`AddLoggin
 
 <AccordionGroup>
   <Accordion title="I'm writing a script — do I need this page?">
-    No. Copy the bootstrap from [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) and resolve `IOperations` and `IClientFactory` from the static helper. You do not register your own services unless you integrate with a host container.
+    No. Copy the bootstrap from [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) and resolve `IOperations` and `IClientFactory` from the static helper. You do not register your own services unless you integrate with a host container.
   </Accordion>
   <Accordion title="Why did Receive return Base instead of my custom type?">
     Pass your custom type's assembly to `AddSpeckleSdk` so `TypeLoader` can resolve `speckle_type` during deserialization. Without it, unknown types fall back to plain `Base`.
@@ -115,10 +120,10 @@ This lets Speckle.Sdk share your application's logging configuration (`AddLoggin
 ## Next Steps
 
 <CardGroup cols={3}>
-  <Card title="Core Concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+  <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
     Platform map before connector wiring
   </Card>
-  <Card title="Building Connector-Scale Sends" icon="upload" href="/developers/sdks/dotnet/guides/building-connector-scale-sends">
+  <Card title="Publish large models (connectors)" icon="upload" href="/developers/sdks/dotnet/guides/building-connector-scale-sends">
     SendPipeline in production connectors
   </Card>
   <Card title="Service Registration" icon="code" href="/developers/sdks/dotnet/api-reference/service-registration">
