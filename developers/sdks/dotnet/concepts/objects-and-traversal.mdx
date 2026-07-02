@@ -1,15 +1,39 @@
 ---
-title: "Objects, detachment, and traversal"
-description: "The Base class, DataObject, detachment, display values, and walking a Speckle object graph in .NET"
+title: "Work with model objects"
+description: "DataObject, Collection, Base, display values, and traversing Speckle model data in .NET"
+sidebarTitle: "Objects"
 ---
 
-When you send or receive Speckle data in .NET, you work with **`Base`** objects — typed and dynamic properties, nested graphs, optional detachment, and **`displayValue`** for viewer visibility.
+When you load model data from Speckle, you work with **`DataObject`** (BIM elements), **`Collection`** (hierarchy), and **`Base`** (foundation type). Connector-published walls, doors, and rooms are usually `DataObject` instances with BIM fields in **`properties`**.
 
-**When to read this:** before modeling data or walking a received graph. **Read next:** platform [Object Schema](/developers/data-schema/object-schema) for wire format, then [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data) for filter recipes.
+**When to read this:** before filtering or exporting model data. **Read next:** [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data) for filter recipes, or [BIM data patterns](/developers/sdks/dotnet/guides/bim-data-patterns) for connector data structure.
 
 <Info>
-**Scripts and notebooks:** you use the same `Base` type whether you bootstrap with [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) or follow the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart). For filtering and indexing recipes, see [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data).
+For filtering and indexing recipes, see [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data). Bootstrap: [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
 </Info>
+
+## Find doors and walls in received data
+
+After `Receive2`, use `Flatten()` and read `DataObject.properties`:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Objects.Data;
+using Speckle.Sdk.Models.Extensions;
+
+var doors = root.Flatten()
+    .OfType<DataObject>()
+    .Where(d => d.properties.GetValueOrDefault("category")?.ToString()?.Contains("Door") == true);
+
+foreach (var door in doors)
+{
+    var name = door.name;
+    var level = door.properties.GetValueOrDefault("level");
+    var fireRating = door.properties.GetValueOrDefault("fireRating");
+    Console.WriteLine($"{name} — level: {level}, fire rating: {fireRating}");
+}
+```
+
+The traversal API is `Flatten()` on `Base`. The BIM fields live in `properties`, not in typed `Door` classes.
 
 ## DataObject and Collection
 
@@ -125,7 +149,7 @@ public required List<double> Measurements { get; set; }
 ```
 
 <Note>
-`[Chunkable]` is honored by `Serialize`/`Send`/`Send2`. The connector-scale `SendPipeline` path (see [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends)) detaches on `[DetachProperty]` but does not currently act on `[Chunkable]`.
+`[Chunkable]` is honored by `Serialize`/`Send`/`Send2`. The connector-scale `SendPipeline` path (see [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends)) detaches on `[DetachProperty]` but does not currently act on `[Chunkable]`.
 </Note>
 
 <Warning>
@@ -222,14 +246,14 @@ foreach (var traversalContext in results)
 `DefaultTraversal` understands `elements`/`@elements`, `displayValue`/`@displayValue`, and `definition`/`@definition`.
 
 <Info>
-Platform traversal patterns: [Traversal Recipes](/developers/data-schema/traversal-recipes). .NET filter/index recipes: [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data).
+Platform traversal patterns: [Traversal Recipes](/developers/data-schema/traversal-recipes). .NET filter/index recipes: [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data).
 </Info>
 
 ## FAQ and Pitfalls
 
 <AccordionGroup>
   <Accordion title="Why did my custom type deserialize as plain Base?">
-    The type's assembly was not passed to `AddSpeckleSdk`. Register it in the `assemblies` argument — see [Dependency Injection](/developers/sdks/dotnet/concepts/dependency-injection#registering-your-own-types).
+    The type's assembly was not passed to `AddSpeckleSdk`. Register it in the `assemblies` argument — see [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection#registering-your-own-types).
   </Accordion>
   <Accordion title="When should I use Flatten vs GraphTraversal?">
     Use **Flatten** for simple filtering or indexing on small-to-medium graphs. Use **GraphTraversal** with `DefaultTraversal` when you need connector-style rules on large BIM graphs.
@@ -251,10 +275,10 @@ Platform traversal patterns: [Traversal Recipes](/developers/data-schema/travers
 ## Next Steps
 
 <CardGroup cols={3}>
-  <Card title="Core Concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+  <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
     Projects, models, and version lifecycle
   </Card>
-  <Card title="Finding and Extracting Data" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
+  <Card title="Find objects by property" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
     Flatten, filter, and index recipes
   </Card>
   <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
