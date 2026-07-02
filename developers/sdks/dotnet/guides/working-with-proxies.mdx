@@ -1,11 +1,29 @@
 ---
-title: "Working with Proxies"
-description: "Resolve group, color, and instance proxies back to the objects they describe"
+title: "Resolve groups and instances"
+description: "Resolve group, level, and instance proxies back to BIM elements after receive"
+sidebarTitle: "Proxies"
 ---
 
-When you receive connector-produced data and need objects grouped by level, material, or instance, you resolve **proxies** at the root against an **`applicationId`** index.
+## Goal
 
-**When to read this:** after receive of connector data. **Read next:** [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data) for the index pattern; [Proxy Schemas](/developers/data-schema/proxy-schema) for platform structure.
+Resolve **proxies** at the root of connector-published data to group elements by level, material, or instance — common when reporting on Revit or Rhino connector output.
+
+## When to use this
+
+After `Receive2` on connector data, when you need elements **grouped by level or category** via proxy collections rather than tree hierarchy alone.
+
+## Recommended approach
+
+1. `Flatten()` and index by `applicationId` — see [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data)
+2. Read proxy collections from the root (`groupProxies`, `colorProxies`, etc.)
+3. Resolve each proxy's `objects` list against the index
+
+**As a producer:** you typically do **not** create proxies from scripts — send `DataObject` graphs and let connectors produce proxies.
+
+## Prerequisites
+
+- [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data)
+- [BIM data patterns](/developers/sdks/dotnet/guides/bim-data-patterns)
 
 ## Proxy Types in Speckle.Sdk
 
@@ -40,10 +58,6 @@ Additional proxy types (materials, levels, instance definitions) follow the same
 <Info>
 **As a producer:** you typically do **not** create proxies when publishing from a script or service — send your `Base`/`DataObject` graph and let connectors produce proxy collections from host-app organization.
 </Info>
-
-## Prerequisites
-
-- [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data) — the `applicationId` index pattern used throughout this guide
 
 ## Complete Example
 
@@ -149,7 +163,7 @@ Prefer root-level property lookup (`receivedData["instanceDefinitionProxies"]`) 
     `InstanceProxy.definitionId` matches an `InstanceDefinitionProxy.applicationId`, not `id`. Index definitions by `applicationId`.
   </Accordion>
   <Accordion title="Rebuilding the applicationId index per proxy">
-    Build it once per received graph — see [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data#building-indexes-for-repeated-lookups).
+    Build it once per received graph — see [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data).
   </Accordion>
   <Accordion title="Nested instances">
     A definition's `objects` list can contain another `InstanceProxy`. Resolve and compose transforms recursively, multiplying matrices from outermost to innermost.
@@ -162,7 +176,7 @@ Prefer root-level property lookup (`receivedData["instanceDefinitionProxies"]`) 
   <Card title="Objects and Traversal" icon="book" href="/developers/sdks/dotnet/concepts/objects-and-traversal">
     Base graph structure proxies attach to
   </Card>
-  <Card title="Finding and Extracting Data" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
+  <Card title="Find objects by property" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
     applicationId index pattern
   </Card>
   <Card title="Client API" icon="code" href="/developers/sdks/dotnet/api-reference/client">
