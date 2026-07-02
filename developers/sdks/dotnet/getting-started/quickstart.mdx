@@ -102,16 +102,17 @@ Projects replace what used to be called "Streams" in prior versions of Speckle.
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Objects.Geometry;
+using Speckle.Sdk.Common;
 using Speckle.Sdk.Models;
 
 // Create some points
-var p1 = new Point(0, 0, 0, "m");
-var p2 = new Point(10, 0, 0, "m");
-var p3 = new Point(10, 10, 0, "m");
-var p4 = new Point(0, 10, 0, "m");
+var p1 = new Point(0, 0, 0, Units.Meters);
+var p2 = new Point(10, 0, 0, Units.Meters);
+var p3 = new Point(10, 10, 0, Units.Meters);
+var p4 = new Point(0, 10, 0, Units.Meters);
 
 // Create a line
-var line = new Line { start = p1, end = p2, units = "m" };
+var line = new Line { start = p1, end = p2, units = Units.Meters };
 
 // Wrap geometry in a Base object for viewer visibility
 var myData = new Base();
@@ -122,11 +123,11 @@ Console.WriteLine("✓ Created geometry objects");
 ```
 
 <Warning>
-**Important:** Sending geometry primitives directly will **not** make them visible in the 3D viewer! You must wrap them in a container object. This is why we use `Base` above to group the geometry.
+**Important:** Geometry sent as the root object (not nested under a container) will **not** appear in the 3D viewer. Put primitives on a root `Base`, as in Step 4 — nested `Point`/`Line`/`Mesh` properties are enough for this tutorial. Connector-style objects need an explicit `displayValue` on `DataObject`; see [Display values](/developers/sdks/dotnet/concepts/objects-and-traversal#display-values).
 </Warning>
 
 <Tip>
-`Base` is the foundation of all Speckle objects. You can attach any property to it dynamically using the string indexer. Wrapping geometry in `Base` ensures it's visible in the 3D viewer.
+`Base` is the foundation of all Speckle objects. You can attach any property to it dynamically using the string indexer. A root `Base` with nested geometry is enough for simple scripts like this one.
 </Tip>
 
 <Info>
@@ -236,11 +237,11 @@ var project = await client.Project.Create(new ProjectCreateInput(
 Console.WriteLine($"✓ Created project: {project.id}");
 
 // 4. Create geometry
-var p1 = new Point(0, 0, 0, "m");
-var p2 = new Point(10, 0, 0, "m");
-var p3 = new Point(10, 10, 0, "m");
-var p4 = new Point(0, 10, 0, "m");
-var line = new Line { start = p1, end = p2, units = "m" };
+var p1 = new Point(0, 0, 0, Units.Meters);
+var p2 = new Point(10, 0, 0, Units.Meters);
+var p3 = new Point(10, 10, 0, Units.Meters);
+var p4 = new Point(0, 10, 0, Units.Meters);
+var line = new Line { start = p1, end = p2, units = Units.Meters };
 
 var myData = new Base();
 myData["line"] = line;
