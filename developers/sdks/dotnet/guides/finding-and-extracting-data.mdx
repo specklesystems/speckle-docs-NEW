@@ -14,6 +14,10 @@ When you receive a Speckle model and need to find walls, extract parameters, or 
 Property names like "walls" or "floors" in examples are illustrative. Connector-produced BIM data often uses **proxy collections** instead of simple hierarchies — see [Working with Proxies](/developers/sdks/dotnet/guides/working-with-proxies) and [Proxification](/developers/sdks/dotnet/concepts/proxification).
 </Note>
 
+<Note>
+The examples on this page filter with `obj["category"]` — a generic dynamic-property indexer — to keep the traversal and indexing techniques readable regardless of what type your objects are. On real `DataObject` instances (see [Base, DataObject, and Collection](/developers/sdks/dotnet/concepts/overview#base-dataobject-and-collection)), semantic fields like category and material live in the `properties` dictionary, not as top-level dynamic properties: `((DataObject)obj).properties["category"]`, or `obj is DataObject d && d.properties.GetValueOrDefault("category") as string == "Walls"`. The same `Flatten`/`GraphTraversal`/indexing patterns apply either way — only the property access changes.
+</Note>
+
 ## Complete Example
 
 ```csharp
@@ -60,10 +64,11 @@ This is the right default for most filtering and searching tasks. Use LINQ on to
 ```csharp
 using Speckle.Sdk.Models.GraphTraversal;
 
-// DefaultTraversal.CreateTraversalFunc(): walks elements/displayValue-bearing
-// properties, skipping structural-results-only types. This is the traversal
-// every Speckle desktop connector registers and uses for receive.
-var traversal = new GraphTraversal(DefaultTraversal.CreateTraversalFunc());
+// DefaultTraversal.CreateTraversalFunc() already returns a configured GraphTraversal —
+// it walks "elements"/"@elements" on any typed object or object with a displayValue
+// (it does not descend into displayValue's own children), skipping structural-results-only
+// types. This is the traversal most Speckle desktop connectors register and use for receive.
+var traversal = DefaultTraversal.CreateTraversalFunc();
 foreach (TraversalContext ctx in traversal.Traverse(root))
 {
     var obj = ctx.Current;
@@ -73,30 +78,30 @@ foreach (TraversalContext ctx in traversal.Traverse(root))
 ```
 
 <Tip>
-`DefaultTraversal.CreateTraversalFunc()` is the traversal used in production: every current Speckle connector (Rhino, Revit, AutoCAD, Tekla, Navisworks, CSi) registers it as a singleton `GraphTraversal` in DI and uses it for every receive. Prefer it over hand-rolling a custom rule unless you have a specific reason to walk different properties.
+`DefaultTraversal.CreateTraversalFunc()` is the traversal used in production: Rhino, Grasshopper, Revit, AutoCAD, Tekla, and Navisworks all register it as a singleton `GraphTraversal` in DI and use it for receive. Prefer it over hand-rolling a custom rule unless you have a specific reason to walk different properties.
 </Tip>
 
 <Warning>
 `new GraphTraversal()` with **no** rules traverses nothing beyond the root — its internal fallback rule returns zero members to walk into. Always pass at least one rule. `DefaultTraversal.DefaultRule` traverses literally every dynamic member on every object — useful for debugging or exhaustive dumps, but noisier than `CreateTraversalFunc()` for typical structural traversal since it also walks into unrelated metadata properties.
 </Warning>
 
-Reach for a custom `TraversalRule` when you need to skip specific properties that `CreateTraversalFunc()` doesn't already exclude — for example, to avoid re-processing `displayValue` geometry as if it were structure:
+Reach for a custom `TraversalRule` when you need to walk properties `CreateTraversalFunc()` doesn't already select — for example, a rule that traverses every dynamic member (not just `elements`/`@elements`) but should still skip `displayValue` geometry so it isn't treated as structure:
 
 ```csharp
 using Speckle.Sdk.Models.GraphTraversal;
 
-// Skip a property by defining a custom rule
+// Walk every dynamic member except displayValue (both inline and detached forms)
 var skipDisplayValue = TraversalRule
     .NewTraversalRule()
     .When(_ => true) // applies to all objects
-    .ContinueTraversing(obj => obj.GetDynamicMemberNames().Where(n => n != "displayValue"))
+    .ContinueTraversing(obj => obj.GetDynamicMemberNames().Where(n => n != "displayValue" && n != "@displayValue"))
     .ShouldReturnToOutput();
 
 var traversal = new GraphTraversal(skipDisplayValue);
 ```
 
 <Note>
-`Flatten` and `GraphTraversal` will both walk into `displayValue` by default, which can produce duplicate-looking results if you're also extracting geometry separately. Filter it out explicitly when needed — see [Working with Geometry](/developers/sdks/dotnet/guides/working-with-geometry).
+`DefaultTraversal.CreateTraversalFunc()` does **not** descend into `displayValue` — its rule only continues into `elements`/`@elements`, so it won't yield the meshes inside `displayValue` as separate results. `Flatten`, and any custom `GraphTraversal` rule (like the one above) that selects dynamic members without excluding `displayValue`, **will** walk into it — exclude both `displayValue` and `@displayValue` explicitly if you're extracting geometry separately and want to avoid duplicate-looking results. See [Working with Geometry](/developers/sdks/dotnet/guides/working-with-geometry).
 </Note>
 
 ### Finding Objects by Criteria
@@ -185,7 +190,7 @@ foreach (var (path, obj) in root.TraverseWithPath(_ => false))
     Dynamic properties deserialize as their JSON-native shape (`List<object>`, `Dictionary<string, object>`), not the original generic type they were set with. Cast or pattern-match at read time.
   </Accordion>
   <Accordion title="Duplicate results from displayValue">
-    Default traversal walks into `displayValue` like any other property. If you're separately extracting geometry, exclude `displayValue` from your structural traversal rule to avoid double-counting.
+    `DefaultTraversal.CreateTraversalFunc()` doesn't descend into `displayValue`, but `Flatten` and custom traversal rules that select all dynamic members do. If you're separately extracting geometry with one of those, exclude `displayValue` and `@displayValue` from your rule to avoid double-counting.
   </Accordion>
 </AccordionGroup>
 
