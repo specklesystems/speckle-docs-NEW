@@ -109,6 +109,10 @@ foreach (var instance in instances)
 
 `instance.transform` is a `Matrix4x4` (from `Speckle.DoubleNumerics`) — apply it to the definition's geometry to place each instance correctly.
 
+<Note>
+`Flatten().OfType<InstanceDefinitionProxy>()` works because detached proxies are resolved back into the object graph on receive, but production code typically reads the root-level proxy collection property directly (for example `receivedData["instanceDefinitionProxies"]`, matching the `groupProxies`/`colorProxies` pattern above) since that's where senders place it and avoids a full-graph scan just to find proxies. Prefer the root property lookup when you know the sender's convention; fall back to `Flatten` when you don't.
+</Note>
+
 ## Common Pitfalls
 
 <AccordionGroup>
