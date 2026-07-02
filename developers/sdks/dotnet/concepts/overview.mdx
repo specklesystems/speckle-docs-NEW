@@ -138,6 +138,20 @@ For custom types, see [Objects and Traversal](/developers/sdks/dotnet/concepts/o
 
 Speckle.Sdk maintains a local SQLite cache under the current user's application data folder (`.../Speckle/`), used automatically by `Send`/`Receive` when `useDefaultCache: true` — reducing network transfers and enabling offline work with previously received data.
 
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="What happens if I send data but never create a version?">
+    The object is stored on the server with an object ID, but it is **orphaned** — not reachable through the Speckle UI or normal workflows until a version references it. Always create a version after sending data you want others to find.
+  </Accordion>
+  <Accordion title="Should I use Send or Send2?">
+    Use **Send2**/`Receive2` for scripts, notebooks, and most new server-facing code. Use **Send**/`Receive` with an `ITransport` when you follow the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart), need `MemoryTransport`/`SQLiteTransport`, or are integrating with code that already uses transports. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths).
+  </Accordion>
+  <Accordion title="Why does streamId appear in transport code?">
+    Older transport APIs use `streamId` for what the GraphQL API calls `projectId`. Pass your project's `id` — they are the same value.
+  </Accordion>
+</AccordionGroup>
+
 ## Next Steps
 
 <CardGroup cols={2}>
