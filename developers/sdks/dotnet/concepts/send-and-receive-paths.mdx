@@ -77,7 +77,7 @@ Don't build production workflows on `SerializeNew` — it's still evolving and m
 For uploading large host-application models (thousands of objects, proxies, materials), connectors use a dedicated ingestion pipeline instead of `Send`/`Send2`. It serializes to NDJSON and uploads via `client.Ingestion`.
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
-var sourceData = new SourceDataInput("my-app", "1.0.0", fileName: null, fileSizeBytes: null);
+var sourceData = new SourceDataInput("my-connector", "1.0.0", fileName: null, fileSizeBytes: null);
 var ingestion = await client.Ingestion.Create(new ModelIngestionCreateInput(model.id, project.id, "Starting ingestion", sourceData));
 
 var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
@@ -86,7 +86,7 @@ var reference = await pipeline.Process(myData);
 await pipeline.WaitForUpload();
 ```
 
-This path does not automatically create a version — see [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends) for the full workflow, and [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors) for production examples.
+This path does not hand you a version id synchronously — after `WaitForUpload`, the server processes the pack and creates the version **asynchronously**. Do not call `client.Ingestion.Complete` or `client.Version.Create` on this pathway. See [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends) for the full workflow, and [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors) for production examples.
 
 <Note>
 Requires Speckle Server version 3.0.3 or later.

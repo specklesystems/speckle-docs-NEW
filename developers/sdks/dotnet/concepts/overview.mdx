@@ -51,12 +51,12 @@ var received = await operations.Receive(objectId, remoteTransport: transport);
 ## Orphaned Objects
 
 <Warning>
-Objects sent to the server but not referenced by any version are **orphaned** — stored with an object ID but unreachable through the Speckle UI until a version references them.
+Objects sent to the server but not referenced by any version are **orphaned** (also called zombie objects) — stored with an object ID but unreachable through the Speckle UI until a version references them.
 </Warning>
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var (objectId, _) = await operations.Send(myData, transport, true);
-// Without creating a version, this object is a "zombie"
+// Without creating a version, this object is orphaned
 
 var version = await client.Version.Create(new CreateVersionInput(objectId, model.id, project.id, "My data"));
 ```
