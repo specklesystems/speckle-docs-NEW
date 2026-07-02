@@ -5,7 +5,7 @@ description: "Upload large host-application models using SendPipeline and Model 
 
 ## Overview
 
-`Send`/`Send2` load an entire object graph into memory before serializing it. For host applications with tens of thousands of elements (Revit, Rhino, ArchiCAD models), that memory profile doesn't scale. `SendPipeline` streams serialization to disk as NDJSON and uploads incrementally, tracked server-side by a Model Ingestion job.
+`Send`/`Send2` load an entire object graph into memory before serializing it. For host applications with tens of thousands of elements (Revit, Rhino, ArchiCAD models), that memory profile doesn't scale. `SendPipeline` serializes objects one at a time to a local, compressed NDJSON file as you convert them, then uploads that single file once you're done — tracked server-side by a Model Ingestion job.
 
 <Warning>
 This is an advanced, connector-scale pathway. If you're sending model data from a script or service — not a desktop host application — use `Send2` instead. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) for the decision guide.
@@ -22,6 +22,7 @@ This is an advanced, connector-scale pathway. If you're sending model data from 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
 using Speckle.Sdk.Api.GraphQL.Inputs;
+using Speckle.Sdk.Models.Collections;
 using Speckle.Sdk.Pipelines.Progress;
 using Speckle.Sdk.Pipelines.Send;
 
@@ -31,19 +32,30 @@ var ingestion = await client.Ingestion.Create(
     new ModelIngestionCreateInput(model.id, project.id, "Publishing model", sourceData)
 );
 
-// 2. Create and run the pipeline
+// 2. Create the pipeline and stream objects into it one at a time as you build the graph
 using var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
     .CreateInstance(ingestion, client.Account, new Progress<StreamProgressArgs>(), cancellationToken: default);
 
+var root = new Collection { name = "My model" };
+
 try
 {
-    var reference = await pipeline.Process(myLargeModelRoot);
+    foreach (var element in myLargeModelElements)
+    {
+        Base converted = ConvertToSpeckle(element);
+        // Process() returns this object's own reference — embed it in the parent
+        // instead of holding the fully-converted object graph in memory.
+        ObjectReference reference = await pipeline.Process(converted);
+        root.elements.Add(reference);
+    }
+
+    // The root is processed last, referencing all the children already on disk
+    await pipeline.Process(root);
     await pipeline.WaitForUpload();
 
-    // 3. Tell the server the ingestion succeeded, creating a version
-    var versionId = await client.Ingestion.Complete(
-        new ModelIngestionSuccessInput(ingestion.id, project.id, reference.referencedId, "Published from my connector")
-    );
+    // WaitForUpload() itself tells the server the pack is ready to process — the
+    // server creates the version asynchronously once processing succeeds. Subscribe
+    // to get notified when it's ready (see "Finding Out When the Version Is Ready" below).
 }
 catch (Exception ex)
 {
@@ -51,6 +63,10 @@ catch (Exception ex)
     throw;
 }
 ```
+
+<Info>
+This example follows the streaming pattern used by every Speckle desktop connector — see [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors), `RhinoContinuousTraversalBuilder` and `SendOperation.SendViaPackfile`, for a full production implementation.
+</Info>
 
 ## Step-by-Step Explanation
 
@@ -67,33 +83,63 @@ var ingestion = await client.Ingestion.Create(
 
 `SourceDataInput` records which application and version produced this data — useful for diagnostics on models that fail to process.
 
-### 2. Serialize and Upload with SendPipeline
+### 2. Process Objects One at a Time, Not the Whole Graph
 
 `ISendPipelineFactory.CreateInstance` builds a pipeline bound to this specific ingestion:
 
 ```csharp
 using var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
     .CreateInstance(ingestion, client.Account, uploadProgress, cancellationToken);
+```
 
-var reference = await pipeline.Process(myLargeModelRoot);
+<Warning>
+Don't call `Process` once with your entire object graph. `Process` serializes exactly the object you pass it (not its children) and writes it to a local, gzip-compressed NDJSON file — it does not recursively walk detached properties for you. Call it once per object, bottom-up, exactly like you'd traverse and convert the graph yourself: convert a leaf object, `Process` it, get back an `ObjectReference`, and attach that reference to the object's parent. Process the root object last, after every child it references has already been processed.
+</Warning>
+
+```csharp
+ObjectReference reference = await pipeline.Process(convertedObject);
+parentCollection.elements.Add(reference); // parent references the child by ObjectReference, not the object itself
+// ...
+await pipeline.Process(root); // root, last, once every child is on disk
 await pipeline.WaitForUpload();
 ```
 
-`Process` serializes the graph to NDJSON on disk incrementally (not all in memory at once) and returns an `ObjectReference` to the root. `WaitForUpload` blocks until the background uploader has pushed every chunk to the server — call both; `Process` returning does not mean the upload finished. `SendPipeline` implements `IDisposable` — always wrap it in a `using`.
+`Process` returns immediately once the object is written to the local temp file — it does not touch the network. `WaitForUpload` is what actually uploads: it finalizes the local file, uploads it to storage, and tells the server to start processing it. Always call both, and always call `WaitForUpload` even if you don't care about the return value — skipping it means nothing is ever sent. `SendPipeline` implements `IDisposable` — always wrap it in a `using`.
 
 `uploadProgress` is a required `IProgress<StreamProgressArgs>` — pass `new Progress<StreamProgressArgs>()` if you don't need to report progress to a UI, matching the pattern used by `Send`/`Send2`.
 
-### 3. Complete or Fail the Ingestion
+### 3. Finding Out When the Version Is Ready
 
-Unlike `Send2`, `SendPipeline` does not create a version automatically — you must explicitly tell the server the upload succeeded:
+Unlike `Send2` + `Version.Create`, this pathway doesn't hand you a version id synchronously. `WaitForUpload` only confirms the upload reached the server and processing has started — the server decompresses the pack, materializes the objects, and creates the version **asynchronously**, after your call returns.
+
+<Note>
+Production connectors do not call `client.Ingestion.Complete` after `WaitForUpload` on this pathway — the server completes the ingestion and creates the version itself once processing finishes. Calling `Complete` is for a different pattern: tracking a classic `Send2` call with an ingestion record you complete manually (see [ModelIngestionResource](/developers/sdks/dotnet/api-reference/resources/ingestion)). Mixing the two — sending via `SendPipeline` and then also calling `Complete` — is redundant and not how any current Speckle connector uses this API.
+</Note>
+
+To learn when the version is ready, subscribe to ingestion updates and read `versionId` off the success status:
 
 ```csharp
-var versionId = await client.Ingestion.Complete(
-    new ModelIngestionSuccessInput(ingestion.id, project.id, reference.referencedId, "Published from my connector")
+using var subscription = client.Subscription.CreateProjectModelIngestionUpdatedSubscription(
+    new ProjectModelIngestionSubscriptionInput(
+        project.id,
+        new ModelIngestionReference(ingestion.id, null),
+        ProjectModelIngestionUpdatedMessageType.updated
+    )
 );
+
+subscription.Listeners += (_, update) =>
+{
+    var status = update.modelIngestion.statusData;
+    if (status.status == ModelIngestionStatus.success)
+    {
+        Console.WriteLine($"Version ready: {status.versionId}");
+    }
+};
 ```
 
-If anything goes wrong, report the failure so the ingestion doesn't stay stuck in `processing`. `ModelIngestionFailedInput.FromException` builds the input from a caught exception:
+If your application can't hold a subscription open, poll `client.Ingestion.Get(ingestion.id, project.id)` instead and inspect its status.
+
+If anything goes wrong on the client before `WaitForUpload` returns, report the failure so the ingestion doesn't stay stuck in `processing`. `ModelIngestionFailedInput.FromException` builds the input from a caught exception:
 
 ```csharp
 await client.Ingestion.FailWithError(ModelIngestionFailedInput.FromException(ingestion.id, project.id, ex));
