@@ -53,6 +53,21 @@ These topics are **secondary** — mark with `<Warning>` or `<Info>` at the top 
 - Compare to specklepy where helpful — Python readers expect import-and-go; .NET readers need the bootstrap preamble explained once.
 - Link to [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors) only on connector-scale pages, not on every SDK overview.
 
+## Platform vs .NET scope (avoid overlap)
+
+Canonical platform docs live outside `developers/sdks/dotnet/`:
+
+- [Data Schema](/developers/data-schema/overview) — DataObject, Collection, proxies, geometry storage, traversal patterns
+- [Authentication](/developers/authentication/pats) — creating PATs, OAuth registration
+- [Key Concepts](/developers/key-concepts) — high-level platform model
+
+When editing .NET SDK pages:
+
+1. **Platform first** — If data-schema or authentication explains *what* and *why*, .NET pages explain *which type/method* and *pitfalls* only.
+2. **One teaching home per topic** — Do not split the same mechanism across a concept page and a guide. Concept = API surface; guide = end-to-end task (or merge into one page).
+3. **Cap platform preamble** — Max ~3 sentences + link before .NET code on shared topics.
+4. **Keep educational value** — Every removed narrative section must leave a working C# snippet or a .NET-specific pitfall (e.g. `displayValue` casing, `AggregateException`, `[Chunkable]` vs `SendPipeline`).
+
 ## Authoring checklist (.NET SDK page)
 
 Before completing an edit:
