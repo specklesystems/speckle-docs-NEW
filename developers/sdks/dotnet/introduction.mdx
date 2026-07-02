@@ -3,7 +3,9 @@ title: "Speckle.Sdk"
 description: "The C# .NET SDK for Speckle - Build powerful AEC data workflows"
 ---
 
-Use **Speckle.Sdk** when you need to send or receive AEC data from a .NET app — whether that is a Grasshopper script, an automation service, or a desktop connector. It talks to Speckle Server, works with Speckle's object model, and ships geometry types through the companion `Speckle.Objects` package.
+Use **Speckle.Sdk** when you need to send or receive building-model data from a .NET app — a Grasshopper script, an automation service, or a desktop connector. It talks to Speckle Server over GraphQL and works with Speckle's object model (structured data instead of files).
+
+**When to use it:** any .NET workflow that publishes or reads model data on Speckle Server. **Read next:** [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) for the shortest script path, or [Core Concepts](/developers/sdks/dotnet/concepts/overview) if you want the platform map before writing code.
 
 <Info>
 New to Speckle SDKs? Start with the shared [SDK introduction](/developers/sdks/introduction) for platform concepts and how Python and .NET relate.
@@ -77,34 +79,11 @@ Instead of files, Speckle stores sets of objects in Models. Models are contained
 
 ### Version Control for AEC Data
 
-Every change creates a new **version** (commit), giving you full history and traceability.
-
-```csharp Example lines icon="/images/developers/sdks/csharp.svg"
-var versionInput = new CreateVersionInput(objectId, model.id, project.id, "Updated geometry");
-var version = await client.Version.Create(versionInput);
-```
-
-<Note>
-The `objectId` here is of a **Speckle object** that has already been sent to the Speckle server. Sending registers it in the database, but visibility of it is scoped to a **version**.
-</Note>
-
-<Note>
-Objects not associated with a **Model** **Version** are **orphaned**. Other than a record of `objectId`, they are effectively irretrievable.
-</Note>
+Every publish creates a new **version** (a snapshot in a model's history). Sending registers objects on the server; a version makes them discoverable in the UI. See [Core Concepts: orphaned objects](/developers/sdks/dotnet/concepts/overview#orphaned-objects) and the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) for the full send → version workflow.
 
 ### One-Time Setup (Not "Dependency Injection" as a Skill)
 
-Speckle.Sdk resolves its services through `Microsoft.Extensions.DependencyInjection` because desktop connectors and services share the same SDK. **For scripts and notebooks, you do not need to learn DI** — paste a short bootstrap once and resolve `IOperations` and `IClientFactory` from it.
-
-```csharp Example lines icon="/images/developers/sdks/csharp.svg"
-var services = new ServiceCollection();
-services.AddSpeckleSdk(new Application("My App", "my-app"), "1.0.0");
-var provider = services.BuildServiceProvider();
-```
-
-<Info>
-[Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) is the citizen-developer entry point: copy-paste bootstrap, `Send2`/`Receive2`, and a clear list of which pages are connector-only. The [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) uses the same bootstrap in a step-by-step tour.
-</Info>
+Speckle.Sdk uses dependency injection internally so connectors can share a container with host apps. **Scripts and notebooks:** paste the bootstrap from [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) once — you do not need to study DI. **Connectors and services:** see [Dependency Injection](/developers/sdks/dotnet/concepts/dependency-injection).
 
 ## Common Use Cases
 
@@ -179,18 +158,15 @@ Console.WriteLine($"Created version: {version.id}");
 
 ## Next Steps
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
+  <Card title="Core Concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+    Projects, models, versions, and send paths
+  </Card>
   <Card title="Scripts and Notebooks" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
-    Citizen-developer path — no DI knowledge required
+    Shortest path — bootstrap and Send2
   </Card>
-  <Card title="Installation" icon="download" href="/developers/sdks/dotnet/getting-started/installation">
-    Install Speckle.Sdk and set up your project
-  </Card>
-  <Card title="Authentication" icon="key" href="/developers/sdks/dotnet/getting-started/authentication">
-    Learn how to authenticate with Speckle Server
-  </Card>
-  <Card title="Quickstart" icon="bolt" href="/developers/sdks/dotnet/getting-started/quickstart">
-    Full tour with Send, Receive, and transports
+  <Card title="Client API" icon="code" href="/developers/sdks/dotnet/api-reference/client">
+    GraphQL resource surface after auth
   </Card>
 </CardGroup>
 
