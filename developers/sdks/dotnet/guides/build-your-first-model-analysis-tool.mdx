@@ -1,0 +1,185 @@
+---
+title: "Build your first model analysis tool"
+description: "End-to-end C# console app — authenticate, load the latest model version, count objects by category, export a CSV report"
+sidebarTitle: "First analysis tool"
+---
+
+## Goal
+
+Build a working C# console app that loads a published Speckle model, counts elements by category, and writes a CSV report you can open in Excel.
+
+## What you will build
+
+A console application that:
+
+- Reads credentials and target IDs from environment variables
+- Loads the latest version of a model from Speckle Server
+- Traverses the object graph and groups elements by category
+- Writes `model-health-report.csv` with category names and counts
+
+## When to use this
+
+Use this pattern when you need a **first real automation** — BIM QA summaries, quantity checks, or a starting point for door schedules and property audits. This is the recommended onboarding path before connector development or advanced architecture.
+
+## Recommended approach
+
+The simplest path for most AEC automation scripts:
+
+1. Paste the one-time `AddSpeckleSdk` bootstrap (see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks))
+2. Authenticate with a personal access token from `SPECKLE_TOKEN`
+3. Fetch the latest version with `client.Version.GetVersions`
+4. Load the object graph with `Receive2`
+5. Use `Flatten()` and read `DataObject.properties` for BIM fields
+6. Write results to CSV with `StreamWriter`
+
+Avoid dependency injection beyond the bootstrap, repository patterns, and custom abstractions until you have a script that runs end to end.
+
+## Prerequisites
+
+- [.NET SDK](https://dotnet.microsoft.com/download) installed
+- A [personal access token](/developers/authentication/pats) from Speckle
+- A published model on Speckle Server (from a connector or prior send)
+- Project ID and model ID from the Speckle web app URL: `https://app.speckle.systems/projects/{projectId}/models/{modelId}`
+
+Create a console project and install packages:
+
+```bash
+dotnet new console -n ModelAnalysis
+cd ModelAnalysis
+dotnet add package Speckle.Sdk
+dotnet add package Speckle.Objects
+```
+
+## Complete example
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
+using System.Globalization;
+using Microsoft.Extensions.DependencyInjection;
+using Speckle.Objects.Data;
+using Speckle.Sdk;
+using Speckle.Sdk.Api;
+using Speckle.Sdk.Credentials;
+using Speckle.Sdk.Models;
+using Speckle.Sdk.Models.Extensions;
+
+static class SpeckleBootstrap
+{
+    static readonly ServiceProvider Provider = new ServiceCollection()
+        .AddSpeckleSdk(
+            new Application("Model Analysis", "model-analysis"),
+            "1.0.0",
+            typeof(Speckle.Objects.Geometry.Point).Assembly
+        )
+        .BuildServiceProvider();
+
+    public static IOperations Operations => Provider.GetRequiredService<IOperations>();
+    public static IAccountFactory AccountFactory => Provider.GetRequiredService<IAccountFactory>();
+    public static IClientFactory ClientFactory => Provider.GetRequiredService<IClientFactory>();
+}
+
+var token = Environment.GetEnvironmentVariable("SPECKLE_TOKEN")
+    ?? throw new InvalidOperationException("Set SPECKLE_TOKEN");
+var serverUrl = Environment.GetEnvironmentVariable("SPECKLE_SERVER") ?? "https://app.speckle.systems";
+var projectId = Environment.GetEnvironmentVariable("SPECKLE_PROJECT_ID")
+    ?? throw new InvalidOperationException("Set SPECKLE_PROJECT_ID");
+var modelId = Environment.GetEnvironmentVariable("SPECKLE_MODEL_ID")
+    ?? throw new InvalidOperationException("Set SPECKLE_MODEL_ID");
+
+var account = await SpeckleBootstrap.AccountFactory.CreateAccount(new Uri(serverUrl), token);
+using var client = SpeckleBootstrap.ClientFactory.Create(account);
+
+var versions = await client.Version.GetVersions(modelId, projectId, limit: 1);
+var latest = versions.items.FirstOrDefault()
+    ?? throw new InvalidOperationException("No versions found on this model");
+
+Console.WriteLine($"Loading version: {latest.id} ({latest.message})");
+
+var root = await SpeckleBootstrap.Operations.Receive2(
+    client.ServerUrl,
+    projectId,
+    latest.referencedObject!,
+    account.token,
+    onProgressAction: null,
+    cancellationToken: default
+);
+
+static string GetCategory(Base obj)
+{
+    if (obj is DataObject dataObject)
+    {
+        if (dataObject.properties.TryGetValue("category", out var cat) && cat is string s)
+            return s;
+        if (dataObject.properties.TryGetValue("builtInCategory", out var builtIn) && builtIn is string b)
+            return b;
+    }
+
+    return obj["category"] as string ?? obj.speckle_type ?? "Unknown";
+}
+
+var counts = root.Flatten()
+    .GroupBy(GetCategory)
+    .OrderByDescending(g => g.Count())
+    .ToDictionary(g => g.Key, g => g.Count());
+
+var outputPath = Path.Combine(Environment.CurrentDirectory, "model-health-report.csv");
+await using (var writer = new StreamWriter(outputPath))
+{
+    await writer.WriteLineAsync("Category,Count");
+    foreach (var (category, count) in counts)
+    {
+        var escaped = category.Contains(',') ? $"\"{category}\"" : category;
+        await writer.WriteLineAsync($"{escaped},{count}");
+    }
+}
+
+Console.WriteLine($"Wrote {counts.Count} categories to {outputPath}");
+foreach (var (category, count) in counts.Take(10))
+    Console.WriteLine($"  {category}: {count}");
+```
+
+Set environment variables before running:
+
+```bash
+export SPECKLE_TOKEN="your_token_here"
+export SPECKLE_PROJECT_ID="your_project_id"
+export SPECKLE_MODEL_ID="your_model_id"
+dotnet run
+```
+
+## How it works
+
+**Bootstrap.** `AddSpeckleSdk` registers `IOperations`, `IClientFactory`, and `IAccountFactory`. You paste this once per app — see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
+
+**Authentication.** `IAccountFactory.CreateAccount` builds an in-memory `Account` from your PAT. No local account database is required for scripts.
+
+**Latest version.** `client.Version.GetVersions` returns versions for a model; the API returns the newest first when `limit` is `1`. The version's `referencedObject` id points at the root of the object graph.
+
+**Receive.** `Receive2` downloads and deserializes the full graph. This is the recommended server-facing receive path for scripts — no transport factory required.
+
+**Traverse.** `Flatten()` walks every `Base` in the graph. Connector-published BIM data is usually `DataObject` with semantic fields in `properties` — for example `category`, `level`, or `fireRating`.
+
+**Report.** Grouping by category produces a simple model health summary. Extend the same pattern for door schedules or property audits — see [Export model data to CSV](/developers/sdks/dotnet/guides/export-model-data-to-csv).
+
+## Common mistakes
+
+| Mistake | What happens | Fix |
+| ------- | ------------ | --- |
+| Missing `SPECKLE_PROJECT_ID` or `SPECKLE_MODEL_ID` | App throws on startup | Copy IDs from the Speckle web app URL |
+| Model has no published versions | `No versions found` | Publish from a connector first |
+| Reading `obj["category"]` on all objects | Many `Unknown` rows | Prefer `DataObject.properties` for connector data |
+| Calling `Flatten()` inside a loop for each query | Slow on large models | Build one index or dictionary, then query it |
+| Forgetting `Speckle.Objects` in `AddSpeckleSdk` assemblies | Geometry types deserialize as plain `Base` | Pass `typeof(Point).Assembly` in bootstrap |
+
+## Next steps
+
+<CardGroup cols={3}>
+  <Card title="Export model data to CSV" icon="file-csv" href="/developers/sdks/dotnet/guides/export-model-data-to-csv">
+    Door schedules and room lists with specific columns
+  </Card>
+  <Card title="Find objects by property" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
+    Filter walls, check required properties, find duplicate IDs
+  </Card>
+  <Card title="BIM data patterns" icon="building" href="/developers/sdks/dotnet/guides/bim-data-patterns">
+    How connector data is structured in v3
+  </Card>
+</CardGroup>
