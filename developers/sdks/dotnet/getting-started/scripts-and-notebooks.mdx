@@ -73,8 +73,8 @@ You can rename `SpeckleBootstrap` to anything. The point is a single static hold
 After the bootstrap, the rest looks like ordinary SDK code — no DI concepts required.
 
 ```csharp
+using Speckle.Sdk.Api.GraphQL.Enums;
 using Speckle.Sdk.Api.GraphQL.Inputs;
-using Speckle.Sdk.Api.GraphQL.Models;
 using Speckle.Sdk.Models;
 using Speckle.Objects.Geometry;
 
@@ -99,8 +99,8 @@ var sendResult = await SpeckleBootstrap.Operations.Send2(
     project.id,
     account.token,
     root,
-    onProgressAction: null,
-    cancellationToken: default
+    onProgressAction: null, // no progress UI to update — leave null
+    cancellationToken: default // no cancel button to wire up — leave default
 );
 
 var version = await client.Version.Create(
@@ -121,6 +121,14 @@ Console.WriteLine($"Received point: {received["point"]}");
 
 <Note>
 `Send2`/`Receive2` are the simplest server-facing path for scripts: you do not need `IServerTransportFactory` or a `using var transport = ...` block. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) if you need local-only `MemoryTransport`/`SQLiteTransport` workflows.
+</Note>
+
+<Note>
+`onProgressAction` and `cancellationToken` are there for long-running host applications (a connector reporting upload percentage, a UI with a cancel button) — not something a script needs to set up. `null` and `default` are the correct values here, not placeholders you need to replace. The same applies to `Send`/`Receive`'s `onProgressAction` parameter and any logging configuration mentioned elsewhere in these docs (`AddLogging`, `ISdkActivityFactory`): `AddSpeckleSdk` wires in no-op defaults automatically, so a script produces no log output and needs no logging setup unless you deliberately add a logging provider.
+</Note>
+
+<Note>
+The example above wraps a single point in a plain `Base` to keep things short — fine for a one-off script. If you're sending BIM-like data with several fields (name, material, category), prefer `DataObject` and `Collection` instead, which is what most of the wider Speckle ecosystem expects — see [Base, DataObject, and Collection](/developers/sdks/dotnet/concepts/overview#base-dataobject-and-collection).
 </Note>
 
 ## What You Can Use Without Thinking About DI
