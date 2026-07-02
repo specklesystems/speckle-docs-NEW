@@ -1,0 +1,196 @@
+---
+title: "Finding and Extracting Data"
+description: "Traverse, filter, and index Speckle object graphs efficiently"
+---
+
+## Overview
+
+Speckle data is often deeply nested — a project contains collections, collections contain elements, elements contain geometry and metadata. This guide covers traversing that structure with `GraphTraversal` and `BaseExtensions`, filtering for objects that match criteria, and building indexes so repeated lookups on large models stay fast.
+
+## Prerequisites
+
+- [Objects and Traversal](/developers/sdks/dotnet/concepts/objects-and-traversal) — traversal fundamentals and rule anatomy
+- [Working with Objects and Detachment](/developers/sdks/dotnet/guides/working-with-objects-and-detachment)
+
+## Complete Example
+
+```csharp
+using Speckle.Sdk.Models;
+using Speckle.Sdk.Models.Extensions;
+using Speckle.Sdk.Models.GraphTraversal;
+
+// Flatten the whole graph, then filter — good for small-to-medium models
+var walls = root.Flatten()
+    .Where(obj => obj["category"] as string == "Walls")
+    .ToList();
+
+Console.WriteLine($"Found {walls.Count} walls");
+
+// Build an index once when you need multiple lookups by the same key
+var byCategory = root.Flatten()
+    .GroupBy(obj => obj["category"] as string ?? "Unknown")
+    .ToDictionary(g => g.Key, g => g.ToList());
+
+var floors = byCategory.GetValueOrDefault("Floors", new List<Base>());
+```
+
+## Step-by-Step Explanation
+
+### Flatten: The Simple Case
+
+`BaseExtensions.Flatten` returns every `Base` object in the graph as a flat `IEnumerable<Base>`, safely handling circular references:
+
+```csharp
+using Speckle.Sdk.Models.Extensions;
+
+foreach (var obj in root.Flatten())
+{
+    Console.WriteLine(obj.TryGetName() ?? "unnamed");
+}
+```
+
+This is the right default for most filtering and searching tasks. Use LINQ on top of it rather than hand-writing recursion.
+
+### GraphTraversal: When You Need Context or Custom Rules
+
+`Flatten` gives you objects; `GraphTraversal` gives you objects **plus context** — the parent object and the property name they came from — and lets you customize which properties get walked into:
+
+```csharp
+using Speckle.Sdk.Models.GraphTraversal;
+
+// DefaultTraversal.DefaultRule: matches every object, traverses every member
+var traversal = new GraphTraversal(DefaultTraversal.DefaultRule);
+foreach (TraversalContext ctx in traversal.Traverse(root))
+{
+    var obj = ctx.Current;
+    var parentName = ctx.Parent?.Current.TryGetName() ?? "root";
+    Console.WriteLine($"{obj.TryGetName()} (from {parentName}.{ctx.PropName})");
+}
+```
+
+<Warning>
+`new GraphTraversal()` with **no** rules traverses nothing beyond the root — its internal fallback rule returns zero members to walk into. Always pass at least one rule; use `DefaultTraversal.DefaultRule` for "traverse every member" or `DefaultTraversal.CreateTraversalFunc()` for the narrower elements/displayValue-aware traversal the SDK uses internally.
+</Warning>
+
+Reach for `GraphTraversal` when you need:
+- The path/parent chain for each object
+- To skip specific properties (e.g. avoid re-processing `displayValue` geometry as if it were structure)
+- The prebuilt `DefaultTraversal.CreateTraversalFunc()` rules used internally for display-value-aware traversal
+
+```csharp
+using Speckle.Sdk.Models.GraphTraversal;
+
+// Skip a property by defining a custom rule
+var skipDisplayValue = TraversalRule
+    .NewTraversalRule()
+    .When(_ => true) // applies to all objects
+    .ContinueTraversing(obj => obj.GetDynamicMemberNames().Where(n => n != "displayValue"))
+    .ShouldReturnToOutput();
+
+var traversal = new GraphTraversal(skipDisplayValue);
+```
+
+<Note>
+`Flatten` and `GraphTraversal` will both walk into `displayValue` by default, which can produce duplicate-looking results if you're also extracting geometry separately. Filter it out explicitly when needed — see [Working with Geometry](/developers/sdks/dotnet/guides/working-with-geometry).
+</Note>
+
+### Finding Objects by Criteria
+
+Filtering is a LINQ `Where` on top of `Flatten` — no custom recursion needed:
+
+```csharp
+List<Base> FindByProperty(Base root, string key, object? value) =>
+    root.Flatten().Where(obj => Equals(obj[key], value)).ToList();
+
+var concreteWalls = FindByProperty(root, "material", "Concrete")
+    .Where(obj => obj["category"] as string == "Walls")
+    .ToList();
+```
+
+For arbitrary logic, pass a predicate:
+
+```csharp
+bool IsLargeWall(Base obj) =>
+    obj["category"] as string == "Walls" &&
+    obj["area"] is double area && area > 10.0;
+
+var largeWalls = root.Flatten().Where(IsLargeWall).ToList();
+```
+
+### Building Indexes for Repeated Lookups
+
+Each call to `Flatten()` or `Traverse()` walks the entire graph — O(n). If you need several lookups by the same key (category, `applicationId`, name), traverse once and build a dictionary instead of searching repeatedly:
+
+```csharp
+// ❌ Slow: three full traversals
+var walls = root.Flatten().Where(o => o["category"] as string == "Walls").ToList();
+var floors = root.Flatten().Where(o => o["category"] as string == "Floors").ToList();
+var columns = root.Flatten().Where(o => o["category"] as string == "Columns").ToList();
+```
+
+```csharp
+// ✅ Fast: one traversal, O(1) lookups after
+var byCategory = root.Flatten()
+    .GroupBy(o => o["category"] as string ?? "Unknown")
+    .ToDictionary(g => g.Key, g => g.ToList());
+
+var walls = byCategory.GetValueOrDefault("Walls", new());
+var floors = byCategory.GetValueOrDefault("Floors", new());
+var columns = byCategory.GetValueOrDefault("Columns", new());
+```
+
+An `applicationId` index is the most common index you'll need — it's how you resolve [proxies](/developers/sdks/dotnet/guides/working-with-proxies) back to the objects they describe:
+
+```csharp
+var byAppId = root.Flatten()
+    .Where(o => o.applicationId is not null)
+    .ToDictionary(o => o.applicationId!);
+
+var obj = byAppId.GetValueOrDefault("revit-element-12345");
+```
+
+<Tip>
+Build the index once per received graph and reuse it. Rebuilding an index inside a loop defeats the point — you're back to O(n) per lookup.
+</Tip>
+
+### Working with Hierarchy and Path
+
+If you need to know how deep an object is, or reconstruct its path back to the root, use `TraverseWithPath` instead of `GraphTraversal`'s parent-chain walk:
+
+```csharp
+using Speckle.Sdk.Models.Extensions;
+
+foreach (var (path, obj) in root.TraverseWithPath(_ => false))
+{
+    var indent = new string(' ', path.Length * 2);
+    Console.WriteLine($"{indent}{obj.TryGetName()} ({string.Join("/", path)})");
+}
+```
+
+## Common Pitfalls
+
+<AccordionGroup>
+  <Accordion title="Traversal never terminates">
+    Circular references between `Base` objects can cause infinite recursion with hand-written traversal. `Flatten` and `GraphTraversal` both guard against this — prefer them over writing your own recursive walk.
+  </Accordion>
+  <Accordion title="Rebuilding an index inside a loop">
+    Each `Flatten()` call is a fresh O(n) walk. Build the dictionary once outside your query loop, not once per lookup.
+  </Accordion>
+  <Accordion title="Property value is a List<object>, not a typed collection">
+    Dynamic properties deserialize as their JSON-native shape (`List<object>`, `Dictionary<string, object>`), not the original generic type they were set with. Cast or pattern-match at read time.
+  </Accordion>
+  <Accordion title="Duplicate results from displayValue">
+    Default traversal walks into `displayValue` like any other property. If you're separately extracting geometry, exclude `displayValue` from your structural traversal rule to avoid double-counting.
+  </Accordion>
+</AccordionGroup>
+
+## Related Guides
+
+<CardGroup cols={2}>
+  <Card title="Working with Proxies" icon="link" href="/developers/sdks/dotnet/guides/working-with-proxies">
+    Resolve proxy collections using an applicationId index
+  </Card>
+  <Card title="Working with Geometry" icon="cube" href="/developers/sdks/dotnet/guides/working-with-geometry">
+    Extract and filter displayValue meshes specifically
+  </Card>
+</CardGroup>
