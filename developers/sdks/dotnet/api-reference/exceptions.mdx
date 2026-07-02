@@ -3,7 +3,7 @@ title: "Exceptions"
 description: "The Speckle.Sdk exception hierarchy and common failure modes"
 ---
 
-When a GraphQL call fails, a transport cannot reach the server, or deserialization cannot resolve your types, Speckle.Sdk throws typed exceptions under `SpeckleException`. This page maps those types to common causes so you can handle failures in production code.
+When a GraphQL call fails, a transport cannot reach the server, or deserialization cannot resolve your types, Speckle.Sdk throws typed exceptions — most under `SpeckleException`, but GraphQL response errors specifically arrive wrapped in `AggregateException` (see [GraphQL Exceptions](#graphql-exceptions)). This page maps those types to common causes so you can handle failures in production code.
 
 <Info>
 For authentication-specific failures (invalid token, no local accounts), see [Authentication](/developers/sdks/dotnet/getting-started/authentication#common-authentication-errors).
@@ -11,22 +11,24 @@ For authentication-specific failures (invalid token, no local accounts), see [Au
 
 ## Exception Hierarchy
 
-Every Speckle-specific exception derives from `SpeckleException` (itself a plain `Exception`), so catching `SpeckleException` catches everything the SDK throws intentionally.
+Every Speckle-specific exception derives from `SpeckleException` (itself a plain `Exception`). That covers most SDK-thrown failures — but **not** GraphQL response errors from `IClient` resource calls, which the SDK always wraps in a plain `AggregateException`. See [GraphQL Exceptions](#graphql-exceptions) below before you write a single `catch (SpeckleException)` block and assume it covers everything.
 
 ```
 Exception
+├─ AggregateException                  // thrown by IClient GraphQL calls; see below
+│  └─ InnerExceptions: one or more Api.SpeckleGraphQLException (or subclass) per GraphQL error
 └─ SpeckleException
    ├─ InvalidPropNameException          // invalid dynamic property name on Base
    ├─ Transports.TransportException     // a transport failed to send/receive
    ├─ Serialisation.SpeckleDeserializeException
-   └─ Api.SpeckleGraphQLException       // base for all GraphQL response errors
+   └─ Api.SpeckleGraphQLException       // base type for GraphQL response errors (see below for how it's thrown)
       ├─ SpeckleGraphQLForbiddenException
       ├─ SpeckleGraphQLInternalErrorException
       ├─ SpeckleGraphQLStreamNotFoundException
       ├─ SpeckleGraphQLBadInputException
       ├─ SpeckleGraphQLInvalidQueryException
       ├─ SpeckleGraphQLWorkspaceNotEnabledException
-      ├─ WorkspacePermissionException
+      ├─ WorkspacePermissionException    // thrown directly, not via a GraphQL error code — see below
       └─ CannotCreateCommitException
 ```
 
@@ -50,7 +52,11 @@ Exception
 
 ## GraphQL Exceptions
 
-All GraphQL response errors surface as a `SpeckleGraphQLException` subtype, mapped from the server's GraphQL error code:
+<Warning>
+GraphQL response errors from `IClient` resource calls (`client.Project`, `client.Model`, `client.Version`, and so on) are **not** thrown directly as a `SpeckleGraphQLException` subtype. They're always wrapped in a plain `AggregateException`, with one `SpeckleGraphQLException` subtype per GraphQL error in `InnerExceptions`. A direct `catch (SpeckleGraphQLStreamNotFoundException)` around a resource call will **never** trigger — and neither will `catch (SpeckleException)`, since `AggregateException` doesn't derive from it.
+</Warning>
+
+Unwrap the `AggregateException` to inspect the underlying error, mapped from the server's GraphQL error code:
 
 | Exception | Maps to server error |
 |--------------------------------------------|--------------------------------------------------|
@@ -60,23 +66,51 @@ All GraphQL response errors surface as a `SpeckleGraphQLException` subtype, mapp
 | `SpeckleGraphQLBadInputException`          | `BAD_USER_INPUT`                                  |
 | `SpeckleGraphQLInvalidQueryException`      | `GRAPHQL_PARSE_FAILED` / `GRAPHQL_VALIDATION_FAILED` |
 | `SpeckleGraphQLWorkspaceNotEnabledException` | Workspace resources requested against a non-workspace server |
-| `WorkspacePermissionException`             | Workspace-scoped permission denied                |
 | `CannotCreateCommitException`              | Version/commit creation rejected by the server    |
+
+`WorkspacePermissionException` is **not** in this table — see [Workspace Permission Errors](#workspace-permission-errors) below; it isn't thrown through this wrapping path.
 
 ```csharp
 try
 {
     var project = await client.Project.Get("invalid-id");
 }
-catch (SpeckleGraphQLStreamNotFoundException)
+catch (AggregateException ex)
 {
-    Console.WriteLine("Project not found.");
-}
-catch (SpeckleGraphQLForbiddenException)
-{
-    Console.WriteLine("Not authorized — check the token's scopes.");
+    switch (ex.InnerException)
+    {
+        case SpeckleGraphQLStreamNotFoundException:
+            Console.WriteLine("Project not found.");
+            break;
+        case SpeckleGraphQLForbiddenException:
+            Console.WriteLine("Not authorized — check the token's scopes.");
+            break;
+        default:
+            throw;
+    }
 }
 ```
+
+<Note>
+GraphQL calls typically produce a single error, so `ex.InnerException` (the first inner exception) is usually enough. If you need to handle a request that can fail with multiple simultaneous errors, iterate `ex.InnerExceptions` instead, or call `ex.Flatten()` first.
+</Note>
+
+## Workspace Permission Errors
+
+`WorkspacePermissionException` is a `SpeckleGraphQLException` subclass, but it isn't mapped from a GraphQL error code and isn't wrapped in an `AggregateException`. It's thrown directly by client-side permission checks — for example after calling a `CanCreateModelIngestion`-style permission check and not handling a denied result:
+
+```csharp
+try
+{
+    permissionResult.EnsureAuthorised();
+}
+catch (WorkspacePermissionException)
+{
+    Console.WriteLine("You don't have permission to perform this action in this workspace.");
+}
+```
+
+Because it derives from `SpeckleException` (not `AggregateException`), a `catch (SpeckleException)` block **does** catch it — unlike the GraphQL error-code exceptions above.
 
 ## Common Failure Modes
 
@@ -84,11 +118,11 @@ catch (SpeckleGraphQLForbiddenException)
   <Accordion title="SpeckleDeserializeException or objects come back as plain Base">
     The type's assembly wasn't passed to `AddSpeckleSdk`. See [Dependency Injection: Registering Your Own Types](/developers/sdks/dotnet/concepts/dependency-injection#registering-your-own-types).
   </Accordion>
-  <Accordion title="SpeckleException: ActiveUser could not be found">
+  <Accordion title="SpeckleException: GraphQL response indicated that the ActiveUser could not be found">
     The account's token is invalid or expired. Re-authenticate — see [Authentication](/developers/sdks/dotnet/getting-started/authentication).
   </Accordion>
-  <Accordion title="SpeckleGraphQLWorkspaceNotEnabledException">
-    You called a `client.Workspace` method against a server without workspaces enabled. Check with `client.Server.IsWorkspaceEnabled()` first.
+  <Accordion title="AggregateException wrapping SpeckleGraphQLWorkspaceNotEnabledException">
+    You called a `client.Workspace` method against a server without workspaces enabled. Check with `client.Server.IsWorkspaceEnabled()` first. Remember to catch `AggregateException` and inspect `InnerException`, not `SpeckleGraphQLWorkspaceNotEnabledException` directly.
   </Accordion>
   <Accordion title="TransportException with no fallback remote">
     `Receive` was called with a `localTransport` that doesn't have the object, and no `remoteTransport` was provided to fall back to.
@@ -103,5 +137,8 @@ catch (SpeckleGraphQLForbiddenException)
   </Card>
   <Card title="Authentication" icon="key" href="/developers/sdks/dotnet/getting-started/authentication">
     Common authentication errors
+  </Card>
+  <Card title="Handling Server Capabilities and Permissions" icon="shield-check" href="/developers/sdks/dotnet/guides/handling-server-capabilities">
+    Check first instead of catching broadly — the pattern Speckle's connectors use
   </Card>
 </CardGroup>
