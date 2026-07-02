@@ -78,6 +78,8 @@ var reference = await pipeline.Process(myData);
 await pipeline.WaitForUpload();
 ```
 
+After `WaitForUpload`, the server processes the uploaded pack and creates the version asynchronously — the caller does not call `client.Version.Create` on this pathway. See [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends).
+
 <Note>
 `uploadProgress` must be `IProgress<StreamProgressArgs>` — pass `new Progress<StreamProgressArgs>()` if you don't need to report progress.
 </Note>
@@ -102,7 +104,7 @@ See [Exceptions](/developers/sdks/dotnet/api-reference/exceptions) for the full 
     Use **Send2**/`Receive2` — see [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). Use **Send**/`Receive` when you follow the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart), need `MemoryTransport`/`SQLiteTransport`, or integrate with existing transport-based code.
   </Accordion>
   <Accordion title="Does Send create a version automatically?">
-    No. Sending registers objects on the server; you must call `client.Version.Create` with the returned `objectId` to publish data to a model. See [VersionResource](/developers/sdks/dotnet/api-reference/resources/version).
+    No for **`Send`** and **`Send2`** — sending registers objects on the server; you must call `client.Version.Create` with the returned `objectId` to publish data to a model. **`SendPipeline`** is different: after `WaitForUpload`, the server creates the version asynchronously — do not call `Version.Create`. See [VersionResource](/developers/sdks/dotnet/api-reference/resources/version) and [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends).
   </Accordion>
   <Accordion title="When do I need SendPipeline instead of Send2?">
     When uploading a **whole host-application model** from a connector — thousands of elements converted incrementally. See [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends).
