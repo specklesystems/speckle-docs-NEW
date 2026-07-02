@@ -3,11 +3,9 @@ title: "Handling Server Capabilities and Permissions"
 description: "Ask the server what it supports before you call — the pattern Speckle's own connectors use for multi-deployment compatibility"
 ---
 
-Not every Speckle server is the same. A public multi-tenant server has workspaces enabled; many self-hosted servers don't. Server versions differ, so a GraphQL field your code depends on might not exist on an older deployment. A user might be authenticated but lack permission for the specific action you're about to take. Speckle's own desktop connectors handle this by **asking the server what it supports and what the user is allowed to do, before attempting the operation** — not by wrapping every call in a broad `try`/`catch` and reacting to whatever comes back.
+Not every Speckle server is the same — workspace support, server version, and user permissions all vary. Speckle connectors **ask the server what it supports before attempting an operation**, rather than catching broad failures after the fact.
 
-<Note>
-This guide assumes familiarity with [Exceptions](/developers/sdks/dotnet/api-reference/exceptions) — in particular that GraphQL errors arrive wrapped in `AggregateException`, and that `WorkspacePermissionException` is thrown directly by permission checks rather than mapped from a GraphQL error code.
-</Note>
+**When to read this:** multi-deployment apps, connectors, or any code calling version-gated APIs. **Read next:** [Exceptions](/developers/sdks/dotnet/api-reference/exceptions) for `AggregateException` vs direct throws.
 
 ## Prerequisites
 
@@ -131,13 +129,16 @@ Some older, internal Speckle tooling also uses raw HTTP endpoint probing (checki
   </Accordion>
 </AccordionGroup>
 
-## Related Guides
+## Next Steps
 
-<CardGroup cols={2}>
-  <Card title="Exceptions" icon="triangle-exclamation" href="/developers/sdks/dotnet/api-reference/exceptions">
-    The exception hierarchy this pattern relies on
+<CardGroup cols={3}>
+  <Card title="Core Concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+    Server capability patterns in context
   </Card>
   <Card title="Building Connector-Scale Sends" icon="upload" href="/developers/sdks/dotnet/guides/building-connector-scale-sends">
-    Where CanCreateModelIngestion fits in a full upload workflow
+    CanCreateModelIngestion in upload flow
+  </Card>
+  <Card title="ServerResource" icon="code" href="/developers/sdks/dotnet/api-reference/resources/server">
+    IsWorkspaceEnabled API surface
   </Card>
 </CardGroup>
