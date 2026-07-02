@@ -45,14 +45,14 @@ var version = await client.Version.Create(new CreateVersionInput(objectId, model
 ```
 
 <Note>
-Sending an object with `IOperations` does not create a version by itself — always follow up with `client.Version.Create` to make the data discoverable in the model's history and viewer.
+Sending with `Send` or `Send2` does not create a version by itself — follow up with `client.Version.Create` to publish data to a model's history and viewer. The [`SendPipeline`](/developers/sdks/dotnet/guides/building-connector-scale-sends) path is different: after `WaitForUpload`, the server creates the version asynchronously — do not call `Version.Create` on that pathway.
 </Note>
 
 ## FAQ
 
 <AccordionGroup>
   <Accordion title="What objectId do I pass to Create?">
-    The id returned by `Send`, `Send2`, or `SendPipeline` — not a value from `Base.GetId()`, which is obsolete and may not match every send path.
+    For **`Send`** and **`Send2`**, pass the id returned by the send operation — not a value from `Base.GetId()`, which is obsolete and may not match every send path. For **`SendPipeline`**, do not call `Version.Create` — the server creates the version after upload. See [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends).
   </Accordion>
   <Accordion title="How do I receive the data behind a version?">
     Call `client.Version.Get` to read `referencedObject`, then `IOperations.Receive` or `Receive2` with that id. See the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) Step 7.
