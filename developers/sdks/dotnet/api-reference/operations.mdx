@@ -73,10 +73,14 @@ Connector-scale ingestion is a separate factory-created pipeline, not a method o
 
 ```csharp
 var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
-    .CreateInstance(ingestion, account, uploadProgress, cancellationToken);
+    .CreateInstance(ingestion, account, uploadProgress: new Progress<StreamProgressArgs>(), cancellationToken: default);
 var reference = await pipeline.Process(myData);
 await pipeline.WaitForUpload();
 ```
+
+<Note>
+`uploadProgress` must be `IProgress<StreamProgressArgs>` — pass `new Progress<StreamProgressArgs>()` if you don't need to report progress.
+</Note>
 
 ## Exceptions
 
