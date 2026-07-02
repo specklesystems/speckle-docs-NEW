@@ -70,9 +70,9 @@ Speckle's Grasshopper connector uses exactly this check before even attempting t
 
 Several resources return permission information *with* the data, so you can gate UI and code paths before the user attempts anything:
 
-- `client.Project.GetPermissions(projectId)` → `ProjectPermissionChecks` (`canCreateModel`, `canDelete`, `canLoad`, `canPublish`)
+- `client.Project.GetPermissions(projectId)` → `ProjectPermissionChecks` (`canCreateModel`, `canDelete`, `canLoad`; `canPublish` is obsolete — use `ModelPermissionChecks.canCreateVersion`)
 - `client.Model.GetPermissions(projectId, modelId)` → `ModelPermissionChecks` (`canUpdate`, `canDelete`, `canCreateVersion`)
-- `client.ActiveUser.GetProjectsWithPermissions()` → each `ProjectWithPermissions.permissions` inline
+- `client.ActiveUser.GetProjectsWithPermissions()` → each `ProjectWithPermissions.permissions` (`canCreateModel`, `canDelete`, `canLoad` only)
 - `Workspace.canCreateProject` on a fetched workspace
 
 Speckle's own connectors use these to disable menu items and show a tooltip explaining why, rather than letting the user click "send" and then showing an error:
@@ -97,6 +97,10 @@ For actions that aren't tied to an existing permission field on a resource, some
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 public void EnsureAuthorised(); // throws WorkspacePermissionException if authorized == false
 ```
+
+<Note>
+The property is `authorized` (US spelling); the guard method is `EnsureAuthorised()` (UK spelling) — both match the SDK.
+</Note>
 
 Call `EnsureAuthorised()` as a guard clause instead of hand-rolling an `if (!result.authorized) throw ...` at every call site.
 
