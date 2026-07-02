@@ -67,12 +67,12 @@ The `streamId` parameter name is a legacy holdover — pass your project id.
 ## SerializeNew
 
 <ResponseField name="SerializeNew" type="string SerializeNew(Base value)">
-  An experimental `System.Text.Json`-based serializer, not yet the default. Avoid for production workflows — see [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths#path-d-serializenew).
+  An experimental `System.Text.Json`-based serializer, not yet the default. Avoid for production workflows — see [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths#path-d-serializenew).
 </ResponseField>
 
 ## SendPipeline
 
-Connector-scale ingestion is a separate factory-created pipeline, not a method on `IOperations`. See [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends) for the full workflow.
+Connector-scale ingestion is a separate factory-created pipeline, not a method on `IOperations`. See [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends) for the full workflow.
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
@@ -81,7 +81,7 @@ var reference = await pipeline.Process(myData);
 await pipeline.WaitForUpload();
 ```
 
-After `WaitForUpload`, the server processes the uploaded pack and creates the version asynchronously — the caller does not call `client.Version.Create` on this pathway. See [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends).
+After `WaitForUpload`, the server processes the uploaded pack and creates the version asynchronously — the caller does not call `client.Version.Create` on this pathway. See [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends).
 
 <Note>
 `uploadProgress` must be `IProgress<StreamProgressArgs>` — pass `new Progress<StreamProgressArgs>()` if you don't need to report progress.
@@ -104,26 +104,26 @@ See [Exceptions](/developers/sdks/dotnet/api-reference/exceptions) for the full 
 
 <AccordionGroup>
   <Accordion title="Should I call Send or Send2 for a new script?">
-    Use **Send2**/`Receive2` — see [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). Use **Send**/`Receive` when you follow the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart), need `MemoryTransport`/`SQLiteTransport`, or integrate with existing transport-based code.
+    Use **Send2**/`Receive2` — see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). Use **Send**/`Receive` when you follow the [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart), need `MemoryTransport`/`SQLiteTransport`, or integrate with existing transport-based code.
   </Accordion>
   <Accordion title="Does Send create a version automatically?">
-    No for **`Send`** and **`Send2`** — call `client.Version.Create` after send. **`SendPipeline`** creates the version on the server after upload — see [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends) and [VersionResource](/developers/sdks/dotnet/api-reference/resources/version).
+    No for **`Send`** and **`Send2`** — call `client.Version.Create` after send. **`SendPipeline`** creates the version on the server after upload — see [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends) and [VersionResource](/developers/sdks/dotnet/api-reference/resources/version).
   </Accordion>
   <Accordion title="When do I need SendPipeline instead of Send2?">
-    When uploading a **whole host-application model** from a connector — thousands of elements converted incrementally. See [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends).
+    When uploading a **whole host-application model** from a connector — thousands of elements converted incrementally. See [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends).
   </Accordion>
 </AccordionGroup>
 
 ## Next Steps
 
 <CardGroup cols={3}>
-  <Card title="Send and Receive Paths" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
-    Path A–E decision guide
+  <Card title="Load and publish model data" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+    Choose Receive2, Send2, or SendPipeline
   </Card>
-  <Card title="Quickstart" icon="rocket" href="/developers/sdks/dotnet/getting-started/quickstart">
-    Path B worked example
+  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+    Receive2 worked example
   </Card>
-  <Card title="VersionResource" icon="code-branch" href="/developers/sdks/dotnet/api-reference/resources/version">
-    Publish after Send or Send2
+  <Card title="Version" icon="code-branch" href="/developers/sdks/dotnet/api-reference/resources/version">
+    Publish after Send2
   </Card>
 </CardGroup>
