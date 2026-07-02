@@ -1,0 +1,210 @@
+---
+title: "Scripts and Notebooks"
+description: "Use Speckle.Sdk from standalone scripts, Grasshopper C# components, and polyglot notebooks without learning dependency injection"
+---
+
+## Who This Page Is For
+
+Use this page if you are writing:
+
+- A one-off C# script or console app
+- A Grasshopper **C# Script** or custom component
+- A C# cell in a **polyglot notebook** (Jupyter, Visual Studio, Rider)
+- A small automation that is **not** a desktop connector
+
+You do **not** need to understand dependency injection, service lifetimes, or ASP.NET Core to use Speckle.Sdk. You only need to paste a short bootstrap block once, then write normal C# against `client`, `operations`, and `Base` objects — the same mental model as [specklepy](/developers/sdks/python/getting-started/quickstart).
+
+<Info>
+If you are building a production desktop connector (Revit, Rhino, AutoCAD, and similar), start with [Dependency Injection](/developers/sdks/dotnet/concepts/dependency-injection) and [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends) instead. Those pages assume a long-lived host app and connector-scale upload paths.
+</Info>
+
+## How This Differs from specklepy
+
+| | specklepy | Speckle.Sdk |
+|---|-----------|-------------|
+| **Getting started** | `from specklepy.api.client import SpeckleClient` | Paste a one-time bootstrap snippet (below) |
+| **Do you need to learn DI?** | No | No — treat the bootstrap as boilerplate |
+| **Typical send path** | `operations.send(...)` | `operations.Send2(...)` or `operations.Send(...)` |
+| **Object model** | `Base`, dynamic properties | Same |
+
+Speckle.Sdk is wired internally through `Microsoft.Extensions.DependencyInjection`, but **you are not expected to design around a container**. Copy the snippet, resolve `IOperations` and `IClientFactory`, and ignore the rest unless you are building a connector.
+
+<Warning>
+There is no `new Operations()` or import-and-go equivalent. Every public entry point (`IOperations`, `IClientFactory`, `IAccountFactory`) is resolved from the bootstrap container. That is a one-time setup cost, not an ongoing architectural commitment.
+</Warning>
+
+## One-Time Bootstrap (Copy This)
+
+Paste this at the top of your script, notebook cell, or Grasshopper C# component. Run it once per process.
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Speckle.Sdk;
+using Speckle.Sdk.Api;
+using Speckle.Sdk.Credentials;
+
+// Optional: include Speckle.Objects if you send or receive geometry
+// using Speckle.Objects.Geometry;
+
+static class SpeckleBootstrap
+{
+    static readonly ServiceProvider Provider = new ServiceCollection()
+        .AddSpeckleSdk(
+            new Application("My Script", "my-script"),
+            "1.0.0",
+            typeof(Speckle.Objects.Geometry.Point).Assembly // remove if you don't use Speckle.Objects
+        )
+        .BuildServiceProvider();
+
+    public static IOperations Operations => Provider.GetRequiredService<IOperations>();
+    public static IAccountFactory AccountFactory => Provider.GetRequiredService<IAccountFactory>();
+    public static IClientFactory ClientFactory => Provider.GetRequiredService<IClientFactory>();
+}
+```
+
+<Tip>
+You can rename `SpeckleBootstrap` to anything. The point is a single static holder so notebook cells and script functions do not repeat `new ServiceCollection()` on every run.
+</Tip>
+
+## Minimal Script: Send and Receive
+
+After the bootstrap, the rest looks like ordinary SDK code — no DI concepts required.
+
+```csharp
+using Speckle.Sdk.Api.GraphQL.Inputs;
+using Speckle.Sdk.Api.GraphQL.Models;
+using Speckle.Sdk.Models;
+using Speckle.Objects.Geometry;
+
+var token = Environment.GetEnvironmentVariable("SPECKLE_TOKEN")
+    ?? throw new InvalidOperationException("Set SPECKLE_TOKEN");
+
+var account = await SpeckleBootstrap.AccountFactory.CreateAccount(
+    new Uri("https://app.speckle.systems"),
+    token
+);
+using var client = SpeckleBootstrap.ClientFactory.Create(account);
+
+var project = await client.Project.Create(new ProjectCreateInput("Script test", null, ProjectVisibility.Private));
+var model = await client.Model.Create(new CreateModelInput("main", null, project.id));
+
+var root = new Base();
+root["point"] = new Point(1, 2, 3, "m");
+
+// Send2: no transport factory — pass URL, project id, and token directly
+var sendResult = await SpeckleBootstrap.Operations.Send2(
+    client.ServerUrl,
+    project.id,
+    account.token,
+    root,
+    onProgressAction: null,
+    cancellationToken: default
+);
+
+var version = await client.Version.Create(
+    new CreateVersionInput(sendResult.RootId, model.id, project.id, "From script")
+);
+
+var received = await SpeckleBootstrap.Operations.Receive2(
+    client.ServerUrl,
+    project.id,
+    version.referencedObject!,
+    account.token,
+    onProgressAction: null,
+    cancellationToken: default
+);
+
+Console.WriteLine($"Received point: {received["point"]}");
+```
+
+<Note>
+`Send2`/`Receive2` are the simplest server-facing path for scripts: you do not need `IServerTransportFactory` or a `using var transport = ...` block. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) if you need local-only `MemoryTransport`/`SQLiteTransport` workflows.
+</Note>
+
+## What You Can Use Without Thinking About DI
+
+Once bootstrapped, these are normal method calls — same as specklepy's `client` and `operations`:
+
+| What you want | Resolve once from bootstrap | Then use like |
+|---------------|----------------------------|---------------|
+| GraphQL API (`Project`, `Model`, `Version`, …) | `IClientFactory` → `Create(account)` | `client.Project.Create(...)`, `client.Version.Get(...)` |
+| Send / receive object graphs | `IOperations` | `Send2`, `Receive2`, `Serialize`, `DeserializeAsync` |
+| Build an account from a PAT | `IAccountFactory` | `CreateAccount(serverUrl, token)` |
+| Reuse a desktop login | `IAccountManager` (optional) | `GetAccounts()`, `GetDefaultAccount()` |
+
+## What to Skip (Unless You Are Building a Connector)
+
+| Page / topic | Why scripts can skip it |
+|--------------|-------------------------|
+| [Dependency Injection](/developers/sdks/dotnet/concepts/dependency-injection) | Deep dive for host apps sharing a container — not needed for copy-paste bootstrap |
+| [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends) | `SendPipeline` + model ingestion — production connector upload path only |
+| [ModelIngestionResource](/developers/sdks/dotnet/api-reference/resources/ingestion) | Same — ingestion lifecycle for large host-app sends |
+| [Working with Proxies](/developers/sdks/dotnet/guides/working-with-proxies) | Only needed when receiving connector-produced data with groups/instances |
+
+## Grasshopper and Hosted Scripts
+
+**Using Speckle's built-in Grasshopper components** (Send, Receive, Account Manager): you do not need Speckle.Sdk in your own code — use the components.
+
+**Writing your own Grasshopper C# Script or custom component**: use the bootstrap block above. The production Speckle Grasshopper plugin also resolves services from a DI container internally; your script can use the same pattern in isolation.
+
+If your script runs inside an app that **already** called `AddSpeckleSdk` (for example, a Speckle connector host), prefer resolving from that existing container instead of creating a second one.
+
+## Polyglot Notebooks
+
+In a C# notebook cell:
+
+1. Paste the bootstrap in the **first** cell (or a shared init cell) and run it once per kernel session.
+2. In later cells, call `SpeckleBootstrap.Operations`, `SpeckleBootstrap.ClientFactory`, and so on directly.
+3. Store `account` or `client` in notebook variables if you reuse them across cells — `IClient` is `IDisposable`, so dispose when the session ends.
+
+<Warning>
+Re-running the bootstrap cell creates a new `ServiceProvider` each time. For notebooks, define the static holder once and only re-run cells that change your data or API calls.
+</Warning>
+
+## Local-Only (No Server)
+
+For in-memory or file-backed experiments without Speckle Server, you can construct some transports directly — no factory required:
+
+```csharp
+using Speckle.Sdk.Transports;
+
+var local = new MemoryTransport();
+var (objectId, _) = await SpeckleBootstrap.Operations.Send(myData, local, useDefaultCache: false);
+var roundTripped = await SpeckleBootstrap.Operations.Receive(objectId, localTransport: local);
+```
+
+`ServerTransport` still needs `IServerTransportFactory` from the bootstrap — another reason scripts should prefer `Send2`/`Receive2` for server work.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do I have to learn Microsoft.Extensions.DependencyInjection?">
+    No. Treat `AddSpeckleSdk` + `BuildServiceProvider()` as a required preamble — like adding `using` statements. Resolve `IOperations` and `IClientFactory` from the provider; you never register your own services unless you are building a connector or ASP.NET app.
+  </Accordion>
+  <Accordion title="Why does specklepy feel simpler?">
+    Python exposes module-level clients and operations. C# resolves the same capabilities from a container because the SDK is shared with desktop connectors and services that already use DI. The script bootstrap collapses that to a few lines you copy once.
+  </Accordion>
+  <Accordion title="Can I avoid GetRequiredService in every cell?">
+    Yes — wrap the three services you need in a static helper (as shown above) or cache them in fields at the top of your script component.
+  </Accordion>
+  <Accordion title="Which quickstart should I follow?">
+    This page if you want the shortest script-oriented path. The [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) walks the same bootstrap step-by-step with `Send`/`Receive` and a transport — useful if you want the full tour once.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/developers/sdks/dotnet/getting-started/authentication">
+  PATs, environment variables, and stored desktop accounts
+  </Card>
+  <Card title="Send and Receive Paths" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+    Send2 vs Send vs Serialize — pick the right path for your script
+  </Card>
+  <Card title="Working with Geometry" icon="cube" href="/developers/sdks/dotnet/guides/working-with-geometry">
+    Point, Mesh, and displayValue from script code
+  </Card>
+  <Card title="specklepy Quickstart" icon="python" href="/developers/sdks/python/getting-started/quickstart">
+    Python equivalent for comparison
+  </Card>
+</CardGroup>
