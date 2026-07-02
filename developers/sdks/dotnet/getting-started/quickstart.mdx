@@ -259,17 +259,34 @@ var receivedData = await provider.GetRequiredService<IOperations>().Receive(fetc
 Console.WriteLine($"✓ Received data: {((List<object>)receivedData["points"]!).Count} points");
 ```
 
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Should I use this quickstart or Scripts and Notebooks?">
+    Use **Scripts and Notebooks** for Grasshopper, notebooks, and one-off automations — it uses `Send2`/`Receive2` with less ceremony. Use **this quickstart** when you want a guided tour of the full workflow, including how `ServerTransport` fits in.
+  </Accordion>
+  <Accordion title="Why doesn't my geometry show in the 3D viewer?">
+    Geometry primitives sent at the root without a container object are not visible in the viewer. Wrap them in a `Base` object, as in Step 4. See [Display Values](/developers/sdks/dotnet/concepts/display-values) for more detail.
+  </Accordion>
+  <Accordion title="What is streamId vs projectId?">
+    The GraphQL API and UI use `projectId`. Some transport and `Send`/`Receive` signatures still use `streamId` for the same value — pass your project's `id` in both cases.
+  </Accordion>
+  <Accordion title="I sent data but cannot find it in the UI">
+    Sending alone does not publish data. You must create a **version** that references the returned `objectId`. Objects without a version are orphaned on the server. See [Core Concepts](/developers/sdks/dotnet/concepts/overview#orphaned-objects).
+  </Accordion>
+</AccordionGroup>
+
 ## What's Next?
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
   <Card title="Core Concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
     Learn about Projects, Models, Versions, and send/receive paths
   </Card>
+  <Card title="Send and Receive Paths" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+    Send2 vs Send — pick the right path after this tour
+  </Card>
   <Card title="Working with Geometry" icon="cube" href="/developers/sdks/dotnet/guides/working-with-geometry">
     Explore all available geometry types
-  </Card>
-  <Card title="API Reference" icon="code" href="/developers/sdks/dotnet/api-reference/client">
-    Dive into the complete API documentation
   </Card>
 </CardGroup>
 
