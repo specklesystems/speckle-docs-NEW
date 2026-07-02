@@ -56,8 +56,8 @@ Swap `ServerTransport` for `SQLiteTransport` or `MemoryTransport` to send/receiv
 Talks to the server directly by URL, project id, and token, using a newer serialization pipeline. This is the default for [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) and for new server-facing code that does not need a custom `ITransport`.
 
 ```csharp
-var results = await operations.Send2(client.ServerUrl, project.id, account.token, myData, onProgressAction: null, cancellationToken);
-var received = await operations.Receive2(client.ServerUrl, project.id, results.RootId, account.token, onProgressAction: null, cancellationToken);
+var results = await operations.Send2(client.ServerUrl, project.id, account.token, myData, onProgressAction: null, cancellationToken: default);
+var received = await operations.Receive2(client.ServerUrl, project.id, results.RootId, account.token, onProgressAction: null, cancellationToken: default);
 ```
 
 <Note>
@@ -81,7 +81,7 @@ var sourceData = new SourceDataInput("my-app", "1.0.0", fileName: null, fileSize
 var ingestion = await client.Ingestion.Create(new ModelIngestionCreateInput(model.id, project.id, "Starting ingestion", sourceData));
 
 var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
-    .CreateInstance(ingestion, client.Account, uploadProgress, cancellationToken);
+    .CreateInstance(ingestion, client.Account, new Progress<StreamProgressArgs>(), cancellationToken: default);
 var reference = await pipeline.Process(myData);
 await pipeline.WaitForUpload();
 ```
