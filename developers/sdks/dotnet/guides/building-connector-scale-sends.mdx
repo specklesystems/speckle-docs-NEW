@@ -169,10 +169,13 @@ await client.Ingestion.FailWithCancel(
 
 <AccordionGroup>
   <Accordion title="Ingestion stuck in 'processing' forever">
-    Every ingestion must end in exactly one terminal call: `Complete`, `FailWithError`, `FailWithInvalid`, or `FailWithCancel`. Wrap the pipeline call in a try/catch that always reaches one of these.
+    On the client side, you only need to reach a terminal call if something goes wrong before or during upload: `FailWithError`, `FailWithInvalid`, or `FailWithCancel`. If `WaitForUpload` succeeds, the server takes over and drives the ingestion to `success` or `failed` itself — you don't call `Complete`. If an ingestion is stuck in `processing` with no client-side error, that's a server-side processing problem (corrupt pack, unsupported data), not a missing client call — inspect it with `client.Ingestion.Get`.
   </Accordion>
-  <Accordion title="Version never appears after a successful-looking send">
-    `SendPipeline` doesn't create a version on its own — you must call `client.Ingestion.Complete` after `WaitForUpload` finishes.
+  <Accordion title="Calling client.Ingestion.Complete after WaitForUpload">
+    This is unnecessary for the `SendPipeline` pathway and isn't how any current Speckle connector uses this API — see [Finding Out When the Version Is Ready](#3-finding-out-when-the-version-is-ready) above. `Complete` exists for a different, manual ingestion-tracking pattern built around `Send2`.
+  </Accordion>
+  <Accordion title="Processing an entire object graph in one Process() call">
+    `Process` only serializes the single object you pass it; it does not recurse into detached children. Passing your whole root object without first processing its children means those children are never written to the pack, and deserialization on receive will fail to resolve their references.
   </Accordion>
   <Accordion title="Object IDs don't match IDs from Operations.Send">
     `SendPipeline` uses a different serializer than `Send`/`Send2`. Don't compare or reuse IDs across the two pathways — see [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths).
@@ -192,7 +195,3 @@ await client.Ingestion.FailWithCancel(
     Full ingestion lifecycle API reference
   </Card>
 </CardGroup>
-
-<Info>
-For a production reference implementation, see [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors), which uses this pathway for all host-application sends.
-</Info>
