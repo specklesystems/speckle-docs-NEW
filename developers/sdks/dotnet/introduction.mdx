@@ -76,9 +76,9 @@ The `objectId` here is of a **Speckle object** that has already been sent to the
 Objects not associated with a **Model** **Version** are considered "zombie objects" or "orphans." Other than a record of `objectId`, they are effectively irretrievable.
 </Note>
 
-### Dependency Injection by Design
+### One-Time Setup (Not "Dependency Injection" as a Skill)
 
-Speckle.Sdk is built around `Microsoft.Extensions.DependencyInjection`. One extension method wires up everything the SDK needs.
+Speckle.Sdk resolves its services through `Microsoft.Extensions.DependencyInjection` because desktop connectors and services share the same SDK. **For scripts and notebooks, you do not need to learn DI** — paste a short bootstrap once and resolve `IOperations` and `IClientFactory` from it.
 
 ```csharp
 var services = new ServiceCollection();
@@ -87,20 +87,20 @@ var provider = services.BuildServiceProvider();
 ```
 
 <Info>
-The [Installation](/developers/sdks/dotnet/getting-started/installation) and [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) guides show this in context — you don't need to understand dependency injection to complete your first send and receive.
+[Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) is the citizen-developer entry point: copy-paste bootstrap, `Send2`/`Receive2`, and a clear list of which pages are connector-only. The [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) uses the same bootstrap in a step-by-step tour.
 </Info>
 
 ## Common Use Cases
 
 <CardGroup cols={2}>
+  <Card title="Scripts and Notebooks" icon="terminal">
+    Grasshopper C# scripts, polyglot notebooks, one-off automations — use Speckle.Sdk without learning DI
+  </Card>
   <Card title="Custom .NET Backed Applications" icon="globe">
     Extract data from one application and load it into another host or service that has no Speckle Connector.
   </Card>
   <Card title="Automated Workflows" icon="gears">
     Within Speckle Automate functions or your own automation pipelines that process AEC data, run analyses, or generate reports.
-  </Card>
-  <Card title="Custom Integrations" icon="plug">
-    Connect Speckle to your internal tools, databases, applications, or third-party services.
   </Card>
   <Card title="Connector Development" icon="puzzle-piece">
     Build production desktop connectors, as seen in [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors).

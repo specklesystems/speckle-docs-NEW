@@ -53,9 +53,9 @@ dotnet add package Speckle.Objects
 `Speckle.Objects` is a separate package from `Speckle.Sdk`. The core SDK handles sending, receiving, and the object model; `Speckle.Objects` adds the default geometry types built on top of it.
 </Note>
 
-## Register the SDK with Dependency Injection
+## Register the SDK (One-Time Bootstrap)
 
-Speckle.Sdk is built around `Microsoft.Extensions.DependencyInjection`. Every real workflow — authenticating, sending, receiving — resolves its services from an `IServiceProvider`. Register the SDK once, at application startup:
+Speckle.Sdk uses `Microsoft.Extensions.DependencyInjection` internally. **Scripts and notebook authors:** treat this as copy-paste boilerplate — see [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) for the citizen-developer path. **Connector and service authors:** register on your app's `IServiceCollection` as shown below.
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
@@ -67,7 +67,7 @@ var provider = services.BuildServiceProvider();
 ```
 
 <Note>
-This is the only dependency injection setup you need to follow the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart). The [Dependency Injection](/developers/sdks/dotnet/concepts/dependency-injection) concept page explains what `AddSpeckleSdk` registers and why, once you've completed your first send and receive.
+This is the only setup block you need for the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart). The [Dependency Injection](/developers/sdks/dotnet/concepts/dependency-injection) concept page explains what `AddSpeckleSdk` registers — read it only if you are building a connector or sharing a container with a host app.
 </Note>
 
 If you use `Speckle.Objects` or your own custom `Base`-derived types, pass their assemblies so the SDK can resolve them during deserialization:
