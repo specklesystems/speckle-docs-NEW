@@ -1,11 +1,33 @@
 ---
-title: "Enrich Speckle data in Grasshopper"
-description: "Use Speckle.Sdk in a C# Script to build DataObjects and Collections from Grasshopper geometry and computed metadata, then inspect the object graph locally"
+title: "Use SpeckleSharp in a Grasshopper C# node"
+description: "Build DataObjects and Collections from Grasshopper geometry and computed metadata, then inspect the object graph locally"
+sidebarTitle: "Grasshopper C#"
 ---
 
 This guide teaches building Speckle object graphs inside Grasshopper — computed metadata, nested collections, and local inspection — without publishing to a server first.
 
-**When to use it:** enrich Grasshopper geometry with SDK types before or alongside the connector. **Read next:** [Grasshopper Objects](/connectors/grasshopper/grasshopper-objects) for connector basics, then [Objects and traversal](/developers/sdks/dotnet/concepts/objects-and-traversal).
+**When to use it:** enrich Grasshopper geometry with SDK types before or alongside the connector. **Read next:** [Grasshopper Objects](/connectors/grasshopper/grasshopper-objects) for connector basics, then [Work with model objects](/developers/sdks/dotnet/concepts/objects-and-traversal).
+
+## When to use the SDK vs connector components
+
+The Speckle Grasshopper connector (Publish, Load, passthrough nodes) is the right tool for **moving data** to and from Speckle. SpeckleSharp in a C# Script is the right tool when you need:
+
+- **Custom analysis** that connector nodes do not provide
+- **Extracting or restructuring** model data programmatically
+- **Creating reports** with computed fields derived from geometry
+- **Combining Speckle data** with Grasshopper logic in one pass
+- **Prototyping workflows** before turning them into a plugin or automation
+
+Use connector nodes for transport. Use the SDK for construction, enrichment, and analysis. The SDK does **not** replace Publish and Load — it complements them.
+
+| | Grasshopper Speckle components | Speckle.Sdk in a C# Script |
+| --- | --- | --- |
+| Role | **Move** data | **Construct, enrich, analyse** data |
+| Examples | Publish, Load, passthrough params, Deconstruct | `DataObject` + derived `properties`, `Collection` hierarchy, `Flatten` |
+
+## When connector nodes are enough
+
+Passthrough nodes move and lightly edit data on wires. They do not execute graph-wide computation, derive per-element metadata from geometry, or assemble nested collections from grouping rules. **Deconstruct** inspects one param at a time; **Speckle.Sdk** constructs and analyses the whole graph; **Publish** exchanges it.
 
 ## Ecosystem progression
 
@@ -53,19 +75,7 @@ Solid lines = main guide. Dotted = ecosystem / appendix only.
 
 ## Mission and when you need the SDK
 
-Passthrough nodes move geometry and attach **static** attributes. They do not run graph-wide computation or build nested structures from rules. Reach for Speckle.Sdk in a C# Script when you need:
-
-- **Derived metadata** per element — distance from origin, quadrant, utilization, nearest grid line — computed from geometry, not typed on sliders
-- **Many elements** with consistent rules applied in one pass
-- **Nested collections** grouped by computed fields
-- **Graph-wide inspection** — count, summarize, or serialize the whole model locally before exchange
-
-| | Grasshopper Speckle components | Speckle.Sdk in a C# Script |
-| --- | --- | --- |
-| Role | **Move** data | **Construct, enrich, analyse** data |
-| Examples | Publish, Load, passthrough params, Deconstruct | `DataObject` + derived `properties`, `Collection` hierarchy, `Flatten` |
-
-**Why wouldn't I just use the node?** Passthrough nodes excel at transport and light edits; they do not replace code when metadata must be **derived** from geometry or when structure follows programmatic rules. See [How this relates to the Speckle Grasshopper connector](#how-this-relates-to-the-speckle-grasshopper-connector) for the full comparison.
+Passthrough nodes move geometry and attach **static** attributes. They do not run graph-wide computation or build nested structures from rules. The use cases above cover when to reach for Speckle.Sdk in a C# Script.
 
 <Info>
 The same workflow applies to room footprints (`floorArea`, `occupancy`, `carbonEstimate`, `qaStatus`) or any case where **per-element computed fields** do not scale on wires.
@@ -305,7 +315,7 @@ static string BuildSummary(List<DataObject> footings)
         ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
         string json = SpeckleBootstrap.Operations.Serialize(root);
         ```
-        Use this to sanity-check property names and nesting before exchange. See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths#path-a-serialize-only).
+        Use this to sanity-check property names and nesting before exchange. See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths#path-a-serialize-only).
       </Accordion>
     </AccordionGroup>
 
@@ -347,7 +357,7 @@ See [Working with Geometry](/developers/sdks/dotnet/guides/working-with-geometry
 
 ## How this relates to the Speckle Grasshopper connector
 
-**Why wouldn't I just use the node?** Passthrough nodes move and lightly edit data on wires. They do not execute graph-wide computation, derive per-element metadata from geometry, or assemble nested collections from grouping rules. **Deconstruct** inspects one param at a time; **Speckle.Sdk** constructs and analyses the whole graph; **Publish** exchanges it.
+When connector nodes are enough, use them for transport and light edits. Speckle.Sdk in a C# Script is for graph-wide computation, derived per-element metadata, and nested collections from programmatic rules. **Deconstruct** inspects one param at a time; **Speckle.Sdk** constructs and analyses the whole graph; **Publish** exchanges it.
 
 Both paths use the same object model (`DataObject`, `Collection`, `displayValue`). The connector casts native Grasshopper geometry through wrapper types; your script converts explicitly — same serialized shape on the wire.
 
@@ -370,7 +380,7 @@ Production connector code lives in [speckle-sharp-connectors](https://github.com
   <Card title="Objects and Traversal" icon="book" href="/developers/sdks/dotnet/concepts/objects-and-traversal">
     DataObject, Collection, displayValue
   </Card>
-  <Card title="Scripts and Notebooks" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
+  <Card title="Automate with scripts" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
     Send2 when ready to publish
   </Card>
   <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
@@ -393,7 +403,7 @@ Production connector code lives in [speckle-sharp-connectors](https://github.com
   <Card title="Objects and traversal" icon="sitemap" href="/developers/sdks/dotnet/concepts/objects-and-traversal">
     DataObject, Collection, Flatten
   </Card>
-  <Card title="Scripts and Notebooks" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
+  <Card title="Automate with scripts" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
     Send2 / Receive2 when you need transport from code
   </Card>
   <Card title="Grasshopper connector" icon="plug" href="/connectors/grasshopper/grasshopper">
@@ -405,7 +415,7 @@ Production connector code lives in [speckle-sharp-connectors](https://github.com
 
 <AccordionGroup>
   <Accordion title="A. Publish the same graph from code" id="a-publish-the-same-graph-from-code">
-    If you already built `root` in the script and need to send it without the Publish component, add account bootstrap and follow [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks):
+    If you already built `root` in the script and need to send it without the Publish component, add account bootstrap and follow [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks):
 
     ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
     var sendResult = await SpeckleBootstrap.Operations.Send2(
@@ -422,10 +432,10 @@ Production connector code lives in [speckle-sharp-connectors](https://github.com
     );
     ```
 
-    See [Send and Receive Paths](/developers/sdks/dotnet/concepts/send-and-receive-paths) and [Authentication](/developers/sdks/dotnet/getting-started/authentication) (Appendix C).
+    See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) and [Authentication](/developers/sdks/dotnet/getting-started/authentication) (Appendix C).
   </Accordion>
   <Accordion title="B. Fetch and query after Load">
-    After **Load** on the connector, traverse received graphs with [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data). Server access requires [Authentication](/developers/sdks/dotnet/getting-started/authentication).
+    After **Load** on the connector, traverse received graphs with [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data). Server access requires [Authentication](/developers/sdks/dotnet/getting-started/authentication).
   </Accordion>
   <Accordion title="C. Authentication">
     PATs, environment variables, and desktop accounts: [Authentication](/developers/sdks/dotnet/getting-started/authentication). Only needed for appendices A and B — not for the main data-modelling exercise.
