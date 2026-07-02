@@ -16,8 +16,8 @@ If you only remember one thing from this page: for a **script, notebook, or Gras
 | Path | Entry point | Transport / upload | Best for |
 |------|-------------|---------------------|----------|
 | **A. Serialize only** | `Serialize` / `DeserializeAsync` | None (in-memory JSON string) | Inspecting or saving raw JSON; no server involved |
-| **B. Send / Receive** | `Send`, `Receive` | `ITransport` (`ServerTransport`, `SQLiteTransport`, `MemoryTransport`) | Quickstarts, scripts, small-to-medium object graphs |
-| **C. Send2 / Receive2** | `Send2`, `Receive2` | Direct URL + project id + token | Recommended for new server-facing work at scale |
+| **B. Send / Receive** | `Send`, `Receive` | `ITransport` (`ServerTransport`, `SQLiteTransport`, `MemoryTransport`) | [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) tour, local-only transports, learning `ITransport` |
+| **C. Send2 / Receive2** | `Send2`, `Receive2` | Direct URL + project id + token | Scripts, notebooks, Grasshopper C#, and recommended server-facing work |
 | **D. SerializeNew** | `SerializeNew` | None | Experimental — not yet the default; avoid for now |
 | **E. SendPipeline** | `ISendPipelineFactory` + `client.Ingestion` | NDJSON upload via `Uploader` | Connector-scale ingestion of large host-application models |
 
@@ -51,7 +51,7 @@ Swap `ServerTransport` for `SQLiteTransport` or `MemoryTransport` to send/receiv
 
 ## Path C: Send2 / Receive2
 
-Talks to the server directly by URL, project id, and token, using a newer serialization pipeline. Prefer this for new server-facing features once you're past the quickstart.
+Talks to the server directly by URL, project id, and token, using a newer serialization pipeline. This is the default for [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) and for new server-facing code that does not need a custom `ITransport`.
 
 ```csharp
 var results = await operations.Send2(client.ServerUrl, project.id, account.token, myData, onProgressAction: null, cancellationToken);
