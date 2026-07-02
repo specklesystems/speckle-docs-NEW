@@ -58,8 +58,10 @@ This is the right default for most filtering and searching tasks. Use LINQ on to
 ```csharp
 using Speckle.Sdk.Models.GraphTraversal;
 
-// DefaultTraversal.DefaultRule: matches every object, traverses every member
-var traversal = new GraphTraversal(DefaultTraversal.DefaultRule);
+// DefaultTraversal.CreateTraversalFunc(): walks elements/displayValue-bearing
+// properties, skipping structural-results-only types. This is the traversal
+// every Speckle desktop connector registers and uses for receive.
+var traversal = new GraphTraversal(DefaultTraversal.CreateTraversalFunc());
 foreach (TraversalContext ctx in traversal.Traverse(root))
 {
     var obj = ctx.Current;
@@ -68,14 +70,15 @@ foreach (TraversalContext ctx in traversal.Traverse(root))
 }
 ```
 
+<Tip>
+`DefaultTraversal.CreateTraversalFunc()` is the traversal used in production: every current Speckle connector (Rhino, Revit, AutoCAD, Tekla, Navisworks, CSi) registers it as a singleton `GraphTraversal` in DI and uses it for every receive. Prefer it over hand-rolling a custom rule unless you have a specific reason to walk different properties.
+</Tip>
+
 <Warning>
-`new GraphTraversal()` with **no** rules traverses nothing beyond the root — its internal fallback rule returns zero members to walk into. Always pass at least one rule; use `DefaultTraversal.DefaultRule` for "traverse every member" or `DefaultTraversal.CreateTraversalFunc()` for the narrower elements/displayValue-aware traversal the SDK uses internally.
+`new GraphTraversal()` with **no** rules traverses nothing beyond the root — its internal fallback rule returns zero members to walk into. Always pass at least one rule. `DefaultTraversal.DefaultRule` traverses literally every dynamic member on every object — useful for debugging or exhaustive dumps, but noisier than `CreateTraversalFunc()` for typical structural traversal since it also walks into unrelated metadata properties.
 </Warning>
 
-Reach for `GraphTraversal` when you need:
-- The path/parent chain for each object
-- To skip specific properties (e.g. avoid re-processing `displayValue` geometry as if it were structure)
-- The prebuilt `DefaultTraversal.CreateTraversalFunc()` rules used internally for display-value-aware traversal
+Reach for a custom `TraversalRule` when you need to skip specific properties that `CreateTraversalFunc()` doesn't already exclude — for example, to avoid re-processing `displayValue` geometry as if it were structure:
 
 ```csharp
 using Speckle.Sdk.Models.GraphTraversal;
