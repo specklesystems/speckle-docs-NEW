@@ -11,6 +11,22 @@ This page covers .NET-specific usage. For the underlying schema — what `displa
 
 ## Adding a Display Value
 
+The recommended container is `DataObject` — it already has a typed `displayValue` property, plus `properties` for semantic data, so there's nothing extra to configure and it's what the rest of the Speckle ecosystem expects:
+
+```csharp
+using Speckle.Objects.Data;
+using Speckle.Sdk.Models;
+
+var wall = new DataObject
+{
+    name = "Wall 01",
+    properties = new Dictionary<string, object?> { ["material"] = "Concrete" },
+    displayValue = new List<Base> { wallMesh },
+};
+```
+
+You can also add `displayValue` dynamically to a plain `Base` — this still works, and is a reasonable shortcut for a quick script or a self-contained app that doesn't need `DataObject`'s other conventions:
+
 ```csharp
 using Speckle.Objects.Geometry;
 using Speckle.Sdk.Models;
@@ -21,7 +37,7 @@ wall["displayValue"] = new List<Mesh> { wallMesh };
 ```
 
 <Warning>
-Wrapping raw geometry primitives (`Point`, `Line`, `Mesh`) directly at the root of your sent object does **not** guarantee viewer visibility if the primitive itself isn't recognized as displayable. Wrap geometry in a `Base` (or a `DataObject`-style container) with an explicit `displayValue` property — this is what the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) does.
+Wrapping raw geometry primitives (`Point`, `Line`, `Mesh`) directly at the root of your sent object does **not** guarantee viewer visibility if the primitive itself isn't recognized as displayable. Wrap geometry in a `DataObject` or `Base` container with an explicit `displayValue` property — this is what the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) does.
 </Warning>
 
 ## Checking for a Display Value
@@ -42,7 +58,7 @@ if (someObject.IsDisplayableObject())
 
 ## Custom Types and Display Values
 
-If you define a custom type (see [Objects and Traversal](/developers/sdks/dotnet/concepts/objects-and-traversal#custom-types)), most Speckle connectors won't recognize it during conversion — but they will still render it if it has a `displayValue`:
+`DataObject` (shown above) already solves this — its `displayValue` property is part of the type. This section covers the case where `DataObject`'s shape doesn't fit and you define a fully custom type instead (see [Objects and Traversal](/developers/sdks/dotnet/concepts/objects-and-traversal#custom-types)). Most Speckle connectors won't recognize a custom type during conversion — but they will still render it if it has a `displayValue`:
 
 ```csharp
 [SpeckleType("MyCompany.Structure")]
@@ -52,9 +68,13 @@ public class CustomStructure : Base
     public required string Material { get; set; }
 
     [DetachProperty]
-    public required List<Mesh> DisplayValue { get; set; }
+    public required List<Mesh> displayValue { get; set; }
 }
 ```
+
+<Warning>
+The property name must be the exact camelCase `displayValue` (matching Speckle's `DataObject` convention). A PascalCase `DisplayValue` property serializes under a different key, so `IsDisplayableObject()`/`TryGetDisplayValue()` and the viewer will not recognize it.
+</Warning>
 
 ## Troubleshooting Invisible Objects
 
