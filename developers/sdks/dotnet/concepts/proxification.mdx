@@ -78,6 +78,42 @@ if (receivedData["groupProxies"] is IEnumerable<object> proxies)
 Exact root-level property names for proxy collections (`groupProxies`, `colorProxies`, and so on) depend on which sender populated them — check [Proxy Schemas](/developers/data-schema/proxy-schema) and, for connector-produced data, the relevant [connector schema page](/developers/data-schema/connector-index).
 </Warning>
 
+## When Proxification Matters
+
+### As a Data Consumer (Reading from Connectors)
+
+You will encounter proxies when you:
+
+- Read BIM/CAD data from Revit, Rhino, ArchiCAD, AutoCAD, or other connectors
+- Query by level, group, layer, or material
+- Resolve instance definitions to placed geometry
+- Analyze which organizational systems an object belongs to
+
+Resolution is required when you need to find objects by proxy metadata rather than by walking raw `elements` alone.
+
+### As a Data Producer (Publishing from .NET)
+
+You typically do **not** create proxies when you:
+
+- Publish simple custom data from a script or service
+- Send small object graphs with `Send2` or `Send`
+
+Speckle.Sdk handles detachment and chunking automatically when graphs grow large. Focus on understanding proxy **resolution** as a consumer unless you are building a connector that mirrors host-app organization.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do I need to create proxies when sending from a script?">
+    Usually no. Proxies are a connector pattern for host-app organization. Send your `Base` graph; let connectors produce proxy collections when converting from Revit, Rhino, and similar hosts.
+  </Accordion>
+  <Accordion title="Where do I find proxies after Receive?">
+    At the **root** of the received package — look for collections such as `groupProxies`, `colorProxies`, or connector-specific proxy properties documented in [Proxy Schemas](/developers/data-schema/proxy-schema).
+  </Accordion>
+  <Accordion title="Why resolve by applicationId instead of object id?">
+    Proxies reference objects by the sender's stable `applicationId`, not Speckle's content hash. Build an `applicationId` index once, then look up each id in the proxy's `objects` list.
+  </Accordion>
+</AccordionGroup>
+
 ## Next Steps
 
 <CardGroup cols={2}>

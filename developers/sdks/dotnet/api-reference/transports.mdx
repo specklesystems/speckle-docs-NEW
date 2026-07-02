@@ -66,6 +66,20 @@ All transports implement `ITransport`, which supports:
 `IBlobCapableTransport` (implemented by `ServerTransport`, `SQLiteTransport`, and `MemoryTransport`) adds blob sidecar storage for binary attachments alongside object graphs.
 </Info>
 
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do I need a transport if I use Send2?">
+    No for server send/receive — `Send2`/`Receive2` talk to the server directly. You still use transports for Path B (`Send`/`Receive`), local-only workflows, or the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) tour.
+  </Accordion>
+  <Accordion title="Why must ServerTransport come from IServerTransportFactory?">
+    Its constructor depends on `ISpeckleHttp` and other services registered by `AddSpeckleSdk`. The factory supplies those dependencies.
+  </Accordion>
+  <Accordion title="When should I use MemoryTransport vs SQLiteTransport?">
+    **MemoryTransport** for tests and ephemeral scripts. **SQLiteTransport** when you want a persistent local cache across runs or offline receive of previously fetched data.
+  </Accordion>
+</AccordionGroup>
+
 ## Next Steps
 
 <CardGroup cols={2}>

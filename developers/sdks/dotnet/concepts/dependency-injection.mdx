@@ -91,6 +91,20 @@ var app = builder.Build();
 
 This lets Speckle.Sdk share your application's logging configuration (`AddLogging` is called internally, but respects any logging providers you've already registered) and lifetime management.
 
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="I'm writing a script — do I need this page?">
+    No. Copy the bootstrap from [Scripts and Notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) and resolve `IOperations` and `IClientFactory` from the static helper. You do not register your own services unless you integrate with a host container.
+  </Accordion>
+  <Accordion title="Why did Receive return Base instead of my custom type?">
+    Pass your custom type's assembly to `AddSpeckleSdk` so `TypeLoader` can resolve `speckle_type` during deserialization. Without it, unknown types fall back to plain `Base`.
+  </Accordion>
+  <Accordion title="Can I construct ServerTransport with new ServerTransport(...)?">
+    No. Use `IServerTransportFactory.Create(account, projectId)` — the transport constructor depends on services registered by `AddSpeckleSdk`.
+  </Accordion>
+</AccordionGroup>
+
 ## Next Steps
 
 <CardGroup cols={2}>
