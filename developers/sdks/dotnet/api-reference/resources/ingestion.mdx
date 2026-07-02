@@ -14,11 +14,15 @@ Requires server version 3.0.3 or later. Check with [`model.CanCreateModelIngesti
 ## Lifecycle
 
 ```
-Create → (StartProcessing) → UpdateProgress* → Complete
-                                              ↘ FailWithError / FailWithCancel / FailWithInvalid
+Create → (StartProcessing) → UpdateProgress* → success (server-driven)
+                                              ↘ FailWithError / FailWithCancel / FailWithInvalid (client-driven)
 ```
 
-An ingestion starts in a `processing` state (via `Create`) and must end in exactly one terminal state: `Complete`, or one of the `FailWith*` methods.
+An ingestion starts in a `processing` state (via `Create`) and ends in exactly one terminal state.
+
+<Note>
+When uploading via [`SendPipeline`](/developers/sdks/dotnet/guides/building-connector-scale-sends), the client never calls `Complete` — uploading the finished pack (`SendPipeline.WaitForUpload`) itself triggers server-side processing, and the server transitions the ingestion to `success` (creating the version) or `failed` on its own. Subscribe via `client.Subscription.CreateProjectModelIngestionUpdatedSubscription` or poll `Get` to observe this. `Complete` is only called by clients that track an ingestion around a manual `Send2` call instead of `SendPipeline`.
+</Note>
 
 ## Methods
 
