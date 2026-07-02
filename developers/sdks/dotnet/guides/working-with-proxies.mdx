@@ -3,15 +3,44 @@ title: "Working with Proxies"
 description: "Resolve group, color, and instance proxies back to the objects they describe"
 ---
 
-When you receive connector-produced data and need objects grouped by level, material, or instance — or geometry hidden inside instance definitions — you resolve **proxies** at the root of the package against an `applicationId` index. This guide covers that workflow for group, color, and instance proxies.
+When you receive connector-produced data and need objects grouped by level, material, or instance — or geometry hidden inside instance definitions — you resolve **proxies** at the root of the package against an `applicationId` index. For the platform model (Definition/Instance, proxy structure, `objects` field semantics), see [Proxy Schemas](/developers/data-schema/proxy-schema).
+
+## Proxy Types in Speckle.Sdk
+
+Proxy classes implement `IProxyCollection`, which requires an `objects` list of source application IDs:
+
+```csharp
+using Speckle.Sdk.Models.Proxies;
+
+public interface IProxyCollection : ISpeckleObject
+{
+    public List<string> objects { get; set; }
+}
+
+var groupProxy = new GroupProxy
+{
+    name = "Exterior Walls",
+    objects = ["wall-app-id-1", "wall-app-id-2"]
+};
+
+var colorProxy = new ColorProxy
+{
+    name = "Concrete",
+    value = unchecked((int)0xFF808080),
+    objects = ["wall-app-id-1", "column-app-id-1"]
+};
+```
 
 <Note>
-For the conceptual model and schema, see [Proxification](/developers/sdks/dotnet/concepts/proxification) and [Proxy Schemas](/developers/data-schema/proxy-schema).
+Additional proxy types (materials, levels, instance definitions) follow the same pattern. Exact shapes: [Proxy Schemas](/developers/data-schema/proxy-schema).
 </Note>
+
+<Info>
+**As a producer:** you typically do **not** create proxies when publishing from a script or service — send your `Base`/`DataObject` graph and let connectors produce proxy collections from host-app organization.
+</Info>
 
 ## Prerequisites
 
-- [Proxification](/developers/sdks/dotnet/concepts/proxification)
 - [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data) — the `applicationId` index pattern used throughout this guide
 
 ## Complete Example
@@ -21,12 +50,10 @@ using Speckle.Sdk.Models;
 using Speckle.Sdk.Models.Extensions;
 using Speckle.Sdk.Models.Proxies;
 
-// Build the applicationId index once
 var byAppId = receivedData.Flatten()
     .Where(o => o.applicationId is not null)
     .ToDictionary(o => o.applicationId!);
 
-// Resolve a GroupProxy
 if (receivedData["groupProxies"] is IEnumerable<object> groupProxies)
 {
     foreach (var proxy in groupProxies.OfType<GroupProxy>())
@@ -44,11 +71,9 @@ if (receivedData["groupProxies"] is IEnumerable<object> groupProxies)
 
 ### Resolving Simple Proxies (Group, Color)
 
-Every built-in proxy type implements `IProxyCollection`, exposing an `objects` list of application IDs. Resolution is always the same three steps: index by `applicationId`, look up each id in the proxy's `objects` list, and pair the resolved objects with the proxy's metadata.
+Every built-in proxy type implements `IProxyCollection`. Resolution is three steps: index by `applicationId`, look up each id in the proxy's `objects` list, pair resolved objects with proxy metadata.
 
 ```csharp
-using Speckle.Sdk.Models.Proxies;
-
 Dictionary<string, List<Base>> ResolveProxies<T>(
     IEnumerable<T> proxies,
     Dictionary<string, Base> byAppId
@@ -71,29 +96,27 @@ Dictionary<string, List<Base>> ResolveProxies<T>(
 ```
 
 <Warning>
-Not every `applicationId` in a proxy's `objects` list is guaranteed to resolve — the referenced object may have been filtered out on send, or come from a partial receive. Always use `TryGetValue`/`GetValueOrDefault`, never a direct indexer that throws.
+Not every `applicationId` in a proxy's `objects` list is guaranteed to resolve. Always use `GetValueOrDefault`, never a direct indexer that throws.
 </Warning>
 
 ### Resolving Instance Definitions
 
-Instances are a two-hop resolution: an `InstanceProxy` references an `InstanceDefinitionProxy` by `definitionId` (not `applicationId`), and the definition itself is a proxy collection whose `objects` list holds the geometry's application IDs.
+Instances are two-hop: an `InstanceProxy` references an `InstanceDefinitionProxy` by `definitionId`, and the definition's `objects` list holds geometry application IDs.
 
 ```csharp
 using Speckle.Sdk.Models.Instances;
 
-// 1. Index definitions by their own applicationId
 var definitionsById = receivedData.Flatten()
     .OfType<InstanceDefinitionProxy>()
     .ToDictionary(d => d.applicationId!);
 
-// 2. For each instance, resolve its definition, then the definition's geometry
 var instances = receivedData.Flatten().OfType<InstanceProxy>();
 
 foreach (var instance in instances)
 {
     if (!definitionsById.TryGetValue(instance.definitionId, out var definition))
     {
-        continue; // definition not found in this data package
+        continue;
     }
 
     var geometry = definition.objects
@@ -107,34 +130,34 @@ foreach (var instance in instances)
 }
 ```
 
-`instance.transform` is a `Matrix4x4` (from `Speckle.DoubleNumerics`) — apply it to the definition's geometry to place each instance correctly.
+`instance.transform` is a `Matrix4x4` — apply it to place each instance correctly.
 
 <Note>
-`Flatten().OfType<InstanceDefinitionProxy>()` works because detached proxies are resolved back into the object graph on receive, but production code typically reads the root-level proxy collection property directly (for example `receivedData["instanceDefinitionProxies"]`, matching the `groupProxies`/`colorProxies` pattern above) since that's where senders place it and avoids a full-graph scan just to find proxies. Prefer the root property lookup when you know the sender's convention; fall back to `Flatten` when you don't.
+Prefer root-level property lookup (`receivedData["instanceDefinitionProxies"]`) when you know the sender's convention; fall back to `Flatten().OfType<...>()` when you don't.
 </Note>
 
 ## Common Pitfalls
 
 <AccordionGroup>
   <Accordion title="Proxy collection property not found on the root object">
-    Root-level property names for proxy collections (`groupProxies`, `colorProxies`, `instanceDefinitionProxies`, and so on) are a sender convention, not a fixed schema on `Base`. Check with `receivedData["propName"]` and confirm the exact name against [Proxy Schemas](/developers/data-schema/proxy-schema) or the sending connector's documentation.
+    Root-level property names (`groupProxies`, `colorProxies`, etc.) are a sender convention. Check [Proxy Schemas](/developers/data-schema/proxy-schema) or the sending connector's documentation.
   </Accordion>
   <Accordion title="InstanceProxy resolved to the wrong object">
-    `InstanceProxy.definitionId` matches an `InstanceDefinitionProxy.applicationId`, not `id`. Index definitions by `applicationId`, not the Speckle hash id.
+    `InstanceProxy.definitionId` matches an `InstanceDefinitionProxy.applicationId`, not `id`. Index definitions by `applicationId`.
   </Accordion>
   <Accordion title="Rebuilding the applicationId index per proxy">
-    Build it once per received graph, as shown in [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data#building-indexes-for-repeated-lookups), and reuse it across every proxy type you resolve.
+    Build it once per received graph — see [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data#building-indexes-for-repeated-lookups).
   </Accordion>
-  <Accordion title="Nested instances (an instance definition containing another instance)">
-    The single-hop resolution above assumes a definition's `objects` list only contains plain geometry. In practice, a definition can contain another `InstanceProxy`, requiring you to resolve and compose transforms recursively until you reach non-instance geometry. Multiply matrices from outermost to innermost instance as you recurse.
+  <Accordion title="Nested instances">
+    A definition's `objects` list can contain another `InstanceProxy`. Resolve and compose transforms recursively, multiplying matrices from outermost to innermost.
   </Accordion>
 </AccordionGroup>
 
 ## Related Guides
 
 <CardGroup cols={2}>
-  <Card title="Proxification" icon="link" href="/developers/sdks/dotnet/concepts/proxification">
-    Conceptual model and built-in proxy types
+  <Card title="Proxy Schemas" icon="diagram-project" href="/developers/data-schema/proxy-schema">
+    Full proxy structure and relationship model
   </Card>
   <Card title="Finding and Extracting Data" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
     The applicationId indexing pattern used here
