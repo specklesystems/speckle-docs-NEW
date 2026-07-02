@@ -5,6 +5,10 @@ description: "Create, structure, and inspect Base objects; control detachment an
 
 When you define your own Speckle payloads in .NET — room data, survey results, or connector conversion output — you structure them as `Base` objects with typed or dynamic properties and optional detachment for large nested graphs. This guide covers creation, introspection, and when to detach.
 
+<Info>
+This page teaches `Base` mechanics directly using a custom `Room` type, because those mechanics — typed vs. dynamic properties, `[DetachProperty]`, introspection — are exactly what `DataObject` and `Collection` are built from. For real BIM-like data meant to interoperate with the wider Speckle ecosystem, model it with `DataObject` and `Collection` instead of a custom type like `Room` — see [Base, DataObject, and Collection](/developers/sdks/dotnet/concepts/overview#base-dataobject-and-collection). Everything below still applies: `DataObject.displayValue` is itself `[DetachProperty]`, and `GetMembers()`/dynamic properties work the same way on any `Base`-derived type.
+</Info>
+
 ## Prerequisites
 
 - [Speckle.Sdk installed](/developers/sdks/dotnet/getting-started/installation)
@@ -153,6 +157,10 @@ For very large lists (thousands of primitive values), combine `[DetachProperty]`
 [Chunkable(1000)]
 public List<double>? vertices { get; set; }
 ```
+
+<Note>
+`[Chunkable]` is honored by `Serialize`/`Send`/`Send2` (the `Speckle.Sdk.Serialisation` serializers). The connector-scale `SendPipeline` path (see [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends)) uses a different serializer that detaches on `[DetachProperty]` but does not currently act on `[Chunkable]` — don't assume chunking applies uniformly across every send path.
+</Note>
 
 ## Common Pitfalls
 

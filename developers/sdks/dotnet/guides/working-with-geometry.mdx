@@ -12,11 +12,13 @@ Install the package separately: `dotnet add package Speckle.Objects`. It isn't a
 ## Prerequisites
 
 - [Display Values](/developers/sdks/dotnet/concepts/display-values)
+- [Base, DataObject, and Collection](/developers/sdks/dotnet/concepts/overview#base-dataobject-and-collection)
 - [Finding and Extracting Data](/developers/sdks/dotnet/guides/finding-and-extracting-data)
 
 ## Complete Example
 
 ```csharp
+using Speckle.Objects.Data;
 using Speckle.Objects.Geometry;
 using Speckle.Sdk.Common;
 using Speckle.Sdk.Models;
@@ -34,9 +36,15 @@ var mesh = new Mesh
     units = Units.Meters,
 };
 
-var wall = new Base();
-wall["name"] = "Wall 01";
-wall["displayValue"] = new List<Mesh> { mesh };
+// DataObject is the ecosystem-standard container for geometry + semantic data —
+// see Base, DataObject, and Collection in Core Concepts. Plain Base with a
+// dynamic "displayValue" property works too, for quick scripts.
+var wall = new DataObject
+{
+    name = "Wall 01",
+    properties = new Dictionary<string, object?>(),
+    displayValue = new List<Base> { mesh },
+};
 
 Console.WriteLine($"Mesh has {mesh.VerticesCount} vertices");
 ```
