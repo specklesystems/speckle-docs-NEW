@@ -1,23 +1,96 @@
 ---
-title: "Enable Bentley ProjectWise Integration"
+title: "Configure Bentley ProjectWise Integration"
 sidebarTitle: "Bentley ProjectWise"
-description: "IT administrator setup steps to enable Bentley ProjectWise cloud integration for Speckle."
+description: "IT administrator requirements for connecting Bentley ProjectWise Cloud or an on-premises ProjectWise WSG server to Speckle."
 ---
 
-This guide is for IT administrators who need to enable the Bentley ProjectWise cloud integration before users can sign in and create syncs in Speckle.
+This guide is for IT administrators preparing Bentley ProjectWise for Speckle. The required configuration depends on whether users connect through Bentley Cloud or directly to an on-premises WSG server.
 
-## Add the Speckle service account to ProjectWise projects
+## Choose a deployment
 
-To give Speckle access to your ProjectWise files, add the following service account email as a member to each ProjectWise project you want to sync:
+| Connection | Required service | Authentication |
+| --- | --- | --- |
+| **Cloud** | Bentley Infrastructure Cloud | Bentley IMS account |
+| **On-Prem** | ProjectWise WSG v2.9 | Native Authentication using ProjectWise credentials |
+
+The integration is read-only in both configurations. Speckle reads source files and metadata but does not modify ProjectWise.
+
+## Configure ProjectWise Cloud
+
+Add the Speckle service account to every Bentley project that users need to sync:
 
 <CodeGroup>
 service-VTc0NKefa1k4kXA4p16zC17R7@apps.imsoidc.bentley.com
 </CodeGroup>
 
-Once this email has been added to a project, users in your Speckle workspace can connect and sync files from that project.
+Users can access only the projects granted to this account and allowed by their own Bentley permissions.
 
 <Note>
-  The Speckle service account only has access to projects you explicitly add it to. It does not inherit personal permissions or see any data outside what you grant.
+  The Speckle service account does not inherit a user's permissions and cannot see projects to which it has not been added.
 </Note>
 
-After this is enabled, users can continue with [Bentley ProjectWise user setup](/connectors/cloud-integrations/projectwise).
+After access is granted, users can follow the [ProjectWise Cloud setup](/connectors/cloud-integrations/projectwise#connect-to-projectwise).
+
+## Configure an on-premises WSG server
+
+The Speckle backend connects directly to WSG. No desktop gateway or Bentley cloud login is used for this connection.
+
+<Steps>
+  <Step title="Enable the required WSG services">
+    Configure the server to expose WSG v2.9 and the `PW_WSG` schema.
+
+    The repository discovery endpoint must be available at:
+
+    `https://projectwise.example.com/WS/v2.9/Repositories`
+  </Step>
+  <Step title="Enable Native Authentication">
+    Enable WSG **Native Authentication** so ProjectWise usernames and passwords can be used through HTTP Basic Authentication.
+
+    Bentley IMS authentication alone is not sufficient for the On-Prem connection. Speckle reports an error if Native Authentication is disabled.
+  </Step>
+  <Step title="Allow network access from Speckle">
+    Make the WSG base URL reachable from the Speckle backend over HTTPS.
+
+    Contact Speckle to agree on secure access before exposing a private WSG endpoint.
+  </Step>
+  <Step title="Provision ProjectWise access">
+    Give each connecting account access to the required datasource, work areas, folders, and files.
+
+    Use least-privilege accounts. A connection can browse and sync only the content visible to its ProjectWise account.
+  </Step>
+  <Step title="Give users the connection details">
+    Provide users with:
+
+    - The WSG base URL, such as `https://projectwise.example.com`
+    - Their ProjectWise username and password
+    - The datasource they should select
+
+    Users should enter the base URL only, without `/WS/v2.9/Repositories`.
+  </Step>
+</Steps>
+
+Users can then follow the [ProjectWise On-Prem setup](/connectors/cloud-integrations/projectwise#connect-to-projectwise).
+
+## Credential handling
+
+Speckle tests the credentials before saving the connection. It encrypts the username and password before storing them on the Speckle server.
+
+Saved passwords are not returned to the browser. The backend decrypts them only when it needs to browse folders, download a file, or check for source updates.
+
+Saved connections are scoped to the Speckle user and workspace. Other members connect the same datasource with their own ProjectWise credentials.
+
+If WSG rejects a stored credential, Speckle stops retrying immediately. It pauses all syncs using that credential and emails the connection owner to reduce the risk of a ProjectWise account lockout.
+
+## Network checklist
+
+Before handing the connection to users, confirm that:
+
+- The WSG base URL uses HTTPS with a certificate trusted by the Speckle backend.
+- `/WS/v2.9/Repositories` responds and lists the expected datasources.
+- WSG Native Authentication is enabled.
+- The ProjectWise account can browse and download the required files.
+- Firewalls and proxies permit the Speckle backend to reach WSG.
+
+## User setup
+
+After the relevant configuration is complete, send users to [Bentley ProjectWise](/connectors/cloud-integrations/projectwise) to connect a project and create their first sync.
