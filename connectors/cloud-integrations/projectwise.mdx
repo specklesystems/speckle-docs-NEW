@@ -1,13 +1,12 @@
 ---
 title: "Bentley ProjectWise"
 sidebarTitle: "Bentley ProjectWise"
-description: "Connect and sync your files from ProjectWise with Speckle for analytics, dashboards, and automation workflows."
+description: "Connect Bentley ProjectWise Cloud or an on-premises ProjectWise WSG server to Speckle for automatic model synchronization."
 tag: "Alpha"
 ---
 
 <Note>
-  This integration is currently in **Alpha** and only supports the **Share** work
-  area from ProjectWise.
+  The Bentley ProjectWise integration is currently in **Alpha**. It supports Bentley-hosted cloud projects and on-premises ProjectWise servers exposed through WSG.
 </Note>
 
 <Info>
@@ -16,103 +15,147 @@ tag: "Alpha"
   <a href="mailto:office@speckle.systems?subject=Bentley%20ProjectWise%20Integration%20enquiry">get a quote</a>.
 </Info>
 
-## Setup
+## Choose a connection
 
-Before users can sync files, your IT administrator must enable the ProjectWise cloud integration by adding the Speckle service account to relevant ProjectWise projects. See [Enable Bentley ProjectWise integration](/workspaces/it-admin-projectwise-integration).
+Speckle can connect to ProjectWise in two ways. Choose the option that matches where your ProjectWise data is hosted and how users authenticate.
 
-<Steps>
-  <Step title="Sign in to Bentley ProjectWise">
-    1. Select **workspace settings** from the workspace dropdown (top left).
-      <Frame>
-         <img src="/images/connectors/cloud-integrations/projectwise/projectwise-workspace settings.png" alt="Workspace settings" />
-       </Frame>
-    2. Select **Log in** next to Bentley ProjectWise.
-      <Frame>
-          <img src="/images/connectors/cloud-integrations/projectwise/projectwise-login.png" alt="ProjectWise login" />
-        </Frame>
-    3. Sign in to your Bentley account and select **Allow** from the authorization dialog.
-        <Frame>
-            <img src="/images/connectors/cloud-integrations/projectwise/projectwise-authorize app.png" alt="ProjectWise authorization" />
-          </Frame>
+| Connection | Use it for | Authentication | IT preparation |
+| --- | --- | --- | --- |
+| **Cloud** | Bentley Infrastructure Cloud projects | Bentley account through IMS | Add the Speckle service account to each project |
+| **On-Prem** | ProjectWise servers exposed through WSG | ProjectWise Native Authentication with a username and password | Make WSG reachable from Speckle and enable Native Authentication |
 
-    Your integration is now set up.
+Your IT administrator should complete the relevant steps in [Configure Bentley ProjectWise Integration](/workspaces/it-admin-projectwise-integration) before users connect.
 
-  </Step>
-  <Step title="Sync your first model">
-    1. From your project in Speckle, select **Add model \> Sync from ProjectWise**.
-      <Frame>
-          <img src="/images/connectors/cloud-integrations/projectwise/projectwise-add model.png" alt="Sync from ProjectWise" />
-        </Frame>
-    2. Select the file you want to sync. Your projects, folders and files from ProjectWise will be listed here.
-        <Frame>
-            <img src="/images/connectors/cloud-integrations/projectwise/projectwise-select file.png" alt="ProjectWise file picker" />
-          </Frame>
-    3. Select **Create**.
+## Connect to ProjectWise
 
-    This connects your ProjectWise file to your Speckle model. Changes in ProjectWise sync automatically to Speckle.
+<Tabs>
+  <Tab title="Cloud">
+    Use this option for Bentley Infrastructure Cloud. Speckle uses your Bentley account to show the projects and work areas you can access.
 
-  </Step>
-</Steps>
+    <Steps>
+      <Step title="Open the ProjectWise integration">
+        1. Open a Speckle project.
+        2. In the project sidebar, expand **Integrations** and select **ProjectWise**.
+        3. Select **Connect to ProjectWise**.
+      </Step>
+      <Step title="Sign in with Bentley">
+        1. Sign in to your Bentley account.
+        2. Select **Allow** in the Bentley authorization dialog.
+      </Step>
+      <Step title="Choose and sync a file">
+        1. Select an iTwin project.
+        2. Browse the available **Share** folders or **ProjectWise Web** work areas.
+        3. Select one or more supported files.
+        4. Review the file settings, then select **Create**.
+
+        Speckle creates a model for each selected file and starts the first sync.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="On-Prem">
+    Use this option to connect directly to an on-premises ProjectWise WSG server. You do not need to sign in with a Bentley cloud account.
+
+    Before starting, obtain the WSG base URL and ProjectWise credentials from your IT administrator. The server must support WSG v2.9 and Native Authentication.
+
+    <Steps>
+      <Step title="Open the ProjectWise integration">
+        1. Open a Speckle project.
+        2. In the project sidebar, expand **Integrations** and select **ProjectWise**.
+        3. Select **Add datasource**.
+
+        If ProjectWise Cloud is already connected, use **Add datasource** in the connection bar instead.
+      </Step>
+      <Step title="Connect a datasource">
+        1. Enter the WSG base URL, such as `https://projectwise.example.com`.
+        2. Select **Get datasources**.
+        3. Choose the datasource you want to connect.
+        4. Enter your ProjectWise username and password.
+        5. Select **Test & Connect**.
+
+        Enter the server base URL only. Do not add `/WS/v2.9/Repositories` to the URL.
+      </Step>
+      <Step title="Choose and sync a file">
+        1. Select the datasource tab.
+        2. Browse its work areas and folders.
+        3. Select one or more supported files.
+        4. Review the file settings, then select **Create**.
+
+        Speckle creates a model for each selected file and starts the first sync.
+      </Step>
+    </Steps>
+
+    <Note>
+      Speckle encrypts your ProjectWise credentials before storing them. They enable server-side file downloads and background synchronization.
+    </Note>
+  </Tab>
+</Tabs>
 
 ## Supported file formats
 
-The following file formats are currently supported for syncing from Bentley ProjectWise:
+The following formats can be synced from either ProjectWise connection:
 
-| Format      | Extension | Status       |
-| ----------- | --------- | ------------ |
-| Revit       | `.rvt`    | ✅ Supported |
-| IFC         | `.ifc`    | ✅ Supported |
-| Navisworks  | `.nwd` `.nwc` | ⚠️ Beta   |
-| DGN         | `.dgn`    | 🗓️ Planned  |
-| DWG         | `.dwg`    | 🗓️ Planned  |
+| Format | Extension | Status |
+| --- | --- | --- |
+| Revit | `.rvt` | ✅ Supported |
+| IFC | `.ifc` | ✅ Supported |
+| Navisworks | `.nwd` `.nwc` | ⚠️ Beta |
+| DGN | `.dgn` | 🗓️ Planned |
+| DWG | `.dwg` | 🗓️ Planned |
 
 <Info>
-  Betas can behave differently across files — [tell us](mailto:office@speckle.systems)
-  if Navisworks sync misbehaves. For **DGN** / **DWG**, demand signals help us
-  prioritise the order we ship them.
+  Navisworks support can vary between files. If an NWD or NWC sync fails, [tell us](mailto:office@speckle.systems). Requests for DGN and DWG support help us prioritise future work.
 </Info>
 
-## Current limitations
-
-For deployment and API limitations, see [Bentley ProjectWise current limitations](/workspaces/it-setup#bentley-projectwise-current-limitations) in the IT setup guide.
-
-From a user workflow perspective:
-
-- Automatic file change detection can be delayed in some environments.
-- Current integration scope is focused on model and file synchronization workflows.
+## FAQs and troubleshooting
 
 <AccordionGroup>
   <Accordion title="Is the connection read-only?">
-    Yes. Speckle establishes a read-only connection with Bentley ProjectWise, which means we can sync and analyze your data but can't modify the original files. This ensures data integrity and security.
+    Yes. Speckle downloads and converts source files but does not change files or folders in ProjectWise. The converted data is stored as versioned objects in the Speckle project.
   </Accordion>
-  <Accordion title="How often do files sync?">
-    Once you've created a sync model, Speckle automatically detects when a file is updated in ProjectWise and syncs the latest version. There may be a short delay between a file being updated and the new version appearing in Speckle.
+  <Accordion title="How quickly are file changes synced?">
+    Speckle checks ProjectWise on a schedule, so a change may take a few minutes to appear. When a change is detected, Speckle creates a new model version.
   </Accordion>
-  <Accordion title="What if my sync fails?">
-    Common causes include file access issues, authorization problems, or unsupported file formats. Check that:
+  <Accordion title="How do I manage an on-premises connection?">
+    Each connected datasource appears as a tab. Use the settings icon next to its name to change the server, datasource, username, or password.
 
-    - The service account from [Enable Bentley ProjectWise integration](/workspaces/it-admin-projectwise-integration) has been added as a member of the relevant ProjectWise project
-    - The file is in a supported format (**.rvt**, **.ifc**, **.nwd**, or **.nwc**)
+    Saved connections are personal to your Speckle user in that workspace. Other workspace members connect the datasource with their own ProjectWise credentials.
 
-    Contact support if issues persist.
-
+    Leave the username and password blank when editing a connection to keep the stored credentials. Enter both fields to replace them.
   </Accordion>
-  <Accordion title="Can I use Bentley ProjectWise models with Speckle Intelligence?">
-    Yes. Once synced, your Bentley ProjectWise models can be used with Speckle Intelligence for analytics, dashboard creation, and generating insights from your construction data.
+  <Accordion title="What happens if I disconnect a datasource?">
+    Disconnecting a datasource deletes its saved credentials. Existing syncs that use them cannot update; connect again and recreate those syncs if needed.
+  </Accordion>
+  <Accordion title="What happens if my stored credentials stop working?">
+    Speckle immediately pauses every sync using that connection and emails the connection owner. This prevents repeated attempts from locking the ProjectWise account.
+  </Accordion>
+  <Accordion title="What does the ProjectWise integration support?">
+    The integration supports model and file synchronization. It does not provide general ProjectWise document management.
+  </Accordion>
+  <Accordion title="Speckle cannot reach my WSG server">
+    Confirm that you entered the WSG base URL and that Speckle Cloud can resolve and reach it over HTTPS.
+
+    Ask your IT administrator to check DNS, firewall rules, the TLS certificate, and the `/WS/v2.9/Repositories` endpoint.
+  </Accordion>
+  <Accordion title="No datasources were found">
+    Confirm that the URL points to the WSG server, not a ProjectWise Web page. The server must return its repositories from `/WS/v2.9/Repositories`.
+  </Accordion>
+  <Accordion title="The server does not support Basic Auth login">
+    Ask your ProjectWise administrator to enable **Native Authentication** for WSG. Bentley IMS authentication is used by the Cloud connection and cannot replace Native Authentication for this On-Prem connection.
+  </Accordion>
+  <Accordion title="My password changed and the sync was paused">
+    Open the datasource settings, enter the new username and password, and save the connection. Then open each affected sync and select **Resume**.
+  </Accordion>
+  <Accordion title="A synced file was moved or deleted">
+    Speckle pauses the sync after the file is missing for three checks. Restore it to its original location or create a new sync from the file's new location.
+  </Accordion>
+  <Accordion title="My cloud projects or files are missing">
+    Confirm that your Bentley account can access the project. Also confirm that the Speckle service account has been added to the relevant Bentley project.
+  </Accordion>
+  <Accordion title="Can I use ProjectWise models with Speckle Intelligence?">
+    Yes. After a model is synced, it can be used with Speckle Intelligence, dashboards, automations, and other Speckle workflows.
   </Accordion>
 </AccordionGroup>
 
-## Roadmap
-
-Integration work not tied to individual file types (see [Supported file formats](#supported-file-formats) for extensions):
-
-| Area                                                         | Status          |
-| ------------------------------------------------------------ | --------------- |
-| Automatic sync when ProjectWise files change                 | ✅ Complete     |
-| Basic sync status in the product                             | ✅ Complete     |
-| Enhanced UI/UX for sync management                           | 🔄 In Progress  |
-| Improved error handling and reporting                        | 🔄 In Progress  |
-
 ## Getting help
 
-For questions or to request access, contact our support team or visit the [Speckle Community](https://speckle.community/).
+For setup help or Alpha feedback, contact our support team or visit the [Speckle Community](https://speckle.community/).
