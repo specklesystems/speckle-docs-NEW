@@ -1,0 +1,145 @@
+---
+title: "Read and create geometry"
+description: "Extract mesh and point geometry from model data — when properties are not enough"
+sidebarTitle: "Geometry"
+---
+
+## Goal
+
+Create or extract **mesh and point geometry** from Speckle model data when analysis needs vertices, areas, or lengths — not only BIM properties.
+
+## When to use this
+
+Most AEC automation uses **`DataObject.properties`** for schedules and QA — start with [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data). Read this guide when you need **3D geometry** from `displayValue` or `Speckle.Objects` types.
+
+<Info>
+Install separately: `dotnet add package Speckle.Objects`. Not a dependency of `Speckle.Sdk`.
+</Info>
+
+## Recommended approach
+
+1. Receive model with `Receive2`
+2. Extract meshes via `Flatten().OfType<Mesh>()` or `TryGetDisplayValue<Mesh>()`
+3. For creating geometry to send, put primitives in `DataObject.displayValue`
+
+## Prerequisites
+
+- [Work with model objects](/developers/sdks/dotnet/concepts/objects-and-traversal#display-values)
+- [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data)
+
+## Complete Example
+
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
+using Speckle.Objects.Data;
+using Speckle.Objects.Geometry;
+using Speckle.Sdk.Common;
+using Speckle.Sdk.Models;
+
+var mesh = new Mesh
+{
+    vertices = new List<double> { 0, 0, 0, 1, 0, 0, 0, 1, 0 },
+    faces = new List<int> { 3, 0, 1, 2 },
+    units = Units.Meters,
+};
+
+var wall = new DataObject
+{
+    name = "Wall 01",
+    properties = new Dictionary<string, object?>(),
+    displayValue = new List<Base> { mesh },
+};
+
+Console.WriteLine($"Mesh has {mesh.VerticesCount} vertices");
+```
+
+## Mesh Data Layout
+
+`Mesh.vertices` and `Mesh.faces` are flat lists:
+
+- `vertices`: flat `x, y, z, x, y, z, ...` triples
+- `faces`: each face starts with vertex count (n-gon size), followed by indices — `[3, 0, 1, 2, 4, 1, 2, 3, 4]` is one triangle then one quad
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+for (var i = 0; i < mesh.vertices.Count; i += 3)
+{
+    double x = mesh.vertices[i];
+    double y = mesh.vertices[i + 1];
+    double z = mesh.vertices[i + 2];
+}
+
+List<Point> points = mesh.GetPoints(); // convenient; allocates per vertex
+```
+
+<Tip>
+For large meshes, iterate `vertices` directly instead of `GetPoints()`.
+</Tip>
+
+<Warning>
+Speckle meshes support n-gons. Triangulate before handing off to triangle-only renderers — see `MeshTriangulationHelper` in `Speckle.Objects.Utils`.
+</Warning>
+
+## Units
+
+Geometry types carry a `units` string (`Units.Meters`, `Units.Millimeters`, etc.). Objects in the same graph can use different units.
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var point = new Point(1.0, 2.0, 0.0, Units.Millimeters);
+```
+
+## Extracting Geometry from Received Data
+
+All meshes in a graph:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var meshes = receivedData.Flatten().OfType<Mesh>().ToList();
+```
+
+Most BIM geometry is in `displayValue`:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Models.Extensions;
+
+foreach (var obj in receivedData.Flatten())
+{
+    var displayMeshes = obj.TryGetDisplayValue<Mesh>();
+    if (displayMeshes is null) continue;
+
+    foreach (var mesh in displayMeshes)
+    {
+        Console.WriteLine($"{obj.TryGetName()}: {mesh.VerticesCount} vertices");
+    }
+}
+```
+
+## Material
+
+`RenderMaterial` (`Speckle.Objects.Other`) is typically set as a dynamic `renderMaterial` property on geometry. For shared materials across many objects, use `RenderMaterialProxy` — see [Working with Proxies](/developers/sdks/dotnet/guides/working-with-proxies).
+
+## Common Pitfalls
+
+<AccordionGroup>
+  <Accordion title="IndexOutOfRangeException reading vertices/faces">
+    `vertices.Count` must be a multiple of 3. Validate list lengths from untrusted sources.
+  </Accordion>
+  <Accordion title="Mesh renders with holes in a triangle-only viewer">
+    The mesh likely contains n-gons — triangulate first.
+  </Accordion>
+  <Accordion title="Sent geometry doesn't appear in the viewer">
+    Put geometry in a container's **`displayValue`** — see [Display values](/developers/sdks/dotnet/concepts/objects-and-traversal#display-values).
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Objects and Traversal" icon="book" href="/developers/sdks/dotnet/concepts/objects-and-traversal">
+    displayValue and Base mechanics
+  </Card>
+  <Card title="Find objects by property" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
+    Extract meshes after receive
+  </Card>
+  <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
+    Send and receive geometry graphs
+  </Card>
+</CardGroup>

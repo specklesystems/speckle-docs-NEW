@@ -1,0 +1,129 @@
+---
+title: "Operations"
+description: "Load and publish object graphs — Receive2, Send2, Serialize, and connector-scale paths"
+sidebarTitle: "Operations"
+---
+
+Use **`IOperations`** to load model data from Speckle Server (`Receive2`), publish results back (`Send2`), or serialize graphs locally. For most AEC scripts, **`Receive2`/`Send2`** is the recommended path — see [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) before reading signatures here.
+
+**Guides:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) · [Send analysis results back](/developers/sdks/dotnet/guides/send-analysis-results-back)
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var operations = provider.GetRequiredService<IOperations>();
+```
+
+## Serialize / Deserialize
+
+<ResponseField name="Serialize" type="string Serialize(Base value, CancellationToken cancellationToken = default)">
+  Serializes an object graph to a JSON string with no transport involved. No detachment occurs beyond what's declared via `[DetachProperty]`/`@` prefixes; nested objects are still inlined unless detached.
+</ResponseField>
+
+<ResponseField name="DeserializeAsync" type="Task<Base> DeserializeAsync(string value, CancellationToken cancellationToken = default)">
+  Reconstructs a `Base` graph from a JSON string previously produced by `Serialize`.
+</ResponseField>
+
+## Send / Receive
+
+<ResponseField name="Send" type="Task<(string rootObjId, IReadOnlyDictionary<string, ObjectReference> convertedReferences)> Send(Base value, IReadOnlyCollection<ITransport> transports, IProgress<ProgressArgs>? onProgressAction = null, CancellationToken cancellationToken = default)">
+  Sends `value` to every transport in `transports`. Returns the root object's id and a map of converted references.
+
+  Overloads accept a single `IServerTransport`/`ITransport` plus a `useDefaultCache` flag, which adds a matching local `SQLiteTransport`/`SQLiteTransport2` automatically.
+</ResponseField>
+
+<ResponseField name="Receive" type="Task<Base> Receive(string objectId, ITransport? remoteTransport = null, ITransport? localTransport = null, IProgress<ProgressArgs>? onProgressAction = null, CancellationToken cancellationToken = default)">
+  Receives the object graph identified by `objectId`. Checks `localTransport` first (defaults to a new `SQLiteTransport` if omitted); falls back to `remoteTransport` and copies the result into the local transport.
+</ResponseField>
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
+
+var (objectId, _) = await operations.Send(myData, transport, useDefaultCache: true);
+var received = await operations.Receive(objectId, remoteTransport: transport);
+```
+
+<Warning>
+`ServerTransport` has DI-resolved constructor dependencies. Always construct it via `IServerTransportFactory.Create(account, projectId)`, not `new ServerTransport(...)`.
+</Warning>
+
+## Send2 / Receive2
+
+<ResponseField name="Send2" type="Task<SerializeProcessResults> Send2(Uri url, string streamId, string? authorizationToken, Base value, IProgress<ProgressArgs>? onProgressAction, CancellationToken cancellationToken, SerializeProcessOptions? options = null)">
+  Sends `value` directly to the server at `url` for project `streamId` (the project id), using the newer V2 serialization pipeline. Recommended over `Send` for new server-facing work.
+</ResponseField>
+
+<ResponseField name="Receive2" type="Task<Base> Receive2(Uri url, string streamId, string objectId, string? authorizationToken, IProgress<ProgressArgs>? onProgressAction, CancellationToken cancellationToken, DeserializeProcessOptions? options = null)">
+  Receives an object graph directly from the server, using the V2 deserialization pipeline.
+</ResponseField>
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var results = await operations.Send2(client.ServerUrl, project.id, account.token, myData, null, cancellationToken: default);
+var received = await operations.Receive2(client.ServerUrl, project.id, results.RootId, account.token, null, cancellationToken: default);
+```
+
+<Note>
+The `streamId` parameter name is a legacy holdover — pass your project id.
+</Note>
+
+## SerializeNew
+
+<ResponseField name="SerializeNew" type="string SerializeNew(Base value)">
+  An experimental `System.Text.Json`-based serializer, not yet the default. Avoid for production workflows — see [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths#path-d-serializenew).
+</ResponseField>
+
+## SendPipeline
+
+Connector-scale ingestion is a separate factory-created pipeline, not a method on `IOperations`. See [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends) for the full workflow.
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
+    .CreateInstance(ingestion, account, uploadProgress: new Progress<StreamProgressArgs>(), cancellationToken: default);
+var reference = await pipeline.Process(myData);
+await pipeline.WaitForUpload();
+```
+
+After `WaitForUpload`, the server processes the uploaded pack and creates the version asynchronously — the caller does not call `client.Version.Create` on this pathway. See [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends).
+
+<Note>
+`uploadProgress` must be `IProgress<StreamProgressArgs>` — pass `new Progress<StreamProgressArgs>()` if you don't need to report progress.
+</Note>
+
+## Exceptions
+
+| Exception | Thrown when |
+|--------------------------------|------------------------------------------------------|
+| `ArgumentException`            | No transports specified, or an invalid argument       |
+| `ArgumentNullException`        | `value` or `transport` was null                       |
+| `SpeckleException`             | Serialization or send/receive operation failed        |
+| `TransportException`           | One or more transports failed to send                 |
+| `SpeckleDeserializeException`  | Deserialization of the requested object(s) failed     |
+| `OperationCanceledException`   | The cancellation token requested cancellation          |
+
+See [Exceptions](/developers/sdks/dotnet/api-reference/exceptions) for the full hierarchy.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Should I call Send or Send2 for a new script?">
+    Use **Send2**/`Receive2` — see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). Use **Send**/`Receive` when you follow the [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart), need `MemoryTransport`/`SQLiteTransport`, or integrate with existing transport-based code.
+  </Accordion>
+  <Accordion title="Does Send create a version automatically?">
+    No for **`Send`** and **`Send2`** — call `client.Version.Create` after send. **`SendPipeline`** creates the version on the server after upload — see [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends) and [VersionResource](/developers/sdks/dotnet/api-reference/resources/version).
+  </Accordion>
+  <Accordion title="When do I need SendPipeline instead of Send2?">
+    When uploading a **whole host-application model** from a connector — thousands of elements converted incrementally. See [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends).
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Load and publish model data" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+    Choose Receive2, Send2, or SendPipeline
+  </Card>
+  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+    Receive2 worked example
+  </Card>
+  <Card title="Version" icon="code-branch" href="/developers/sdks/dotnet/api-reference/resources/version">
+    Publish after Send2
+  </Card>
+</CardGroup>

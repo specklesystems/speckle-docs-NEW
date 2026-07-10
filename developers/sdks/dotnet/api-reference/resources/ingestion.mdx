@@ -1,0 +1,104 @@
+---
+title: "Model ingestion"
+description: "client.Ingestion — connector-scale uploads via SendPipeline (not for scripts)"
+sidebarTitle: "Ingestion"
+---
+
+Use **`client.Ingestion`** only when building a **desktop connector** that uploads a whole host-application model through **`SendPipeline`**. Scripts should use **`Send2`** instead.
+
+**Read next:** [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends)
+
+<Warning>
+Requires server version 3.0.3 or later. On server 3.0.11+, check with [`model.CanCreateModelIngestion`](/developers/sdks/dotnet/api-reference/resources/model#methods) before relying on this API; on 3.0.3–3.0.10, confirm compatibility with your server admin.
+</Warning>
+
+## Lifecycle
+
+```
+Create → (StartProcessing) → UpdateProgress* → success (server-driven)
+                                              ↘ FailWithError / FailWithCancel / FailWithInvalid (client-driven)
+```
+
+An ingestion ends in exactly one terminal state, driven either by the server (`success`) or by a client-side failure call (`FailWithError` / `FailWithCancel` / `FailWithInvalid`).
+
+<Note>
+When uploading via [`SendPipeline`](/developers/sdks/dotnet/guides/building-connector-scale-sends), the client never calls `Complete` — uploading the finished pack (`SendPipeline.WaitForUpload`) itself triggers server-side processing, and the server transitions the ingestion to `success` (creating the version) or `failed` on its own. Subscribe via `client.Subscription.CreateProjectModelIngestionUpdatedSubscription` or poll `Get` to observe this. `Complete` is only called by clients that track an ingestion around a manual `Send2` call instead of `SendPipeline`.
+</Note>
+
+## Methods
+
+<ResponseField name="Create" type="Task<ModelIngestion> Create(ModelIngestionCreateInput input, CancellationToken cancellationToken = default)">
+  Creates an ingestion job. `ModelIngestionCreateInput(string modelId, string projectId, string progressMessage, SourceDataInput sourceData, int? maxIdleTimeoutSeconds = null)`. Note the third parameter is named `progressMessage`, not `message`.
+</ResponseField>
+
+<ResponseField name="Get" type="Task<ModelIngestion> Get(string modelIngestionId, string projectId, CancellationToken cancellationToken = default)">
+  Retrieves an ingestion job's current status.
+</ResponseField>
+
+<ResponseField name="StartProcessing" type="Task<ModelIngestion> StartProcessing(ModelIngestionStartProcessingInput input, CancellationToken cancellationToken = default)">
+  For file-import/cloud integrations only — moves a `queued` ingestion into `processing`.
+</ResponseField>
+
+<ResponseField name="UpdateProgress" type="Task<ModelIngestion> UpdateProgress(ModelIngestionUpdateInput input, CancellationToken cancellationToken = default)">
+  Reports incremental progress (used internally by `SendPipeline`'s progress reporting).
+</ResponseField>
+
+<ResponseField name="Complete" type="Task<string> Complete(ModelIngestionSuccessInput input, CancellationToken cancellationToken = default)">
+  Marks a manually tracked ingestion successful and creates a version from uploaded data. Returns the new version id. **Not used with `SendPipeline`** — on that path the server completes the ingestion and creates the version after `WaitForUpload`. Use `Complete` only when tracking an ingestion around a `Send2` call instead of `SendPipeline`.
+</ResponseField>
+
+<ResponseField name="FailWithError" type="Task<ModelIngestion> FailWithError(ModelIngestionFailedInput input, CancellationToken cancellationToken = default)">
+  Fails the ingestion due to an internal/infrastructure error. Use for unexpected failures.
+</ResponseField>
+
+<ResponseField name="FailWithInvalid" type="Task<ModelIngestion> FailWithInvalid(ModelIngestionInvalidInput input, CancellationToken cancellationToken = default)">
+  Fails the ingestion because the input (file, settings, or target) was deterministically invalid or unsupported.
+</ResponseField>
+
+<ResponseField name="FailWithCancel" type="Task<ModelIngestion> FailWithCancel(ModelIngestionCancelledInput input, CancellationToken cancellationToken = default)">
+  Fails the ingestion with a `cancelled` status. Only use this after the user explicitly requested cancellation.
+</ResponseField>
+
+<ResponseField name="RequestCancellation" type="Task<ModelIngestion> RequestCancellation(ModelIngestionCancelledInput input, CancellationToken cancellationToken = default)">
+  Requests cancellation of a running ingestion. This does not cancel immediately — the client performing the ingestion must observe the request (via a subscription) and call `FailWithCancel` cooperatively.
+</ResponseField>
+
+<ResponseField name="Requeue" type="Task<ModelIngestion> Requeue(ModelIngestionRequeueInput input, CancellationToken cancellationToken = default)">
+  Returns a failed or stuck ingestion to the `queued` state for retry. For file-import/cloud integrations.
+</ResponseField>
+
+## Usage
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var sourceData = new SourceDataInput("my-connector", "1.0.0", fileName: null, fileSizeBytes: null);
+var ingestion = await client.Ingestion.Create(
+    new ModelIngestionCreateInput(model.id, project.id, "Starting ingestion", sourceData)
+);
+
+// SendPipeline drives progress/upload internally — see the Operations reference.
+```
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do scripts need client.Ingestion?">
+    No. Use `Send2`/`Receive2` from [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). Ingestion is for [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends).
+  </Accordion>
+  <Accordion title="Should I call Complete after SendPipeline.WaitForUpload?">
+    No for the standard `SendPipeline` flow — `WaitForUpload` triggers server-side processing. The server moves the ingestion to `success` or `failed` on its own.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Load and publish model data" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+    Path E — when to use SendPipeline
+  </Card>
+  <Card title="Publish large models (connectors)" icon="upload" href="/developers/sdks/dotnet/guides/building-connector-scale-sends">
+    Worked connector upload example
+  </Card>
+  <Card title="Operations: SendPipeline" icon="code" href="/developers/sdks/dotnet/api-reference/operations#sendpipeline">
+    Pipeline factory and Process/WaitForUpload
+  </Card>
+</CardGroup>

@@ -1,0 +1,114 @@
+---
+title: "Client"
+description: "List projects and models, publish versions — the IClient GraphQL surface"
+sidebarTitle: "Client"
+---
+
+Use **`IClient`** to work with Speckle Server metadata — list projects and models, fetch versions, and check what the server supports. Pair it with **`IOperations`** when you need to load or publish the actual object graph (`Receive2`, `Send2`).
+
+**When to use it:** after [Authentication](/developers/sdks/dotnet/getting-started/authentication). **Guides first:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) shows a full workflow; use this page for method signatures.
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using var client = provider.GetRequiredService<IClientFactory>().Create(account);
+```
+
+## IClientFactory
+
+<ResponseField name="Create" type="IClient Create(Account account)">
+  Builds an authenticated `IClient` for the given account. The returned client owns a `GraphQLHttpClient` and should be disposed when no longer needed.
+</ResponseField>
+
+## IClient
+
+<ResponseField name="Account" type="Account">
+  The account this client was created with.
+</ResponseField>
+
+<ResponseField name="ServerUrl" type="Uri">
+  The server URL, derived from `Account.serverInfo.url`.
+</ResponseField>
+
+<ResponseField name="GQLClient" type="GraphQLHttpClient">
+  The underlying GraphQL HTTP client. Use resource properties below for typed access; drop down to this only for queries not yet covered by a resource.
+</ResponseField>
+
+<ResponseField name="InitializeWebsocket" type="Task InitializeWebsocket()">
+  Ensures the GraphQL websocket connection is established. Only needed before subscriptions; not calling it first just means the first subscription takes slightly longer to activate.
+</ResponseField>
+
+### Resources
+
+<ResponseField name="Project" type="ProjectResource">
+  See [ProjectResource](/developers/sdks/dotnet/api-reference/resources/project).
+</ResponseField>
+<ResponseField name="Model" type="ModelResource">
+  See [ModelResource](/developers/sdks/dotnet/api-reference/resources/model).
+</ResponseField>
+<ResponseField name="Version" type="VersionResource">
+  See [VersionResource](/developers/sdks/dotnet/api-reference/resources/version).
+</ResponseField>
+<ResponseField name="ActiveUser" type="ActiveUserResource">
+  See [ActiveUserResource & OtherUserResource](/developers/sdks/dotnet/api-reference/resources/users).
+</ResponseField>
+<ResponseField name="OtherUser" type="OtherUserResource">
+  See [ActiveUserResource & OtherUserResource](/developers/sdks/dotnet/api-reference/resources/users).
+</ResponseField>
+<ResponseField name="Workspace" type="WorkspaceResource">
+  See [WorkspaceResource](/developers/sdks/dotnet/api-reference/resources/workspace). Workspace features require a workspace-enabled server, such as app.speckle.systems.
+</ResponseField>
+<ResponseField name="Server" type="ServerResource">
+  See [ServerResource](/developers/sdks/dotnet/api-reference/resources/server).
+</ResponseField>
+<ResponseField name="Ingestion" type="ModelIngestionResource">
+  Connector-scale model ingestion lifecycle. See [ModelIngestionResource](/developers/sdks/dotnet/api-reference/resources/ingestion).
+</ResponseField>
+<ResponseField name="ProjectInvite" type="ProjectInviteResource">
+  Create, look up, and cancel project invitations.
+</ResponseField>
+<ResponseField name="Subscription" type="SubscriptionResource">
+  GraphQL subscriptions for real-time updates.
+</ResponseField>
+
+<Warning>
+`Comment` and `FileImport` resources exist on `IClient` for backward compatibility but their methods are largely obsolete — comments are being replaced by Issues (not yet exposed in this SDK), and `FileImport` is being reworked. Avoid building new features on them.
+</Warning>
+
+## Disposal
+
+`IClient` implements `IDisposable` and owns network resources (the GraphQL HTTP client and, if used, a websocket connection). Always dispose it, typically with a `using` statement:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using var client = provider.GetRequiredService<IClientFactory>().Create(account);
+```
+
+## Error Handling
+
+GraphQL calls automatically retry transient failures. Unrecoverable errors surface as exceptions — see [Exceptions](/developers/sdks/dotnet/api-reference/exceptions).
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can I share one IClient across multiple projects?">
+    Yes — `IClient` is scoped to an account, not a project. Pass different `projectId` values to resource methods as needed.
+  </Accordion>
+  <Accordion title="How do I know if a server supports workspaces?">
+    Call `client.Server.IsWorkspaceEnabled()`. See [Handling server capabilities](/developers/sdks/dotnet/guides/handling-server-capabilities).
+  </Accordion>
+  <Accordion title="Do I need to call InitializeWebsocket before using Subscription?">
+    No — it's called automatically the first time you subscribe. Call it explicitly only if you want to avoid the ~100ms delay on your first subscription.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+    End-to-end workflow with IClient and Receive2
+  </Card>
+  <Card title="Operations" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
+    Load and publish object graphs
+  </Card>
+  <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+    Projects, models, versions
+  </Card>
+</CardGroup>

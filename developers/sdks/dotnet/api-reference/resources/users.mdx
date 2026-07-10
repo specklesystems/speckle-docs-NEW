@@ -1,0 +1,94 @@
+---
+title: "Users"
+description: "client.ActiveUser and client.OtherUser — profiles, projects, and workspaces"
+sidebarTitle: "Users"
+---
+
+Use **`client.ActiveUser`** for the authenticated user's profile and accessible projects. Use after [Authentication](/developers/sdks/dotnet/getting-started/authentication).
+
+## ActiveUserResource
+
+<ResponseField name="Get" type="Task<User?> Get(CancellationToken cancellationToken = default)">
+  Gets the authenticated user's profile. Returns `null` if the client's account is unauthenticated.
+</ResponseField>
+
+<ResponseField name="Update" type="Task<User> Update(UserUpdateInput input, CancellationToken cancellationToken = default)">
+  Updates the authenticated user's profile fields.
+</ResponseField>
+
+<ResponseField name="GetProjects" type="Task<ResourceCollection<Project>> GetProjects(int limit = 25, string? cursor = null, UserProjectsFilter? filter = null, CancellationToken cancellationToken = default)">
+  Lists projects the authenticated user has access to.
+</ResponseField>
+
+<ResponseField name="GetProjectsWithPermissions" type="Task<ResourceCollection<ProjectWithPermissions>> GetProjectsWithPermissions(int limit = 25, string? cursor = null, UserProjectsFilter? filter = null, CancellationToken cancellationToken = default)">
+  Same as `GetProjects`, but each project includes a `permissions` field typed as `ProjectPermissionChecks`. This query populates `canCreateModel`, `canDelete`, and `canLoad` only — not `canPublish` (which `client.Project.GetPermissions` still queries but is obsolete in the SDK; use `client.Model.GetPermissions(...).canCreateVersion` for publish checks).
+</ResponseField>
+
+<ResponseField name="GetProjectInvites" type="Task<List<PendingStreamCollaborator>> GetProjectInvites(CancellationToken cancellationToken = default)">
+  Lists pending project invitations for the authenticated user.
+</ResponseField>
+
+<ResponseField name="CanCreatePersonalProjects" type="Task<PermissionCheckResult> CanCreatePersonalProjects(CancellationToken cancellationToken = default)">
+  Checks whether the user can create personal (non-workspace) projects.
+</ResponseField>
+
+<ResponseField name="GetWorkspaces" type="Task<ResourceCollection<Workspace>> GetWorkspaces(int limit = 25, string? cursor = null, UserWorkspacesFilter? filter = null, CancellationToken cancellationToken = default)">
+  Lists workspaces the authenticated user belongs to. Only available on workspace-enabled servers.
+</ResponseField>
+
+<ResponseField name="GetActiveWorkspace" type="Task<LimitedWorkspace?> GetActiveWorkspace(CancellationToken cancellationToken = default)">
+  Gets the user's last-selected workspace. Returns a `LimitedWorkspace` because the user may not be a member.
+</ResponseField>
+
+<Note>
+Most `ActiveUser` methods throw `SpeckleException` if the client's account is unauthenticated — check `Get()` for `null` first if you're unsure.
+</Note>
+
+## OtherUserResource
+
+<ResponseField name="Get" type="Task<LimitedUser?> Get(string id, CancellationToken cancellationToken = default)">
+  Gets a limited public profile for any user by id. Returns `null` if the user doesn't exist.
+</ResponseField>
+
+<ResponseField name="UserSearch" type="Task<UserSearchResultCollection> UserSearch(string query, int limit = 25, string? cursor = null, bool emailOnly = false, CancellationToken cancellationToken = default)">
+  Searches for users by name or email (minimum 3 characters).
+
+  <Warning>
+  Marked `[Obsolete]` — user search is deprecated. Avoid using this in new code.
+  </Warning>
+</ResponseField>
+
+## Usage
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var me = await client.ActiveUser.Get();
+Console.WriteLine($"Logged in as {me?.name}");
+
+var myProjects = await client.ActiveUser.GetProjects();
+foreach (var project in myProjects.items)
+{
+    Console.WriteLine(project.name);
+}
+```
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="ActiveUser.Get returns null">
+    The client's account is not authenticated. Build an `Account` with `IAccountFactory` or reuse a stored account — see [Authentication](/developers/sdks/dotnet/getting-started/authentication).
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+    How users relate to projects
+  </Card>
+  <Card title="Authentication" icon="key" href="/developers/sdks/dotnet/getting-started/authentication">
+    Build an Account and IClient
+  </Card>
+  <Card title="ProjectResource" icon="folder" href="/developers/sdks/dotnet/api-reference/resources/project">
+    Create and list projects
+  </Card>
+</CardGroup>

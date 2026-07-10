@@ -1,12 +1,160 @@
 ---
-title: "specklesharp"
-description: "The C# .NET SDK for Speckle - Build powerful AEC data workflows"
+title: "speckle-sharp"
+description: "Use SpeckleSharp to load model data, run QA checks, export reports, and automate AEC workflows from C#"
+sidebarTitle: "speckle-sharp"
 ---
 
-**specklesharp** is the C# .NET SDK for Speckle, enabling you to interact with Speckle Server, send and receive geometry, and build custom integrations for the AEC industry.
+This SDK is for people who want to automate AEC workflows with C# using Speckle. You do not need to be a professional software engineer to build useful tools with it.
 
-<Note>
-This SDK documentation is currently in development.
-</Note>
+Likely readers include:
+
+- Architects using Grasshopper C# nodes
+- BIM managers automating QA checks
+- Engineers extracting model data
+- Computational designers building custom workflows
+- AEC developers building plugins or integrations
+- AI-assisted coders using Cursor, Claude, ChatGPT, or similar tools
+
+**Speckle.Sdk** (SpeckleSharp) lets your C# code talk to Speckle Server — load published model versions, traverse walls and doors as structured objects, export CSV reports, and optionally send analysis results back. It works from console apps, Grasshopper scripts, notebooks, and desktop plugins.
+
+<Info>
+New to Speckle SDKs? Start with the shared [SDK introduction](/developers/sdks/introduction) for platform concepts and how Python and .NET relate.
+</Info>
 
 [GitHub Repository](https://github.com/specklesystems/speckle-sharp-sdk)
+
+<Info>
+Compatible with **Speckle Object Model v3**
+</Info>
+
+<Warning>
+Speckle.Sdk and Speckle.Objects are reliable for production use, but the public API may not be wholly stable between releases. Pin a specific NuGet version and review release notes before upgrading.
+</Warning>
+
+## How most workflows run
+
+Your code uses SpeckleSharp to talk to Speckle Server. Speckle Server stores projects, models, versions, and objects.
+
+In practice, most useful workflows follow this pattern:
+
+1. Authenticate
+2. Choose a project and model
+3. Load a version
+4. Traverse objects
+5. Analyse or transform data
+6. Optionally send results back
+
+<Note>
+The full mental model and diagram live in [Core concepts](/developers/sdks/dotnet/concepts/overview).
+</Note>
+
+<Tip>
+The recommended approach for most AEC automation scripts: PAT via environment variable → `Receive2` on the latest version → `Flatten` → analyse → optional `Send2` + `Version.Create`.
+</Tip>
+
+## Choose your path
+
+<CardGroup cols={2}>
+  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+  Load a model, count elements by category, export a CSV report — end to end
+  </Card>
+  <Card title="Use SpeckleSharp in Grasshopper C#" icon="shapes" href="/developers/sdks/dotnet/guides/use-speckle-sdk-in-grasshopper-csharp">
+  Custom analysis and computed metadata in a C# Script component
+  </Card>
+  <Card title="Automate with scripts" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
+  Copy-paste bootstrap and `Send2`/`Receive2` for console apps and notebooks
+  </Card>
+  <Card title="API reference" icon="code" href="/developers/sdks/dotnet/api-reference/client">
+    Method lookup — use after guides
+  </Card>
+</CardGroup>
+
+## What you can do with SpeckleSharp
+
+| Goal | What you use | Learn more |
+| ---- | ------------ | ---------- |
+| Load model data from Speckle Server | `Receive2`, `client.Version` | [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) |
+| Find objects by property | `Flatten`, filters on `DataObject.properties` | [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data) |
+| Export model data to CSV | Traversal + `StreamWriter` | [Export model data to CSV](/developers/sdks/dotnet/guides/export-model-data-to-csv) |
+| Send analysis results back | `Send2`, `Version.Create` | [Send analysis results back](/developers/sdks/dotnet/guides/send-analysis-results-back) |
+| Publish large host-app models | `SendPipeline`, `client.Ingestion` | [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends) — advanced |
+
+Under the hood, SpeckleSharp exposes typed APIs (`IClient`, `IOperations`, `DataObject`, `Collection`) — you meet them in the guides after you know the outcome you want.
+
+<Note>
+**API reference** pages are for method lookup after you have a working script. Start with [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool), not the API index.
+</Note>
+
+<Info>
+Speckle.Sdk targets **netstandard2.0**, **net8.0**, and **net10.0**, so it runs in modern .NET apps and older host apps such as Revit on .NET Framework.
+</Info>
+
+## Common use cases
+
+<CardGroup cols={2}>
+  <Card title="BIM QA checks" icon="clipboard-check">
+    Verify required properties exist, find duplicate element IDs, flag missing fire ratings
+  </Card>
+  <Card title="Schedules and reports" icon="file-csv">
+    Export room schedules, door lists, or quantity takeoffs by level or category to CSV
+  </Card>
+  <Card title="Grasshopper analysis" icon="shapes">
+    Derive metadata from geometry, combine Speckle model data with Grasshopper logic
+  </Card>
+  <Card title="Version comparison" icon="code-compare">
+    Compare two model versions to see what was added, removed, or changed
+  </Card>
+</CardGroup>
+
+## One-time setup
+
+Speckle.Sdk uses dependency injection internally so connectors can share a container with host apps. **For scripts and notebooks:** paste the bootstrap from [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) once — you do not need to study DI. **Connectors and services:** see [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection).
+
+## Installation
+
+```bash
+dotnet add package Speckle.Sdk
+```
+
+<Note>
+For target framework details and the geometry package, see [Installation](/developers/sdks/dotnet/getting-started/installation).
+</Note>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+    End-to-end CSV report from a live model
+  </Card>
+  <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+    Projects, models, versions, and the SpeckleSharp mental model
+  </Card>
+  <Card title="Installation" icon="download" href="/developers/sdks/dotnet/getting-started/installation">
+    NuGet packages and bootstrap
+  </Card>
+</CardGroup>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Where should I start?">
+    [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) if you want a complete working script. [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) if you only need the bootstrap snippet. [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart) if you want to understand publishing from scratch.
+  </Accordion>
+  <Accordion title="Do I need to learn dependency injection?">
+    No for scripts and notebooks — paste the bootstrap once and resolve `IOperations` and `IClientFactory`. Read [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection) only if you build a connector or share a DI container with a host app.
+  </Accordion>
+  <Accordion title="Is the public API stable?">
+    Speckle.Sdk is reliable for production use, but the public API may change between releases. Pin an explicit NuGet version and review release notes before upgrading.
+  </Accordion>
+</AccordionGroup>
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="Community Forum" icon="comments" href="https://speckle.community/c/help/developers">
+    Ask questions and share knowledge
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/specklesystems/speckle-sharp-sdk/issues">
+    Report bugs and request features
+  </Card>
+</CardGroup>

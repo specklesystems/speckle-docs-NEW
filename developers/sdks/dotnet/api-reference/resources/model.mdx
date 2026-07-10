@@ -1,0 +1,70 @@
+---
+title: "Model"
+description: "client.Model — target a model branch within a project"
+sidebarTitle: "Model"
+---
+
+Use **`client.Model`** to create or list models within a project — for example "structural", "MEP", or "main". Versions (published snapshots) belong to a model.
+
+**Read next:** [Version](/developers/sdks/dotnet/api-reference/resources/version) to load or publish a snapshot · [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) for a script workflow
+
+## Methods
+
+<Warning>
+**Argument order varies by method.** `Get` and `GetWithVersions` take `(modelId, projectId)`; `GetPermissions` and `CanCreateModelIngestion` take `(projectId, modelId)`. This matches the SDK — double-check parameter order when mixing calls.
+</Warning>
+
+<ResponseField name="Get" type="Task<Model> Get(string modelId, string projectId, CancellationToken cancellationToken = default)">
+  Retrieves a model by id.
+</ResponseField>
+
+<ResponseField name="GetWithVersions" type="Task<ModelWithVersions> GetWithVersions(string modelId, string projectId, int versionsLimit = 25, string? versionsCursor = null, ModelVersionsFilter? versionsFilter = null, CancellationToken cancellationToken = default)">
+  Retrieves a model along with a paginated list of its versions.
+</ResponseField>
+
+<ResponseField name="GetModels" type="Task<ResourceCollection<Model>> GetModels(string projectId, int modelsLimit = 25, string? modelsCursor = null, ProjectModelsFilter? modelsFilter = null, CancellationToken cancellationToken = default)">
+  Lists models in a project.
+</ResponseField>
+
+<ResponseField name="Create" type="Task<Model> Create(CreateModelInput input, CancellationToken cancellationToken = default)">
+  Creates a model. `CreateModelInput(string name, string? description, string projectId)`.
+</ResponseField>
+
+<ResponseField name="Update" type="Task<Model> Update(UpdateModelInput input, CancellationToken cancellationToken = default)">
+  Updates a model's name or description.
+</ResponseField>
+
+<ResponseField name="Delete" type="Task Delete(DeleteModelInput input, CancellationToken cancellationToken = default)">
+  Deletes a model.
+</ResponseField>
+
+<ResponseField name="GetPermissions" type="Task<ModelPermissionChecks> GetPermissions(string projectId, string modelId, CancellationToken cancellationToken = default)">
+  Checks the active user's permissions on the model (update, delete, create version).
+</ResponseField>
+
+<ResponseField name="CanCreateModelIngestion" type="Task<PermissionCheckResult> CanCreateModelIngestion(string projectId, string modelId, CancellationToken cancellationToken = default)">
+  Checks whether the active user can create a connector-scale ingestion for this model. Requires server version 3.0.11 or later.
+</ResponseField>
+
+## Usage
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var model = await client.Model.Create(new CreateModelInput("Structural Model", "Structural analysis model", project.id));
+
+var withVersions = await client.Model.GetWithVersions(model.id, project.id);
+Console.WriteLine($"{withVersions.name}: {withVersions.versions.totalCount} versions");
+```
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+    Where models fit in the hierarchy
+  </Card>
+  <Card title="Publish large models (connectors)" icon="upload" href="/developers/sdks/dotnet/guides/building-connector-scale-sends">
+    SendPipeline upload workflow
+  </Card>
+  <Card title="VersionResource" icon="code-branch" href="/developers/sdks/dotnet/api-reference/resources/version">
+    Versions within a model
+  </Card>
+</CardGroup>

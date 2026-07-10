@@ -1,0 +1,185 @@
+---
+title: "Automate with scripts and notebooks"
+description: "Copy-paste bootstrap and Receive2/Send2 for console apps, Grasshopper C#, and notebooks — no DI tutorial required"
+sidebarTitle: "Scripts"
+---
+
+## Goal
+
+Get a working SpeckleSharp script with the shortest path to load and analyse model data — without learning dependency injection.
+
+## What you will build
+
+A script that authenticates, loads the latest version of an existing model, counts elements by category, and prints a summary to the console.
+
+## When to use this
+
+Use this page when you write:
+
+- A one-off C# script or console app
+- A Grasshopper **C# Script** or custom component
+- A C# cell in a **polyglot notebook** (Jupyter, Visual Studio, Rider)
+- A small automation that is **not** a desktop connector
+
+You do **not** need to understand dependency injection, service lifetimes, or ASP.NET Core. Paste the bootstrap once, then write normal C# against `client`, `operations`, and `Base` objects.
+
+<Info>
+If you are building a production desktop connector (Revit, Rhino, AutoCAD, and similar), start with [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection) and [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends) instead.
+</Info>
+
+## Recommended approach
+
+**The recommended approach for server-facing AEC automation scripts is `Receive2`/`Send2`** — no transport factory required. Paste the bootstrap below, authenticate with a PAT from `SPECKLE_TOKEN`, and call `IOperations` methods directly.
+
+For Grasshopper object construction without server calls, see [Use SpeckleSharp in a Grasshopper C# node](/developers/sdks/dotnet/guides/use-speckle-sdk-in-grasshopper-csharp). For connector Publish/Load on the canvas, use the Grasshopper connector — the SDK complements those components; it does not replace them.
+
+## One-time bootstrap (copy this)
+
+Paste this at the top of your script, notebook cell, or Grasshopper C# component. Run it once per process. This is the **canonical bootstrap** — other pages link here instead of repeating the full block.
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Microsoft.Extensions.DependencyInjection;
+using Speckle.Sdk;
+using Speckle.Sdk.Api;
+using Speckle.Sdk.Credentials;
+
+static class SpeckleBootstrap
+{
+    static readonly ServiceProvider Provider = new ServiceCollection()
+        .AddSpeckleSdk(
+            new Application("My Script", "my-script"),
+            "1.0.0",
+            typeof(Speckle.Objects.Geometry.Point).Assembly
+        )
+        .BuildServiceProvider();
+
+    public static IOperations Operations => Provider.GetRequiredService<IOperations>();
+    public static IAccountFactory AccountFactory => Provider.GetRequiredService<IAccountFactory>();
+    public static IClientFactory ClientFactory => Provider.GetRequiredService<IClientFactory>();
+}
+```
+
+<Tip>
+You can rename `SpeckleBootstrap` to anything. The point is a single static holder so notebook cells and script functions do not repeat `new ServiceCollection()` on every run.
+</Tip>
+
+<Warning>
+There is no `new Operations()` or import-and-go equivalent. Every public entry point (`IOperations`, `IClientFactory`, `IAccountFactory`) is resolved from the bootstrap container. That is a one-time setup cost, not an ongoing architectural commitment.
+</Warning>
+
+## Complete example
+
+Load an existing model and count elements by category:
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
+using Speckle.Objects.Data;
+using Speckle.Sdk.Credentials;
+using Speckle.Sdk.Models;
+using Speckle.Sdk.Models.Extensions;
+
+var token = Environment.GetEnvironmentVariable("SPECKLE_TOKEN")
+    ?? throw new InvalidOperationException("Set SPECKLE_TOKEN");
+var projectId = Environment.GetEnvironmentVariable("SPECKLE_PROJECT_ID")
+    ?? throw new InvalidOperationException("Set SPECKLE_PROJECT_ID");
+var modelId = Environment.GetEnvironmentVariable("SPECKLE_MODEL_ID")
+    ?? throw new InvalidOperationException("Set SPECKLE_MODEL_ID");
+
+var account = await SpeckleBootstrap.AccountFactory.CreateAccount(
+    new Uri(Environment.GetEnvironmentVariable("SPECKLE_SERVER") ?? "https://app.speckle.systems"),
+    token
+);
+using var client = SpeckleBootstrap.ClientFactory.Create(account);
+
+var versions = await client.Version.GetVersions(modelId, projectId, limit: 1);
+var latest = versions.items.First()
+    ?? throw new InvalidOperationException("No versions on this model");
+
+var root = await SpeckleBootstrap.Operations.Receive2(
+    client.ServerUrl,
+    projectId,
+    latest.referencedObject!,
+    account.token,
+    onProgressAction: null,
+    cancellationToken: default
+);
+
+static string GetCategory(Base obj) =>
+    obj is DataObject d && d.properties.TryGetValue("category", out var cat) && cat is string s
+        ? s
+        : obj["category"] as string ?? obj.speckle_type ?? "Unknown";
+
+var counts = root.Flatten().GroupBy(GetCategory).OrderByDescending(g => g.Count());
+
+Console.WriteLine($"Model: {latest.message} — {root.Flatten().Count()} objects");
+foreach (var group in counts.Take(15))
+    Console.WriteLine($"  {group.Key}: {group.Count()}");
+```
+
+<Note>
+`onProgressAction` and `cancellationToken` are for long-running host applications (connectors with progress UI). For scripts, `null` and `default` are correct — not placeholders to replace.
+</Note>
+
+## How it works
+
+| What you want | Resolve from bootstrap | Then use |
+| ------------- | ---------------------- | -------- |
+| GraphQL API (`Project`, `Model`, `Version`, …) | `IClientFactory` → `Create(account)` | `client.Version.GetVersions(...)`, `client.Project.Get(...)` |
+| Load / send object graphs | `IOperations` | `Receive2`, `Send2`, `Serialize` |
+| Build an account from a PAT | `IAccountFactory` | `CreateAccount(serverUrl, token)` |
+| Reuse a desktop login | `IAccountManager` (optional) | `GetAccounts()`, `GetDefaultAccount()` |
+
+See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) for when to use `Send`/`Receive` with transports instead.
+
+## Common mistakes
+
+| Mistake | Fix |
+| ------- | --- |
+| Creating a new `ServiceProvider` on every notebook cell run | Define the static bootstrap once per session |
+| Using `Send` + `IServerTransportFactory` in a script | Prefer `Send2`/`Receive2` for server work |
+| Reading `obj["category"]` on connector data | Use `DataObject.properties` for BIM fields |
+| Skipping `Speckle.Objects` in bootstrap assemblies | Pass `typeof(Point).Assembly` when receiving geometry |
+
+## What to skip (unless you are building a connector)
+
+| Page / topic | Why scripts can skip it |
+| ------------ | ----------------------- |
+| [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection) | Deep dive for host apps sharing a container |
+| [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends) | `SendPipeline` — production connector upload only |
+| [Working with Proxies](/developers/sdks/dotnet/guides/working-with-proxies) | Only when receiving connector data with groups/instances |
+
+## Grasshopper and hosted scripts
+
+**Speckle connector components** (Publish, Load): use the components for transport.
+
+**Custom analysis in Grasshopper C#:** see [Use SpeckleSharp in a Grasshopper C# node](/developers/sdks/dotnet/guides/use-speckle-sdk-in-grasshopper-csharp) for `DataObject` construction; return here for `Send2`/`Receive2`.
+
+## Polyglot notebooks
+
+1. Paste the bootstrap in the **first** cell and run it once per kernel session.
+2. In later cells, call `SpeckleBootstrap.Operations`, `SpeckleBootstrap.ClientFactory`, and so on directly.
+3. Store `account` or `client` in notebook variables if you reuse them — `IClient` is `IDisposable`.
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+    Full CSV report walkthrough
+  </Card>
+  <Card title="Authentication" icon="key" href="/developers/sdks/dotnet/getting-started/authentication">
+    PAT and environment variables
+  </Card>
+  <Card title="Load and publish model data" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+    Send2 vs Send decision guide
+  </Card>
+</CardGroup>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do I have to learn Microsoft.Extensions.DependencyInjection?">
+    No. Treat `AddSpeckleSdk` + `BuildServiceProvider()` as a required preamble — like adding `using` statements.
+  </Accordion>
+  <Accordion title="Which quickstart should I follow?">
+    [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) for a complete automation. This page for the bootstrap snippet. [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart) if you want to understand publishing from scratch.
+  </Accordion>
+</AccordionGroup>

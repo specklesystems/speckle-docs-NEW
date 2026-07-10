@@ -1,0 +1,185 @@
+---
+title: "Resolve groups and instances"
+description: "Resolve group, level, and instance proxies back to BIM elements after receive"
+sidebarTitle: "Proxies"
+---
+
+## Goal
+
+Resolve **proxies** at the root of connector-published data to group elements by level, material, or instance — common when reporting on Revit or Rhino connector output.
+
+## When to use this
+
+After `Receive2` on connector data, when you need elements **grouped by level or category** via proxy collections rather than tree hierarchy alone.
+
+## Recommended approach
+
+1. `Flatten()` and index by `applicationId` — see [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data)
+2. Read proxy collections from the root (`groupProxies`, `colorProxies`, etc.)
+3. Resolve each proxy's `objects` list against the index
+
+**As a producer:** you typically do **not** create proxies from scripts — send `DataObject` graphs and let connectors produce proxies.
+
+## Prerequisites
+
+- [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data)
+- [BIM data patterns](/developers/sdks/dotnet/guides/bim-data-patterns)
+
+## Proxy Types in Speckle.Sdk
+
+Proxy classes implement `IProxyCollection`, which requires an `objects` list of source application IDs:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Models.Proxies;
+
+public interface IProxyCollection : ISpeckleObject
+{
+    public List<string> objects { get; set; }
+}
+
+var groupProxy = new GroupProxy
+{
+    name = "Exterior Walls",
+    objects = ["wall-app-id-1", "wall-app-id-2"]
+};
+
+var colorProxy = new ColorProxy
+{
+    name = "Concrete",
+    value = unchecked((int)0xFF808080),
+    objects = ["wall-app-id-1", "column-app-id-1"]
+};
+```
+
+<Note>
+Additional proxy types (materials, levels, instance definitions) follow the same pattern. Exact shapes: [Proxy Schemas](/developers/data-schema/proxy-schema).
+</Note>
+
+<Info>
+**As a producer:** you typically do **not** create proxies when publishing from a script or service — send your `Base`/`DataObject` graph and let connectors produce proxy collections from host-app organization.
+</Info>
+
+## Complete Example
+
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
+using Speckle.Sdk.Models;
+using Speckle.Sdk.Models.Extensions;
+using Speckle.Sdk.Models.Proxies;
+
+var byAppId = receivedData.Flatten()
+    .Where(o => o.applicationId is not null)
+    .ToDictionary(o => o.applicationId!);
+
+if (receivedData["groupProxies"] is IEnumerable<object> groupProxies)
+{
+    foreach (var proxy in groupProxies.OfType<GroupProxy>())
+    {
+        var members = proxy.objects
+            .Select(id => byAppId.GetValueOrDefault(id))
+            .Where(o => o is not null);
+
+        Console.WriteLine($"Group '{proxy.name}': {members.Count()} objects");
+    }
+}
+```
+
+## Step-by-Step Explanation
+
+### Resolving Simple Proxies (Group, Color)
+
+Every built-in proxy type implements `IProxyCollection`. Resolution is three steps: index by `applicationId`, look up each id in the proxy's `objects` list, pair resolved objects with proxy metadata.
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+Dictionary<string, List<Base>> ResolveProxies<T>(
+    IEnumerable<T> proxies,
+    Dictionary<string, Base> byAppId
+) where T : IProxyCollection
+{
+    var result = new Dictionary<string, List<Base>>();
+
+    foreach (var proxy in proxies)
+    {
+        var resolved = proxy.objects
+            .Select(id => byAppId.GetValueOrDefault(id))
+            .OfType<Base>()
+            .ToList();
+
+        result[string.Join(",", proxy.objects)] = resolved;
+    }
+
+    return result;
+}
+```
+
+<Warning>
+Not every `applicationId` in a proxy's `objects` list is guaranteed to resolve. Always use `GetValueOrDefault`, never a direct indexer that throws.
+</Warning>
+
+### Resolving Instance Definitions
+
+Instances are two-hop: an `InstanceProxy` references an `InstanceDefinitionProxy` by `definitionId`, and the definition's `objects` list holds geometry application IDs.
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Models.Instances;
+
+var definitionsById = receivedData.Flatten()
+    .OfType<InstanceDefinitionProxy>()
+    .ToDictionary(d => d.applicationId!);
+
+var instances = receivedData.Flatten().OfType<InstanceProxy>();
+
+foreach (var instance in instances)
+{
+    if (!definitionsById.TryGetValue(instance.definitionId, out var definition))
+    {
+        continue;
+    }
+
+    var geometry = definition.objects
+        .Select(id => byAppId.GetValueOrDefault(id))
+        .OfType<Base>()
+        .ToList();
+
+    Console.WriteLine(
+        $"Instance of '{definition.name}': {geometry.Count} objects, transform: {instance.transform}"
+    );
+}
+```
+
+`instance.transform` is a `Speckle.DoubleNumerics.Matrix4x4` — apply it to place each instance correctly.
+
+<Note>
+Prefer root-level property lookup (`receivedData["instanceDefinitionProxies"]`) when you know the sender's convention; fall back to `Flatten().OfType<...>()` when you don't.
+</Note>
+
+## Common Pitfalls
+
+<AccordionGroup>
+  <Accordion title="Proxy collection property not found on the root object">
+    Root-level property names (`groupProxies`, `colorProxies`, etc.) are a sender convention. Check [Proxy Schemas](/developers/data-schema/proxy-schema) or the sending connector's documentation.
+  </Accordion>
+  <Accordion title="InstanceProxy resolved to the wrong object">
+    `InstanceProxy.definitionId` matches an `InstanceDefinitionProxy.applicationId`, not `id`. Index definitions by `applicationId`.
+  </Accordion>
+  <Accordion title="Rebuilding the applicationId index per proxy">
+    Build it once per received graph — see [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data).
+  </Accordion>
+  <Accordion title="Nested instances">
+    A definition's `objects` list can contain another `InstanceProxy`. Resolve and compose transforms recursively, multiplying matrices from outermost to innermost.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Objects and Traversal" icon="book" href="/developers/sdks/dotnet/concepts/objects-and-traversal">
+    Base graph structure proxies attach to
+  </Card>
+  <Card title="Find objects by property" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
+    applicationId index pattern
+  </Card>
+  <Card title="Client API" icon="code" href="/developers/sdks/dotnet/api-reference/client">
+    Receive connector data via IClient
+  </Card>
+</CardGroup>

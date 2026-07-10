@@ -1,0 +1,122 @@
+---
+title: "Load and publish model data"
+description: "Choose how to load and publish Speckle model data — Receive2, Send2, transports, and connector-scale ingestion"
+sidebarTitle: "Send & receive"
+---
+
+## Goal
+
+Pick the right SpeckleSharp API for loading model data from Speckle Server and publishing results back.
+
+## What you will learn
+
+When to use `Receive2`/`Send2` (recommended for scripts), `Send`/`Receive` with transports, or `SendPipeline` (connectors only).
+
+## When to use this
+
+Before reading [Operations](/developers/sdks/dotnet/api-reference/operations) method signatures — or when you are unsure which send/receive path fits your workflow.
+
+## Recommended approach
+
+**For AEC automation scripts, notebooks, and Grasshopper C#:** use **`Receive2`/`Send2`** (Path C) after the [one-time bootstrap](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). No transport factory required.
+
+**Avoid `SendPipeline` unless** you are building a desktop connector that uploads an entire host-application model.
+
+## The paths at a glance
+
+| Your goal | API | When |
+| --------- | --- | ---- |
+| Inspect JSON locally | `Serialize` / `DeserializeAsync` | No server; debugging object shape |
+| Learn how transports work | `Send` / `Receive` + `ITransport` | [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart), local-only tests |
+| **Load or publish model data (recommended)** | **`Receive2` / `Send2`** | **Scripts, notebooks, Grasshopper C#, most AEC automation** |
+| Experimental serializer | `SerializeNew` | Avoid in production |
+| Publish whole host-app model | `SendPipeline` + `client.Ingestion` | Desktop connectors only |
+
+<Warning>
+Path naming is misleading: `Send2`/`Receive2` are the **newer, recommended** server-facing implementation, not a fallback.
+</Warning>
+
+## Path A: Serialize only
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+string json = operations.Serialize(myData);
+Base restored = await operations.DeserializeAsync(json);
+```
+
+Use when you need raw JSON — for example, previewing a Grasshopper graph locally. For server work, use Path C.
+
+## Path B: Send / Receive with a transport
+
+The classic path used in the [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart):
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
+
+var (objectId, _) = await operations.Send(myData, transport, useDefaultCache: true);
+var received = await operations.Receive(objectId, remoteTransport: transport);
+```
+
+Swap `ServerTransport` for `MemoryTransport` or `SQLiteTransport` for local-only workflows.
+
+## Path C: Receive2 / Send2 (recommended)
+
+The simplest path for most AEC automation scripts — direct URL, project id, and token:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var root = await operations.Receive2(client.ServerUrl, project.id, objectId, account.token, onProgressAction: null, cancellationToken: default);
+
+var results = await operations.Send2(client.ServerUrl, project.id, account.token, myData, onProgressAction: null, cancellationToken: default);
+```
+
+<Note>
+The `streamId` parameter name in these signatures refers to the project id.
+</Note>
+
+## Path D: SerializeNew
+
+Experimental — avoid for production workflows.
+
+## Path E: SendPipeline (connectors only)
+
+**Avoid this unless you are building a connector.** For uploading large host-application models, connectors use `SendPipeline` and `client.Ingestion`:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var ingestion = await client.Ingestion.Create(new ModelIngestionCreateInput(model.id, project.id, "Starting ingestion", sourceData));
+var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
+    .CreateInstance(ingestion, client.Account, new Progress<StreamProgressArgs>(), cancellationToken: default);
+await pipeline.Process(myData);
+await pipeline.WaitForUpload();
+```
+
+See [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends). Do not call `Version.Create` on this pathway.
+
+## Decision guide
+
+<AccordionGroup>
+  <Accordion title="I'm loading or analysing an existing published model">
+    Use **Path C** — `Receive2` after [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool).
+  </Accordion>
+  <Accordion title="I'm writing a script or Grasshopper C# component">
+    Use **Path C** (`Send2`/`Receive2`) — see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
+  </Accordion>
+  <Accordion title="I want to understand transports step by step">
+    Use **Path B** — [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart).
+  </Accordion>
+  <Accordion title="I'm building a desktop connector">
+    Use **Path E** — [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends).
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={3}>
+  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+    Load and analyse with Receive2
+  </Card>
+  <Card title="Send analysis results back" icon="upload" href="/developers/sdks/dotnet/guides/send-analysis-results-back">
+    Publish with Send2
+  </Card>
+  <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
+    Full method signatures
+  </Card>
+</CardGroup>

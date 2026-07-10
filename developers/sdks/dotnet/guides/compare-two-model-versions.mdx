@@ -1,0 +1,102 @@
+---
+title: "Compare two model versions"
+description: "Diff two Speckle model versions — added, removed, and changed elements for BIM coordination"
+sidebarTitle: "Compare versions"
+---
+
+## Goal
+
+Compare two published versions of the same model and report which elements were added, removed, or changed — a common BIM manager and coordination workflow.
+
+## What you will build
+
+A script that loads two versions, indexes elements by `applicationId` (or name as fallback), and prints counts of added, removed, and unchanged objects.
+
+## When to use this
+
+Use this after design iterations, connector republishes, or milestone reviews when you need to know **what changed** between two Speckle versions.
+
+Avoid this when you only need a single-version health check — see [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool).
+
+## Recommended approach
+
+1. Load both versions with `Receive2` using each version's `referencedObject` id
+2. `Flatten()` each graph
+3. Index by `applicationId` when present (stable host-app id from connectors)
+4. Fall back to `name` only when ids are missing — names can collide
+5. Compare key sets and optionally property hashes
+
+## Complete example
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
+using Speckle.Objects.Data;
+using Speckle.Sdk.Models;
+using Speckle.Sdk.Models.Extensions;
+
+async Task<Base> LoadVersion(string versionId)
+{
+    var version = await client.Version.Get(versionId, projectId);
+    return await SpeckleBootstrap.Operations.Receive2(
+        client.ServerUrl, projectId, version.referencedObject!, account.token,
+        onProgressAction: null, cancellationToken: default);
+}
+
+static Dictionary<string, DataObject> IndexByAppId(Base root) =>
+    root.Flatten()
+        .OfType<DataObject>()
+        .Where(d => d.applicationId is not null)
+        .GroupBy(d => d.applicationId!)
+        .ToDictionary(g => g.Key, g => g.First());
+
+var olderRoot = await LoadVersion(olderVersionId);
+var newerRoot = await LoadVersion(newerVersionId);
+
+var olderIndex = IndexByAppId(olderRoot);
+var newerIndex = IndexByAppId(newerRoot);
+
+var added = newerIndex.Keys.Except(olderIndex.Keys).ToList();
+var removed = olderIndex.Keys.Except(newerIndex.Keys).ToList();
+var common = olderIndex.Keys.Intersect(newerIndex.Keys).ToList();
+
+var changed = common.Count(id =>
+{
+    var a = olderIndex[id].properties.GetValueOrDefault("category")?.ToString();
+    var b = newerIndex[id].properties.GetValueOrDefault("category")?.ToString();
+    return a != b;
+});
+
+Console.WriteLine($"Added: {added.Count}, Removed: {removed.Count}, Common: {common.Count}, Category changed: {changed}");
+```
+
+<Note>
+`applicationId` is set by connectors to the stable id from the host application (for example a Revit element id). Without it, compare by `name` with caution — duplicate names are common in large models.
+</Note>
+
+## How it works
+
+Each **version** points at a root object id. `Receive2` downloads two separate object graphs. Indexing by `applicationId` lets you match the same physical element across publishes.
+
+For deeper diffs, compare specific `properties` keys (category, level, fire rating) or serialize selected properties to a string hash.
+
+## Common mistakes
+
+| Mistake | Fix |
+| ------- | --- |
+| Comparing versions from different models | Use the same `modelId`, two `versionId` values |
+| Using only object `id` (content hash) | Host `applicationId` tracks the same element across edits |
+| Expecting geometry diff | Start with property and presence diff |
+| Loading full graphs repeatedly in a loop | Receive each version once, index, then compare |
+
+## Next steps
+
+<CardGroup cols={3}>
+  <Card title="Send analysis results back" icon="upload" href="/developers/sdks/dotnet/guides/send-analysis-results-back">
+    Publish a change summary to Speckle
+  </Card>
+  <Card title="Find objects by property" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
+    Filter and index patterns
+  </Card>
+  <Card title="BIM data patterns" icon="building" href="/developers/sdks/dotnet/guides/bim-data-patterns">
+    applicationId and properties
+  </Card>
+</CardGroup>

@@ -1,0 +1,52 @@
+---
+title: "Server"
+description: "client.Server — check what features your Speckle Server supports"
+sidebarTitle: "Server"
+---
+
+Use **`client.Server`** before calling workspace APIs — especially on self-hosted servers where workspace support may be disabled.
+
+**Read next:** [Handling server capabilities](/developers/sdks/dotnet/guides/handling-server-capabilities)
+
+## Methods
+
+<ResponseField name="IsWorkspaceEnabled" type="Task<bool> IsWorkspaceEnabled(CancellationToken cancellationToken = default)">
+  Returns whether the connected server has the workspaces module enabled. Use this to guard calls to [`client.Workspace`](/developers/sdks/dotnet/api-reference/resources/workspace) and workspace-scoped methods on `client.ActiveUser`.
+</ResponseField>
+
+## Usage
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+if (await client.Server.IsWorkspaceEnabled())
+{
+    var workspaces = await client.ActiveUser.GetWorkspaces();
+    // ...
+}
+else
+{
+    // Personal (non-workspace) server, e.g. a self-hosted instance
+    var projects = await client.ActiveUser.GetProjects();
+}
+```
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="SpeckleGraphQLWorkspaceNotEnabledException on GetWorkspaces">
+    The connected server does not have workspaces enabled (arrives wrapped in an `AggregateException`). Call `IsWorkspaceEnabled()` and use `client.ActiveUser.GetProjects()` for personal-project servers.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+    Personal vs workspace servers
+  </Card>
+  <Card title="Handling server capabilities" icon="shield-check" href="/developers/sdks/dotnet/guides/handling-server-capabilities">
+    Check-before-call patterns
+  </Card>
+  <Card title="WorkspaceResource" icon="building" href="/developers/sdks/dotnet/api-reference/resources/workspace">
+    Workspace queries this check gates
+  </Card>
+</CardGroup>

@@ -1,0 +1,320 @@
+---
+title: "Full send/receive tour"
+description: "Optional deep dive — create a project, send geometry, publish a version, and receive with Send and ServerTransport"
+sidebarTitle: "Quickstart"
+---
+
+## Goal
+
+Understand how project creation, sending, versioning, and receiving fit together — including how `ServerTransport` relates to the newer `Send2` path.
+
+## What you will build
+
+In this optional deep dive, you will:
+
+1. Paste the one-time SDK bootstrap (dependency injection setup you copy, not a concept you study)
+2. Authenticate with Speckle Server
+3. Create a project and model
+4. Send geometry data to Speckle
+5. Create a version (commit)
+6. Receive geometry data from Speckle
+
+## When to use this
+
+Use this page when you want the **full publish workflow** from scratch. For most AEC automation — loading connector-published models, QA checks, CSV exports — start with [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) instead. That path uses `Receive2` on existing model data; creating geometry is optional and less common in practice.
+
+<Note>
+In practice, most workflows **receive** model data published by connectors rather than creating geometry in code. This tour teaches sending so you understand how versions and object graphs relate.
+</Note>
+
+## Recommended approach
+
+For day-to-day scripts after this tour, switch to `Send2`/`Receive2` — see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). This quickstart uses **Path B** (`Send`/`Receive` with `ServerTransport`) to show how transports work.
+
+## Prerequisites
+
+1. **Install the packages.** From your project directory, run:
+
+```bash
+dotnet add package Speckle.Sdk
+dotnet add package Speckle.Objects
+```
+
+You should see both packages listed in your `.csproj`.
+
+2. **Set up authentication.** Get a [personal access token](https://app.speckle.systems) from your Speckle profile *(Avatar → Settings → Developer → Access Tokens)*. You will paste it in Step 2 below.
+
+## Full Workflow (Path B)
+
+### Step 1: Bootstrap the SDK (Copy Once)
+
+Register Speckle.Sdk once at startup. Pass the `Speckle.Objects` assembly so geometry types deserialize correctly later.
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Microsoft.Extensions.DependencyInjection;
+using Speckle.Sdk;
+
+var services = new ServiceCollection();
+services.AddSpeckleSdk(
+    new Application("Quickstart", "quickstart"),
+    "1.0.0",
+    assemblies: [typeof(Speckle.Objects.Geometry.Point).Assembly]
+);
+var provider = services.BuildServiceProvider();
+```
+
+<Tip>
+This is **boilerplate**, not a DI tutorial. You are not expected to register your own services or understand container lifetimes. [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) shows how to wrap this in a static helper for notebook cells and Grasshopper scripts.
+</Tip>
+
+### Step 2: Authenticate
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Api;
+using Speckle.Sdk.Credentials;
+
+var account = await provider.GetRequiredService<IAccountFactory>()
+    .CreateAccount(new Uri("https://app.speckle.systems"), "your_token_here"); // Replace with your token
+
+using var client = provider.GetRequiredService<IClientFactory>().Create(account);
+
+Console.WriteLine($"✓ Authenticated as {account.userInfo.name}");
+```
+
+<Check>
+If this works, you'll see your name printed!
+</Check>
+
+### Step 3: Create a Project
+
+Projects are the top-level containers for your data:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Api.GraphQL.Enums;
+using Speckle.Sdk.Api.GraphQL.Inputs;
+
+var project = await client.Project.Create(new ProjectCreateInput(
+    "My First Speckle Project",
+    "Learning Speckle.Sdk",
+    ProjectVisibility.Private
+));
+
+Console.WriteLine($"✓ Created project: {project.id}");
+```
+
+<Note>
+If the workspace plan is already at your maximum project limit, you'll need to delete some projects before creating a new one.
+</Note>
+<Info>
+Projects replace what used to be called "Streams" in prior versions of Speckle.
+</Info>
+
+### Step 4: Create Geometry
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Objects.Geometry;
+using Speckle.Sdk.Common;
+using Speckle.Sdk.Models;
+
+// Create some points
+var p1 = new Point(0, 0, 0, Units.Meters);
+var p2 = new Point(10, 0, 0, Units.Meters);
+var p3 = new Point(10, 10, 0, Units.Meters);
+var p4 = new Point(0, 10, 0, Units.Meters);
+
+// Create a line
+var line = new Line { start = p1, end = p2, units = Units.Meters };
+
+// Wrap geometry in a Base object for viewer visibility
+var myData = new Base();
+myData["line"] = line;
+myData["points"] = new List<Point> { p1, p2, p3, p4 };
+
+Console.WriteLine("✓ Created geometry objects");
+```
+
+<Warning>
+**Important:** Geometry sent as the root object (not nested under a container) will **not** appear in the 3D viewer. Put primitives on a root `Base`, as in Step 4 — nested `Point`/`Line`/`Mesh` properties are enough for this tutorial. Connector-style objects need an explicit `displayValue` on `DataObject`; see [Display values](/developers/sdks/dotnet/concepts/objects-and-traversal#display-values).
+</Warning>
+
+<Tip>
+`Base` is the foundation of all Speckle objects. You can attach any property to it dynamically using the string indexer. A root `Base` with nested geometry is enough for simple scripts like this one.
+</Tip>
+
+<Info>
+This quickstart uses plain `Base` to keep the first workflow simple. For real BIM-like data — especially anything meant to interoperate with other Speckle connectors and scripts — model it with `DataObject` and `Collection` instead once you're past this tour. See [Work with model objects](/developers/sdks/dotnet/concepts/objects-and-traversal).
+</Info>
+
+### Step 5: Send Data to Speckle
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Transports;
+
+// Create a transport (the vehicle for sending data)
+using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
+
+// Send the data; the operation returns the object ID and caches local copies too
+var (objectId, _) = await provider.GetRequiredService<IOperations>().Send(myData, transport, useDefaultCache: true);
+
+Console.WriteLine($"✓ Sent data! Object ID: {objectId}");
+```
+
+<Info>
+`objectId` is a unique hash of the serialized data. You'll use it to create a version.
+</Info>
+
+<Note>
+Server transports and some lower-level APIs still use the term `streamId` for what the GraphQL API and UI call `projectId`. They refer to the same value.
+</Note>
+
+### Step 6: Create a Version
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Api.GraphQL.Inputs;
+
+// Create a model
+var model = await client.Model.Create(new CreateModelInput("My first model", "This is my first model", project.id));
+
+// Create a version pointing at the sent object
+var version = await client.Version.Create(new CreateVersionInput(objectId, model.id, project.id, "My first version!"));
+
+Console.WriteLine($"✓ Created version: {version.id}");
+Console.WriteLine($"View it: https://app.speckle.systems/projects/{project.id}/models/{model.id}");
+```
+
+<Check>
+Go to that URL to see your data in the 3D viewer!
+</Check>
+
+### Step 7: Receive Data
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+// Get the version and read the referenced object id
+var fetchedVersion = await client.Version.Get(version.id, project.id);
+var rootObjectId = fetchedVersion.referencedObject;
+
+// Receive the data using the same transport used to send it
+var receivedData = await provider.GetRequiredService<IOperations>().Receive(rootObjectId!, remoteTransport: transport);
+
+Console.WriteLine("✓ Received data!");
+Console.WriteLine($"Points received: {((List<object>)receivedData["points"]!).Count}");
+```
+
+<Info>
+**Why two steps?**
+
+Versions store metadata (author, timestamp, message) separately from the actual object data. This keeps version history fast and lightweight. You only download the full object graph when you explicitly call `Receive`.
+</Info>
+
+<Note>
+You have now completed your first full Speckle workflow with .NET using `Send`/`Receive` and `ServerTransport`. For day-to-day scripts, switch to `Send2`/`Receive2` — see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
+</Note>
+
+## Complete Example
+
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
+using Microsoft.Extensions.DependencyInjection;
+using Speckle.Objects.Geometry;
+using Speckle.Sdk;
+using Speckle.Sdk.Api;
+using Speckle.Sdk.Api.GraphQL.Enums;
+using Speckle.Sdk.Api.GraphQL.Inputs;
+using Speckle.Sdk.Common;
+using Speckle.Sdk.Credentials;
+using Speckle.Sdk.Models;
+using Speckle.Sdk.Transports;
+
+// 1. Register the SDK
+var services = new ServiceCollection();
+services.AddSpeckleSdk(
+    new Application("Quickstart", "quickstart"),
+    "1.0.0",
+    assemblies: [typeof(Point).Assembly]
+);
+var provider = services.BuildServiceProvider();
+
+// 2. Authenticate
+var account = await provider.GetRequiredService<IAccountFactory>()
+    .CreateAccount(new Uri("https://app.speckle.systems"), "your_token_here");
+using var client = provider.GetRequiredService<IClientFactory>().Create(account);
+Console.WriteLine($"✓ Authenticated as {account.userInfo.name}");
+
+// 3. Create project
+var project = await client.Project.Create(new ProjectCreateInput(
+    "My First Speckle Project",
+    "Learning Speckle.Sdk",
+    ProjectVisibility.Private
+));
+Console.WriteLine($"✓ Created project: {project.id}");
+
+// 4. Create geometry
+var p1 = new Point(0, 0, 0, Units.Meters);
+var p2 = new Point(10, 0, 0, Units.Meters);
+var p3 = new Point(10, 10, 0, Units.Meters);
+var p4 = new Point(0, 10, 0, Units.Meters);
+var line = new Line { start = p1, end = p2, units = Units.Meters };
+
+var myData = new Base();
+myData["line"] = line;
+myData["points"] = new List<Point> { p1, p2, p3, p4 };
+Console.WriteLine("✓ Created geometry");
+
+// 5. Send data
+using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
+var (objectId, _) = await provider.GetRequiredService<IOperations>().Send(myData, transport, useDefaultCache: true);
+Console.WriteLine($"✓ Sent data: {objectId}");
+
+// 6. Create model and version
+var model = await client.Model.Create(new CreateModelInput("My first model", "This is my first model", project.id));
+var version = await client.Version.Create(new CreateVersionInput(objectId, model.id, project.id, "My first version!"));
+Console.WriteLine($"✓ Created version: {version.id}");
+Console.WriteLine($"View: https://app.speckle.systems/projects/{project.id}/models/{model.id}");
+
+// 7. Receive data
+var fetchedVersion = await client.Version.Get(version.id, project.id);
+var receivedData = await provider.GetRequiredService<IOperations>().Receive(fetchedVersion.referencedObject!, remoteTransport: transport);
+Console.WriteLine($"✓ Received data: {((List<object>)receivedData["points"]!).Count} points");
+```
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Should I use this quickstart or Automate with scripts?">
+    Use **Automate with scripts** for Grasshopper, notebooks, and one-off automations — it uses `Send2`/`Receive2` with less ceremony. Use **this quickstart** when you want a guided tour of the full workflow, including how `ServerTransport` fits in.
+  </Accordion>
+  <Accordion title="Why doesn't my geometry show in the 3D viewer?">
+    Primitives sent as the root object are not visible. Nest them under a root `Base` container, as in Step 4. For connector-style BIM objects, set `displayValue` on `DataObject` — see [Display values](/developers/sdks/dotnet/concepts/objects-and-traversal#display-values).
+  </Accordion>
+  <Accordion title="What is streamId vs projectId?">
+    The GraphQL API and UI use `projectId`. Some transport and `Send`/`Receive` signatures still use `streamId` for the same value — pass your project's `id` in both cases.
+  </Accordion>
+  <Accordion title="I sent data but cannot find it in the UI">
+    You must create a **version** after send — see [Core concepts: orphaned objects](/developers/sdks/dotnet/concepts/overview#orphaned-objects).
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+    Recommended next — load and analyse existing models
+  </Card>
+  <Card title="Load and publish model data" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+    Path B vs Path C decision guide
+  </Card>
+  <Card title="Automate with scripts" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
+    Send2/Receive2 for everyday scripts
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+<CardGroup cols={2}>
+  <Card title="Community Forum" icon="comments" href="https://speckle.community">
+    Ask questions and get help
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/specklesystems/speckle-sharp-sdk">
+    View source code and report issues
+  </Card>
+</CardGroup>

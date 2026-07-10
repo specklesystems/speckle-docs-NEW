@@ -1,0 +1,149 @@
+---
+title: "Find objects by property"
+description: "Traverse, filter, and index Speckle model data — walls, doors, rooms, and QA checks in .NET"
+sidebarTitle: "Find & extract"
+---
+
+## Goal
+
+Find walls, doors, rooms, and other elements in a received model graph — and build indexes for QA checks, schedules, and quantity reports.
+
+## What you will build
+
+Queries that count elements by category, check required properties, find duplicate `applicationId` values, and group quantities by level.
+
+## When to use this
+
+After `Receive2` on connector-published data — before CSV export, version comparison, or sending analysis results back. Read [BIM data patterns](/developers/sdks/dotnet/guides/bim-data-patterns) first if property names are unfamiliar.
+
+## Recommended approach
+
+**The recommended approach for most filtering tasks is `Flatten()`** on the root object, then filter on `DataObject.properties`. Use `GraphTraversal` with `DefaultTraversal` only when you need parent context or connector-style walk rules.
+
+## Prerequisites
+
+- [Work with model objects](/developers/sdks/dotnet/concepts/objects-and-traversal)
+- [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) — load a model first
+
+<Note>
+On `DataObject` instances, semantic fields live in `properties`: `dataObject.properties.GetValueOrDefault("category")`. Connector-produced BIM data often uses **proxy collections** — see [Working with Proxies](/developers/sdks/dotnet/guides/working-with-proxies).
+</Note>
+
+## Complete example
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
+using Speckle.Objects.Data;
+using Speckle.Sdk.Models;
+using Speckle.Sdk.Models.Extensions;
+
+static string? Category(Base obj) =>
+    obj is DataObject d
+        ? d.properties.GetValueOrDefault("category")?.ToString()
+        : obj["category"] as string;
+
+// Count walls, doors, rooms
+var walls = root.Flatten().Where(o => Category(o) == "Walls").ToList();
+var doors = root.Flatten().Where(o => Category(o)?.Contains("Door") == true).ToList();
+var rooms = root.Flatten().Where(o => Category(o)?.Contains("Room") == true).ToList();
+
+Console.WriteLine($"Walls: {walls.Count}, Doors: {doors.Count}, Rooms: {rooms.Count}");
+
+// Quantities by category
+var byCategory = root.Flatten()
+    .GroupBy(o => Category(o) ?? "Unknown")
+    .ToDictionary(g => g.Key, g => g.Count());
+
+// Quantities by level
+var byLevel = root.Flatten()
+    .OfType<DataObject>()
+    .GroupBy(d => d.properties.GetValueOrDefault("level")?.ToString() ?? "Unknown")
+    .ToDictionary(g => g.Key, g => g.Count());
+
+// Required property check
+var required = new[] { "category", "level" };
+var missing = root.Flatten()
+    .OfType<DataObject>()
+    .Where(d => required.Any(k => !d.properties.ContainsKey(k)))
+    .ToList();
+
+// Duplicate applicationId check
+var duplicateIds = root.Flatten()
+    .Where(o => o.applicationId is not null)
+    .GroupBy(o => o.applicationId!)
+    .Where(g => g.Count() > 1)
+    .Select(g => g.Key)
+    .ToList();
+```
+
+## How it works
+
+### Flatten vs GraphTraversal
+
+`Flatten` returns every `Base` in the graph — the right default for filtering and indexing:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+foreach (var obj in root.Flatten())
+    Console.WriteLine(obj.TryGetName() ?? "unnamed");
+```
+
+`GraphTraversal` adds **context** (parent, property name) and custom walk rules:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Models.GraphTraversal;
+
+var traversal = DefaultTraversal.CreateTraversalFunc();
+foreach (TraversalContext ctx in traversal.Traverse(root))
+{
+    var obj = ctx.Current;
+    var parentName = ctx.Parent?.Current.TryGetName() ?? "root";
+    Console.WriteLine($"{obj.TryGetName()} (from {parentName}.{ctx.PropName})");
+}
+```
+
+<Tip>
+`DefaultTraversal.CreateTraversalFunc()` is what Rhino, Grasshopper, Revit, AutoCAD, Tekla, and Navisworks use for receive. Prefer it unless you need to walk different properties.
+</Tip>
+
+### Building indexes for repeated lookups
+
+Each `Flatten()` is O(n). Build a dictionary once for multiple lookups:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var byCategory = root.Flatten()
+    .GroupBy(Category)
+    .ToDictionary(g => g.Key ?? "Unknown", g => g.ToList());
+
+var walls = byCategory.GetValueOrDefault("Walls", new());
+```
+
+An `applicationId` index resolves [proxies](/developers/sdks/dotnet/guides/working-with-proxies):
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var byAppId = root.Flatten()
+    .Where(o => o.applicationId is not null)
+    .ToDictionary(o => o.applicationId!);
+```
+
+## Common mistakes
+
+| Mistake | Fix |
+| ------- | --- |
+| Hand-written recursion on large graphs | Use `Flatten` or `GraphTraversal` — they guard against cycles |
+| Rebuilding an index inside a loop | Build the dictionary once outside your query loop |
+| Reading `obj["category"]` on all connector data | Use `DataObject.properties` |
+| `new GraphTraversal()` with no rules | Always pass at least one rule, or use `DefaultTraversal` |
+| Duplicate results from `displayValue` | Exclude `displayValue` in custom traversal rules when extracting BIM properties separately |
+
+## Next steps
+
+<CardGroup cols={3}>
+  <Card title="Export model data to CSV" icon="file-csv" href="/developers/sdks/dotnet/guides/export-model-data-to-csv">
+    Door and room schedules
+  </Card>
+  <Card title="Working with Proxies" icon="link" href="/developers/sdks/dotnet/guides/working-with-proxies">
+    Resolve levels and groups
+  </Card>
+  <Card title="Compare two model versions" icon="code-compare" href="/developers/sdks/dotnet/guides/compare-two-model-versions">
+    Diff between publishes
+  </Card>
+</CardGroup>

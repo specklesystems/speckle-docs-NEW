@@ -1,0 +1,113 @@
+---
+title: "Send analysis results back to Speckle"
+description: "Publish QA flags, computed fields, and model health reports as a new Speckle version"
+sidebarTitle: "Send results back"
+---
+
+## Goal
+
+Send derived analysis results — QA flags, health checks, computed metadata — back to Speckle Server as a new published version.
+
+## What you will build
+
+A script that loads a model, runs property checks on each element, builds a `Collection` of `DataObject` results with `qaStatus` and `missingProperties`, and publishes a new version with `Send2`.
+
+## When to use this
+
+Use this when you want analysis output **visible in Speckle** for the team — model health dashboards, QA pass/fail flags, or computed fields from Grasshopper or a console tool.
+
+Avoid this when a local CSV is enough — see [Export model data to CSV](/developers/sdks/dotnet/guides/export-model-data-to-csv).
+
+## Recommended approach
+
+1. Load source model with `Receive2`
+2. Analyse with `Flatten()` and your rules
+3. Build results as `DataObject` / `Collection` graphs (not custom typed classes)
+4. `Send2` the result graph, then `client.Version.Create`
+5. Use `Send2`/`Receive2` — not `SendPipeline` unless you are building a connector
+
+## Complete example
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
+using Speckle.Objects.Data;
+using Speckle.Sdk.Api.GraphQL.Inputs;
+using Speckle.Sdk.Models;
+using Speckle.Sdk.Models.Collections;
+using Speckle.Sdk.Models.Extensions;
+
+var requiredKeys = new[] { "category", "level" };
+
+var issues = root.Flatten()
+    .OfType<DataObject>()
+    .Select(obj =>
+    {
+        var missing = requiredKeys
+            .Where(k => !obj.properties.ContainsKey(k) || obj.properties[k] is null)
+            .ToList();
+        return new DataObject
+        {
+            name = obj.name ?? obj.applicationId ?? "unnamed",
+            properties = new Dictionary<string, object?>
+            {
+                ["sourceApplicationId"] = obj.applicationId,
+                ["qaStatus"] = missing.Count == 0 ? "pass" : "fail",
+                ["missingProperties"] = string.Join("; ", missing),
+            },
+        };
+    })
+    .ToList();
+
+var report = new Collection
+{
+    name = "Model health check",
+    elements = issues.Cast<Base>().ToList(),
+};
+
+var sendResult = await SpeckleBootstrap.Operations.Send2(
+    client.ServerUrl,
+    projectId,
+    account.token,
+    report,
+    onProgressAction: null,
+    cancellationToken: default
+);
+
+await client.Version.Create(
+    new CreateVersionInput(sendResult.RootId, modelId, projectId, "QA report from automation")
+);
+
+Console.WriteLine($"Published {issues.Count} QA results ({issues.Count(i => i.properties["qaStatus"]?.ToString() == "fail")} failures)");
+```
+
+<Warning>
+You must call `client.Version.Create` after `Send2` — otherwise the sent graph is orphaned and will not appear in the Speckle UI. See [Core concepts: orphaned objects](/developers/sdks/dotnet/concepts/overview#orphaned-objects).
+</Warning>
+
+## How it works
+
+**Analysis stays local until you send.** `Flatten()` and your rules produce in-memory `DataObject` instances. `Send2` uploads the graph; `Version.Create` attaches it to the model's history.
+
+Results use the same `DataObject` / `Collection` shapes connectors expect, so the viewer and other tools can consume them.
+
+## Common mistakes
+
+| Mistake | Fix |
+| ------- | --- |
+| Calling `Send2` without `Version.Create` | Always create a version after send |
+| Using `SendPipeline` for a small report | `Send2` is the recommended path for scripts |
+| Custom `Wall`/`Door` C# types | Use `DataObject.properties` for interoperability |
+| Sending the entire source model back unchanged | Send only the analysis payload |
+
+## Next steps
+
+<CardGroup cols={3}>
+  <Card title="Export model data to CSV" icon="file-csv" href="/developers/sdks/dotnet/guides/export-model-data-to-csv">
+    Local reports without publishing
+  </Card>
+  <Card title="Compare two model versions" icon="code-compare" href="/developers/sdks/dotnet/guides/compare-two-model-versions">
+    Diff between publishes
+  </Card>
+  <Card title="Load and publish model data" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+    Send2 vs SendPipeline
+  </Card>
+</CardGroup>

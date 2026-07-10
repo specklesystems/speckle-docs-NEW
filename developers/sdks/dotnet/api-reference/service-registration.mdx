@@ -1,0 +1,92 @@
+---
+title: "Service registration"
+description: "AddSpeckleSdk bootstrap — copy from Scripts for automation, customize for connectors"
+sidebarTitle: "Registration"
+---
+
+Call **`AddSpeckleSdk`** once at startup before resolving **`IOperations`** or **`IClientFactory`**. **For scripts:** copy the bootstrap from [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) — do not customize unless you need extra assemblies. **For connectors:** see [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection).
+
+## AddSpeckleSdk
+
+<ResponseField name="application" type="Application" required>
+  Describes your host application. `Application` is a record: `Application(string Name, string Slug)`.
+</ResponseField>
+
+<ResponseField name="applicationVersion" type="string" required>
+  Your application's version string, used for telemetry and diagnostics.
+</ResponseField>
+
+<ResponseField name="speckleVersion" type="string?" default="null">
+  Overrides the reported Speckle.Sdk version. Defaults to the assembly version.
+</ResponseField>
+
+<ResponseField name="assemblies" type="IEnumerable<Assembly>? / params Assembly[]">
+  Assemblies containing custom `Base`-derived types (including `Speckle.Objects`, if used) that `TypeLoader` should be able to resolve during deserialization.
+</ResponseField>
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+public static IServiceCollection AddSpeckleSdk(
+    this IServiceCollection serviceCollection,
+    Application application,
+    string applicationVersion,
+    string? speckleVersion = null,
+    IEnumerable<Assembly>? assemblies = null
+);
+
+// Overloads also accept assemblies as params Assembly[]
+```
+
+### What It Registers
+
+| Registration | Registers |
+|--------------------------------|---------------------------------------------------------------|
+| `TypeLoader.Initialize(...)`   | Type resolution for `speckle_type` across the provided assemblies |
+| `ISpeckleApplication` (singleton) | Host application metadata (name, version, Speckle version)  |
+| `ISdkActivityFactory` (singleton, no-op default) | Tracing hook — provide your own to integrate with OpenTelemetry |
+| `ISdkMetricsFactory` (singleton, no-op default)  | Metrics hook |
+| Every interface-implementing class in the SDK assembly (transient) | `IOperations`, `IClientFactory`, `IAccountFactory`, `IAccountManager`, `IServerTransportFactory`, `ISendPipelineFactory`, and more |
+| `AddLogging()`                 | `Microsoft.Extensions.Logging` integration |
+
+## Application
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+public record Application(string Name, string Slug);
+```
+
+<Note>
+`Application` has no required format for `Slug` beyond being a stable identifier for your app — it's used for telemetry, not validation.
+</Note>
+
+## Registering Custom Activity or Metrics Factories
+
+If you want tracing or metrics integration, register your own implementation **before** calling `AddSpeckleSdk` — the SDK uses `TryAddSingleton`, which only registers a default if one isn't already present:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+services.AddSingleton<ISdkActivityFactory, MyOpenTelemetryActivityFactory>();
+services.AddSpeckleSdk(new Application("My App", "my-app"), "1.0.0");
+```
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="What is the minimum bootstrap for a script?">
+    `new ServiceCollection().AddSpeckleSdk(new Application(...), "1.0.0").BuildServiceProvider()` — see the canonical helper in [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
+  </Accordion>
+  <Accordion title="Do I need to pass Speckle.Objects in assemblies?">
+    Yes if you send or receive geometry types from that package. Without it, those types deserialize as plain `Base`.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Dependency injection (connectors)" icon="book" href="/developers/sdks/dotnet/concepts/dependency-injection">
+    What AddSpeckleSdk registers
+  </Card>
+  <Card title="Automate with scripts" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
+    Minimal bootstrap example
+  </Card>
+  <Card title="Client API" icon="code" href="/developers/sdks/dotnet/api-reference/client">
+    Resolve IClientFactory after registration
+  </Card>
+</CardGroup>

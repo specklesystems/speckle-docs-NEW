@@ -1,0 +1,287 @@
+---
+title: "Work with model objects"
+description: "DataObject, Collection, Base, display values, and traversing Speckle model data in .NET"
+sidebarTitle: "Objects"
+---
+
+When you load model data from Speckle, you work with **`DataObject`** (BIM elements), **`Collection`** (hierarchy), and **`Base`** (foundation type). Connector-published walls, doors, and rooms are usually `DataObject` instances with BIM fields in **`properties`**.
+
+**When to read this:** before filtering or exporting model data. **Read next:** [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data) for filter recipes, or [BIM data patterns](/developers/sdks/dotnet/guides/bim-data-patterns) for connector data structure.
+
+<Info>
+For filtering and indexing recipes, see [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data). Bootstrap: [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
+</Info>
+
+## Find doors and walls in received data
+
+After `Receive2`, use `Flatten()` and read `DataObject.properties`:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Objects.Data;
+using Speckle.Sdk.Models.Extensions;
+
+var doors = root.Flatten()
+    .OfType<DataObject>()
+    .Where(d => d.properties.GetValueOrDefault("category")?.ToString()?.Contains("Door") == true);
+
+foreach (var door in doors)
+{
+    var name = door.name;
+    var level = door.properties.GetValueOrDefault("level");
+    var fireRating = door.properties.GetValueOrDefault("fireRating");
+    Console.WriteLine($"{name} — level: {level}, fire rating: {fireRating}");
+}
+```
+
+The traversal API is `Flatten()` on `Base`. The BIM fields live in `properties`, not in typed `Door` classes.
+
+## DataObject and Collection
+
+Most Speckle connectors emit **`DataObject`** (`Speckle.Objects.Data`) — `name`, `properties`, and `displayValue` — rather than bespoke typed classes. Use **`Collection`** (`Speckle.Sdk.Models.Collections`) to organize hierarchies. Plain `Base` or custom subclasses still work for self-contained apps; prefer `DataObject`/`Collection` when interoperating with connectors and the viewer. See [Object Schema](/developers/data-schema/object-schema) for field definitions.
+
+## The Base Class
+
+Everything sent to or received from Speckle inherits from `Base`. It supports both **static** (typed C# properties) and **dynamic** (runtime, string-keyed) properties on the same object.
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Models;
+
+var custom = new Base();
+custom["name"] = "My Object";
+custom["count"] = 42;
+```
+
+<Info>
+Objects are content-addressed: once sent, an object's `id` is a hash of its serialized content. Identical content always produces the same id.
+</Info>
+
+### Static vs Dynamic Properties
+
+Typed geometry classes (from `Speckle.Objects`) declare static properties with full C# type support, but every `Base`-derived type also accepts arbitrary dynamic properties:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Objects.Geometry;
+using Speckle.Sdk.Common;
+
+var point = new Point(1, 2, 3, Units.Meters);
+point["customId"] = "POINT_001";
+```
+
+Use a typed subclass when you control the shape and want compile-time safety; use plain `Base` with the indexer when the shape is unknown or ad hoc. Both produce the same wire format.
+
+<Note>
+Property names starting with `__` are ignored entirely (not hashed, not serialized). Property names cannot contain `.` or `/`. Avoid dynamic names starting with `_` or `@` unless you intend to detach that property — a double `@@` prefix or invalid characters throw `InvalidPropNameException`.
+</Note>
+
+## Complete Example
+
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
+using Speckle.Sdk.Models;
+
+public class Room : Base
+{
+    public required string name { get; set; }
+    public double area { get; set; }
+
+    [DetachProperty]
+    public List<Base>? elements { get; set; }
+}
+
+var room = new Room { name = "Conference Room A", area = 32.5 };
+room["material"] = "Concrete";
+room["fireRating"] = "2 hour";
+
+room.elements = new List<Base>();
+for (var i = 0; i < 3; i++)
+{
+    var chair = new Base();
+    chair["name"] = $"Chair {i}";
+    chair["category"] = "Furniture";
+    room.elements.Add(chair);
+}
+
+foreach (var (key, value) in room.GetMembers())
+{
+    Console.WriteLine($"{key}: {value}");
+}
+```
+
+<Info>
+The `Room` example teaches `Base` mechanics directly. For real BIM-like data, model with `DataObject` and `Collection` instead — the same detachment and introspection rules apply.
+</Info>
+
+### Discovering Properties at Runtime
+
+Use `GetMembers()` (typed + dynamic), `GetDynamicMemberNames()`, or `DynamicPropertyKeys`. Safe access: `obj["material"] as string ?? "Unknown"`, `obj.TryGetName()`, `obj.TryGetDisplayValue()`.
+
+`GetDetachedProp`/`SetDetachedProp` extension methods read or write detached properties without knowing whether they're typed or dynamic.
+
+## Detachment
+
+By default, nested `Base` objects serialize **inline** with their parent. Detachment stores a nested object separately and keeps a reference — useful for large or frequently-shared sub-graphs.
+
+<Tabs>
+  <Tab title="Dynamic (@ prefix)">
+    ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+    parent["@heavyMesh"] = meshObject;
+    ```
+  </Tab>
+  <Tab title="Typed ([DetachProperty])">
+    ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+    public class Wall : Base
+    {
+        [DetachProperty]
+        public required Mesh DisplayGeometry { get; set; }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Chunking
+
+Pair `[Chunkable]` with `[DetachProperty]` to split very large lists across multiple stored objects:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+[DetachProperty]
+[Chunkable(maxObjCountPerChunk: 5000)]
+public required List<double> Measurements { get; set; }
+```
+
+<Note>
+`[Chunkable]` is honored by `Serialize`/`Send`/`Send2`. The connector-scale `SendPipeline` path (see [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends)) detaches on `[DetachProperty]` but does not currently act on `[Chunkable]`.
+</Note>
+
+<Warning>
+`[DetachProperty(false)]` is obsolete — use the parameterless `[DetachProperty]` only.
+</Warning>
+
+## Custom Types
+
+Before defining a fully custom type, consider whether `DataObject` already fits. Reach for a custom type when you want compile-time-checked properties, or when the object is internal to your own application.
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+[SpeckleType("MyCompany.Wall")]
+public class Wall : Base
+{
+    public required double height { get; set; }
+    public required double thickness { get; set; }
+    public required string material { get; set; }
+}
+```
+
+<Warning>
+Most Speckle connectors will not recognize custom types during host-app conversion. Include a `displayValue` property so the object is at least visible in the 3D viewer.
+</Warning>
+
+## Display Values
+
+When you send data and expect it in the **3D viewer**, the object must expose a `displayValue` property containing renderable geometry. Schema details: [Object Schema: displayValue](/developers/data-schema/object-schema#displayvalue).
+
+The recommended container is `DataObject`:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Objects.Data;
+using Speckle.Sdk.Models;
+
+var wall = new DataObject
+{
+    name = "Wall 01",
+    properties = new Dictionary<string, object?> { ["material"] = "Concrete" },
+    displayValue = new List<Base> { wallMesh },
+};
+```
+
+You can also set `displayValue` dynamically on plain `Base` for quick scripts. For a root `Base` with nested `Point`/`Line`/`Mesh` properties (as in the [Quickstart](/developers/sdks/dotnet/getting-started/quickstart)), the viewer can render that geometry without an explicit `displayValue`. Connector-style `DataObject` graphs need an explicit `displayValue` — bare primitives at the root of the version object often won't render.
+
+Use `BaseExtensions` after receive:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Models.Extensions;
+
+if (someObject.IsDisplayableObject())
+{
+    var displayGeometry = someObject.TryGetDisplayValue();
+}
+```
+
+For custom types, the property name must be exact camelCase `displayValue`. PascalCase `DisplayValue` serializes under a different key and the viewer will not recognize it.
+
+## Traversing the Object Graph
+
+The simplest walk is `BaseExtensions.Flatten` or `Traverse`:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Models.Extensions;
+
+IEnumerable<Base> allObjects = receivedData.Flatten();
+
+foreach (var obj in allObjects)
+{
+    Console.WriteLine(obj.speckle_type);
+}
+```
+
+`Flatten` follows `Base` values and list **values**. For dictionaries it only inspects **keys** — a `Dictionary<string, Base>` will not have its values traversed.
+
+### Rule-Based Traversal
+
+For connector-style traversal, use `GraphTraversal` with `DefaultTraversal`:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Models.GraphTraversal;
+
+var traversalFunc = DefaultTraversal.CreateTraversalFunc();
+var results = traversalFunc.Traverse(receivedData);
+
+foreach (var traversalContext in results)
+{
+    if (DefaultTraversal.HasDisplayValue(traversalContext.Current))
+    {
+        // This object has geometry to convert
+    }
+}
+```
+
+`DefaultTraversal` understands `elements`/`@elements`, `displayValue`/`@displayValue`, and `definition`/`@definition`.
+
+<Info>
+Platform traversal patterns: [Traversal Recipes](/developers/data-schema/traversal-recipes). .NET filter/index recipes: [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data).
+</Info>
+
+## FAQ and Pitfalls
+
+<AccordionGroup>
+  <Accordion title="Why did my custom type deserialize as plain Base?">
+    The type's assembly was not passed to `AddSpeckleSdk`. Register it in the `assemblies` argument — see [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection#registering-your-own-types).
+  </Accordion>
+  <Accordion title="When should I use Flatten vs GraphTraversal?">
+    Use **Flatten** for simple filtering or indexing on small-to-medium graphs. Use **GraphTraversal** with `DefaultTraversal` when you need connector-style rules on large BIM graphs.
+  </Accordion>
+  <Accordion title="Sent an object but nothing shows in the viewer">
+    Check that the object (or one of its `elements`) has a `displayValue` containing `Mesh`, `Line`, or `Point` geometry.
+  </Accordion>
+  <Accordion title="InvalidPropNameException when setting a dynamic property">
+    The key is empty, starts with `@@`, or contains `.`/`/`. Use `IsPropNameValid` to check before setting if the key comes from untrusted input.
+  </Accordion>
+  <Accordion title="obj.id is null right after construction">
+    `id` is only populated after send or deserialization — it's a content hash, not something you set.
+  </Accordion>
+  <Accordion title="Detached property comes back null after receive">
+    Confirm the property was marked with `[DetachProperty]` (typed) or an `@` prefix (dynamic) before sending.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
+    Projects, models, and version lifecycle
+  </Card>
+  <Card title="Find objects by property" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
+    Flatten, filter, and index recipes
+  </Card>
+  <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
+    Send and receive object graphs
+  </Card>
+</CardGroup>

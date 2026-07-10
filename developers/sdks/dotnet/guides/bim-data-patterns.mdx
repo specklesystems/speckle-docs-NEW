@@ -1,0 +1,122 @@
+---
+title: "BIM data patterns"
+description: "How connector-published BIM data is structured in Speckle Object Model v3 — DataObject, properties, and proxies"
+sidebarTitle: "BIM patterns"
+---
+
+## Goal
+
+Understand how walls, doors, rooms, and other BIM elements appear in SpeckleSharp so you can filter, extract, and report on connector-published data.
+
+## What you will learn
+
+How v3 stores BIM semantics in `DataObject.properties`, why there are no typed `Wall` classes, and where proxies fit in.
+
+## When to use this
+
+Read this before writing filters or CSV exports on data from **Revit, Rhino, ArchiCAD**, or other connectors. If you only need a working script, start with [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) and return here when property names are unclear.
+
+## Recommended approach
+
+1. Receive with `Receive2`
+2. Treat elements as **`DataObject`** — check **`properties`**, not `speckle_type`, for BIM meaning
+3. Use `Flatten()` for model-wide queries
+4. Resolve **proxies** when you need levels, groups, or instances — see [Working with Proxies](/developers/sdks/dotnet/guides/working-with-proxies)
+
+## Complete example
+
+```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
+using Speckle.Objects.Data;
+using Speckle.Sdk.Models;
+using Speckle.Sdk.Models.Extensions;
+
+// After Receive2 — connector data is usually DataObject
+var root = await SpeckleBootstrap.Operations.Receive2(/* ... */);
+
+foreach (var obj in root.Flatten().OfType<DataObject>())
+{
+    Console.WriteLine(obj.name); // "Basic Wall - 200mm"
+    Console.WriteLine(obj.speckle_type); // "Objects.Data.DataObject" — same for all BIM elements
+
+    if (obj.properties.TryGetValue("category", out var cat))
+        Console.WriteLine($"  category: {cat}");
+
+    // Nested Revit-style parameters
+    if (obj.properties["parameters"] is Dictionary<string, object?> paramGroups)
+    {
+        foreach (var (groupName, group) in paramGroups)
+            Console.WriteLine($"  parameter group: {groupName}");
+    }
+}
+
+// Good — filter by properties
+var walls = root.Flatten()
+    .OfType<DataObject>()
+    .Where(d => d.properties.GetValueOrDefault("category")?.ToString() == "Walls");
+
+// Avoid — speckle_type is not "Wall" or "Door" in v3
+// if (obj.speckle_type.Contains("Wall")) { ... }
+```
+
+## How it works
+
+### v3 object types
+
+In Object Model v3, connectors emit generic containers:
+
+| Type | Role |
+| ---- | ---- |
+| `DataObject` | BIM element with `name`, `properties`, `displayValue` |
+| `Collection` | Hierarchy (building → level → category) |
+| Geometry (`Point`, `Mesh`, …) | In `displayValue` or nested properties |
+| Proxies (`GroupProxy`, `LevelProxy`, …) | Organisation metadata at the root |
+
+BIM semantics live in **`properties`** — category, family, type, level, fire rating, Revit parameters, and custom fields.
+
+### Deep nesting
+
+Properties can nest several levels:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+// Direct property
+obj.properties["volume"]
+
+// Nested material data (shape varies by connector)
+// obj.properties["materials"]["Steel"]["area"]
+```
+
+### No typed BIM classes
+
+There is no `Wall` or `Column` class in SpeckleSharp for connector data. Use property checks:
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+if (obj.properties.GetValueOrDefault("category")?.ToString() == "Walls")
+    Console.WriteLine($"Wall: {obj.name}");
+```
+
+### Proxies and hierarchy
+
+Revit levels and groups often appear as **proxies** at the root, not as parent nodes in the tree. See [Working with Proxies](/developers/sdks/dotnet/guides/working-with-proxies) and [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data).
+
+## Common mistakes
+
+| Mistake | Fix |
+| ------- | --- |
+| Looking for `speckle_type == "Wall"` | Filter `properties["category"]` |
+| Expecting Revit parameter names in UI language | Inspect `properties` keys on a sample object |
+| Ignoring proxies for level-based reports | Index by `applicationId` and resolve proxies |
+| Using `obj["category"]` on all objects | Prefer `DataObject.properties` for connector data |
+
+## Next steps
+
+<CardGroup cols={3}>
+  <Card title="Find objects by property" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
+    Traversal and filter recipes
+  </Card>
+  <Card title="Working with Proxies" icon="link" href="/developers/sdks/dotnet/guides/working-with-proxies">
+    Levels, groups, and instances
+  </Card>
+  <Card title="Export model data to CSV" icon="file-csv" href="/developers/sdks/dotnet/guides/export-model-data-to-csv">
+    Door and room schedules
+  </Card>
+</CardGroup>
