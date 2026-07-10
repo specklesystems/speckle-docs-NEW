@@ -1,0 +1,157 @@
+---
+title: 'Lookup tables'
+sidebarTitle: 'Lookup tables'
+description: 'Import a list of codes and labels to reuse in calculated fields and validation.'
+tag: Beta
+---
+
+<Warning>
+  Lookup tables are in **Beta**. They only exist inside Intelligence dashboards. Speckle
+  does not save them back into your model.
+</Warning>
+
+A **lookup table** is a simple list you import from CSV or Excel — for example product
+codes next to clearer names, or allowed values for a check.
+
+The table itself does not appear as a chart on the canvas. Other tools use it:
+
+- [Calculated fields](/analytics/dashboards/calculated-fields) — especially **Map lookup**,
+  to turn a code on the model into a friendlier label
+- [Validation widgets](/analytics/dashboards/validation-widgets) — to check that a property
+  matches a value from your list
+
+In this section:
+
+- [Import a lookup table](#import-a-lookup-table)
+- [Who can use the table](#who-can-use-the-table)
+- [Use a table in calculated fields](#use-a-table-in-calculated-fields)
+- [Use a table in validation](#use-a-table-in-validation)
+- [Manage tables](#manage-tables)
+
+## Import a lookup table
+
+You can import from either place:
+
+- **Calculated Fields** → **Map lookup** — import while you create the field
+- **Lookup tables** in the left sidebar (table icon) — manage the library on its own
+
+You may only see **Lookup tables** in the sidebar if your workspace allows Model
+Validation access. The import flow inside **Map lookup** uses the same file steps.
+
+<Steps>
+  <Step title="Import a file">
+    Choose a `.csv`, `.xlsx`, or `.xls` file. For Excel, pick which worksheet to use if
+    the file has more than one. In the sidebar, start from **Import CSV or Excel**. In
+    **Map lookup**, import when no tables exist yet, or click **Import new table**.
+  </Step>
+  <Step title="Name it and choose where it is saved">
+    Give the table a clear name. Pick a **Category** (**Validation** or **Other** —
+    other categories may appear later). Pick **Dashboard**, **Project**, or
+    **Workspace** for who can reuse it. Save.
+  </Step>
+  <Step title="Check the rows">
+    From the **Lookup tables** sidebar, use **View table** to confirm the first row
+    became column headers and the rest became data rows. In **Map lookup**, the new
+    table is selected for you after import.
+  </Step>
+</Steps>
+
+Outcome: The list is ready to use in the calculated field, or later in validation
+rules.
+
+<Tip>
+  Put column names in the first row of your file (for example `Code` and `Label`). Keep
+  values as plain text that match what appears on the model.
+</Tip>
+
+## Who can use the table
+
+| Saved to      | Who can reuse it                     |
+| ------------- | ------------------------------------ |
+| **Dashboard** | Only this dashboard                  |
+| **Project**   | Other dashboards in the same project |
+| **Workspace** | Dashboards across the workspace      |
+
+Category is a label to help you organise tables. It does not change how calculated
+fields or validation use the data.
+
+## Use a table in calculated fields
+
+The usual path is a calculated field with type **Map lookup**. You can import the table
+while you set up the field — you do not have to open the **Lookup tables** sidebar
+first.
+
+1. Create a [calculated field](/analytics/dashboards/calculated-fields) and choose
+   **Map lookup**.
+2. Pick the model property that holds the code or short name.
+3. Import a CSV or Excel file from the dialog if you need a new table, or choose an
+   existing one. Use **Import new table** when tables are already listed.
+4. Pick the column to match against that property, and the column to show as the
+   result.
+5. Set a fallback for values that are not in the list, then save and use the field in
+   charts or filters.
+
+Use the **Lookup tables** sidebar when you want to view, rename, download, or delete
+tables, or import lists for validation without opening a calculated field.
+
+When you update the table later, fields that use it pick up the new rows the next time
+the dashboard loads the data.
+
+## Use a table in validation
+
+In Model Validation rules, some conditions can take their allowed values from a column
+in a lookup table instead of typing each value by hand. That keeps one shared list for
+many rules. See [Validation widgets](/analytics/dashboards/validation-widgets) and
+[Data Validation](/analytics/data-validation/overview).
+
+## Manage tables
+
+From the **Lookup tables** panel you can:
+
+- **Edit** — change the name, category, or where the table is saved
+- **View table** — browse columns and rows
+- **Download** — export the original CSV (or a CSV built from the table)
+- **Delete** — remove the table
+
+<Warning>
+  If you delete a table that a calculated field or validation rule still uses, that
+  field or rule may stop returning useful results until you point it at another table
+  or remove the reference.
+</Warning>
+
+Renaming a table does not break links. Speckle remembers the table by an internal id,
+not by the display name.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="I do not see Lookup tables in the sidebar">
+    The panel is only shown when your workspace permissions include Model Validation
+    access. Ask a workspace admin if you need it enabled.
+  </Accordion>
+  <Accordion title="Does importing a table change my model?">
+    No. The table lives in the dashboard library. It is not written back to Speckle or
+    your design tool.
+  </Accordion>
+  <Accordion title="What file layout works best?">
+    Use a single sheet (or CSV) with headers in the first row and one value per cell.
+    Speckle stores every cell as text.
+  </Accordion>
+  <Accordion title="When should I use a lookup table instead of typing values in Grouping?">
+    Use a lookup table when the list is long, shared across dashboards, or updated
+    often. Use **Grouping** → **Value groups** in
+    [Calculated fields](/analytics/dashboards/calculated-fields) when you only need a
+    few labels on one dashboard.
+  </Accordion>
+  <Accordion title="Can charts show the lookup table directly?">
+    No. Import the table, then create a calculated field (or validation rule) that uses
+    it. Charts and filters use that field or rule result.
+  </Accordion>
+</AccordionGroup>
+
+## See also
+
+- [Calculated fields](/analytics/dashboards/calculated-fields) — **Map lookup** and other field types
+- [Common workflows](/analytics/dashboards/common-workflows#turn-model-codes-into-clear-labels-for-charts) — Codes to clear labels end to end
+- [Validation widgets](/analytics/dashboards/validation-widgets) — Rules that can use your lists
+- [Intelligence Dashboards](/analytics/intelligence-dashboards) — Overview and widgets

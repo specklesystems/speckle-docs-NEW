@@ -1,0 +1,306 @@
+---
+title: 'Calculated fields'
+sidebarTitle: 'Calculated fields'
+description: 'Add your own values to dashboard charts and filters without changing the model.'
+tag: Beta
+---
+
+<Warning>
+  Calculated fields are in **Beta**. They only exist inside Intelligence dashboards.
+  Speckle does not save them back into your model. Treat results as something to check
+  carefully — some widgets do not yet handle every calculated field the same way. Prefer
+  them for exploration and drafts until you have validated the numbers for your
+  workflow.
+</Warning>
+
+Sometimes the value you need is not already on the model — for example area in a
+different unit, a simple “yes / no” label, or a custom group such as “small / medium /
+large”.
+
+**Calculated fields** let you create that value once, then use it in charts, tables,
+filters, and colour-by — the same way you pick Category or Level.
+
+In this section:
+
+- [Create a calculated field](#create-a-calculated-field)
+- [Who can use the field](#who-can-use-the-field)
+- [Choose what the field should do](#choose-what-the-field-should-do)
+- [Use the field in your dashboard](#use-the-field-in-your-dashboard)
+- [Build one field on top of another](#build-one-field-on-top-of-another)
+- [Things to watch out for](#things-to-watch-out-for)
+
+## Create a calculated field
+
+Open a dashboard in **edit** mode. In the left sidebar, open **Calculated Fields**
+(calculator icon).
+
+<Steps>
+  <Step title="Start a new field">
+    Click **New calculated field**. Give it a clear name (for example “Area in m²” or
+    “Fire door?”).
+  </Step>
+  <Step title="Choose where it is saved">
+    Pick **Dashboard**, **Project**, or **Workspace**. That controls who else can reuse
+    the field. See [Who can use the field](#who-can-use-the-field).
+  </Step>
+  <Step title="Choose what it should do">
+    Pick a type that matches your goal (maths, grouping, fill blanks, and so on), fill
+    in the options, then save. The dialog includes a short **How this works** note for
+    each type.
+  </Step>
+  <Step title="Make sure it is on this dashboard">
+    Fields saved with scope **Dashboard** are ready straight away. Fields saved to the
+    **project** or **workspace** sit in **Shared library** until you click **Use on
+    this dashboard**.
+  </Step>
+</Steps>
+
+Outcome: The new value is available to pick in widgets and filters, without republishing
+the model.
+
+<Tip>
+  Use a name you will recognise later. If you rename a field, charts and filters that
+  used the old name need to be pointed at the new name.
+</Tip>
+
+## Who can use the field
+
+When you save a field, you choose how widely it is shared:
+
+| Saved to      | Who can reuse it                     | On this dashboard                     |
+| ------------- | ------------------------------------ | ------------------------------------- |
+| **Dashboard** | Only this dashboard                  | Ready as soon as you save             |
+| **Project**   | Other dashboards in the same project | Click **Use on this dashboard** first |
+| **Workspace** | Dashboards across the workspace      | Click **Use on this dashboard** first |
+
+- **Remove from this dashboard** — stop using a shared field here; it stays in the library.
+- **Delete from library** — remove a shared field so others cannot use it either.
+- **Delete field** — remove a field that only exists on this dashboard.
+
+## Choose what the field should do
+
+You do not need to know formulas or spreadsheet functions. Pick the option that matches
+what you want the dashboard to show.
+
+| I want to…                                                    | Choose                          |
+| ------------------------------------------------------------- | ------------------------------- |
+| Do simple maths or compare two numbers                        | **Arithmetic**                  |
+| Get one total, average, or count for the whole set            | **Aggregate**                   |
+| Change units (for example feet to metres)                     | **Unit conversion**             |
+| Put numbers into labelled ranges (small / medium / large)     | **Grouping** → **Range groups** |
+| Put text values into custom groups                            | **Grouping** → **Value groups** |
+| Fill in a blank when a property is missing                    | **Null fallback**               |
+| Swap a code or name for a friendlier label from a list        | **Map lookup**                  |
+| Mark each element as pass or fail with my own labels          | **Logical**                     |
+| Try several properties and use the first one that has a value | **Coalesce**                    |
+
+These names match the tabs in the editor.
+
+### Arithmetic
+
+Add, subtract, multiply, or divide values from the model — for example combine two
+areas, or check whether one number is larger than another.
+
+You write a short formula with letters such as `a` and `b`, then tell Speckle which
+model property each letter means. If a value is missing, the result is blank.
+
+### Aggregate
+
+Get one figure for the whole data set — for example a total area or an average height —
+not a different number on every element.
+
+Choose **All data** for a fixed total, or **Current view** if the number should follow
+dashboard filters. That figure is useful when you later divide each element’s value by
+the total (for example to show a share of the whole). For a full walkthrough, see
+[Show each element's share of the whole](/analytics/dashboards/common-workflows#show-each-elements-share-of-the-whole).
+
+### Unit conversion
+
+Show a number in a different unit — for example feet to metres, or square feet to
+square metres.
+
+Pick the property, then choose a ready-made length or area conversion, or enter your
+own multiplier. The unit label is for display only.
+
+### Grouping
+
+Inside **Grouping**, choose **Range groups** or **Value groups**.
+
+Use **Range groups** when you have a number and want labels such as “under 10”, “10 to
+50”, and “over 50”. Use **Value groups** when you have text (for example type names)
+and want to roll several values into one label, such as “external walls”. Anything
+outside your groups gets the fallback label you set.
+
+### Null fallback
+
+Use this when a property is sometimes blank and you still want a usable value in charts
+and filters — for example show “Not set” when fire rating is missing.
+
+Keep the property when it has a value. When it is empty or missing, show the
+replacement you choose.
+
+### Map lookup
+
+Turn a code or short name on the model into a clearer label using a
+[lookup table](/analytics/dashboards/lookup-tables). Pick the model property, the table,
+the column to match, and the column to show. Unmatched values use your fallback.
+
+You can import a CSV or Excel file from this dialog (**Import new table** if tables
+already exist), or manage tables from **Lookup tables** in the sidebar.
+
+### Logical
+
+Label each element with your own words — for example “Compliant” / “Needs review” —
+based on rules you set (the same kind of conditions you use in
+[filters](/analytics/dashboards/filters)).
+
+The element gets the pass label only when **every** condition is met. Otherwise it gets
+the fail label. For full rulesets and detailed results, use
+[Validation widgets](/analytics/dashboards/validation-widgets) instead.
+
+### Coalesce
+
+Use this when the same idea might live in different properties on different elements —
+for example one model stores area under one name, another under a different name.
+
+List the properties in order. Speckle uses the first one that has a value.
+
+## Use the field in your dashboard
+
+Once the field is on this dashboard, treat it like any other property:
+
+- Pick it when you set up a chart or table (what to total, what to group by, and so on)
+- Use it in filters
+- Use it to colour the model
+
+Nothing is written back to Revit, Rhino, or the Speckle model. The value only exists
+while you work in the dashboard.
+
+## Build one field on top of another
+
+You can create a second calculated field that uses the first one — for example convert
+units first, then put the result into ranges.
+
+If two fields depend on each other in a loop, Speckle will not let you save that setup.
+
+<Note>
+  An **Aggregate** field is one shared number for the whole data set. If you group a
+  chart by that field, you usually get a single group — that is expected.
+</Note>
+
+## Things to watch out for
+
+Calculated fields are still being exercised against every widget type. A field can look
+fine in a table and look wrong in another widget. When something seems off, check the
+combination below before trusting the number.
+
+### Ratios and totals can “count twice”
+
+Some widgets (including **Ratio Value** and **Ratio Value by Property**) work by adding
+up a number **once per element**, then dividing.
+
+An **Aggregate** calculated field already is a total — and that same total is written
+onto every element. If a ratio widget adds it up per element, the result can be far too
+large (roughly the real total multiplied by how many elements you have).
+
+Safer patterns today:
+
+- For “share of the whole”, use **Aggregate** + **Arithmetic** as in
+  [Show each element's share of the whole](/analytics/dashboards/common-workflows#show-each-elements-share-of-the-whole)
+  — not an Aggregate field inside a Ratio widget.
+- For a simple ratio of two model properties, use the Ratio widgets with the **original**
+  model properties (or a **Unit conversion** / per-element **Arithmetic** field), not an
+  **Aggregate** field as numerator or denominator.
+
+**Total property value** has special handling for Aggregate fields so it does not sum
+the same total once per element. Do not assume every other widget does the same yet.
+
+### Charts that group by an Aggregate field
+
+Because every element shares the same Aggregate value, a chart grouped by that field
+usually shows **one** bar or category. That is expected. Group by a normal property (or
+a **Grouping** / **Map lookup** field) instead.
+
+### Totals do not cross between models yet
+
+On a dashboard with more than one model (more than one Model Viewer / data source), an
+**Aggregate** is calculated **inside each model separately**. You cannot yet take a
+total from model A and use it in a calculated field on model B — for example “this
+room’s area as a share of the other building’s total”.
+
+For now, keep share-of-whole and similar maths within a single model. Cross-model
+totals need a different approach until this is supported.
+
+### Renames break existing widgets
+
+Charts, filters, and colour-by remember the field **name**. Rename the field, and those
+widgets need to be pointed at the new name again.
+
+### Not for writing back to the model
+
+Calculated fields are analysis-only. They do not appear as editable parameters in
+[Parameter Updater](/beta/parameter-updater).
+
+### Check the numbers
+
+Until the Beta settles, spot-check important dashboards: compare a calculated total to
+**Total property value** on the same property, or to a known figure from the model.
+If a ratio or total looks impossibly large or tiny, look for an Aggregate field used
+where a per-element value was expected.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Will this change my model in Speckle or in my design tool?">
+    No. Calculated fields only exist in the dashboard. They are not published back to
+    the model.
+  </Accordion>
+  <Accordion title="I created a field but I cannot find it in my chart">
+    Check that it appears under **On this dashboard**. If it is only in **Shared
+    library**, click **Use on this dashboard**. Then open the chart settings and pick
+    the field by the name you gave it.
+  </Accordion>
+  <Accordion title="My chart broke after I renamed a field">
+    Charts and filters remember the old name. Open the widget settings and choose the
+    field again under its new name.
+  </Accordion>
+  <Accordion title="Can I push these values back into Revit or Rhino?">
+    Not with calculated fields. They are for analysis in the dashboard. To edit real
+    model parameters and send changes back, see
+    [Parameter Updater](/beta/parameter-updater).
+  </Accordion>
+  <Accordion title="My Ratio widget number looks impossibly large">
+    Check whether a numerator or denominator is an **Aggregate** calculated field. Ratio
+    widgets often add values once per element, which can multiply an already-totalled
+    field. Use original model properties in the Ratio widget, or build the share with
+    **Aggregate** + **Arithmetic** instead — see
+    [Things to watch out for](#things-to-watch-out-for) and
+    [Show each element's share of the whole](/analytics/dashboards/common-workflows#show-each-elements-share-of-the-whole).
+  </Accordion>
+  <Accordion title="Can I use one model's total in a calculation on another model?">
+    Not yet. An **Aggregate** stays inside its own model / data source. You cannot use
+    model A’s total as the denominator (or any other input) for a calculated field on
+    model B. See
+    [Totals do not cross between models yet](#totals-do-not-cross-between-models-yet).
+  </Accordion>
+  <Accordion title="Isn't Logical the same as Property Checker?">
+    Kind of yes, and kind of no. Both let you set conditions on model properties. Use
+    **Logical** when you want a label you can put in a table, chart, filter, or another
+    calculated field — and when your two outcomes are not necessarily “Pass” and
+    “Fail” (for example “Compliant” / “Needs review”).
+
+    Use **Property Checker** (see
+    [Validation widgets](/analytics/dashboards/validation-widgets)) when you want a
+    dedicated validation view of the result. **Logical** does not explain *why* an
+    element got its label or break down how that outcome was reached; Property Checker
+    is built for that kind of review.
+  </Accordion>
+</AccordionGroup>
+
+## See also
+
+- [Filters](/analytics/dashboards/filters) — Focus the dashboard on part of the model
+- [Lookup tables](/analytics/dashboards/lookup-tables) — Import lists for **Map lookup** and validation
+- [Common workflows](/analytics/dashboards/common-workflows#show-each-elements-share-of-the-whole) — Share of the whole with Aggregate and Arithmetic
+- [Common workflows](/analytics/dashboards/common-workflows#turn-model-codes-into-clear-labels-for-charts) — Codes to clear labels with lookup tables and Map lookup
+- [Intelligence Dashboards](/analytics/intelligence-dashboards) — Overview and widgets
