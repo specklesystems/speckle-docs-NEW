@@ -27,6 +27,7 @@ In this section:
 - [Choose what the field should do](#choose-what-the-field-should-do)
 - [Use the field in your dashboard](#use-the-field-in-your-dashboard)
 - [Build one field on top of another](#build-one-field-on-top-of-another)
+- [Things to watch out for](#things-to-watch-out-for)
 
 ## Create a calculated field
 
@@ -186,6 +187,66 @@ If two fields depend on each other in a loop, Speckle will not let you save that
   An **Aggregate** field is one shared number for the whole data set. If you group a
   chart by that field, you usually get a single group — that is expected.
 </Note>
+
+## Things to watch out for
+
+Calculated fields are still being exercised against every widget type. A field can look
+fine in a table and look wrong in another widget. When something seems off, check the
+combination below before trusting the number.
+
+### Ratios and totals can “count twice”
+
+Some widgets (including **Ratio Value** and **Ratio Value by Property**) work by adding
+up a number **once per element**, then dividing.
+
+An **Aggregate** calculated field already is a total — and that same total is written
+onto every element. If a ratio widget adds it up per element, the result can be far too
+large (roughly the real total multiplied by how many elements you have).
+
+Safer patterns today:
+
+- For “share of the whole”, use **Aggregate** + **Arithmetic** as in
+  [Show each element's share of the whole](/analytics/dashboards/common-workflows#show-each-elements-share-of-the-whole)
+  — not an Aggregate field inside a Ratio widget.
+- For a simple ratio of two model properties, use the Ratio widgets with the **original**
+  model properties (or a **Unit conversion** / per-element **Arithmetic** field), not an
+  **Aggregate** field as numerator or denominator.
+
+**Total property value** has special handling for Aggregate fields so it does not sum
+the same total once per element. Do not assume every other widget does the same yet.
+
+### Charts that group by an Aggregate field
+
+Because every element shares the same Aggregate value, a chart grouped by that field
+usually shows **one** bar or category. That is expected. Group by a normal property (or
+a **Grouping** / **Map lookup** field) instead.
+
+### Totals do not cross between models yet
+
+On a dashboard with more than one model (more than one Model Viewer / data source), an
+**Aggregate** is calculated **inside each model separately**. You cannot yet take a
+total from model A and use it in a calculated field on model B — for example “this
+room’s area as a share of the other building’s total”.
+
+For now, keep share-of-whole and similar maths within a single model. Cross-model
+totals need a different approach until this is supported.
+
+### Renames break existing widgets
+
+Charts, filters, and colour-by remember the field **name**. Rename the field, and those
+widgets need to be pointed at the new name again.
+
+### Not for writing back to the model
+
+Calculated fields are analysis-only. They do not appear as editable parameters in
+[Parameter Updater](/beta/parameter-updater).
+
+### Check the numbers
+
+Until the Beta settles, spot-check important dashboards: compare a calculated total to
+**Total property value** on the same property, or to a known figure from the model.
+If a ratio or total looks impossibly large or tiny, look for an Aggregate field used
+where a per-element value was expected.
 
 ## FAQ
 
