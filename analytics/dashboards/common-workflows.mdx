@@ -47,6 +47,49 @@ widgets and checks-and-standards Data Validation.
 
 Outcome: Counts and breakdowns tied to the 3D model; filter state saved with the dashboard.
 
+## Show each element's share of the whole
+
+**When to use:** You already have a number on each element (for example area or length)
+and you want each one’s share of the project total — as a fraction or percentage — for
+tables, charts, or filters.
+
+This uses two [calculated fields](/analytics/dashboards/calculated-fields): an
+**Aggregate** for the total, then **Arithmetic** to divide each element’s value by that
+total.
+
+<Steps>
+  <Step title="Add a Model Viewer and load your model">
+    Drag **Model Viewer** onto the canvas and select the project and model. Apply any
+    page-level filters you want the “whole” to respect.
+  </Step>
+  <Step title="Create an Aggregate field for the total">
+    Open **Calculated Fields**, click **New calculated field**, and choose
+    **Aggregate**. Pick the number property (for example area), choose **Sum** (or
+    another operation), and set the population: **All data** for a fixed project total,
+    or **Current view** if the total should follow dashboard filters. Save and keep the
+    field on this dashboard.
+  </Step>
+  <Step title="Create an Arithmetic field for the share">
+    Create another calculated field and choose **Arithmetic**. Write a formula such as
+    `a / b` (or `(a / b) * 100` for a percentage). Bind `a` to the element property and
+    `b` to your Aggregate field. Save.
+  </Step>
+  <Step title="Show the share in a table or chart">
+    Add **Element table** or a chart widget and pick the Arithmetic field as a column
+    or value. You can also filter or colour by it.
+  </Step>
+</Steps>
+
+Outcome: Each element has a share of the chosen total, without changing the model. The
+Aggregate value is the same on every element — that is expected; the Arithmetic field
+is what varies per element.
+
+<Tip>
+  If areas are in the wrong unit first, add a **Unit conversion** field and use that as
+  the source for both the Aggregate and the Arithmetic bindings. See
+  [Calculated fields](/analytics/dashboards/calculated-fields).
+</Tip>
+
 ## Compare two versions of the same model
 
 **When to use:** You want to see what changed between two versions (e.g. before/after a design round).
@@ -152,6 +195,48 @@ or flag them (e.g. auditing families, pre-upgrade checks).
 </Steps>
 
 Outcome: List or count of models/elements using that family; path to validation if you want rules.
+
+## Turn model codes into clear labels for charts
+
+**When to use:** The model stores short codes (classification, type, zone, and similar),
+and you have a spreadsheet that maps each code to a clearer name. You want charts,
+filters, and colour-by in plain language — without changing the published model.
+
+This workflow uses [Lookup tables](/analytics/dashboards/lookup-tables) and a
+[Calculated fields](/analytics/dashboards/calculated-fields) **Map lookup**. If you only
+need maths, unit changes, or simple groups (and no spreadsheet), skip the table and
+create a calculated field of another type instead.
+
+<Steps>
+  <Step title="Add a Model Viewer and load your model">
+    Drag **Model Viewer** onto the canvas and select the project and model.
+  </Step>
+  <Step title="Create a Map lookup calculated field">
+    Open **Calculated Fields**, click **New calculated field**, and choose **Map
+    lookup**. Pick the model property that holds the code. Import your CSV or Excel
+    list from the dialog (**Import new table** if tables already exist), or choose a
+    table you already imported. Set the match column, the return column, and a
+    fallback for codes not in the list. Save the field and make sure it is on this
+    dashboard.
+  </Step>
+  <Step title="Chart or list by the new label">
+    Add **Count by property**, **Total value by property**, or **Element table**. In
+    the widget settings, pick your calculated field instead of the raw code property.
+  </Step>
+  <Step title="Filter or colour the model">
+    Use the calculated field in a filter, or colour the viewer by it, so stakeholders
+    see the friendly labels rather than the codes.
+  </Step>
+  <Step title="Optionally add more calculated fields">
+    Need areas in another unit first? Add a **Unit conversion** field, then build on
+    it. Need pass/fail-style labels for a table column? Add a **Logical** field. See
+    [Calculated fields](/analytics/dashboards/calculated-fields).
+  </Step>
+</Steps>
+
+Outcome: Charts and filters use clear labels from your list; the model itself is
+unchanged. Update the lookup table later when the list changes — fields that use it
+pick up the new rows when the dashboard reloads the data.
 
 ## Present a dashboard to a client
 
