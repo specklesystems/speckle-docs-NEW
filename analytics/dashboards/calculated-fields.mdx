@@ -178,56 +178,34 @@ List the properties in order. Speckle uses the first one that has a value.
 
 ## Dashboard constants
 
-A **Dashboard constant** is an Aggregate whose population is **Dashboard constant**. It
-is one number for the whole dashboard — not a value repeated on every object.
+A **Dashboard constant** is a special kind of [**Aggregate**](#aggregate): one total for
+the whole dashboard, not a value written onto every object. In the editor, set
+**Population** to **Dashboard constant**. The field shows a **constant** badge in the
+Calculated Fields list.
 
-Use it when you need a stable total that must not move with interactive filters, or when
-you want to combine totals from different models on the same dashboard.
-
-### When to use them
-
-- Fixed denominators while people filter charts (design load, site capacity, project-wide
-  area)
-- Intensity figures that mix two models — for example IT load per m² of IT room, desks
-  per floor area, or people per workplace — including odd comparison units where the two
-  sides come from different models
-
-### Cross-model ratios
-
-Ordinary **All data** / **Current view** aggregates stay inside each model’s objects.
-Dashboard constants are the supported way to build ratios across models:
-
-1. Load each model with its own Model Viewer (each viewer is a data source).
-2. Create one dashboard constant per side — for example **Rack IT load** (Sum) and
-   **IT room area** (Sum). Prefer properties that exist on only the intended model so
-   totals do not silently combine values from every loaded source.
-3. Divide them in a **Ratio Value** widget, or in an **Arithmetic** field whose inputs
-   are only other dashboard constants.
-
-{/* IMAGE: Ratio Value using two dashboard constants from different models */}
-
-If every input to an Arithmetic field is a dashboard constant, the result is also a
-dashboard constant (same filter-stable behaviour).
-
-For a short walkthrough, see
+Use it for totals that must stay put while people filter charts, or for X-per-Y figures
+that mix two models (for example IT load per m² of IT room). Create one constant per
+side, then divide them in **Ratio Value**, or in **Arithmetic** that only uses other
+constants. Walkthrough:
 [Show an X-per-Y number from two models](/analytics/dashboards/common-workflows#show-an-x-per-y-number-from-two-models).
 
-### Limits
+Constants are worked out when your models have loaded and the field is on this
+dashboard — not each time someone filters. Creating or editing a constant recalculates
+it automatically.
 
-- **Filter-immune.** Page and widget filters do not change a dashboard constant. Use
-  **Current view** when the total must follow what the user is looking at.
-- **Not a normal object property.** Constants are not stamped onto elements and do not
-  appear in the shared property library like per-object fields. Pick them from Calculated
-  Fields or from widget controls that accept constants (for example Ratio Value or Total
-  property value).
-- **No Current view dependencies.** A dashboard constant cannot depend on a calculated
-  field that uses **Current view**. Dependencies must be other constants or all-data
-  fields.
-- **Save to refresh.** After you create or edit constants, save the dashboard so scalar
-  values recompute for widgets and previews.
-- **Cross-source care.** A constant aggregates matching values across loaded data sources
-  unless each operand is isolated by property choice (or separate constants). Prefer
-  properties unique to the intended model.
+<Tip>
+  Use constants in **Ratio Value** or **Total property value**. They are not listed next
+  to Category or Level in the shared property library, and they are not for group-by,
+  colour-by, or element filters.
+</Tip>
+
+<Warning>
+  Constants ignore chart and page filters, cannot depend on **Current view** fields, and
+  add up matching properties across **all** loaded models. Pick a property that only
+  exists on the model you mean. For totals that follow filters, use Aggregate
+  **Current view**. For a different value on every element, use a per-element field type
+  instead.
+</Warning>
 
 ## Use the field in your dashboard
 
