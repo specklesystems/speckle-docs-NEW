@@ -25,6 +25,7 @@ In this section:
 - [Create a calculated field](#create-a-calculated-field)
 - [Who can use the field](#who-can-use-the-field)
 - [Choose what the field should do](#choose-what-the-field-should-do)
+- [Dashboard constants](#dashboard-constants)
 - [Use the field in your dashboard](#use-the-field-in-your-dashboard)
 - [Build one field on top of another](#build-one-field-on-top-of-another)
 - [Things to watch out for](#things-to-watch-out-for)
@@ -109,9 +110,19 @@ model property each letter means. If a value is missing, the result is blank.
 Get one figure for the whole data set — for example a total area or an average height —
 not a different number on every element.
 
-Choose **All data** for a fixed total, or **Current view** if the number should follow
-dashboard filters. That figure is useful when you later divide each element’s value by
-the total (for example to show a share of the whole). For a full walkthrough, see
+Choose a **Population**:
+
+| Population             | What you get                         | Filters change it? | Typical use                                                                                         |
+| ---------------------- | ------------------------------------ | ------------------ | --------------------------------------------------------------------------------------------------- |
+| **All data**           | Same total written onto every object | No                 | Share-of-whole maths with **Arithmetic** inside one model                                           |
+| **Current view**       | Total for the filtered set           | Yes                | Totals that follow page filters and slices                                                          |
+| **Dashboard constant** | One dashboard-level number           | No                 | Stable denominators; ratios across models — see [Dashboard constants](#dashboard-constants)         |
+
+**All data** and **Current view** stamp the result onto each object in that data source.
+**Dashboard constant** does not — it stores one scalar for the dashboard (shown with a
+**constant** badge in the Calculated Fields list).
+
+For share-of-whole inside one model, see
 [Show each element's share of the whole](/analytics/dashboards/common-workflows#show-each-elements-share-of-the-whole).
 
 ### Unit conversion
@@ -165,6 +176,37 @@ for example one model stores area under one name, another under a different name
 
 List the properties in order. Speckle uses the first one that has a value.
 
+## Dashboard constants
+
+A **Dashboard constant** is a special kind of [**Aggregate**](#aggregate): one total for
+the whole dashboard, not a value written onto every object. In the editor, set
+**Population** to **Dashboard constant**. The field shows a **constant** badge in the
+Calculated Fields list.
+
+Use it for totals that must stay put while people filter charts, or for X-per-Y figures
+that mix two models (for example IT load per m² of IT room). Create one constant per
+side, then divide them in **Ratio Value**, or in **Arithmetic** that only uses other
+constants. Walkthrough:
+[Show an X-per-Y number from two models](/analytics/dashboards/common-workflows#show-an-x-per-y-number-from-two-models).
+
+Constants are worked out when your models have loaded and the field is on this
+dashboard — not each time someone filters. Creating or editing a constant recalculates
+it automatically.
+
+<Tip>
+  Use constants in **Ratio Value** or **Total property value**. They are not listed next
+  to Category or Level in the shared property library, and they are not for group-by,
+  colour-by, or element filters.
+</Tip>
+
+<Warning>
+  Constants ignore chart and page filters, cannot depend on **Current view** fields, and
+  add up matching properties across **all** loaded models. Pick a property that only
+  exists on the model you mean. For totals that follow filters, use Aggregate
+  **Current view**. For a different value on every element, use a per-element field type
+  instead.
+</Warning>
+
 ## Use the field in your dashboard
 
 Once the field is on this dashboard, treat it like any other property:
@@ -172,6 +214,8 @@ Once the field is on this dashboard, treat it like any other property:
 - Pick it when you set up a chart or table (what to total, what to group by, and so on)
 - Use it in filters
 - Use it to colour the model
+
+**Dashboard constants** are the exception — see [Dashboard constants](#dashboard-constants).
 
 Nothing is written back to Revit, Rhino, or the Speckle model. The value only exists
 while you work in the dashboard.
@@ -199,37 +243,47 @@ combination below before trusting the number.
 Some widgets (including **Ratio Value** and **Ratio Value by Property**) work by adding
 up a number **once per element**, then dividing.
 
-An **Aggregate** calculated field already is a total — and that same total is written
-onto every element. If a ratio widget adds it up per element, the result can be far too
-large (roughly the real total multiplied by how many elements you have).
+An **All data** or **Current view** Aggregate already is a total — and that same total is
+written onto every element. If a ratio widget adds it up per element, the result can be
+far too large (roughly the real total multiplied by how many elements you have).
 
 Safer patterns today:
 
-- For “share of the whole”, use **Aggregate** + **Arithmetic** as in
+- For “share of the whole” **inside one model**, use **Aggregate** (**All data** or
+  **Current view**) + **Arithmetic** as in
   [Show each element's share of the whole](/analytics/dashboards/common-workflows#show-each-elements-share-of-the-whole)
-  — not an Aggregate field inside a Ratio widget.
-- For a simple ratio of two model properties, use the Ratio widgets with the **original**
-  model properties (or a **Unit conversion** / per-element **Arithmetic** field), not an
-  **Aggregate** field as numerator or denominator.
+  — not that Aggregate field inside a Ratio widget.
+- For a simple ratio of two **per-element** model properties, use the Ratio widgets with
+  the original model properties (or a **Unit conversion** / per-element **Arithmetic**
+  field).
+- For a ratio of two **dashboard-level** totals (including across models), use
+  **Dashboard constant** aggregates in the Ratio widget — constants are not stamped per
+  object, so they do not get multiplied by element count. See
+  [Dashboard constants](#dashboard-constants).
 
 **Total property value** has special handling for Aggregate fields so it does not sum
-the same total once per element. Do not assume every other widget does the same yet.
+the same total once per element. Do not assume every other widget does the same yet for
+**All data** / **Current view** aggregates.
 
 ### Charts that group by an Aggregate field
 
-Because every element shares the same Aggregate value, a chart grouped by that field
-usually shows **one** bar or category. That is expected. Group by a normal property (or
-a **Grouping** / **Map lookup** field) instead.
+Because every element shares the same **All data** or **Current view** Aggregate value,
+a chart grouped by that field usually shows **one** bar or category. That is expected.
+Group by a normal property (or a **Grouping** / **Map lookup** field) instead. Dashboard
+constants are not object properties, so they are not used as group-by fields in the same
+way.
 
-### Totals do not cross between models yet
+### Cross-model totals need dashboard constants
 
-On a dashboard with more than one model (more than one Model Viewer / data source), an
-**Aggregate** is calculated **inside each model separately**. You cannot yet take a
-total from model A and use it in a calculated field on model B — for example “this
-room’s area as a share of the other building’s total”.
+On a dashboard with more than one model (more than one Model Viewer / data source),
+**All data** and **Current view** aggregates are calculated **inside each model
+separately**. You cannot take a stamped total from model A and use it as a per-object
+input on model B.
 
-For now, keep share-of-whole and similar maths within a single model. Cross-model
-totals need a different approach until this is supported.
+To combine totals across models — for example rack IT load from one model and IT room
+area from another — create **Dashboard constant** fields for each side and divide them
+in Ratio Value or in Arithmetic that only references those constants. See
+[Dashboard constants](#dashboard-constants).
 
 ### Renames break existing widgets
 
@@ -270,18 +324,25 @@ where a per-element value was expected.
     [Parameter Updater](/beta/parameter-updater).
   </Accordion>
   <Accordion title="My Ratio widget number looks impossibly large">
-    Check whether a numerator or denominator is an **Aggregate** calculated field. Ratio
-    widgets often add values once per element, which can multiply an already-totalled
-    field. Use original model properties in the Ratio widget, or build the share with
-    **Aggregate** + **Arithmetic** instead — see
+    Check whether a numerator or denominator is an **All data** or **Current view**
+    Aggregate. Ratio widgets often add values once per element, which can multiply an
+    already-totalled field. Use original model properties, build the share with
+    **Aggregate** + **Arithmetic**, or use **Dashboard constant** aggregates when both
+    sides are dashboard-level totals — see
     [Things to watch out for](#things-to-watch-out-for) and
-    [Show each element's share of the whole](/analytics/dashboards/common-workflows#show-each-elements-share-of-the-whole).
+    [Dashboard constants](#dashboard-constants).
   </Accordion>
-  <Accordion title="Can I use one model's total in a calculation on another model?">
-    Not yet. An **Aggregate** stays inside its own model / data source. You cannot use
-    model A’s total as the denominator (or any other input) for a calculated field on
-    model B. See
-    [Totals do not cross between models yet](#totals-do-not-cross-between-models-yet).
+  <Accordion title="Can I use one model's total with another model's total?">
+    Yes, with **Dashboard constants**. Create a constant for each model’s total, then
+    divide them in **Ratio Value** or in Arithmetic that only references those
+    constants. Ordinary **All data** / **Current view** aggregates still stay inside
+    each model’s objects — see
+    [Dashboard constants](#dashboard-constants).
+  </Accordion>
+  <Accordion title="Why does my dashboard constant ignore filters?">
+    That is intentional. Dashboard constants are filter-immune so denominators stay
+    fixed while people explore. Use Aggregate with **Current view** when the total
+    should follow filters.
   </Accordion>
   <Accordion title="Isn't Logical the same as Property Checker?">
     Kind of yes, and kind of no. Both let you set conditions on model properties. Use
@@ -302,5 +363,6 @@ where a per-element value was expected.
 - [Filters](/analytics/dashboards/filters) — Focus the dashboard on part of the model
 - [Lookup tables](/analytics/dashboards/lookup-tables) — Import lists for **Map lookup** and validation
 - [Common workflows](/analytics/dashboards/common-workflows#show-each-elements-share-of-the-whole) — Share of the whole with Aggregate and Arithmetic
+- [Common workflows](/analytics/dashboards/common-workflows#show-an-x-per-y-number-from-two-models) — An X-per-Y number from two models
 - [Common workflows](/analytics/dashboards/common-workflows#turn-model-codes-into-clear-labels-for-charts) — Codes to clear labels with lookup tables and Map lookup
 - [Intelligence Dashboards](/analytics/intelligence-dashboards) — Overview and widgets

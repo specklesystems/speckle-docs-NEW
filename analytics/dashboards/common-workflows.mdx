@@ -85,12 +85,45 @@ Aggregate value is the same on every element — that is expected; the Arithmeti
 is what varies per element.
 
 <Tip>
-  Prefer this Aggregate + Arithmetic pattern for shares. Putting an Aggregate field
-  into a **Ratio** widget can inflate the number — see
+  Prefer this Aggregate + Arithmetic pattern for shares. Putting an **All data** or
+  **Current view** Aggregate field into a **Ratio** widget can inflate the number — see
   [Things to watch out for](/analytics/dashboards/calculated-fields#things-to-watch-out-for).
-  If areas are in the wrong unit first, add a **Unit conversion** field and use that as
-  the source for both the Aggregate and the Arithmetic bindings.
+  For “X per Y” intensity figures from two models (for example power load per m² of room), use
+  [Dashboard constants](/analytics/dashboards/calculated-fields#dashboard-constants)
+  instead. If areas are in the wrong unit first, add a **Unit conversion** field and use
+  that as the source for both the Aggregate and the Arithmetic bindings.
 </Tip>
+
+## Show an X-per-Y number from two models
+
+**When to use:** You want one intensity figure that mixes two models — for example power
+load per square metre of IT room, desks per floor area, or people per workplace — and
+you want that figure to stay put when someone clicks filters on the charts.
+
+This uses [dashboard constants](/analytics/dashboards/calculated-fields#dashboard-constants)
+in **Calculated Fields** (Aggregate → **Population** → **Dashboard constant**).
+
+<Steps>
+  <Step title="Load both models">
+    Add a Model Viewer for each model so both appear on the dashboard — for example an
+    equipment or rack model and a rooms or architecture model.
+  </Step>
+  <Step title="Create one constant for each side of the comparison">
+    Open **Calculated Fields**, create an **Aggregate** field, and set **Population** to
+    **Dashboard constant**. Example: Sum of rack IT load from one model, and Sum of IT
+    room area from the other. Pick a property that belongs to the model you mean, so the
+    other model does not get mixed in by accident.
+  </Step>
+  <Step title="Show the comparison">
+    Add a **Ratio Value** widget and pick those two constants as the two sides of the
+    ratio (load ÷ area). Or create an **Arithmetic** field that only uses those
+    constants (for example `a / b`).
+  </Step>
+</Steps>
+
+Outcome: One clear intensity figure such as load per m². It does not jump around when
+people filter the dashboard. For limits and safer Ratio patterns, see
+[Dashboard constants](/analytics/dashboards/calculated-fields#dashboard-constants).
 
 ## Compare two versions of the same model
 
@@ -297,6 +330,7 @@ Outcome: A shareable or embeddable read-only dashboard with a clear layout and t
 
 - [Filters](/analytics/dashboards/filters) — Filter levels, operators, and colorizing the model
 - [Calculated fields](/analytics/dashboards/calculated-fields) — Add your own values for charts, filters, and colour-by
+- [Calculated fields — Dashboard constants](/analytics/dashboards/calculated-fields#dashboard-constants) — Stable totals and X-per-Y numbers from two models
 - [Lookup tables](/analytics/dashboards/lookup-tables) — Import lists for Map lookup and validation
 - [Layout and sharing](/analytics/dashboards/layout-and-sharing) — Resize, themes, sharing, and embedding
 - [Validation Widgets in Dashboards](/analytics/dashboards/validation-widgets) — Sub-guide for dashboard-based validation widget workflows
