@@ -76,7 +76,7 @@ Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/doc
 - **Broken links** — `pnpm check-links` (anchors + redirects + Snippet links; full site; **blocking**)
 - **Accessibility** — `pnpm check:a11y` (`mint a11y`; full site; report-only)
 
-After merging Phase 2b, require the blocking jobs on `main`:
+Require the blocking jobs on `main`:
 
 ```bash
 bash scripts/enable-required-pr-checks.sh
@@ -118,7 +118,7 @@ pnpm format
 pnpm lint:md:fix
 ```
 
-**Phase 2c:** drop `continue-on-error` on Accessibility and require that job when ready.
+Accessibility still uses `continue-on-error` in CI. Drop that and require the job in branch protection when ready to gate on a11y.
 
 ### Generating universal-ai-config instructions
 
