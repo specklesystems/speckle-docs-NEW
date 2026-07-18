@@ -30,8 +30,7 @@ ServerTransport(
 )
 ```
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="stream_id" type="str" required>
   Project ID
 </ResponseField>
@@ -78,12 +77,12 @@ obj = operations.receive(object_id, remote_transport=transport)
 
 ### Authentication Options
 
-**Using Client (Recommended):**
+Using Client (Recommended):
 ```python
 transport = ServerTransport(stream_id="project_id", client=client)
 ```
 
-**Using Token:**
+Using Token:
 ```python
 transport = ServerTransport(
     stream_id="project_id",
@@ -92,13 +91,14 @@ transport = ServerTransport(
 )
 ```
 
-**Using Account:**
+Using Account:
 ```python
 from specklepy.api.credentials import get_default_account
 
 account = get_default_account()
 transport = ServerTransport(stream_id="project_id", account=account)
 ```
+
 ## MemoryTransport
 
 Stores objects in memory. Useful for testing and temporary operations.
@@ -109,7 +109,7 @@ from specklepy.transports.memory import MemoryTransport
 transport = MemoryTransport()
 ```
 
-**Properties:**
+Properties:
 - `objects` (Dict[str, str]) - Dictionary of stored objects
 - `saved_object_count` (int) - Number of objects saved
 
@@ -129,8 +129,7 @@ transport = SQLiteTransport(
 )
 ```
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="base_path" type="str" default="None">
   Custom directory for database
 </ResponseField>
@@ -147,15 +146,16 @@ transport = SQLiteTransport(
   Batch size in MB
 </ResponseField>
 
-**Database location:**
+Database location:
 - Windows: `%APPDATA%\{app_name}\{scope}.db`
 - macOS: `~/Library/Application Support/{app_name}/{scope}.db`
 - Linux: `~/.config/{app_name}/{scope}.db`
 
-**Use cases:**
+Use cases:
 - Local caching of server data
 - Offline workflows
 - Persistent local storage
+
 ## Multiple Transports
 
 Send to multiple locations simultaneously:
@@ -177,6 +177,7 @@ obj = operations.receive(
     local_transport=local
 )
 ```
+
 ## Custom Transports
 
 Create custom transports by extending `AbstractTransport`:
@@ -195,13 +196,15 @@ class CustomTransport(AbstractTransport):
 
     # Implement other required methods...
 ```
+
 ## Comparison
 
-| Transport | Persistence | Network | Primary Use |
-|-----------|-------------|---------|-------------|
-| ServerTransport | Server | Required | Production |
-| MemoryTransport | None | No | Testing |
-| SQLiteTransport | Local disk | No | Caching, offline |
+| Transport       | Persistence | Network  | Primary Use      |
+| --------------- | ----------- | -------- | ---------------- |
+| ServerTransport | Server      | Required | Production       |
+| MemoryTransport | None        | No       | Testing          |
+| SQLiteTransport | Local disk  | No       | Caching, offline |
+
 ## Related
 
 <CardGroup cols={2}>

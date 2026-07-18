@@ -20,9 +20,9 @@ The Speckle Grasshopper connector (Publish, Load, passthrough nodes) is the righ
 
 Use connector nodes for transport. Use the SDK for construction, enrichment, and analysis. The SDK does **not** replace Publish and Load — it complements them.
 
-| | Grasshopper Speckle components | Speckle.Sdk in a C# Script |
-| --- | --- | --- |
-| Role | **Move** data | **Construct, enrich, analyse** data |
+|          | Grasshopper Speckle components                 | Speckle.Sdk in a C# Script                                             |
+| -------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
+| Role     | **Move** data                                  | **Construct, enrich, analyse** data                                    |
 | Examples | Publish, Load, passthrough params, Deconstruct | `DataObject` + derived `properties`, `Collection` hierarchy, `Flatten` |
 
 ## When connector nodes are enough
@@ -36,11 +36,11 @@ Developer Nodes     →  SDK (this guide)  →  Publish / Load
 inspect             construct, enrich     exchange
 ```
 
-| Layer | Tool | Role |
-| --- | --- | --- |
-| **Inspect** | [Developer Nodes](/connectors/grasshopper/grasshopper-developer) — Deconstruct | See what is on a wire; one object at a time |
-| **Construct** | **Speckle.Sdk in C# Script** — **this guide** | Build graphs, computed metadata, hierarchy, traverse at scale |
-| **Exchange** | Publish / Load | Move data to and from Speckle — [Grasshopper connector](/connectors/grasshopper/grasshopper); not taught in the main arc |
+| Layer         | Tool                                                                           | Role                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| **Inspect**   | [Developer Nodes](/connectors/grasshopper/grasshopper-developer) — Deconstruct | See what is on a wire; one object at a time                                                                              |
+| **Construct** | **Speckle.Sdk in C# Script** — **this guide**                                  | Build graphs, computed metadata, hierarchy, traverse at scale                                                            |
+| **Exchange**  | Publish / Load                                                                 | Move data to and from Speckle — [Grasshopper connector](/connectors/grasshopper/grasshopper); not taught in the main arc |
 
 ```mermaid
 flowchart LR
@@ -92,14 +92,14 @@ The same workflow applies to room footprints (`floorArea`, `occupancy`, `carbonE
 
 Add a C# Script to your canvas and declare these inputs and outputs. Geometry comes from Grasshopper; **Speckle-facing metadata is computed in the script**, not wired in as static lists.
 
-| In / out | Type | Role |
-| --- | --- | --- |
-| `pts` | `List<Point3d>` | Pier or footing locations |
-| `gridLines` | `List<Line>` | Closest-line index for `nearestGridLine` |
-| `capacity` | `double` | Denominator for `utilization` |
-| `elementCount` | `int` | Count after `Flatten` |
-| `summary` | `string` | Report of computed fields |
-| `status` | `string` | Validation message |
+| In / out       | Type            | Role                                     |
+| -------------- | --------------- | ---------------------------------------- |
+| `pts`          | `List<Point3d>` | Pier or footing locations                |
+| `gridLines`    | `List<Line>`    | Closest-line index for `nearestGridLine` |
+| `capacity`     | `double`        | Denominator for `utilization`            |
+| `elementCount` | `int`           | Count after `Flatten`                    |
+| `summary`      | `string`        | Report of computed fields                |
+| `status`       | `string`        | Validation message                       |
 
 Do not add `category` or `loads` as dumb inputs — those values are **derived** in code.
 
@@ -148,13 +148,13 @@ On large lists, cache the `summary` string in a script field and only rebuild it
 
 **Worked example:** build a publish-ready structural data model from pier locations and grid lines. Inputs are geometry only; every Speckle property below is **computed**.
 
-| Computed property | Derivation |
-| --- | --- |
-| `distanceFromOrigin` | `pt.DistanceTo(origin)` |
-| `quadrant` | Sign of X and Y relative to origin |
-| `bearing` | `Atan2` converted to degrees |
-| `utilization` | Simplified demand / `capacity` (replace with upstream analysis when available) |
-| `nearestGridLine` | Index of closest line in `gridLines` |
+| Computed property    | Derivation                                                                     |
+| -------------------- | ------------------------------------------------------------------------------ |
+| `distanceFromOrigin` | `pt.DistanceTo(origin)`                                                        |
+| `quadrant`           | Sign of X and Y relative to origin                                             |
+| `bearing`            | `Atan2` converted to degrees                                                   |
+| `utilization`        | Simplified demand / `capacity` (replace with upstream analysis when available) |
+| `nearestGridLine`    | Index of closest line in `gridLines`                                           |
 
 ### Complete example
 
@@ -365,14 +365,14 @@ Production connector code lives in [speckle-sharp-connectors](https://github.com
 
 ## Common pitfalls
 
-| Pitfall | Fix |
-| --- | --- |
+| Pitfall                                         | Fix                                                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | Rebuilding the graph with nodes after scripting | Main arc ends at inspect; use Publish on existing wires or [Appendix A](#a-publish-the-same-graph-from-code) |
-| Static sliders instead of computed properties | Derive metadata in code — that is the point of this guide |
-| `properties` on wrong layer | Use `DataObject.properties` for BIM-like fields |
-| Treating SDK as a Publish replacement | Transport = connector or appendix |
-| Deconstruct vs `Flatten` | Deconstruct = one wire; SDK = whole graph |
-| v2 `Speckle.Core` | v3 only — `Speckle.Sdk` + `Speckle.Objects` |
+| Static sliders instead of computed properties   | Derive metadata in code — that is the point of this guide                                                    |
+| `properties` on wrong layer                     | Use `DataObject.properties` for BIM-like fields                                                              |
+| Treating SDK as a Publish replacement           | Transport = connector or appendix                                                                            |
+| Deconstruct vs `Flatten`                        | Deconstruct = one wire; SDK = whole graph                                                                    |
+| v2 `Speckle.Core`                               | v3 only — `Speckle.Sdk` + `Speckle.Objects`                                                                  |
 
 ## Next Steps
 

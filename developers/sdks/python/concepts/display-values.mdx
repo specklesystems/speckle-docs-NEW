@@ -50,7 +50,7 @@ wall = DataObject(
 operations.send(wall, [transport])  # Visible and selectable!
 ```
 
-**Key principles:**
+Key principles:
 - Display values are **meshes** (triangulated geometry)
 - They're **viewer-ready** (no computation needed)
 - **Geometry primitives alone are NOT visible** (must be in displayValue)
@@ -77,7 +77,7 @@ revit_wall = DataObject(
 )
 ```
 
-**What happens:**
+What happens:
 - Connector reads native geometry (Revit solid, Rhino NURBS, etc.)
 - Converts to triangulated mesh(es)
 - Attaches as `displayValue` property
@@ -103,8 +103,7 @@ if hasattr(wall, "displayValue"):
 
 ### 3. Interoperability Achieved
 
-**Different sources, same viewer:**
-
+Different sources, same viewer:
 ```python
 # From Revit
 revit_wall.displayValue = [mesh_from_revit_solid]
@@ -142,7 +141,7 @@ complex_object = DataObject(
 )
 ```
 
-**Why multiple meshes:**
+Why multiple meshes:
 - Different materials per layer
 - Performance optimization (LOD levels)
 - Separate components for complex objects
@@ -164,7 +163,7 @@ display_mesh = Mesh(
 )
 ```
 
-**Mesh capabilities:**
+Mesh capabilities:
 - Triangulated or quad faces
 - Vertex colors for material visualization
 - Texture coordinates for mapped materials
@@ -183,18 +182,18 @@ rhino_brep.encodedValue = brep_native_data  # Rhino-specific (lossless)
 rhino_brep.displayValue = [mesh]  # Universal (viewer-ready)
 ```
 
-**Why both:**
+Why both:
 - **Display value** - Universal visualization (all viewers)
 - **Native geometry** - Lossless round-trip (same app)
 
 ### When to Use Each
 
-| Use Case | Display Value | Native Geometry |
-|----------|---------------|-----------------|
-| **3D Viewer** | ✅ Always used | ❌ Not used |
-| **Cross-application** | ✅ Works everywhere | ❌ App-specific |
-| **Round-trip** | ⚠️ Lossy (tessellated) | ✅ Lossless |
-| **Required** | ✅ For visibility | ❌ Optional |
+| Use Case              | Display Value          | Native Geometry |
+| --------------------- | ---------------------- | --------------- |
+| **3D Viewer**         | ✅ Always used         | ❌ Not used     |
+| **Cross-application** | ✅ Works everywhere    | ❌ App-specific |
+| **Round-trip**        | ⚠️ Lossy (tessellated) | ✅ Lossless     |
+| **Required**          | ✅ For visibility      | ❌ Optional     |
 
 ## Display Values for Interoperability
 
@@ -213,7 +212,7 @@ selectable = [obj for obj in all_objects if is_viewer_selectable(obj)]
 print(f"Found {len(selectable)} objects visible in viewer")
 ```
 
-**Viewer interaction:**
+Viewer interaction:
 - Click to select → queries object with `displayValue`
 - Hover for info → shows object name and properties
 - Filter/isolate → based on objects with `displayValue`
@@ -238,7 +237,7 @@ wall = DataObject(
 )
 ```
 
-**Pattern:**
+Pattern:
 - **Containers** (levels, groups, collections) → No `displayValue`
 - **Elements** (walls, columns, furniture) → Has `displayValue`
 
@@ -248,8 +247,7 @@ wall = DataObject(
 **Key Principle:** Objects with `displayValue` typically don't have child elements that also have `displayValue`. Display values mark **leaf nodes** in the object graph - the atomic, indivisible elements that appear in the viewer.
 </Info>
 
-**Why this matters:**
-
+Why this matters:
 ```python
 # Typical structure - displayValue at leaves only
 building = Base(
@@ -279,8 +277,7 @@ wall_1 = DataObject(
 )
 ```
 
-**Exceptions are rare:**
-
+Exceptions are rare:
 ```python
 # Unusual but possible - nested displayValues
 assembly = DataObject(
@@ -295,7 +292,7 @@ assembly = DataObject(
 # This creates multiple selection levels in viewer (uncommon)
 ```
 
-**Design implications:**
+Design implications:
 - **Query optimization** - Find all viewer objects by looking for `displayValue`, stop traversing deeper
 - **Viewer selection** - Click selects the object with `displayValue`, not its parent
 - **Performance** - Limits recursion depth when rendering
@@ -484,7 +481,7 @@ object_id = operations.send(wall, [transport])
 # {"name": "Complex Wall", "displayValue": "hash-ref"}
 ```
 
-**Automatic optimization:**
+Automatic optimization:
 - SDK detects large `displayValue` meshes
 - Stores them separately in transport
 - Main object stays lightweight
@@ -610,7 +607,7 @@ beam.renderMaterial = steel_material  # Single material for all display meshes
 ```
 
 <Info>
-**RenderMaterial Properties:**
+RenderMaterial Properties:
 - `diffuse` - Base color (ARGB integer format: 0xAARRGGBB)
 - `metalness` - How metallic the surface appears (0.0-1.0)
 - `roughness` - Surface roughness for reflections (0.0-1.0)
@@ -646,8 +643,7 @@ root.colorProxies = [color_proxy]
 ```
 
 <Info>
-**ColorProxy and Viewer "Shaded" Mode**
-
+ColorProxy and Viewer "Shaded" Mode:
 ColorProxies enable the **"Shaded" view mode** in the Speckle viewer, which provides an alternative presentation of your model:
 
 - **Default rendering** - Shows objects with their native materials, textures, and per-vertex colors (the "raw" object appearance)
@@ -661,12 +657,12 @@ Think of it as switching between "what it looks like" and "how it's organized."
 </Info>
 
 <Note>
-**When consuming data from connectors:**
+When consuming data from connectors:
 - Connectors (Revit, Rhino, etc.) typically use proxies to organize materials
 - The viewer resolves these proxies to apply materials to objects
 - See [Proxification](/developers/sdks/python/concepts/proxification) for details on how proxies work
 
-**When creating data in Python:**
+When creating data in Python:
 - For simple cases, use per-vertex colors or direct `renderMaterial` property
 - Only use proxies if you need to organize many objects by shared materials
 </Note>
@@ -957,15 +953,14 @@ The viewer traverses the object graph looking for:
 
 If you send a Mesh directly, it has no `displayValue` property on itself, so the viewer doesn't know it's meant to be displayed.
 
-**Think of it this way:**
+Think of it this way:
 - **Mesh/Point/Line** = The paint/canvas (the geometry data)
 - **Object with displayValue** = The picture frame (makes it displayable)
 - **Viewer** = The art gallery (only hangs framed pictures)
 
 ## Summary
 
-**Display Values are the key to universal 3D interoperability:**
-
+Display Values are the key to universal 3D interoperability:
 - ✅ **Any connector can publish visible data** - Just attach tessellated meshes as displayValue
 - ✅ **Any viewer can render** - No knowledge of source application needed
 - ✅ **Objects are selectable and queryable** - Objects with `displayValue` are atomic viewer elements
@@ -978,8 +973,7 @@ Geometry primitives (Mesh, Point, Line) **MAY NOT BE VISIBLE** when sent directl
 Always wrap what you want shown in a DataObject or Base with a `displayValue` property. This is the most common mistake for new Speckle developers.
 </Warning>
 
-**Key Points:**
-
+Key Points:
 1. Display values are **tessellated meshes** attached to objects
 2. They enable **universal visualization** across all connectors
 3. Objects with `displayValue` are **selectable in the viewer**

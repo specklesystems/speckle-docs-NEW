@@ -18,8 +18,7 @@ Speckle objects form hierarchical graphs - tree-like structures where objects co
 - Filter data based on properties or structure
 - Build analysis pipelines that understand object hierarchies
 
-**Key Concepts:**
-
+Key Concepts:
 - **Graph Structure**: Objects are connected through properties (parent → child relationships)
 - **Traversal**: The process of visiting every object in a graph systematically
 - **Filtering**: Selecting only objects that match specific criteria during traversal
@@ -93,12 +92,12 @@ DataObject
 
 Different data structures require different traversal strategies:
 
-| Data Type | Structure | Best Strategy | Why |
-|-----------|-----------|---------------|-----|
-| **Custom Data** | Flat or simple | Direct access | Properties are known |
-| **Geometry Collections** | Medium depth | Type-based traversal | Find specific geometry types |
-| **BIM Models** | Deep hierarchy | Property/displayValue filtering | BIM semantics in properties |
-| **Large Models** | Very deep | elements[] traversal | Follows organizational structure |
+| Data Type                | Structure      | Best Strategy                   | Why                              |
+| ------------------------ | -------------- | ------------------------------- | -------------------------------- |
+| **Custom Data**          | Flat or simple | Direct access                   | Properties are known             |
+| **Geometry Collections** | Medium depth   | Type-based traversal            | Find specific geometry types     |
+| **BIM Models**           | Deep hierarchy | Property/displayValue filtering | BIM semantics in properties      |
+| **Large Models**         | Very deep      | elements[] traversal            | Follows organizational structure |
 
 ### Common Traversal Goals
 
@@ -118,19 +117,19 @@ Different data structures require different traversal strategies:
 
 **When to use:** Working with BIM data from connectors (Revit, Rhino, ArchiCAD, etc.).
 
-**How it works:**
+How it works:
 - Traverse recursively
 - Check if object has a `properties` dictionary
 - Filter based on property values (e.g., `category == "Walls"`)
 - Collect matching objects
 
-**Best for:**
+Best for:
 - v3 BIM objects (DataObject)
 - Finding objects by category, family, type
 - Filtering by quantities or metadata
 - Most common pattern for modern Speckle data
 
-**Example use cases:**
+Example use cases:
 - "Find all walls" → filter by `properties.category == "Walls"`
 - "Get steel beams" → filter by `properties.category == "Structural Framing"` AND `properties.material == "Steel"`
 - "Objects on Level 1" → filter by `properties.level == "Level 1"`
@@ -139,12 +138,12 @@ Different data structures require different traversal strategies:
 
 **When to use:** You only want atomic, viewer-selectable objects.
 
-**How it works:**
+How it works:
 - Traverse recursively
 - Collect only objects with a `displayValue` property
 - These are the objects that appear as selectable items in the viewer
 
-**Best for:**
+Best for:
 - Getting viewer-clickable objects
 - Counting actual BIM elements (not containers/groups)
 - Extracting geometry for visualization
@@ -160,13 +159,13 @@ Different data structures require different traversal strategies:
 The `elements` property is Speckle's standardized convention for organizing hierarchical data. See [The elements Convention](/developers/sdks/python/concepts/data-types#the-elements-convention) for a detailed explanation of this pattern.
 </Info>
 
-**How it works:**
+How it works:
 - Check if object has an `elements` property (list)
 - Recursively traverse only the elements array
 - Optionally filter during traversal
 - Ignores other properties
 
-**Best for:**
+Best for:
 - Collections and Groups
 - Organized BIM hierarchies (Level → Room → Elements)
 - When you only care about the logical organization, not nested geometry
@@ -177,13 +176,13 @@ The `elements` property is Speckle's standardized convention for organizing hier
 
 **When to use:** You need to visit EVERY object in the graph, regardless of type or depth.
 
-**How it works:**
+How it works:
 - Start at root object
 - Visit each property on the object
 - For each property that's a Base object, list, or dict, recurse into it
 - Continue until all branches are explored
 
-**Best for:**
+Best for:
 - Finding rare objects that could be anywhere
 - Building complete inventories
 - Ensuring nothing is missed
@@ -194,13 +193,13 @@ The `elements` property is Speckle's standardized convention for organizing hier
 
 **When to use:** Looking for geometry primitives (Mesh, Point, Line, etc.).
 
-**How it works:**
+How it works:
 - Traverse recursively
 - Check each object's `speckle_type` property
 - Collect only objects matching the target type
 - Continue traversing to find all instances
 
-**Best for:**
+Best for:
 - Finding geometry objects (Mesh, Line, Point, Arc, Circle, etc.)
 - Pure geometry workflows
 - Legacy v2 objects with typed BIM classes
@@ -357,13 +356,13 @@ print(f"Found {len(walls)} walls")
 
 **Purpose:** Search for objects based on their properties (the standard v3 pattern).
 
-**When to use:** 
+When to use:
 - Working with BIM data from any connector (Revit, Rhino, ArchiCAD, etc.)
 - Need to find objects by category, family, type, level, material
 - Filtering by quantities, parameters, or metadata
 - **This is the primary pattern for modern Speckle data**
 
-**How it works:**
+How it works:
 1. Recursively traverse all objects
 2. Check if object has `properties` dictionary
 3. Filter based on property values
@@ -371,19 +370,19 @@ print(f"Found {len(walls)} walls")
 
 **Purpose:** Find objects based on their properties dictionary values (v3 BIM pattern).
 
-**When to use:**
+When to use:
 - Working with v3 BIM data (DataObject)
 - Need to find objects by category ("Walls", "Columns", "Floors")
 - Filtering by BIM properties (loadBearing, fireRating, family, type)
 - Need to find objects with specific quantities or metadata
 
-**Advantages:**
+Advantages:
 - Works with v3 object model
 - Can filter on any property value
 - Can combine multiple property conditions
 - Reflects how BIM data is actually organized
 
-**How it works:**
+How it works:
 1. Traverse all objects
 2. Check if object is a DataObject
 3. Access the `properties` dictionary
@@ -441,12 +440,12 @@ print(f"Objects with volume: {len(all_with_volume)}")
 
 **Purpose:** Search for geometry primitives by `speckle_type`.
 
-**When to use:** 
+When to use:
 - Looking for geometry objects (Mesh, Point, Line, Arc, Circle, etc.)
 - Pure geometry workflows without BIM semantics
 - Need to find all instances of a specific geometry class
 
-**When NOT to use:**
+When NOT to use:
 - ❌ BIM data from connectors (use Pattern 1 - Find by Property instead)
 - ❌ Need to differentiate walls from columns (use properties)
 - ❌ Any data where semantics are in the properties dictionary
@@ -500,24 +499,24 @@ print(f"Found {len(points)} points, {len(meshes)} meshes, {len(lines)} lines")
 
 **Purpose:** Convert hierarchical object graphs into flat lists for easier processing.
 
-**When to use:**
+When to use:
 - Need to process all objects of a certain type
 - Want to use list operations (filter, map, sort)
 - Building dataframes or CSV exports
 - Running aggregate calculations (sum, average, count)
 
-**Advantages:**
+Advantages:
 - Easier to work with than nested structures
 - Can use standard Python list operations
 - Simple to convert to pandas DataFrame
 - Good for batch processing
 
-**Disadvantages:**
+Disadvantages:
 - Loses hierarchical relationships
 - Can be memory-intensive for large models
 - May include objects you don't need
 
-**How it works:**
+How it works:
 1. Start with empty results list
 2. Traverse entire object graph
 3. Collect objects matching criteria
@@ -582,8 +581,7 @@ meshes = flatten_geometry(obj, Mesh)
 points = flatten_geometry(obj, Point)
 ```
 
-**Alternative: Property-based flattening (most flexible)**
-
+Alternative: Property-based flattening (most flexible):
 ```python lines icon="python"
 def flatten_by_properties(root, **filters):
     """Build a flat list of DataObjects by category (for v3 BIM objects)."""
@@ -621,13 +619,13 @@ print(f"Found {len(all_walls)} walls, {len(all_columns)} columns")
 
 **Purpose:** Navigate object hierarchies by following the organizational structure defined by `elements[]` arrays.
 
-**When to use:**
+When to use:
 - Data is organized in Collections or Groups
 - Objects have a logical hierarchy (Building → Level → Room → Elements)
 - Want to respect the intentional organization
 - Need faster traversal by ignoring non-structural properties
 
-**How it works:**
+How it works:
 1. Check if object has `elements` property (list)
 2. Recursively traverse only through elements arrays
 3. Optionally filter during traversal
@@ -638,7 +636,7 @@ print(f"Found {len(all_walls)} walls, {len(all_columns)} columns")
 - **Group** objects organize related objects in `elements`
 - **Level** hierarchies nest objects in `elements`
 
-**Advantages:**
+Advantages:
 - Faster than full traversal
 - Follows logical organization
 - Respects data structure intent
@@ -696,7 +694,7 @@ print(f"Load bearing elements: {len(load_bearing)}")
 
 **Purpose:** Find only atomic, viewer-selectable objects by filtering for `displayValue` presence.
 
-**When to use:**
+When to use:
 - Need to count actual BIM elements (not containers or groups)
 - Want objects that appear as selectable items in the viewer
 - Building element lists for UI selection
@@ -712,7 +710,7 @@ print(f"Load bearing elements: {len(load_bearing)}")
 **Why displayValue matters:** Objects with a `displayValue` property represent atomic, selectable items in the Speckle viewer. Each object with `displayValue` can be clicked, selected, and queried independently in the 3D view. The `displayValue` typically contains a list of `Mesh` objects that define the visual representation.
 </Info>
 
-**How it works:**
+How it works:
 1. Traverse the entire graph
 2. Check if object has `displayValue` property
 3. Verify `displayValue` is not None
@@ -772,13 +770,13 @@ for atomic_obj in atomic_objects[:5]:  # First 5
 
 **Purpose:** Efficiently find atomic BIM objects by combining structural traversal with displayValue filtering.
 
-**When to use:**
+When to use:
 - Large BIM models where full traversal is slow
 - Data is organized in elements[] hierarchy
 - Only want viewer-selectable objects
 - Need to skip containers and organizational objects
 
-**Advantages:**
+Advantages:
 - Faster than full traversal (follows elements[] only)
 - More precise than elements[] alone (filters to atomic objects)
 - Gets you exactly what users see in the viewer
@@ -786,7 +784,7 @@ for atomic_obj in atomic_objects[:5]:  # First 5
 
 **Key Optimization:** Objects with `displayValue` are typically **leaf nodes** - they don't have children with displayValues. This means you can stop traversing deeper once you find a displayValue, making traversal much more efficient.
 
-**Strategy:**
+Strategy:
 1. Traverse through elements[] arrays only (ignore other properties)
 2. At each object, check for displayValue
 3. Collect objects that have displayValue and STOP traversing deeper
@@ -837,21 +835,21 @@ for category, count in sorted(by_category.items()):
 
 **Purpose:** Organize flat lists of objects into groups based on shared property values.
 
-**When to use:**
+When to use:
 - Need to analyze objects by category, type, or level
 - Building summaries ("count by type")
 - Preparing data for reports or charts
 - Want to process each group separately
 - Need to find relationships between objects
 
-**Common groupings:**
+Common groupings:
 - By BIM category (Walls, Columns, Floors)
 - By level/storey ("Level 1", "Level 2")
 - By family or type
 - By material
 - By any property value
 
-**How it works:**
+How it works:
 1. First, flatten objects (Pattern 3)
 2. Iterate through flat list
 3. Extract grouping property from each object

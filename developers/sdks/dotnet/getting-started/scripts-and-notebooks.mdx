@@ -121,31 +121,31 @@ foreach (var group in counts.Take(15))
 
 ## How it works
 
-| What you want | Resolve from bootstrap | Then use |
-| ------------- | ---------------------- | -------- |
+| What you want                                  | Resolve from bootstrap               | Then use                                                     |
+| ---------------------------------------------- | ------------------------------------ | ------------------------------------------------------------ |
 | GraphQL API (`Project`, `Model`, `Version`, …) | `IClientFactory` → `Create(account)` | `client.Version.GetVersions(...)`, `client.Project.Get(...)` |
-| Load / send object graphs | `IOperations` | `Receive2`, `Send2`, `Serialize` |
-| Build an account from a PAT | `IAccountFactory` | `CreateAccount(serverUrl, token)` |
-| Reuse a desktop login | `IAccountManager` (optional) | `GetAccounts()`, `GetDefaultAccount()` |
+| Load / send object graphs                      | `IOperations`                        | `Receive2`, `Send2`, `Serialize`                             |
+| Build an account from a PAT                    | `IAccountFactory`                    | `CreateAccount(serverUrl, token)`                            |
+| Reuse a desktop login                          | `IAccountManager` (optional)         | `GetAccounts()`, `GetDefaultAccount()`                       |
 
 See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) for when to use `Send`/`Receive` with transports instead.
 
 ## Common mistakes
 
-| Mistake | Fix |
-| ------- | --- |
-| Creating a new `ServiceProvider` on every notebook cell run | Define the static bootstrap once per session |
-| Using `Send` + `IServerTransportFactory` in a script | Prefer `Send2`/`Receive2` for server work |
-| Reading `obj["category"]` on connector data | Use `DataObject.properties` for BIM fields |
-| Skipping `Speckle.Objects` in bootstrap assemblies | Pass `typeof(Point).Assembly` when receiving geometry |
+| Mistake                                                     | Fix                                                   |
+| ----------------------------------------------------------- | ----------------------------------------------------- |
+| Creating a new `ServiceProvider` on every notebook cell run | Define the static bootstrap once per session          |
+| Using `Send` + `IServerTransportFactory` in a script        | Prefer `Send2`/`Receive2` for server work             |
+| Reading `obj["category"]` on connector data                 | Use `DataObject.properties` for BIM fields            |
+| Skipping `Speckle.Objects` in bootstrap assemblies          | Pass `typeof(Point).Assembly` when receiving geometry |
 
 ## What to skip (unless you are building a connector)
 
-| Page / topic | Why scripts can skip it |
-| ------------ | ----------------------- |
-| [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection) | Deep dive for host apps sharing a container |
-| [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends) | `SendPipeline` — production connector upload only |
-| [Working with Proxies](/developers/sdks/dotnet/guides/working-with-proxies) | Only when receiving connector data with groups/instances |
+| Page / topic                                                                                       | Why scripts can skip it                                  |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection)         | Deep dive for host apps sharing a container              |
+| [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends) | `SendPipeline` — production connector upload only        |
+| [Working with Proxies](/developers/sdks/dotnet/guides/working-with-proxies)                        | Only when receiving connector data with groups/instances |
 
 ## Grasshopper and hosted scripts
 

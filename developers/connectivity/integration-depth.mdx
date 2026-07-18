@@ -12,11 +12,11 @@ The first decision for host connectivity is **direction**: whether the integrati
 
 ## Direction: publish, load, or both
 
-| Mode | What it means | Typical use |
-| --- | --- | --- |
-| **Publish only** | Host → Speckle (create versions). No load UI or conversion back into the host. | Most new CAD/BIM/structural connectors: extraction, coordination, dashboards, automation, analysis results in the cloud. |
-| **Publish and load** | Both directions in one connector—but **not** semantic round-trip. | Desktop hosts where users publish their model and load others’ geometry or metadata for coordination (load-side depth beyond publish). |
-| **Receive / load only** | Speckle → tool only. No publish path from that application. | **Uncommon for design hosts.** Example: [Power BI](/connectors/power-bi/power-bi) ([speckle-powerbi](https://github.com/specklesystems/speckle-powerbi) repo)—consumes published versions only. Not typical for new Revit-, Rhino-, or Tekla-style connectors. |
+| Mode                    | What it means                                                                  | Typical use                                                                                                                                                                                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Publish only**        | Host → Speckle (create versions). No load UI or conversion back into the host. | Most new CAD/BIM/structural connectors: extraction, coordination, dashboards, automation, analysis results in the cloud.                                                                                                                                       |
+| **Publish and load**    | Both directions in one connector—but **not** semantic round-trip.              | Desktop hosts where users publish their model and load others’ geometry or metadata for coordination (load-side depth beyond publish).                                                                                                                         |
+| **Receive / load only** | Speckle → tool only. No publish path from that application.                    | **Uncommon for design hosts.** Example: [Power BI](/connectors/power-bi/power-bi) ([speckle-powerbi](https://github.com/specklesystems/speckle-powerbi) repo)—consumes published versions only. Not typical for new Revit-, Rhino-, or Tekla-style connectors. |
 
 Most new **host** integrations should assume **publish only** until there is a clear user need to load Speckle data back into that host.
 
@@ -30,18 +30,18 @@ SDK and API terms may say **send** and **receive**; user-facing connector docs o
 
 Depth describes how much you invest after the host can publish reliably. Each step adds load-side capability. **Many connectors never go beyond publish.**
 
-| Depth | Focus |
-| --- | --- |
-| **Publish** | Geometry, metadata, analysis results into Speckle |
-| **Load: reference geometry** | Coordination meshes and similar in the host |
-| **Load: interop lite** | Category mapping, metadata on load |
-| **Load: pragmatic interop** | Selected native object translations |
+| Depth                        | Focus                                             |
+| ---------------------------- | ------------------------------------------------- |
+| **Publish**                  | Geometry, metadata, analysis results into Speckle |
+| **Load: reference geometry** | Coordination meshes and similar in the host       |
+| **Load: interop lite**       | Category mapping, metadata on load                |
+| **Load: pragmatic interop**  | Selected native object translations               |
 
 <Steps>
   <Step title="Publish">
     **Goal:** Reliable extraction from the host into Speckle.
 
-    **Includes:**
+    Includes:
 
     - Geometry (meshes, curves, points, display values)
     - Metadata (parameters, identifiers, discipline-specific properties)
@@ -51,7 +51,7 @@ Depth describes how much you invest after the host can publish reliably. Each st
 
     **When to stop:** Coordination, visualization, ETL, reporting, or cloud processing only need published data. **Most connectors can ship at publish depth.**
 
-    **Speckle connectors (examples):**
+    Speckle connectors (examples):
 
     - [ETABS](/connectors/etabs) — publish-only; structural model and analysis-oriented publish
     - [Tekla Structures](/connectors/teklastructures) — publish-only
@@ -63,7 +63,7 @@ Depth describes how much you invest after the host can publish reliably. Each st
   <Step title="Load: reference geometry">
     **Goal:** Bring Speckle geometry into the host as **reference** content—not editable native model semantics.
 
-    **Typical behaviour:**
+    Typical behaviour:
 
     - Place meshes or simplified geometry for coordination
     - Optional transforms, layers, or visibility by source model
@@ -71,7 +71,7 @@ Depth describes how much you invest after the host can publish reliably. Each st
 
     **Requires:** Publish and load in the product sense, but still **not** round-trip.
 
-    **Speckle connectors (examples):**
+    Speckle connectors (examples):
 
     - [Revit](/connectors/revit/revit) — default load as Direct Shapes (generic models) for coordination geometry
     - [Rhino](/connectors/rhino/rhino), [Blender](/connectors/blender), [SketchUp](/connectors/sketchup), [Archicad](/connectors/archicad), [Civil 3D](/connectors/civil3d), [AutoCAD](/connectors/autocad) — load workflows documented per connector
@@ -81,7 +81,7 @@ Depth describes how much you invest after the host can publish reliably. Each st
   <Step title="Load: interop lite">
     **Goal:** Smarter load without full native object reconstruction.
 
-    **Typical behaviour:**
+    Typical behaviour:
 
     - **Category mapping** — map Speckle types or layers to host categories, families, or styles
     - **Metadata transfer** — attach parameters or properties to reference elements
@@ -89,7 +89,7 @@ Depth describes how much you invest after the host can publish reliably. Each st
 
     **Tradeoff:** More useful than raw reference geometry; less cost than native translation.
 
-    **Speckle connectors (examples):**
+    Speckle connectors (examples):
 
     - [Revit](/connectors/revit/revit) — materials and parameters on loaded objects; category and type behaviour described in connector FAQ
     - [Grasshopper](/connectors/grasshopper/grasshopper) — receive workflows with property and parameter-driven filtering
@@ -99,7 +99,7 @@ Depth describes how much you invest after the host can publish reliably. Each st
   <Step title="Load: pragmatic interop">
     **Goal:** Recreate selected native host objects from Speckle data where it is worth the maintenance.
 
-    **Typical behaviour:**
+    Typical behaviour:
 
     - Native walls, members, grids, or discipline-specific types where converters exist
     - Explicit scope: which types translate, which stay as reference geometry
@@ -107,7 +107,7 @@ Depth describes how much you invest after the host can publish reliably. Each st
 
     **Tradeoff:** Highest implementation and test burden. Still **not** round-trip: publish and load remain separate operations with different conversion logic.
 
-    **Speckle connectors (examples):**
+    Speckle connectors (examples):
 
     - [Revit](/connectors/revit/revit) — native element load where supported by the connector
     - [Blocks as Families](/connectors/revit/blocks-to-families) — load block instances as Revit families (optional load setting)
@@ -122,11 +122,11 @@ Connector depth varies by host and version. Use each connector’s user guide fo
 
 ## How depth maps to publish / load modes
 
-| Mode | Integration depth usually in scope |
-| --- | --- |
-| Publish only (typical for new hosts) | Publish |
+| Mode                                            | Integration depth usually in scope                                     |
+| ----------------------------------------------- | ---------------------------------------------------------------------- |
+| Publish only (typical for new hosts)            | Publish                                                                |
 | Publish and load (desktop connectors with load) | Publish always; load-side depths only if load is a product requirement |
-| Receive / load only (e.g. Power BI) | Consume published versions in the tool; no publish from that app |
+| Receive / load only (e.g. Power BI)             | Consume published versions in the tool; no publish from that app       |
 
 ## Product and engineering implications
 

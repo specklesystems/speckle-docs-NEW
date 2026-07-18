@@ -20,7 +20,7 @@ Canonical doc rules for AI assistants live in `.universal-ai-config/instructions
 
   We deliberately describe this section as **Publishing & Loading** rather than "Connectors." This keeps the docs user-first and purpose-driven: users think in terms of publishing data into Speckle or loading it into another tool, not in terms of underlying plumbing. It frames the outcome (why) rather than the mechanism (how).
 
-  **Connector Documentation Structure:**
+  Connector Documentation Structure:
   - Use main page sections for step-by-step guides (e.g., "Setting up Data Gateway")
   - Use accordions for FAQs and troubleshooting questions
   - Import and use standard components: `<Setup>`, `<Load>`, `<Publish>`, `<SetupFaq>`, `<LoadFaq>`, `<PublishFaq>`
@@ -38,7 +38,7 @@ Canonical doc rules for AI assistants live in `.universal-ai-config/instructions
 - **Best Practices**: Principles and recommendations that help users avoid pitfalls and make good choices. They should read as guidance, not rigid rules.
 - **Tips & Tricks**: Small, optional enhancements or shortcuts. Presented as quick callouts, not workflows, and always optional to the main path.
 
-**When to use accordions vs. main sections:**
+When to use accordions vs. main sections:
 
 - **Accordions**: For FAQs, troubleshooting questions, and quick reference information
 - **Main sections**: For step-by-step guides, detailed procedures, and comprehensive workflows
