@@ -1,6 +1,6 @@
 ---
-title: "Operations"
-description: "API reference for send, receive, serialize, and deserialize operations"
+title: 'Operations'
+description: 'API reference for send, receive, serialize, and deserialize operations'
 ---
 
 ## Overview
@@ -21,7 +21,6 @@ object_id = operations.send(point, [transport])
 received = operations.receive(object_id, remote_transport=transport)
 ```
 
-
 ## Principal Operations
 
 ### send()
@@ -37,6 +36,7 @@ operations.send(
 ```
 
 Parameters:
+
 <ResponseField name="base" type="Base" required>
   The object to send
 </ResponseField>
@@ -50,11 +50,13 @@ Parameters:
 </ResponseField>
 
 Returns:
+
 <ResponseField name="object_id" type="str">
   The object ID (hash) of the sent object
 </ResponseField>
 
 Examples:
+
 <Tabs>
   <Tab title="Send to Server">
     ```python
@@ -76,6 +78,7 @@ Examples:
 
     print(f"Sent object: {object_id}")
     ```
+
   </Tab>
 
   <Tab title="Send Complex Object">
@@ -104,6 +107,7 @@ Examples:
     transport = ServerTransport(stream_id="project_id", client=client)
     object_id = operations.send(collection, [transport])
     ```
+
   </Tab>
 
   <Tab title="Send to Multiple Transports">
@@ -126,6 +130,7 @@ Examples:
 
     # Object now available in both transports
     ```
+
   </Tab>
 
   <Tab title="Local Cache Only">
@@ -140,13 +145,14 @@ Examples:
 
     print(f"Cached locally: {object_id}")
     ```
+
   </Tab>
 </Tabs>
 
 <Info>
-When you send an object, all nested Base objects are automatically sent too. You don't need to send them separately.
+  When you send an object, all nested Base objects are automatically sent too. You don't need to
+  send them separately.
 </Info>
-
 
 ### receive()
 
@@ -161,6 +167,7 @@ operations.receive(
 ```
 
 Parameters:
+
 <ResponseField name="obj_id" type="str" required>
   The ID of the object to receive
 </ResponseField>
@@ -174,11 +181,13 @@ Parameters:
 </ResponseField>
 
 Returns:
+
 <ResponseField name="object" type="Base">
   The received object, fully recomposed with all children
 </ResponseField>
 
 Examples:
+
 <Tabs>
   <Tab title="Receive from Server">
     ```python
@@ -200,6 +209,7 @@ Examples:
 
     print(f"Received: {obj.speckle_type}")
     ```
+
   </Tab>
 
   <Tab title="Receive with Local Cache">
@@ -227,6 +237,7 @@ Examples:
         local_transport=local
     )
     ```
+
   </Tab>
 
   <Tab title="Receive from Cache Only">
@@ -246,19 +257,22 @@ Examples:
     except Exception:
         print("Not in cache, need remote transport")
     ```
+
   </Tab>
 </Tabs>
 
 <Info>
-`receive()` automatically reconstructs the entire object tree. All referenced child objects are fetched and recomposed.
+  `receive()` automatically reconstructs the entire object tree. All referenced child objects are
+  fetched and recomposed.
 </Info>
-
-
 
 ## Serialization
 
 <Info>
-**Note:** The `serialize()` and `deserialize()` functions below are included for completeness, but most developers won't need them directly. The `send()` and `receive()` operations handle serialization and deserialization implicitly. Use these functions only when you need custom workflows like saving objects to files or working with JSON representations directly.
+  **Note:** The `serialize()` and `deserialize()` functions below are included for completeness, but
+  most developers won't need them directly. The `send()` and `receive()` operations handle
+  serialization and deserialization implicitly. Use these functions only when you need custom
+  workflows like saving objects to files or working with JSON representations directly.
 </Info>
 
 ### serialize()
@@ -273,19 +287,23 @@ operations.serialize(
 ```
 
 Parameters:
+
 <ResponseField name="base" type="Base" required>
   The object to serialize
 </ResponseField>
 <ResponseField name="write_transports" type="List[AbstractTransport]" default="None">
-  Transports to write detached objects to. If `None`, objects are serialized inline without detachment
+  Transports to write detached objects to. If `None`, objects are serialized inline without
+  detachment
 </ResponseField>
 
 Returns:
+
 <ResponseField name="json_string" type="str">
   JSON string representation of the object
 </ResponseField>
 
 Examples:
+
 <Tabs>
   <Tab title="Simple Serialization">
     ```python
@@ -299,6 +317,7 @@ Examples:
     print(json_str)
     # {"x": 10, "y": 20, "z": 5, "units": "m", "speckle_type": "Objects.Geometry.Point", ...}
     ```
+
   </Tab>
 
   <Tab title="Serialize with Detachment">
@@ -320,6 +339,7 @@ Examples:
     print(json_str)
     # {"name": "Building", "@displayValue": "hash123...", ...}
     ```
+
   </Tab>
 
   <Tab title="Save to File">
@@ -340,11 +360,13 @@ Examples:
     with open("point_pretty.json", "w") as f:
         json.dump(data, f, indent=2)
     ```
+
   </Tab>
 </Tabs>
 
 <Note>
-Without write transports, large nested objects are serialized inline, which can result in huge JSON strings. Use write transports for large objects.
+  Without write transports, large nested objects are serialized inline, which can result in huge
+  JSON strings. Use write transports for large objects.
 </Note>
 
 ### deserialize()
@@ -359,6 +381,7 @@ operations.deserialize(
 ```
 
 Parameters:
+
 <ResponseField name="obj_string" type="str" required>
   JSON string to deserialize
 </ResponseField>
@@ -367,11 +390,13 @@ Parameters:
 </ResponseField>
 
 Returns:
+
 <ResponseField name="object" type="Base">
   The deserialized object
 </ResponseField>
 
 Examples:
+
 <Tabs>
   <Tab title="Simple Deserialization">
     ```python
@@ -383,6 +408,7 @@ Examples:
     print(f"Point: ({point.x}, {point.y}, {point.z})")
     # Point: (10, 20, 5)
     ```
+
   </Tab>
 
   <Tab title="Deserialize with References">
@@ -400,6 +426,7 @@ Examples:
     # All references are resolved
     print(obj.displayValue.vertices_count)
     ```
+
   </Tab>
 
   <Tab title="Load from File">
@@ -413,11 +440,13 @@ Examples:
     point = operations.deserialize(json_str)
     print(f"Loaded: {point.speckle_type}")
     ```
+
   </Tab>
 </Tabs>
 
 <Warning>
-If the JSON contains references (like `"@displayValue": "hash123..."`), you must provide a read_transport that contains those referenced objects.
+  If the JSON contains references (like `"@displayValue": "hash123..."`), you must provide a
+  read_transport that contains those referenced objects.
 </Warning>
 
 ## Detachment and Chunking
@@ -443,7 +472,8 @@ object_id = operations.send(mesh, [transport])
 ```
 
 <Note>
-Objects like `Mesh` have predefined chunking and detachment rules. See the [Mesh documentation](/developers/sdks/python/guides/working-with-geometry#meshes) for details.
+  Objects like `Mesh` have predefined chunking and detachment rules. See the [Mesh
+  documentation](/developers/sdks/python/guides/working-with-geometry#meshes) for details.
 </Note>
 
 ## Best Practices
@@ -470,6 +500,7 @@ Objects like `Mesh` have predefined chunking and detachment rules. See the [Mesh
         use_default_cache=False  # Don't do this
     )
     ```
+
   </Accordion>
 
   <Accordion title="Handle errors gracefully">
@@ -488,6 +519,7 @@ Objects like `Mesh` have predefined chunking and detachment rules. See the [Mesh
         print(f"Receive failed: {e}")
         # Handle error (retry, log, notify user, etc.)
     ```
+
   </Accordion>
 
   <Accordion title="Don't deserialize untrusted JSON">
@@ -506,6 +538,7 @@ Objects like `Mesh` have predefined chunking and detachment rules. See the [Mesh
             print(f"Deserialization failed: {e}")
             return None
     ```
+
   </Accordion>
 
   <Accordion title="Use appropriate transports">
@@ -528,6 +561,7 @@ Objects like `Mesh` have predefined chunking and detachment rules. See the [Mesh
     sqlite = SQLiteTransport()
     operations.send(obj, [sqlite])
     ```
+
   </Accordion>
 </AccordionGroup>
 

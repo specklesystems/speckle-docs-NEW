@@ -11,12 +11,10 @@ You will use [SpecklePy](/developers/sdks/python/introduction) to run GraphQL qu
 This guide is GraphQL-only and read-only. For what checks and results mean in the product UI, see [Data Validation overview](/analytics/data-validation/overview). For authentication and the `/graphql` endpoint, see [GraphQL API](/developers/api/graphql).
 
 <Tip>
-  **Quick start:** Run [Step 4](#step-4-build-a-kpi-dataframe) cells on this page, or
-  [download the
+  **Quick start:** Run [Step 4](#step-4-build-a-kpi-dataframe) cells on this page, or [download the
   notebook](https://raw.githubusercontent.com/specklesystems/speckle-docs-new/refs/heads/main/developers/api/guides/notebooks/data-validation-results.ipynb)
-  from GitHub. Skim [Find your IDs](#find-your-ids) first. If you already have check or
-  model IDs, start at [Step 2](#step-2-fetch-check-history) or [Step
-  3](#step-3-load-model-results).
+  from GitHub. Skim [Find your IDs](#find-your-ids) first. If you already have check or model IDs,
+  start at [Step 2](#step-2-fetch-check-history) or [Step 3](#step-3-load-model-results).
 </Tip>
 
 ## Prerequisites
@@ -27,17 +25,17 @@ This guide is GraphQL-only and read-only. For what checks and results mean in th
 - JupyterLab or VS Code with a Python kernel (optional — the same cells run as a `.py` script)
 
 <Info>
-  Python examples authenticate with `SpeckleClient.authenticate_with_token`. SpecklePy
-  attaches the Bearer token to GraphQL requests — you do not need to set headers
-  manually. This flow uses standard project read access and `streams:read`; you do not
-  need server admin permissions or write scopes to consume saved results.
+  Python examples authenticate with `SpeckleClient.authenticate_with_token`. SpecklePy attaches the
+  Bearer token to GraphQL requests — you do not need to set headers manually. This flow uses
+  standard project read access and `streams:read`; you do not need server admin permissions or write
+  scopes to consume saved results.
 </Info>
 
 <Note>
-  On self-hosted Speckle Enterprise Server, Intelligence and Data Validation may require
-  the Intelligence feature flag. See [Enterprise deployment —
-  Intelligence](/developers/server/deployment/enterprise-license) for setup; this page
-  does not reproduce Helm configuration.
+  On self-hosted Speckle Enterprise Server, Intelligence and Data Validation may require the
+  Intelligence feature flag. See [Enterprise deployment —
+  Intelligence](/developers/server/deployment/enterprise-license) for setup; this page does not
+  reproduce Helm configuration.
 </Note>
 
 ## Find your IDs
@@ -85,29 +83,28 @@ The read-only flow:
 
 <Steps>
   <Step title="List validation checks">
-    Call `projectInsights` with `type: "model_validation"`. Read each check's latest KPI
-    from `aggregateResults(limit: 1)` summary — omit `result` here.
+    Call `projectInsights` with `type: "model_validation"`. Read each check's latest KPI from
+    `aggregateResults(limit: 1)` summary — omit `result` here.
   </Step>
   <Step title="Fetch check history">
-    Open one check by `insightId`. Use `aggregateResults` for score history and
-    `latestResults` for the newest result per tracked model.
+    Open one check by `insightId`. Use `aggregateResults` for score history and `latestResults` for
+    the newest result per tracked model.
   </Step>
   <Step title="Load model results">
-    Call `modelResults(modelId, limit)` when you need version history for one model.
-    Request the `result` field only in this step — it is the heaviest payload.
+    Call `modelResults(modelId, limit)` when you need version history for one model. Request the
+    `result` field only in this step — it is the heaviest payload.
   </Step>
   <Step title="Build a KPI DataFrame">
-    Transform aggregate summaries into a pandas table for dashboards, exports, or
-    scheduled reporting.
+    Transform aggregate summaries into a pandas table for dashboards, exports, or scheduled
+    reporting.
   </Step>
 </Steps>
 
 Use aggregate `summary` for dashboards and score history. Request `result` only when you need per-rule rows.
 
 <Tip>
-  For dashboard KPIs, use `aggregateResults(limit: 1)` and omit `result` from your
-  selection set until Step 3. If you already know `INSIGHT_ID` or `MODEL_ID`, each step
-  notes what you can skip.
+  For dashboard KPIs, use `aggregateResults(limit: 1)` and omit `result` from your selection set
+  until Step 3. If you already know `INSIGHT_ID` or `MODEL_ID`, each step notes what you can skip.
 </Tip>
 
 ## Step 1: List validation checks
@@ -115,9 +112,9 @@ Use aggregate `summary` for dashboards and score history. Request `result` only 
 List saved checks and the latest aggregate pass/fail counts for each.
 
 <Tip>
-  **Only have `MODEL_ID`?** After this query, keep checks whose `modelIds` array
-  includes your model. Use that check's `id` as `INSIGHT_ID` in Step 2 or 3. A model can
-  appear in multiple checks — pick the one you care about.
+  **Only have `MODEL_ID`?** After this query, keep checks whose `modelIds` array includes your
+  model. Use that check's `id` as `INSIGHT_ID` in Step 2 or 3. A model can appear in multiple checks
+  — pick the one you care about.
 </Tip>
 
 **POST** `/graphql`
@@ -358,8 +355,8 @@ SPECKLE_MODEL_ID=your_model_id
 </Tip>
 
 <Warning>
-  In Step 3, `result` can be large and may include object IDs. Fetch one model at a
-  time, keep `limit` small, and treat the payload as sensitive project data.
+  In Step 3, `result` can be large and may include object IDs. Fetch one model at a time, keep
+  `limit` small, and treat the payload as sensitive project data.
 </Warning>
 
 ## Step 4: Build a KPI DataFrame
@@ -388,6 +385,7 @@ SPECKLE_PROJECT_ID=your_project_id
 ```
 
 Cell 2 — imports:
+
 ```python
 import os
 from collections import defaultdict
@@ -401,6 +399,7 @@ load_dotenv()
 ```
 
 Cell 3 — authenticate:
+
 ```python
 HOST = os.getenv("SPECKLE_HOST", "https://app.speckle.systems")
 TOKEN = os.getenv("SPECKLE_TOKEN")
@@ -416,6 +415,7 @@ client.authenticate_with_token(TOKEN)
 ```
 
 Cell 4 — query handler and KPI helpers:
+
 ```python
 DEFAULT_DISPLAY_CONFIG = {
     "passThreshold": 0.9,
@@ -520,6 +520,7 @@ def checks_to_kpi_df(checks: list[dict]) -> pd.DataFrame:
 ```
 
 Cell 5 — list checks and show the KPI table:
+
 ```python
 result = run_query(LIST_CHECKS_QUERY, {"projectId": PROJECT_ID})
 checks = result.get("projectInsights") or []
@@ -571,8 +572,8 @@ Thresholds are stored in `metadata.displayConfig` on each check (returned on `pr
 
 <Note>
   For PASS, WARN, and FAIL meaning in the UI, see [Viewing results — result
-  states](/analytics/data-validation/viewing-results#result-states). For threshold
-  tuning in the product, see [Checks — thresholds and
+  states](/analytics/data-validation/viewing-results#result-states). For threshold tuning in the
+  product, see [Checks — thresholds and
   status](/analytics/data-validation/checks#thresholds-and-status).
 </Note>
 
@@ -682,8 +683,8 @@ def wait_for_aggregate_result(
 ```
 
 <Warning>
-  Do not poll faster than every 15 seconds. For production dashboards, prefer scheduled
-  queries over tight polling loops.
+  Do not poll faster than every 15 seconds. For production dashboards, prefer scheduled queries over
+  tight polling loops.
 </Warning>
 
 ## Troubleshooting
@@ -721,35 +722,33 @@ After running Step 4:
   </Accordion>
 
 <Accordion title="What is the difference between aggregateResults, latestResults, and modelResults?">
-  `aggregateResults` returns project-wide rollup history for a check (use `limit: 1` for
-  the latest KPI). `latestResults` returns the newest stored result per tracked model
-  (excludes the aggregate row). `modelResults(modelId, limit)` returns version history
-  for one model, newest first. If you know `MODEL_ID` already, use Step 1 to resolve
-  `INSIGHT_ID`, Step 2 for latest summary per model, or Step 3 for history or a single
-  version snapshot.
+  `aggregateResults` returns project-wide rollup history for a check (use `limit: 1` for the latest
+  KPI). `latestResults` returns the newest stored result per tracked model (excludes the aggregate
+  row). `modelResults(modelId, limit)` returns version history for one model, newest first. If you
+  know `MODEL_ID` already, use Step 1 to resolve `INSIGHT_ID`, Step 2 for latest summary per model,
+  or Step 3 for history or a single version snapshot.
 </Accordion>
 
 <Accordion title="Why is aggregateResults empty?">
-  The check may still be processing after a version push, or no models are attached.
-  Poll every 15–30 seconds for up to 10–15 minutes. Confirm the check lists `modelIds`
-  and those models have published versions.
+  The check may still be processing after a version push, or no models are attached. Poll every
+  15–30 seconds for up to 10–15 minutes. Confirm the check lists `modelIds` and those models have
+  published versions.
 </Accordion>
 
 <Accordion title="How do I run the GraphQL queries from Python?">
-  Copy the [Step 4](#step-4-build-a-kpi-dataframe) cells into your own Jupyter project,
-  or [download the
+  Copy the [Step 4](#step-4-build-a-kpi-dataframe) cells into your own Jupyter project, or [download
+  the
   notebook](https://raw.githubusercontent.com/specklesystems/speckle-docs-new/refs/heads/main/developers/api/guides/notebooks/data-validation-results.ipynb)
   from GitHub. Authenticate a `SpeckleClient` with `authenticate_with_token`, wrap each
   `authenticate_with_token`, wrap each operation in `gql()`, then call
-  [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries)
-  or pass `variable_values` to the same authenticated GraphQL client when the operation
-  declares variables.
+  [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries) or pass
+  `variable_values` to the same authenticated GraphQL client when the operation declares variables.
 </Accordion>
 
 <Accordion title="Where is the full GraphQL schema?">
   See [GraphQL API](/developers/api/graphql) and the [Apollo Studio
-  reference](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems)
-  for the full schema, including `projectInsights`, `insight`, and related fields.
+  reference](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems) for
+  the full schema, including `projectInsights`, `insight`, and related fields.
 </Accordion>
 
   <Accordion title="What is not covered in this guide?">

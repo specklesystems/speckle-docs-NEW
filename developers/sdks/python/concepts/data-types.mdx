@@ -1,5 +1,5 @@
 ---
-title: "Data Types in Speckle"
+title: 'Data Types in Speckle'
 description: "Understanding the three types of data you'll encounter in Speckle"
 ---
 
@@ -27,12 +27,14 @@ print(f"Properties: {obj.get_member_names()}")
 **What it is:** Data you create from scratch with your own structure.
 
 Characteristics:
+
 - Simple Base objects with custom properties
 - No connector-specific structure
 - Direct property access
 - Full control over schema
 
 Example:
+
 ```python lines icon="python"
 from specklepy.objects import Base
 from specklepy.objects.geometry import Point
@@ -49,6 +51,7 @@ survey.notes = "Initial survey"
 ```
 
 When you see it:
+
 - Python-to-Python workflows
 - Custom data pipelines
 - Analysis results you're sending
@@ -59,6 +62,7 @@ When you see it:
 **What it is:** Geometry with attached properties, typically from simple exports or scripts.
 
 Characteristics:
+
 - Geometry objects (Point, Line, Mesh)
 - Properties as dictionaries or direct attributes
 - Optional `displayValue` for visualization
@@ -66,6 +70,7 @@ Characteristics:
 - Moderate nesting (1-2 levels)
 
 Example:
+
 ```json
 {
     "speckle_type": "Objects.Geometry.Mesh",
@@ -82,6 +87,7 @@ Example:
 ```
 
 When you see it:
+
 - Grasshopper exports
 - Rhino script outputs
 - Simple geometry with metadata
@@ -93,6 +99,7 @@ When you see it:
 **What it is:** Rich application data from BIM tools with complex nested structures.
 
 Characteristics:
+
 - Deep nesting (3+ levels)
 - Rich property collections
 - Display value proxies
@@ -101,30 +108,32 @@ Characteristics:
 - Data chunk references
 
 Example:
+
 ```json
 {
-    "speckle_type": "Objects.Data.DataObject",
-    "name": "Wall Instance",
-    "properties": {
-        "Material": "Concrete",
-        "Thickness": 200,
-        "Width": 0.2,
-        "Function": "Exterior",
-        "Volume": 15.5,
-        "Area": 45.0,
-        "LoadBearing": true
-    },
-    "displayValue": [
-        {
-            "speckle_type": "Objects.Geometry.Mesh",
-            "vertices": [],
-            "faces": []
-        }
-    ]
+  "speckle_type": "Objects.Data.DataObject",
+  "name": "Wall Instance",
+  "properties": {
+    "Material": "Concrete",
+    "Thickness": 200,
+    "Width": 0.2,
+    "Function": "Exterior",
+    "Volume": 15.5,
+    "Area": 45.0,
+    "LoadBearing": true
+  },
+  "displayValue": [
+    {
+      "speckle_type": "Objects.Geometry.Mesh",
+      "vertices": [],
+      "faces": []
+    }
+  ]
 }
 ```
 
 When you see it:
+
 - Connector exports from any BIM authoring tool
 - Rhino exports with complex objects
 - ArchiCAD, Revit, Tekla exports
@@ -159,7 +168,9 @@ else:
 ```
 
 <Note>
-**Modern Approach:** Instead of checking `speckle_type` strings, check for structural patterns: Does it have a `properties` dict? Does it have `displayValue`? Is it a geometry class? This works reliably across all Speckle versions.
+  **Modern Approach:** Instead of checking `speckle_type` strings, check for structural patterns:
+  Does it have a `properties` dict? Does it have `displayValue`? Is it a geometry class? This works
+  reliably across all Speckle versions.
 </Note>
 
 ## Key Differences
@@ -183,6 +194,7 @@ else:
     obj.properties["Volume"]  # Properties dict access
     obj.displayValue  # List of geometry representations
     ```
+
   </Tab>
   
   <Tab title="Access Pattern">
@@ -207,6 +219,7 @@ else:
     volume = properties.get("Volume", 0)
     material = properties.get("Material", "Unknown")
     ```
+
   </Tab>
   
   <Tab title="Traversal">
@@ -233,6 +246,7 @@ else:
                 value = getattr(obj, name)
                 traverse(value)
     ```
+
   </Tab>
 </Tabs>
 
@@ -266,6 +280,7 @@ else:
 Speckle uses a standardized convention for organizing hierarchical data: the **`elements`** property. This property has a special meaning and is the predictable way to traverse object hierarchies.
 
 Key Concepts:
+
 - **Atomic Objects** - Objects that represent actual "things" (walls, beams, points, etc.)
 - **Property Objects** - Objects stored as properties for reference (materials, styles, etc.)
 - **Container Objects** - Objects that organize other objects via `elements`
@@ -295,6 +310,7 @@ Why `elements`?:
 While *any* property can technically contain Speckle objects, `elements` is the internal convention for managing hierarchy in a predictable way. This allows traversal code, connectors, and the viewer to consistently understand object relationships.
 
 Some typed properties also expect arrays of objects (like `displayValue`), but these serve different purposes - `displayValue` is for visualization, while `elements` is for logical hierarchy.
+
 </Info>
 
 ### Collections
@@ -329,17 +345,15 @@ building.elements = [
 ```
 
 Collection Properties:
+
 - `name` - Human-readable name (not necessarily unique)
 - `elements` - List of contained objects (can include nested Collections)
 - `applicationId` - Unique identifier for the collection
 - `speckle_type` - `"Speckle.Core.Models.Collections.Collection"`
 
 <Note>
-Collections map to familiar organizational structures:
-- **Rhino/AutoCAD** - Layers
-- **Blender** - Collections
-- **Revit** - Categories or Worksets
-- **Custom** - Any logical grouping you define
+  Collections map to familiar organizational structures: - **Rhino/AutoCAD** - Layers - **Blender**
+  - Collections - **Revit** - Categories or Worksets - **Custom** - Any logical grouping you define
 </Note>
 
 ### Atomic vs Property Objects
@@ -347,11 +361,13 @@ Collections map to familiar organizational structures:
 Understanding the difference helps you structure data correctly:
 
 **Atomic Objects** (stored in `elements`):
+
 - Represent actual entities in your model
 - Should be traversed when processing the model
 - Examples: walls, beams, points, meshes, equipment
 
 **Property Objects** (stored as typed properties):
+
 - Referenced by atomic objects
 - Provide metadata or configuration
 - Examples: materials, render properties, styles, definitions
@@ -389,7 +405,7 @@ def traverse_elements(obj, depth=0):
     """Traverse object hierarchy using elements convention"""
     indent = "  " * depth
     print(f"{indent}{obj.speckle_type}: {getattr(obj, 'name', 'unnamed')}")
-    
+
     # Check for elements property
     if hasattr(obj, "elements"):
         for element in obj.elements:
@@ -401,8 +417,8 @@ traverse_elements(project)
 ```
 
 <Warning>
-Not all objects use `elements`:
-Simple geometry objects (Point, Line, Mesh) typically don't have `elements` - they are leaf nodes. Always check `hasattr(obj, "elements")` before accessing it.
+  Not all objects use `elements`: Simple geometry objects (Point, Line, Mesh) typically don't have
+  `elements` - they are leaf nodes. Always check `hasattr(obj, "elements")` before accessing it.
 </Warning>
 
 ## Mixing Types
@@ -421,15 +437,15 @@ print(f"Project: {obj.name}")
 # Iterate through elements (the standard way)
 for element in obj.elements:
     print(f"Element: {element.speckle_type}")
-    
+
     # Some might be simple geometry
     if element.speckle_type.startswith("Objects.Geometry"):
         print(f"  Simple geometry: {element}")
-    
+
     # Some might be complex BIM objects
     elif hasattr(element, "properties"):
         print(f"  BIM object with properties")
-    
+
     # Some might be nested Collections
     elif isinstance(element, Collection):
         print(f"  Nested collection: {element.name}")
@@ -441,24 +457,15 @@ for element in obj.elements:
 
 <CardGroup cols={3}>
   <Card title="Custom Data" icon="code">
-    You create it:
-    - Direct access
-    - Simple structure
-    - Full control
+    You create it: - Direct access - Simple structure - Full control
   </Card>
-  
-  <Card title="Simple Model" icon="cube">
-    Geometry + Props:
-    - Properties dict
-    - DisplayValue
-    - Moderate nesting
-  </Card>
-  
+
+<Card title="Simple Model" icon="cube">
+  Geometry + Props: - Properties dict - DisplayValue - Moderate nesting
+</Card>
+
   <Card title="Complex BIM" icon="building">
-    Rich BIM Data:
-    - Deep nesting
-    - Properties dict
-    - Defensive code
+    Rich BIM Data: - Deep nesting - Properties dict - Defensive code
   </Card>
 </CardGroup>
 
@@ -471,18 +478,30 @@ Choose your approach based on the data type:
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Simple Data Patterns" icon="shapes" href="/developers/sdks/python/guides/simple-data-patterns">
+  <Card
+    title="Simple Data Patterns"
+    icon="shapes"
+    href="/developers/sdks/python/guides/simple-data-patterns"
+  >
     Work with custom and simple model data
   </Card>
-  
-  <Card title="BIM Data Patterns" icon="building" href="/developers/sdks/python/guides/bim-data-patterns">
-    Handle complex BIM and connector data
-  </Card>
-  
-  <Card title="Data Traversal" icon="diagram-project" href="/developers/sdks/python/concepts/data-traversal">
-    Learn traversal techniques for any structure
-  </Card>
-  
+
+<Card
+  title="BIM Data Patterns"
+  icon="building"
+  href="/developers/sdks/python/guides/bim-data-patterns"
+>
+  Handle complex BIM and connector data
+</Card>
+
+<Card
+  title="Data Traversal"
+  icon="diagram-project"
+  href="/developers/sdks/python/concepts/data-traversal"
+>
+  Learn traversal techniques for any structure
+</Card>
+
   <Card title="Objects & Base" icon="cube" href="/developers/sdks/python/concepts/objects">
     Understand the Base class
   </Card>

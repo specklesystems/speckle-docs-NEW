@@ -1,46 +1,76 @@
 ---
-title: "Project"
-description: "client.Project — list, create, and manage Speckle projects"
-sidebarTitle: "Project"
+title: 'Project'
+description: 'client.Project — list, create, and manage Speckle projects'
+sidebarTitle: 'Project'
 ---
 
 Use **`client.Project`** to list projects, create a new project, or check permissions before you load or publish model data.
 
 ## Methods
 
-<ResponseField name="Get" type="Task<Project> Get(string projectId, CancellationToken cancellationToken = default)">
+<ResponseField
+  name="Get"
+  type="Task<Project> Get(string projectId, CancellationToken cancellationToken = default)"
+>
   Retrieves a project by id.
 </ResponseField>
 
-<ResponseField name="GetWithModels" type="Task<ProjectWithModels> GetWithModels(string projectId, int modelsLimit = 25, string? modelsCursor = null, ProjectModelsFilter? modelsFilter = null, CancellationToken cancellationToken = default)">
+<ResponseField
+  name="GetWithModels"
+  type="Task<ProjectWithModels> GetWithModels(string projectId, int modelsLimit = 25, string? modelsCursor = null, ProjectModelsFilter? modelsFilter = null, CancellationToken cancellationToken = default)"
+>
   Retrieves a project along with a paginated list of its models.
 </ResponseField>
 
-<ResponseField name="GetWithTeam" type="Task<ProjectWithTeam> GetWithTeam(string projectId, CancellationToken cancellationToken = default)">
+<ResponseField
+  name="GetWithTeam"
+  type="Task<ProjectWithTeam> GetWithTeam(string projectId, CancellationToken cancellationToken = default)"
+>
   Retrieves a project along with its team members and pending invites.
 </ResponseField>
 
-<ResponseField name="GetPermissions" type="Task<ProjectPermissionChecks> GetPermissions(string projectId, CancellationToken cancellationToken = default)">
-  Checks the active user's permissions on the project (`canCreateModel`, `canDelete`, `canLoad`). Also queries `canPublish`, which is obsolete in the SDK — prefer `client.Model.GetPermissions(...).canCreateVersion` for publish/version checks.
+<ResponseField
+  name="GetPermissions"
+  type="Task<ProjectPermissionChecks> GetPermissions(string projectId, CancellationToken cancellationToken = default)"
+>
+  Checks the active user's permissions on the project (`canCreateModel`, `canDelete`, `canLoad`).
+  Also queries `canPublish`, which is obsolete in the SDK — prefer
+  `client.Model.GetPermissions(...).canCreateVersion` for publish/version checks.
 </ResponseField>
 
-<ResponseField name="Create" type="Task<Project> Create(ProjectCreateInput input, CancellationToken cancellationToken = default)">
-  Creates a personal (non-workspace) project. `ProjectCreateInput(string? name, string? description, ProjectVisibility? visibility)`.
+<ResponseField
+  name="Create"
+  type="Task<Project> Create(ProjectCreateInput input, CancellationToken cancellationToken = default)"
+>
+  Creates a personal (non-workspace) project. `ProjectCreateInput(string? name, string? description,
+  ProjectVisibility? visibility)`.
 </ResponseField>
 
-<ResponseField name="CreateInWorkspace" type="Task<Project> CreateInWorkspace(WorkspaceProjectCreateInput input, CancellationToken cancellationToken = default)">
+<ResponseField
+  name="CreateInWorkspace"
+  type="Task<Project> CreateInWorkspace(WorkspaceProjectCreateInput input, CancellationToken cancellationToken = default)"
+>
   Creates a project inside a workspace. Only supported on workspace-enabled servers.
 </ResponseField>
 
-<ResponseField name="Update" type="Task<Project> Update(ProjectUpdateInput input, CancellationToken cancellationToken = default)">
+<ResponseField
+  name="Update"
+  type="Task<Project> Update(ProjectUpdateInput input, CancellationToken cancellationToken = default)"
+>
   Updates project fields (name, description, visibility, and others).
 </ResponseField>
 
-<ResponseField name="UpdateRole" type="Task<ProjectWithTeam> UpdateRole(ProjectUpdateRoleInput input, CancellationToken cancellationToken = default)">
+<ResponseField
+  name="UpdateRole"
+  type="Task<ProjectWithTeam> UpdateRole(ProjectUpdateRoleInput input, CancellationToken cancellationToken = default)"
+>
   Updates a team member's role on the project.
 </ResponseField>
 
-<ResponseField name="Delete" type="Task Delete(string projectId, CancellationToken cancellationToken = default)">
+<ResponseField
+  name="Delete"
+  type="Task Delete(string projectId, CancellationToken cancellationToken = default)"
+>
   Deletes a project.
 </ResponseField>
 
@@ -57,15 +87,15 @@ var withModels = await client.Project.GetWithModels(project.id);
 Console.WriteLine($"{withModels.name}: {withModels.models.totalCount} models");
 ```
 
-<Note>
-Projects replace what used to be called "Streams" in prior versions of Speckle.
-</Note>
+<Note>Projects replace what used to be called "Streams" in prior versions of Speckle.</Note>
 
 ## FAQ
 
 <AccordionGroup>
   <Accordion title="How do I create a project inside a workspace?">
-    Call `CreateInWorkspace` with a `WorkspaceProjectCreateInput` on a workspace-enabled server. Use `Create` for personal (non-workspace) projects. Check `client.Server.IsWorkspaceEnabled()` first.
+    Call `CreateInWorkspace` with a `WorkspaceProjectCreateInput` on a workspace-enabled server. Use
+    `Create` for personal (non-workspace) projects. Check `client.Server.IsWorkspaceEnabled()`
+    first.
   </Accordion>
   <Accordion title="Create failed — workspace at project limit">
     Delete unused projects or upgrade the workspace plan before calling `Create` again.
@@ -81,7 +111,11 @@ Projects replace what used to be called "Streams" in prior versions of Speckle.
   <Card title="Quickstart" icon="rocket" href="/developers/sdks/dotnet/getting-started/quickstart">
     Create a project in Step 3
   </Card>
-  <Card title="ModelResource" icon="cube" href="/developers/sdks/dotnet/api-reference/resources/model">
+  <Card
+    title="ModelResource"
+    icon="cube"
+    href="/developers/sdks/dotnet/api-reference/resources/model"
+  >
     Models within a project
   </Card>
 </CardGroup>

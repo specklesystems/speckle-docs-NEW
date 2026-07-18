@@ -13,7 +13,7 @@ All functions provided by the `FilteringExtension` take object ids as a means to
 Like any other extension you need to add it at initialisation time:
 
 ```typescript
-const filteringExtension = viewer.createExtension(FilteringExtension);
+const filteringExtension = viewer.createExtension(FilteringExtension)
 ```
 
 ## Hiding and Showing
@@ -22,13 +22,11 @@ Let's say we want to hide all the walls of a model. First thing we need to do is
 
 ```typescript
 const wallNodes = viewer.getWorldTree().findAll((node: TreeNode) => {
-  if (!node.model.raw.speckle_type) return;
-  return node.model.raw.speckle_type.includes("RevitWall");
-});
+  if (!node.model.raw.speckle_type) return
+  return node.model.raw.speckle_type.includes('RevitWall')
+})
 
-const filteringState = filtering.hideObjects(
-  wallNodes.map((node: TreeNode) => node.model.id)
-);
+const filteringState = filtering.hideObjects(wallNodes.map((node: TreeNode) => node.model.id))
 ```
 
 ## Isolating and Unisolating
@@ -37,13 +35,11 @@ Similar to hiding, let's say we want to isolate all floors. Here's how:
 
 ```typescript
 const floorNodes = viewer.getWorldTree().findAll((node: TreeNode) => {
-  if (!node.model.raw.speckle_type) return;
-  return node.model.raw.speckle_type.includes("RevitFloor");
-});
+  if (!node.model.raw.speckle_type) return
+  return node.model.raw.speckle_type.includes('RevitFloor')
+})
 
-const filteringState = filtering.isolateObjects(
-  floorNodes.map((node: TreeNode) => node.model.id)
-);
+const filteringState = filtering.isolateObjects(floorNodes.map((node: TreeNode) => node.model.id))
 ```
 
 ## Coloring by Properties
@@ -51,7 +47,7 @@ const filteringState = filtering.isolateObjects(
 This filtering operation is different than the ones before as it involves the notion of `properties`. The viewer needs `PropertyInfo` objects in order to filter by color, but that's fine because there's a builtin way of getting them by using:
 
 ```typescript
-const properties: PropertyInfo[] = await viewer.getObjectProperties();
+const properties: PropertyInfo[] = await viewer.getObjectProperties()
 ```
 
 With properties available, we can now do some color filtering!
@@ -59,14 +55,13 @@ With properties available, we can now do some color filtering!
 ```typescript
 /** Find the 'level.name' property info*/
 const propertyInfo: PropertyInfo = properties.find((value) => {
-  return value.key === "level.name";
-}) as PropertyInfo;
+  return value.key === 'level.name'
+}) as PropertyInfo
 
-const filteringState = filtering.setColorFilter(propertyInfo);
+const filteringState = filtering.setColorFilter(propertyInfo)
 ```
 
 Filters can be combined to a certain extent, but as a general rule of thumb, any particular object in the scene will always look how its last filter (if any) told it to look.
-
 
 <Frame caption="Filtering Example">
   <iframe

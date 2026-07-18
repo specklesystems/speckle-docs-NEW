@@ -1,7 +1,7 @@
 ---
-title: "Publish large models (connectors)"
-description: "Upload large host-application models using SendPipeline and Model Ingestion — connector authors only"
-sidebarTitle: "Connector sends"
+title: 'Publish large models (connectors)'
+description: 'Upload large host-application models using SendPipeline and Model Ingestion — connector authors only'
+sidebarTitle: 'Connector sends'
 ---
 
 When a desktop connector converts an entire host-application model, **`Send`** and **`Send2`** cannot hold the full graph in memory. **`SendPipeline`** streams to a local pack, uploads once, and tracks progress through **`client.Ingestion`**.
@@ -17,7 +17,12 @@ When a desktop connector converts an entire host-application model, **`Send`** a
 | Building a production desktop connector for a host app                                                  | This page                                                                                                                |
 
 <Warning>
-**Connector-only pathway.** This guide is for production desktop connectors uploading large host-application models. If you are writing a script, Grasshopper C# component, notebook cell, or service — not converting a whole host-application model — use [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) with `Send2`/`Receive2` instead. See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) for the decision guide.
+  **Connector-only pathway.** This guide is for production desktop connectors uploading large
+  host-application models. If you are writing a script, Grasshopper C# component, notebook cell, or
+  service — not converting a whole host-application model — use [Automate with
+  scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) with `Send2`/`Receive2`
+  instead. See [Load and publish model
+  data](/developers/sdks/dotnet/concepts/send-and-receive-paths) for the decision guide.
 </Warning>
 
 ## Prerequisites
@@ -27,11 +32,13 @@ When a desktop connector converts an entire host-application model, **`Send`** a
 - Familiarity with [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths)
 
 <Info>
-Detecting whether a server supports model ingestion at all, and telling that apart from a user only lacking permission, is exactly the pattern covered in [Handling server capabilities](/developers/sdks/dotnet/guides/handling-server-capabilities) — read it before writing the availability check below for anything beyond a one-off script.
+  Detecting whether a server supports model ingestion at all, and telling that apart from a user
+  only lacking permission, is exactly the pattern covered in [Handling server
+  capabilities](/developers/sdks/dotnet/guides/handling-server-capabilities) — read it before
+  writing the availability check below for anything beyond a one-off script.
 </Info>
 
 ## Complete Example
-
 
 ```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
 using Microsoft.Extensions.DependencyInjection;
@@ -79,7 +86,10 @@ catch (Exception ex)
 ```
 
 <Info>
-This example follows the streaming pattern used by every Speckle desktop connector — see [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors), `RhinoContinuousTraversalBuilder` and `SendOperation.SendViaPackfile`, for a full production implementation.
+  This example follows the streaming pattern used by every Speckle desktop connector — see
+  [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors),
+  `RhinoContinuousTraversalBuilder` and `SendOperation.SendViaPackfile`, for a full production
+  implementation.
 </Info>
 
 ## Step-by-Step Explanation
@@ -107,7 +117,15 @@ using var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
 ```
 
 <Warning>
-`Process` **does** recursively serialize an entire object graph in one call — including nested `Base` values marked `[DetachProperty]` or prefixed with `@` — and writes every resulting object (root and detached children) to the local, gzip-compressed NDJSON file. The reason production connectors still call `Process` bottom-up, once per converted element, and substitute a lightweight `ObjectReference` in the parent instead of keeping the full child object, is **memory**, not a limitation of `Process` itself: converting an entire host-application model into one in-memory `Base` graph before calling `Process` would require holding every converted mesh and property in memory at once. Processing and writing each object as soon as it's converted lets you drop it from memory immediately afterward.
+  `Process` **does** recursively serialize an entire object graph in one call — including nested
+  `Base` values marked `[DetachProperty]` or prefixed with `@` — and writes every resulting object
+  (root and detached children) to the local, gzip-compressed NDJSON file. The reason production
+  connectors still call `Process` bottom-up, once per converted element, and substitute a
+  lightweight `ObjectReference` in the parent instead of keeping the full child object, is
+  **memory**, not a limitation of `Process` itself: converting an entire host-application model into
+  one in-memory `Base` graph before calling `Process` would require holding every converted mesh and
+  property in memory at once. Processing and writing each object as soon as it's converted lets you
+  drop it from memory immediately afterward.
 </Warning>
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
@@ -127,7 +145,13 @@ await pipeline.WaitForUpload();
 Unlike `Send2` + `Version.Create`, this pathway doesn't hand you a version id synchronously. `WaitForUpload` only confirms the upload reached the server and processing has started — the server decompresses the pack, materializes the objects, and creates the version **asynchronously**, after your call returns.
 
 <Note>
-Production connectors do not call `client.Ingestion.Complete` after `WaitForUpload` on this pathway — the server completes the ingestion and creates the version itself once processing finishes. Calling `Complete` is for a different pattern: tracking a classic `Send2` call with an ingestion record you complete manually (see [ModelIngestionResource](/developers/sdks/dotnet/api-reference/resources/ingestion)). Mixing the two — sending via `SendPipeline` and then also calling `Complete` — is redundant and not how any current Speckle connector uses this API.
+  Production connectors do not call `client.Ingestion.Complete` after `WaitForUpload` on this
+  pathway — the server completes the ingestion and creates the version itself once processing
+  finishes. Calling `Complete` is for a different pattern: tracking a classic `Send2` call with an
+  ingestion record you complete manually (see
+  [ModelIngestionResource](/developers/sdks/dotnet/api-reference/resources/ingestion)). Mixing the
+  two — sending via `SendPipeline` and then also calling `Complete` — is redundant and not how any
+  current Speckle connector uses this API.
 </Note>
 
 To learn when the version is ready, subscribe to ingestion updates and read `versionId` off the success status:
@@ -183,32 +207,64 @@ await client.Ingestion.FailWithCancel(
 
 <AccordionGroup>
   <Accordion title="Ingestion stuck in 'processing' forever">
-    On the client side, you only need to reach a terminal call if something goes wrong before or during upload: `FailWithError`, `FailWithInvalid`, or `FailWithCancel`. If `WaitForUpload` succeeds, the server takes over and drives the ingestion to `success` or `failed` itself — you don't call `Complete`. If an ingestion is stuck in `processing` with no client-side error, that's a server-side processing problem (corrupt pack, unsupported data), not a missing client call — inspect it with `client.Ingestion.Get`.
+    On the client side, you only need to reach a terminal call if something goes wrong before or
+    during upload: `FailWithError`, `FailWithInvalid`, or `FailWithCancel`. If `WaitForUpload`
+    succeeds, the server takes over and drives the ingestion to `success` or `failed` itself — you
+    don't call `Complete`. If an ingestion is stuck in `processing` with no client-side error,
+    that's a server-side processing problem (corrupt pack, unsupported data), not a missing client
+    call — inspect it with `client.Ingestion.Get`.
   </Accordion>
   <Accordion title="Calling client.Ingestion.Complete after WaitForUpload">
-    This is unnecessary for the `SendPipeline` pathway and isn't how any current Speckle connector uses this API — see [Finding Out When the Version Is Ready](#3-finding-out-when-the-version-is-ready) above. `Complete` exists for a different, manual ingestion-tracking pattern built around `Send2`.
+    This is unnecessary for the `SendPipeline` pathway and isn't how any current Speckle connector
+    uses this API — see [Finding Out When the Version Is
+    Ready](#3-finding-out-when-the-version-is-ready) above. `Complete` exists for a different,
+    manual ingestion-tracking pattern built around `Send2`.
   </Accordion>
   <Accordion title="Building the whole model in memory before calling Process() once">
-    `Process` does correctly serialize and write an entire nested object graph — including detached children — from a single call at the root. The reason to avoid this pattern at connector scale isn't correctness, it's memory: converting every element of a large host-application model before calling `Process` means holding the whole converted graph in memory at once. Convert and `Process` bottom-up instead, replacing each processed child with its `ObjectReference` in the parent, so converted objects can be released from memory as soon as they're written to disk.
+    `Process` does correctly serialize and write an entire nested object graph — including detached
+    children — from a single call at the root. The reason to avoid this pattern at connector scale
+    isn't correctness, it's memory: converting every element of a large host-application model
+    before calling `Process` means holding the whole converted graph in memory at once. Convert and
+    `Process` bottom-up instead, replacing each processed child with its `ObjectReference` in the
+    parent, so converted objects can be released from memory as soon as they're written to disk.
   </Accordion>
   <Accordion title="Object IDs don't match IDs from Operations.Send">
-    `SendPipeline` uses a different serializer than `Send`/`Send2`. Don't compare or reuse IDs across the two pathways — see [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths).
+    `SendPipeline` uses a different serializer than `Send`/`Send2`. Don't compare or reuse IDs
+    across the two pathways — see [Load and publish model
+    data](/developers/sdks/dotnet/concepts/send-and-receive-paths).
   </Accordion>
   <Accordion title="404 or unsupported errors calling client.Ingestion methods">
-    The Model Ingestion API requires server version 3.0.3 or later. On 3.0.11+, use `client.Model.CanCreateModelIngestion(project.id, model.id)` to verify availability before enabling this pathway; on 3.0.3–3.0.10, confirm compatibility with your server admin. Don't wrap the whole pathway in a broad `try`/`catch` to detect this — see [Handling server capabilities](/developers/sdks/dotnet/guides/handling-server-capabilities) for the narrow-catch pattern that tells "server too old" apart from "not authorized."
+    The Model Ingestion API requires server version 3.0.3 or later. On 3.0.11+, use
+    `client.Model.CanCreateModelIngestion(project.id, model.id)` to verify availability before
+    enabling this pathway; on 3.0.3–3.0.10, confirm compatibility with your server admin. Don't wrap
+    the whole pathway in a broad `try`/`catch` to detect this — see [Handling server
+    capabilities](/developers/sdks/dotnet/guides/handling-server-capabilities) for the narrow-catch
+    pattern that tells "server too old" apart from "not authorized."
   </Accordion>
 </AccordionGroup>
 
 ## Next Steps
 
 <CardGroup cols={3}>
-  <Card title="Load and publish model data" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+  <Card
+    title="Load and publish model data"
+    icon="route"
+    href="/developers/sdks/dotnet/concepts/send-and-receive-paths"
+  >
     Path E decision guide
   </Card>
-  <Card title="Handling server capabilities" icon="shield-check" href="/developers/sdks/dotnet/guides/handling-server-capabilities">
+  <Card
+    title="Handling server capabilities"
+    icon="shield-check"
+    href="/developers/sdks/dotnet/guides/handling-server-capabilities"
+  >
     Permission and version checks
   </Card>
-  <Card title="ModelIngestionResource" icon="code" href="/developers/sdks/dotnet/api-reference/resources/ingestion">
+  <Card
+    title="ModelIngestionResource"
+    icon="code"
+    href="/developers/sdks/dotnet/api-reference/resources/ingestion"
+  >
     Ingestion lifecycle API
   </Card>
 </CardGroup>

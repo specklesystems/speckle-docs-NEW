@@ -1,5 +1,5 @@
 ---
-title: "Objects & Base Class"
+title: 'Objects & Base Class'
 description: "Deep dive into Speckle's object system and the Base class"
 ---
 
@@ -56,7 +56,8 @@ print(point.get_dynamic_member_names())
 ```
 
 <Info>
-**Why dynamic properties?** They let connectors attach application-specific data without defining custom classes. Revit can add `parameters`, Rhino can add `userData`, etc.
+  **Why dynamic properties?** They let connectors attach application-specific data without defining
+  custom classes. Revit can add `parameters`, Rhino can add `userData`, etc.
 </Info>
 
 ### 2. Type Checking
@@ -79,12 +80,13 @@ try:
     point.x = "not a number"
 except Exception as e:
     print(f"Error: {e}")
-    # Error: Cannot set 'Point.x': it expects type 'float', 
+    # Error: Cannot set 'Point.x': it expects type 'float',
     # but received type 'str'
 ```
 
 <Note>
-Type checking only validates the top-level type. For `List[Point]`, it checks if it's a list but doesn't validate each item's type (for performance).
+  Type checking only validates the top-level type. For `List[Point]`, it checks if it's a list but
+  doesn't validate each item's type (for performance).
 </Note>
 
 ### 3. Identity & Hashing
@@ -106,7 +108,8 @@ print(point1.get_id() == point3.get_id())  # False
 ```
 
 <Warning>
-`get_id()` serializes the entire object - expensive for large objects! The `id` property is set during send/receive operations, so use that when available.
+  `get_id()` serializes the entire object - expensive for large objects! The `id` property is set
+  during send/receive operations, so use that when available.
 </Warning>
 
 ### 4. The speckle_type
@@ -128,7 +131,8 @@ print(point.speckle_type)  # Still "Objects.Geometry.Point"
 ```
 
 <Info>
-The `speckle_type` ensures objects are correctly reconstructed when received in other platforms (C#, TypeScript, etc.).
+  The `speckle_type` ensures objects are correctly reconstructed when received in other platforms
+  (C#, TypeScript, etc.).
 </Info>
 
 ## Working with Properties
@@ -204,7 +208,8 @@ except ValueError as e:
 ```
 
 <Info>
-Properties starting with `@` (single) are valid and used for detached references like `@displayValue`.
+  Properties starting with `@` (single) are valid and used for detached references like
+  `@displayValue`.
 </Info>
 
 ## Nested Objects
@@ -245,10 +250,10 @@ from specklepy.objects import Base
 def traverse_object(obj, depth=0):
     """Recursively traverse a Base object tree."""
     indent = "  " * depth
-    
+
     if isinstance(obj, Base):
         print(f"{indent}{obj.speckle_type}")
-        
+
         # Traverse all properties
         for name in obj.get_member_names():
             if name.startswith("_"):
@@ -256,18 +261,18 @@ def traverse_object(obj, depth=0):
             value = getattr(obj, name, None)
             print(f"{indent}  {name}:")
             traverse_object(value, depth + 2)
-    
+
     elif isinstance(obj, list):
         print(f"{indent}[List with {len(obj)} items]")
         for item in obj[:3]:  # Show first 3
             traverse_object(item, depth + 1)
-    
+
     elif isinstance(obj, dict):
         print(f"{indent}{{Dict with {len(obj)} keys}}")
         for key, value in list(obj.items())[:3]:  # Show first 3
             print(f"{indent}  {key}:")
             traverse_object(value, depth + 2)
-    
+
     else:
         # Primitive value
         print(f"{indent}{repr(obj)}")
@@ -295,14 +300,14 @@ from typing import List, Optional
 
 class Wall(Base, speckle_type="MyApp.Wall"):
     """Custom wall object with typed properties."""
-    
+
     # Typed properties
     height: float
     width: float
     thickness: float
     material: Optional[str] = None
     layers: Optional[List[Base]] = None
-    
+
     def __init__(self, height: float, width: float, thickness: float, **kwargs):
         super().__init__(**kwargs)
         self.height = height
@@ -320,7 +325,8 @@ print(wall.get_dynamic_member_names())  # ['fireRating']
 ```
 
 <Warning>
-Custom types must have unique `speckle_type` names. Use a namespace prefix like `"MyApp.Wall"` to avoid conflicts.
+  Custom types must have unique `speckle_type` names. Use a namespace prefix like `"MyApp.Wall"` to
+  avoid conflicts.
 </Warning>
 
 ## Advanced Features
@@ -359,7 +365,8 @@ obj.add_detachable_attrs({"displayValue"})
 ```
 
 <Info>
-Connectors use detachment for `displayValue` meshes - keeps the main object lightweight while allowing on-demand mesh loading.
+  Connectors use detachment for `displayValue` meshes - keeps the main object lightweight while
+  allowing on-demand mesh loading.
 </Info>
 
 ### The applicationId
@@ -383,7 +390,8 @@ point.applicationId = "wall-column-base-001"  # Same ID
 ```
 
 <Info>
-Connectors use `applicationId` to map Speckle objects back to their native application objects (like Revit element IDs).
+  Connectors use `applicationId` to map Speckle objects back to their native application objects
+  (like Revit element IDs).
 </Info>
 
 ## Common Patterns
@@ -417,10 +425,10 @@ from specklepy.objects.geometry import Point, Line
 def get_objects_by_class(obj, target_class):
     """Recursively find all objects of a specific class (recommended approach)."""
     results = []
-    
+
     if isinstance(obj, target_class):
         results.append(obj)
-    
+
     if isinstance(obj, Base):
         # Search in all properties
         for name in obj.get_member_names():
@@ -428,15 +436,15 @@ def get_objects_by_class(obj, target_class):
                 continue
             value = getattr(obj, name, None)
             results.extend(get_objects_by_class(value, target_class))
-    
+
     elif isinstance(obj, (list, tuple)):
         for item in obj:
             results.extend(get_objects_by_class(item, target_class))
-    
+
     elif isinstance(obj, dict):
         for value in obj.values():
             results.extend(get_objects_by_class(value, target_class))
-    
+
     return results
 
 # Use it
@@ -454,7 +462,10 @@ print(f"Found {len(points)} points")  # Found 4 points (including nested in Line
 ```
 
 <Note>
-**For BIM Data:** In v3, most BIM objects are `DataObject` instances. To differentiate walls from columns, filter by properties (e.g., `properties.category == "Walls"`) rather than by type. See [Data Traversal](/developers/sdks/python/concepts/data-traversal) for property-based filtering patterns.
+  **For BIM Data:** In v3, most BIM objects are `DataObject` instances. To differentiate walls from
+  columns, filter by properties (e.g., `properties.category == "Walls"`) rather than by type. See
+  [Data Traversal](/developers/sdks/python/concepts/data-traversal) for property-based filtering
+  patterns.
 </Note>
 
 ### Copying Objects
@@ -475,59 +486,28 @@ point3 = copy.deepcopy(point1)
 
 <AccordionGroup>
   <Accordion title="Use typed properties when possible">
-    Define class properties with types for validation and documentation:
-    
-    ```python
-    # Good - typed property
-    class Wall(Base):
-        height: float
-    
-    # Less good - dynamic property
-    wall = Base()
-    wall.height = 3.0  # No type checking
-    ```
+    Define class properties with types for validation and documentation: ```python # Good - typed
+    property class Wall(Base): height: float # Less good - dynamic property wall = Base()
+    wall.height = 3.0 # No type checking ```
   </Accordion>
-  
-  <Accordion title="Avoid expensive operations in loops">
-    Don't call `get_id()` repeatedly:
-    
-    ```python
-    # Bad - serializes every time
-    for obj in objects:
-        if obj.get_id() in seen:
-            continue
-    
-    # Good - use id property or track differently
-    for obj in objects:
-        if obj.id in seen:  # Set during send/receive
-            continue
-    ```
-  </Accordion>
-  
-  <Accordion title="Use applicationId for tracking">
-    Always set `applicationId` when creating objects from your application:
-    
-    ```python
-    from specklepy.objects.geometry import Point
-    
-    # Link to your app's native object
-    point = Point(x=1, y=2, z=3)
-    point.applicationId = f"myapp-{native_object.id}"
-    ```
-  </Accordion>
-  
+
+<Accordion title="Avoid expensive operations in loops">
+  Don't call `get_id()` repeatedly: ```python # Bad - serializes every time for obj in objects: if
+  obj.get_id() in seen: continue # Good - use id property or track differently for obj in objects:
+  if obj.id in seen: # Set during send/receive continue ```
+</Accordion>
+
+<Accordion title="Use applicationId for tracking">
+  Always set `applicationId` when creating objects from your application: ```python from
+  specklepy.objects.geometry import Point # Link to your app's native object point = Point(x=1, y=2,
+  z=3) point.applicationId = f"myapp-{native_object.id}" ```
+</Accordion>
+
   <Accordion title="Handle unknown types gracefully">
-    When traversing received objects, expect unknown types:
-    
-    ```python
-    def process_object(obj):
-        if isinstance(obj, Base):
-            # Check speckle_type string instead of isinstance
-            if obj.speckle_type.startswith("Objects.Geometry"):
-                process_geometry(obj)
-            elif hasattr(obj, "displayValue"):
-                process_display_value(obj.displayValue)
-    ```
+    When traversing received objects, expect unknown types: ```python def process_object(obj): if
+    isinstance(obj, Base): # Check speckle_type string instead of isinstance if
+    obj.speckle_type.startswith("Objects.Geometry"): process_geometry(obj) elif hasattr(obj,
+    "displayValue"): process_display_value(obj.displayValue) ```
   </Accordion>
 </AccordionGroup>
 

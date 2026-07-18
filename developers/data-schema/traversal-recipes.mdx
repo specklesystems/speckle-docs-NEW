@@ -16,7 +16,7 @@ def traverse_collections(collection):
     if hasattr(collection, 'elements'):
         for obj in collection.elements:
             yield obj
-    
+
     # Recurse into nested collections
     if hasattr(collection, 'elements'):
         for item in collection.elements:
@@ -42,7 +42,7 @@ Filter for DataObjects specifically:
 def find_all_data_objects(collection):
     """Find all DataObjects in the model."""
     data_objects = []
-    
+
     def traverse(coll):
         if hasattr(coll, 'elements'):
             for item in coll.elements:
@@ -50,7 +50,7 @@ def find_all_data_objects(collection):
                     data_objects.append(item)
                 elif is_collection(item):
                     traverse(item)
-    
+
     traverse(collection)
     return data_objects
 
@@ -72,10 +72,10 @@ def process_geometry(obj):
     """Process all geometry in a DataObject's displayValue."""
     if not hasattr(obj, 'displayValue') or not obj.displayValue:
         return
-    
+
     for geom in obj.displayValue:
         geom_type = geom.speckle_type
-        
+
         if "Mesh" in geom_type:
             process_mesh(geom)
         elif "Line" in geom_type or "Curve" in geom_type:
@@ -100,16 +100,16 @@ def find_objects_using_resource(root, proxy_type, resource_name):
     proxy = find_proxy_by_name(root, proxy_type, resource_name)
     if not proxy:
         return []
-    
+
     # Get referenced object IDs
     referenced_ids = proxy.objects if hasattr(proxy, 'objects') else []
-    
+
     # Find objects by applicationId
     objects = []
     for obj in traverse_all_objects(root):
         if hasattr(obj, 'applicationId') and obj.applicationId in referenced_ids:
             objects.append(obj)
-    
+
     return objects
 
 def find_proxy_by_name(root, proxy_type, name):
@@ -124,7 +124,7 @@ def get_proxies(root, proxy_type):
     """Get all proxies of a specific type from root collection."""
     if not hasattr(root, 'elements'):
         return []
-    
+
     proxies = []
     for item in root.elements:
         if hasattr(item, 'speckle_type') and proxy_type in item.speckle_type:
@@ -133,8 +133,8 @@ def get_proxies(root, proxy_type):
 
 # Usage: Find all objects using "Concrete" material
 concrete_objects = find_objects_using_resource(
-    root, 
-    "RenderMaterial", 
+    root,
+    "RenderMaterial",
     "Concrete"
 )
 ```
@@ -148,15 +148,15 @@ def find_resources_for_object(root, obj):
     """Find all proxies that reference this object."""
     if not hasattr(obj, 'applicationId'):
         return []
-    
+
     app_id = obj.applicationId
     resources = []
-    
+
     # Check all proxies
     for proxy in get_all_proxies(root):
         if hasattr(proxy, 'objects') and app_id in proxy.objects:
             resources.append(proxy)
-    
+
     return resources
 
 def get_all_proxies(root):
@@ -195,21 +195,21 @@ def resolve_instance_geometry(root, instance):
     """Get the geometry for an instance by resolving its definition."""
     if not hasattr(instance, 'definitionId'):
         return None
-    
+
     # Find the definition proxy
     definition_proxy = find_proxy_by_application_id(
-        root, 
-        "Definition", 
+        root,
+        "Definition",
         instance.definitionId
     )
-    
+
     if not definition_proxy:
         return None
-    
+
     # Get geometry from definition value
     if hasattr(definition_proxy, 'value') and hasattr(definition_proxy.value, 'displayValue'):
         return definition_proxy.value.displayValue
-    
+
     return None
 
 def find_proxy_by_application_id(root, proxy_type, app_id):
@@ -237,28 +237,28 @@ def build_resource_map(root):
     """Build maps for efficient object-resource lookups."""
     # Map: object applicationId -> list of resources
     object_to_resources = {}
-    
+
     # Map: resource name -> list of object applicationIds
     resource_to_objects = {}
-    
+
     # Process all proxies
     for proxy in get_all_proxies(root):
         resource_name = getattr(proxy, 'name', 'unknown')
         resource_type = proxy.speckle_type
-        
+
         if hasattr(proxy, 'objects'):
             for app_id in proxy.objects:
                 # Build object -> resources map
                 if app_id not in object_to_resources:
                     object_to_resources[app_id] = []
                 object_to_resources[app_id].append(proxy)
-                
+
                 # Build resource -> objects map
                 key = f"{resource_type}:{resource_name}"
                 if key not in resource_to_objects:
                     resource_to_objects[key] = []
                 resource_to_objects[key].append(app_id)
-    
+
     return object_to_resources, resource_to_objects
 
 # Usage
@@ -279,36 +279,36 @@ Find objects matching specific property criteria:
 def find_objects_by_property(root, property_path, value):
     """Find objects with a specific property value."""
     matches = []
-    
+
     for obj in find_all_data_objects(root):
         if not hasattr(obj, 'properties'):
             continue
-        
+
         # Handle nested property paths like "Type Parameters.Width"
         prop_value = get_nested_property(obj.properties, property_path)
-        
+
         if prop_value == value:
             matches.append(obj)
-    
+
     return matches
 
 def get_nested_property(props, path):
     """Get a nested property value using dot notation."""
     keys = path.split('.')
     current = props
-    
+
     for key in keys:
         if isinstance(current, dict) and key in current:
             current = current[key]
         else:
             return None
-    
+
     return current
 
 # Usage: Find all walls with width = 0.2
 walls_200mm = find_objects_by_property(
-    root, 
-    "Type Parameters.Width", 
+    root,
+    "Type Parameters.Width",
     0.2
 )
 ```
@@ -321,7 +321,7 @@ Process objects organized by their collection hierarchy:
 def process_by_collection_path(collection, path=""):
     """Process objects with their collection path context."""
     current_path = f"{path}/{collection.name}" if hasattr(collection, 'name') else path
-    
+
     if hasattr(collection, 'elements'):
         for item in collection.elements:
             if is_data_object(item):
@@ -353,7 +353,7 @@ def get_model_statistics(root):
         'geometry_types': {},
         'object_types': {}
     }
-    
+
     def traverse(coll):
         if hasattr(coll, 'elements'):
             for item in coll.elements:
@@ -363,11 +363,11 @@ def get_model_statistics(root):
                 elif is_data_object(item):
                     stats['data_objects'] += 1
                     stats['total_objects'] += 1
-                    
+
                     # Count object type
                     obj_type = item.speckle_type
                     stats['object_types'][obj_type] = stats['object_types'].get(obj_type, 0) + 1
-                    
+
                     # Count geometry
                     if hasattr(item, 'displayValue') and item.displayValue:
                         for geom in item.displayValue:
@@ -379,7 +379,7 @@ def get_model_statistics(root):
                     stats['total_objects'] += 1
                 elif is_proxy(item):
                     stats['proxies'] += 1
-    
+
     traverse(root)
     return stats
 
@@ -403,4 +403,3 @@ print(f"Geometry types: {stats['geometry_types']}")
 
 - **[Connector Index](/developers/data-schema/connector-index)** - Connector-specific traversal considerations
 - Review [Object Schema](/developers/data-schema/object-schema), [Geometry Schema](/developers/data-schema/geometry-schema), [Proxy Schema](/developers/data-schema/proxy-schema) for details
-

@@ -1,11 +1,5 @@
 export const PowerBIIcon = (props) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 110 125"
-    height={30}
-    fill="none"
-    {...props}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 125" height={30} fill="none" {...props}>
     <path
       fill="#CF890A"
       d="M89.464 0H56.33a5.159 5.159 0 0 0-5.159 5.159V119.84A5.159 5.159 0 0 0 56.33 125h33.134a5.159 5.159 0 0 0 5.159-5.159V5.159c0-2.85-2.31-5.159-5.159-5.159Z"
@@ -46,12 +40,8 @@ export const PowerBIIcon = (props) => (
         <feGaussianBlur stdDeviation={10} />
         <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.0530212 0" />
         <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_515_13" />
-        <feBlend
-          in="SourceGraphic"
-          in2="effect1_dropShadow_515_13"
-          result="shape"
-        />
+        <feBlend in="SourceGraphic" in2="effect1_dropShadow_515_13" result="shape" />
       </filter>
     </defs>
   </svg>
-);
+)

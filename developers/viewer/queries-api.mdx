@@ -3,8 +3,8 @@ title: Queries
 description: Queries are a simple mechanism that allows the user to perform several operations in a contained way.
 ---
 
+The supported operations are
 
-The supported operations are 
 - Project a point
 - Unproject a point
 - Intersection test
@@ -12,9 +12,7 @@ The supported operations are
 
 Queries are not meant to be used directly, but rather through the viewer's [_query_](/developers/viewer/viewer-api#query) function
 
-
 ## Typedefs
-
 
 ### IntersectionQuery
 
@@ -25,16 +23,20 @@ interface IntersectionQuery extends Query {
   operation: 'Occlusion' | 'Pick'
 }
 ```
+
 - **point**: The point to test for intersections
 - _optional_ **tolerance**: Tolerance for intersection
 - **operation**: The query operation type
 
 Based on the operation modes:
+
 - `Occlusion`: Test if a point in the scene is being occluded by the scene's geometry
 - `Pick`: Cast a camer ray to the specified point and return all intersection results
 
 <Warning>
-Pick filter from [_ObjectPickConfiguration_](/developers/viewer/speckle-renderer-api#objectpickconfiguration) **do not** apply here!
+  Pick filter from
+  [_ObjectPickConfiguration_](/developers/viewer/speckle-renderer-api#objectpickconfiguration) **do
+  not** apply here!
 </Warning>
 
 ### IntersectionQueryResult
@@ -48,6 +50,7 @@ interface IntersectionQueryResult {
   }> | null
 }
 ```
+
 - **guid**: The id of the object
 - _optional_ **object**: The raw data of the intersected object
 - **point**: The point of intersection
@@ -60,10 +63,12 @@ interface PointQuery extends Query {
   operation: 'Project' | 'Unproject'
 }
 ```
+
 - **point**: The point to run the operation on
 - **operation**: The operation type
 
 Based on the operation modes:
+
 - `Project`: Projects a world point onto the screen. Result is in NDC
 - `Unproject`: Unprojects an NDC point into a world point
 
@@ -77,16 +82,18 @@ interface PointQueryResult {
   w?: number
 }
 ```
+
 The result is a point of variable component length
 
 ### Query
 
 ```typescript
 interface Query {
-  id?: string 
+  id?: string
   operation: string
 }
 ```
+
 - _optional_ **id**: Currently unused
 - **operation**: The operation type
 
@@ -100,6 +107,7 @@ type QueryArgsResultMap = {
   Pick: IntersectionQueryResult
 } & { [key: string]: unknown }
 ```
+
 Mapping between the query type and query result type.
 
 ### QueryOperation
@@ -107,12 +115,13 @@ Mapping between the query type and query result type.
 ```typescript
 type QueryOperation = 'Project' | 'Unproject' | 'Occlusion' | 'Pick'
 ```
-Query operation type values
 
+Query operation type values
 
 ### QueryResult
 
 ```typescript
 type QueryResult = PointQueryResult | IntersectionQueryResult
 ```
+
 Query result type values

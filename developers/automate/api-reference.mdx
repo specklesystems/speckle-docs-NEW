@@ -8,7 +8,8 @@ description: Complete API reference for Speckle Automate functions and interface
 This reference documents the essential APIs and interfaces for developing functions in Speckle Automate. All APIs are available in both Python and C# SDKs.
 
 <Tip>
-Start with the [Quickstart Guide](/developers/automate/quickstart) to understand the basic concepts before using this API reference.
+  Start with the [Quickstart Guide](/developers/automate/quickstart) to understand the basic
+  concepts before using this API reference.
 </Tip>
 
 ## Function Inputs
@@ -48,13 +49,13 @@ class FunctionInputs(AutomateBase):
         title="Project Name",
         description="Enter the project identifier"
     )
-    
+
     max_length: float = Field(
         default=10.0,
         title="Maximum Length",
         description="Maximum allowed length in meters"
     )
-    
+
     include_analysis: bool = Field(
         default=True,
         title="Include Analysis",
@@ -150,71 +151,82 @@ public class FunctionInputs
 
 </CodeGroup>
 
-
-
 ## Automation Context
 
 The `AutomationContext` is your function's interface to Speckle. It provides access to data, authentication, and methods for reporting results.
 
 ### Properties
 
-<ResponseField name="automation_run_data" type="AutomationRunData" >
-Metadata about the current automation run, including run ID, trigger information, and execution context
+<ResponseField name="automation_run_data" type="AutomationRunData">
+  Metadata about the current automation run, including run ID, trigger information, and execution
+  context
 </ResponseField>
 
-<ResponseField name="speckle_client" type="SpeckleClient" >
-Pre-configured, authenticated client for Speckle API calls. Provides full access to the Speckle SDK functionality.
+<ResponseField name="speckle_client" type="SpeckleClient">
+  Pre-configured, authenticated client for Speckle API calls. Provides full access to the Speckle
+  SDK functionality.
 </ResponseField>
 
-<ResponseField name="function_inputs" type="FunctionInputs" >
-User-provided configuration values that were specified when the automation was triggered
+<ResponseField name="function_inputs" type="FunctionInputs">
+  User-provided configuration values that were specified when the automation was triggered
 </ResponseField>
 
 <Info>
 🔧 **Full SDK Access**: The `speckle_client` property provides access to the complete Speckle SDK functionality. You can use all features from [SpecklePy](https://speckle.guide/dev/specklepy) (Python) or [SpeckleSharp](https://speckle.guide/dev/dotnet) (C#) within your Automate functions.
 
 📚 **Python API Documentation**: For detailed, auto-generated API reference documentation for specklepy, visit the [specklepy API Documentation](https://specklepy.speckle.systems/specklepy/api/client/).
+
 </Info>
 
 ### Methods
 
-<ResponseField name="receive_version()" type="Base" >
-Get the model that triggered this automation. Returns the complete Speckle data structure.
+<ResponseField name="receive_version()" type="Base">
+  Get the model that triggered this automation. Returns the complete Speckle data structure.
 </ResponseField>
 
-<ResponseField name="mark_run_success(message)" type="void" >
-Report successful completion of the automation. Call this when your function completes successfully.
+<ResponseField name="mark_run_success(message)" type="void">
+  Report successful completion of the automation. Call this when your function completes
+  successfully.
 </ResponseField>
 
-<ResponseField name="mark_run_failed(message)" type="void" >
-Report business logic failure. Use this when validation fails or business rules are violated.
+<ResponseField name="mark_run_failed(message)" type="void">
+  Report business logic failure. Use this when validation fails or business rules are violated.
 </ResponseField>
 
-<ResponseField name="mark_run_exception(message)" type="void" >
-Report unexpected error. Use this when an exception occurs that wasn't part of normal business logic.
+<ResponseField name="mark_run_exception(message)" type="void">
+  Report unexpected error. Use this when an exception occurs that wasn't part of normal business
+  logic.
 </ResponseField>
 
-<ResponseField name="attach_error_to_objects(category, object_ids, message, metadata?)" type="void" >
-Mark specific objects with errors. Useful for validation failures or processing errors on individual elements.
+<ResponseField name="attach_error_to_objects(category, object_ids, message, metadata?)" type="void">
+  Mark specific objects with errors. Useful for validation failures or processing errors on
+  individual elements.
 </ResponseField>
 
-<ResponseField name="attach_warning_to_objects(category, object_ids, message, metadata?)" type="void" >
-Add warnings to specific objects. Use for performance issues, recommendations, or non-critical problems.
+<ResponseField
+  name="attach_warning_to_objects(category, object_ids, message, metadata?)"
+  type="void"
+>
+  Add warnings to specific objects. Use for performance issues, recommendations, or non-critical
+  problems.
 </ResponseField>
 
-<ResponseField name="attach_success_to_objects(category, object_ids, message, metadata?)" type="void" >
-Mark objects as successfully processed. Useful for tracking which elements were processed correctly.
+<ResponseField
+  name="attach_success_to_objects(category, object_ids, message, metadata?)"
+  type="void"
+>
+  Mark objects as successfully processed. Useful for tracking which elements were processed
+  correctly.
 </ResponseField>
 
-<ResponseField name="create_new_version_in_project(project_id, data, message)" type="string" >
-Create a new model version with modified data. Returns the ID of the newly created version.
+<ResponseField name="create_new_version_in_project(project_id, data, message)" type="string">
+  Create a new model version with modified data. Returns the ID of the newly created version.
 </ResponseField>
 
-<ResponseField name="store_file_result(file_path, file_name)" type="string" >
-Save a file as an artifact. Useful for reports, exports, or analysis results. Returns the artifact ID.
+<ResponseField name="store_file_result(file_path, file_name)" type="string">
+  Save a file as an artifact. Useful for reports, exports, or analysis results. Returns the artifact
+  ID.
 </ResponseField>
-
-
 
 ### Getting Model Data
 
@@ -227,7 +239,7 @@ await automate_context.receive_version() -> Base
 #### Response
 
 <ResponseField name="model_data" type="Base" required>
-The Speckle model that triggered this automation
+  The Speckle model that triggered this automation
 </ResponseField>
 
 ```csharp GettingModelData.cs
@@ -237,7 +249,7 @@ await context.ReceiveVersion() -> Base
 #### Response (C#)
 
 <ResponseField name="modelData" type="Base" required>
-The Speckle model that triggered this automation
+  The Speckle model that triggered this automation
 </ResponseField>
 
 </CodeGroup>
@@ -257,7 +269,7 @@ automate_context.mark_run_exception(message: str)
 #### Parameters
 
 <ParamField name="message" type="str" required>
-A descriptive message explaining the status. For failures, include actionable information.
+  A descriptive message explaining the status. For failures, include actionable information.
 </ParamField>
 
 ```csharp StatusReporting.cs
@@ -269,7 +281,7 @@ context.MarkRunException(string message)
 #### Parameters (C#)
 
 <ParamField name="message" type="string" required>
-A descriptive message explaining the status. For failures, include actionable information.
+  A descriptive message explaining the status. For failures, include actionable information.
 </ParamField>
 
 </CodeGroup>
@@ -289,19 +301,19 @@ automate_context.attach_success_to_objects(category, object_ids, message, metada
 #### Parameters
 
 <ParamField name="category" type="str" required>
-A category name to group related annotations (e.g., "Validation Errors", "Performance Issues")
+  A category name to group related annotations (e.g., "Validation Errors", "Performance Issues")
 </ParamField>
 
 <ParamField name="object_ids" type="List[str]" required>
-List of object IDs to annotate with the status
+  List of object IDs to annotate with the status
 </ParamField>
 
 <ParamField name="message" type="str" required>
-A descriptive message explaining the status for these objects
+  A descriptive message explaining the status for these objects
 </ParamField>
 
 <ParamField name="metadata" type="Optional[Dict]" required={false}>
-Additional data to include with the annotation (e.g., error codes, thresholds)
+  Additional data to include with the annotation (e.g., error codes, thresholds)
 </ParamField>
 
 ```csharp AnnotatingObjects.cs
@@ -313,19 +325,19 @@ context.AttachSuccessToObjects(category, objectIds, message, metadata = null)
 #### Parameters (C#)
 
 <ParamField name="category" type="string" required>
-A category name to group related annotations (e.g., "Validation Errors", "Performance Issues")
+  A category name to group related annotations (e.g., "Validation Errors", "Performance Issues")
 </ParamField>
 
 <ParamField name="objectIds" type="string[]" required>
-Array of object IDs to annotate with the status
+  Array of object IDs to annotate with the status
 </ParamField>
 
 <ParamField name="message" type="string" required>
-A descriptive message explaining the status for these objects
+  A descriptive message explaining the status for these objects
 </ParamField>
 
 <ParamField name="metadata" type="Dictionary<string, object>" required={false}>
-Additional data to include with the annotation (e.g., error codes, thresholds)
+  Additional data to include with the annotation (e.g., error codes, thresholds)
 </ParamField>
 
 </CodeGroup>
@@ -341,21 +353,21 @@ await automate_context.create_new_version_in_project(project_id, data, message) 
 #### Parameters
 
 <ParamField name="project_id" type="str" required>
-The ID of the project where the new version will be created
+  The ID of the project where the new version will be created
 </ParamField>
 
 <ParamField name="data" type="Base" required>
-The modified Speckle data to save as a new version
+  The modified Speckle data to save as a new version
 </ParamField>
 
 <ParamField name="message" type="str" required>
-A commit message describing the changes in this version
+  A commit message describing the changes in this version
 </ParamField>
 
 #### Response
 
 <ResponseField name="version_id" type="str" required>
-The ID of the newly created version
+  The ID of the newly created version
 </ResponseField>
 
 ```csharp CreatingVersions.cs
@@ -365,21 +377,21 @@ await context.CreateNewVersionInProject(projectId, data, message) -> string
 #### Parameters (C#)
 
 <ParamField name="projectId" type="string" required>
-The ID of the project where the new version will be created
+  The ID of the project where the new version will be created
 </ParamField>
 
 <ParamField name="data" type="Base" required>
-The modified Speckle data to save as a new version
+  The modified Speckle data to save as a new version
 </ParamField>
 
 <ParamField name="message" type="string" required>
-A commit message describing the changes in this version
+  A commit message describing the changes in this version
 </ParamField>
 
 #### Response (C#)
 
 <ResponseField name="versionId" type="string" required>
-The ID of the newly created version
+  The ID of the newly created version
 </ResponseField>
 
 </CodeGroup>
@@ -395,17 +407,17 @@ await automate_context.store_file_result(file_path, file_name) -> str
 #### Parameters
 
 <ParamField name="file_path" type="str" required>
-The local path to the file you want to save as an artifact
+  The local path to the file you want to save as an artifact
 </ParamField>
 
 <ParamField name="file_name" type="str" required>
-The name that will be displayed for the file in the Speckle interface
+  The name that will be displayed for the file in the Speckle interface
 </ParamField>
 
 #### Response
 
 <ResponseField name="artifact_id" type="str" required>
-The ID of the saved artifact file
+  The ID of the saved artifact file
 </ResponseField>
 
 ```csharp SavingFiles.cs
@@ -415,17 +427,17 @@ await context.StoreFileResult(filePath, fileName) -> string
 #### Parameters (C#)
 
 <ParamField name="filePath" type="string" required>
-The local path to the file you want to save as an artifact
+  The local path to the file you want to save as an artifact
 </ParamField>
 
 <ParamField name="fileName" type="string" required>
-The name that will be displayed for the file in the Speckle interface
+  The name that will be displayed for the file in the Speckle interface
 </ParamField>
 
 #### Response (C#)
 
 <ResponseField name="artifactId" type="string" required>
-The ID of the saved artifact file
+  The ID of the saved artifact file
 </ResponseField>
 
 </CodeGroup>
@@ -440,8 +452,6 @@ Speckle models are **directed acyclic graphs (DAGs)**:
 - Properties can be primitive values or object references
 - References are one-way (parent → child)
 - Common properties: `elements`, `parameters`, `units`, `applicationId`
-
-
 
 ## Complete Function Example
 
@@ -464,7 +474,7 @@ class FunctionInputs(AutomateBase):
         title="Analysis Type",
         description="Type of analysis to perform"
     )
-    
+
     max_stress: float = Field(
         default=250.0,
         title="Maximum Stress (MPa)",
@@ -476,25 +486,25 @@ async def automate_function(automate_context, function_inputs):
     try:
         # Get the model data
         model_data = await automate_context.receive_version()
-        
+
         # Find structural elements
-        beams = model_data.query(lambda obj: 
+        beams = model_data.query(lambda obj:
             obj.speckle_type == "Objects.BuiltElements.Beam"
         )
-        
+
         if not beams:
             automate_context.mark_run_failed("No beams found in model")
             return
-        
+
         # Perform analysis
         failed_beams = []
         for beam in beams:
             stress = calculate_stress(beam)
             beam.parameters["calculated_stress"] = stress
-            
+
             if stress > function_inputs.max_stress:
                 failed_beams.append(beam.id)
-        
+
         # Report results
         if failed_beams:
             automate_context.attach_error_to_objects(
@@ -510,14 +520,14 @@ async def automate_function(automate_context, function_inputs):
                 message="All beams within stress limits"
             )
             automate_context.mark_run_success("Structural analysis completed successfully")
-        
+
         # Create new version with results
         await automate_context.create_new_version_in_project(
             project_id=automate_context.automation_run_data.project_id,
             data=model_data,
             message=f"{function_inputs.analysis_type.title()} analysis results"
         )
-        
+
     except Exception as e:
         automate_context.mark_run_exception(f"Analysis failed: {str(e)}")
 
@@ -562,16 +572,16 @@ public class AutomateFunction
         {
             // Get the model data
             var modelData = await context.ReceiveVersion();
-            
+
             // Find structural elements
             var beams = modelData.Traverse<Beam>();
-            
+
             if (!beams.Any())
             {
                 context.MarkRunFailed("No beams found in model");
                 return;
             }
-            
+
             // Perform analysis
             var failedBeams = new List<string>();
             foreach (var beam in beams)
@@ -580,7 +590,7 @@ public class AutomateFunction
                 beam.Parameters["calculated_stress"] = stress;
                 beam.Parameters["safety_factor"] = 1.2;
             }
-            
+
             // Report results
             if (failedBeams.Any())
             {
@@ -600,7 +610,7 @@ public class AutomateFunction
                 );
                 context.MarkRunSuccess("Structural analysis completed successfully");
             }
-            
+
             // Create new version with results
             await context.CreateNewVersionInProject(
                 projectId: context.AutomationRunData.ProjectId,
@@ -629,4 +639,4 @@ public class AutomateFunction
 - [Function Inputs](/developers/automate/function-inputs) - Detailed input configuration
 - [Working with Data](/developers/automate/function-data) - Advanced data processing patterns
 - [Function Testing](/developers/automate/function-testing) - Testing your functions
-- [Creating Automations](/developers/automate/create-automation) - Setting up automation workflows 
+- [Creating Automations](/developers/automate/create-automation) - Setting up automation workflows

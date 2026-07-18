@@ -1,8 +1,8 @@
-import { defineConfig } from "universal-ai-config";
+import { defineConfig } from 'universal-ai-config'
 
 export default defineConfig({
-  targets: ["claude", "copilot", "cursor"],
+  targets: ['claude', 'copilot', 'cursor'],
   variables: {
-    projectName: "speckle-docs",
-  },
-});
+    projectName: 'speckle-docs'
+  }
+})

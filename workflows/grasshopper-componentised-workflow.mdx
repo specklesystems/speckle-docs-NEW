@@ -1,18 +1,23 @@
 ---
-title: "Componentised Grasshopper workflow"
-sidebarTitle: "Grasshopper"
-description: "Break large Grasshopper definitions into modules that hand off data via Speckle models."
+title: 'Componentised Grasshopper workflow'
+sidebarTitle: 'Grasshopper'
+description: 'Break large Grasshopper definitions into modules that hand off data via Speckle models.'
 ---
 
 Use this guide when one Grasshopper definition is becoming too large, or when multiple people or tools need to work on different stages of the same pipeline. It shows how to treat Speckle models as the
 interfaces between Grasshopper modules. For users who already send and receive data with Speckle in Grasshopper.
 
 <Note>
-**Before you start:** You need the Speckle Grasshopper connector installed and basic familiarity with **Send** and **Receive** components. If you are new to Speckle in Grasshopper, see the [Grasshopper connector](/connectors/grasshopper/grasshopper) guide first.
+  **Before you start:** You need the Speckle Grasshopper connector installed and basic familiarity
+  with **Send** and **Receive** components. If you are new to Speckle in Grasshopper, see the
+  [Grasshopper connector](/connectors/grasshopper/grasshopper) guide first.
 </Note>
 
 <Frame>
-  <img src="/images/connectors/grasshopper_toolbar.jpg" alt="Grasshopper Speckle toolbar with Send and Receive components" />
+  <img
+    src="/images/connectors/grasshopper_toolbar.jpg"
+    alt="Grasshopper Speckle toolbar with Send and Receive components"
+  />
 </Frame>
 
 ## When To Componentise A Grasshopper Definition
@@ -21,13 +26,18 @@ interfaces between Grasshopper modules. For users who already send and receive d
 
 <Steps>
   <Step title="Identify natural module boundaries">
-    Look for stages that already exist in your definition such as "base geometry generation", "analysis setup", "visualisation prep", or "documentation". Each of these is a candidate module.
+    Look for stages that already exist in your definition such as "base geometry generation",
+    "analysis setup", "visualisation prep", or "documentation". Each of these is a candidate module.
   </Step>
   <Step title="Decide what each module owns">
-    For each stage, decide what it is responsible for producing (e.g. cleaned room solids with metadata, analysis meshes, layout curves). These become the public outputs that downstream modules rely on.
+    For each stage, decide what it is responsible for producing (e.g. cleaned room solids with
+    metadata, analysis meshes, layout curves). These become the public outputs that downstream
+    modules rely on.
   </Step>
   <Step title="Check who needs to work on each stage">
-    If different people or teams own different stages (e.g. design vs analysis), componentising makes collaboration clearer. Even for one person, modules help separate experiments from stable logic.
+    If different people or teams own different stages (e.g. design vs analysis), componentising
+    makes collaboration clearer. Even for one person, modules help separate experiments from stable
+    logic.
   </Step>
 </Steps>
 
@@ -44,6 +54,7 @@ Outcome: A list of modules with clear responsibilities that you can split into s
     <Note>
     A pipeline diagram (project → models → modules) can be added here as a visual reference. The flow is: **Upstream GH file → Send → Speckle model/branch → Receive → Downstream GH file**.
     </Note>
+
   </Step>
   <Step title="Define the contract for each module output">
     For each module, decide what data will be sent to Speckle. Be explicit about object types, required properties, naming, and units. Treat this as a contract: downstream modules should be able to rely on it
@@ -71,6 +82,7 @@ Outcome: A simple map of which models and branches carry data between modules, a
     <Frame>
       <img src="/images/connectors/grasshopper_publish.jpg" alt="Grasshopper definition with Send component publishing to Speckle" />
     </Frame>
+
   </Step>
   <Step title="Configure account, server, project, and model">
     Set up the Send component with the correct Speckle account, server, project, and model or branch name (e.g. `01_base-geometry`). Use clear, stable names that reflect the module’s role.
@@ -100,6 +112,7 @@ Outcome: A standalone Grasshopper module that publishes a well‑defined Speckle
     <Frame>
       <img src="/images/connectors/grasshopper_load.jpg" alt="Grasshopper definition with Receive component loading from Speckle" />
     </Frame>
+
   </Step>
   <Step title="Adapt received data to local needs">
     Convert received objects into the types, structures, and units this module uses internally. This is also where you can add module‑specific properties or perform filtering based on tags or parameters.
@@ -121,16 +134,21 @@ Outcome: One or more downstream modules that reliably consume Speckle models fro
 
 <Steps>
   <Step title="Assign clear ownership per module">
-    Decide who owns each module and where its Grasshopper file lives (e.g. version‑controlled repository). Owners are responsible for keeping the Speckle contracts stable and documented.
+    Decide who owns each module and where its Grasshopper file lives (e.g. version‑controlled
+    repository). Owners are responsible for keeping the Speckle contracts stable and documented.
   </Step>
   <Step title="Document contracts alongside the files">
-    For each module, record which Speckle project, models, and branches it reads and writes, and what each output contains. A short README next to the Grasshopper file is often enough.
+    For each module, record which Speckle project, models, and branches it reads and writes, and
+    what each output contains. A short README next to the Grasshopper file is often enough.
   </Step>
   <Step title="Agree on change management">
-    Establish how upstream changes are communicated. For example, require a brief note whenever object structure or key properties change, and schedule time for downstream owners to adapt.
+    Establish how upstream changes are communicated. For example, require a brief note whenever
+    object structure or key properties change, and schedule time for downstream owners to adapt.
   </Step>
   <Step title="Run modules on appropriate machines">
-    Let heavy geometry or analysis modules run on powerful workstations or dedicated machines, while lighter reporting or visualisation modules can run elsewhere. Speckle models carry the data between them.
+    Let heavy geometry or analysis modules run on powerful workstations or dedicated machines, while
+    lighter reporting or visualisation modules can run elsewhere. Speckle models carry the data
+    between them.
   </Step>
 </Steps>
 
@@ -150,35 +168,47 @@ Outcome: Teams can work on different stages without sharing one large Grasshoppe
 ## FAQ
 
 <AccordionGroup>
-<Accordion title="How many modules should a workflow have?">
-Use as many modules as you need to keep responsibilities clear and files manageable. A common pattern is 2–4 modules (e.g. base geometry, analysis prep, reporting, and exports) rather than a large number of
-very small ones.
-</Accordion>
-<Accordion title="Can multiple downstream modules consume the same Speckle model?">
-Yes. Any number of Grasshopper files or other tools can receive from the same project, model, and branch. This is a good way to centralise base geometry and fan out into specialised workflows.
-</Accordion>
-<Accordion title="Should downstream modules always use the latest version?">
-For exploratory work, using the latest version keeps things simple. For repeatable analysis or production runs, pin receivers to specific versions so results can be reproduced and compared reliably.
-</Accordion>
-<Accordion title="What if a downstream module needs extra data?">
-Update the upstream module’s contract to include the additional properties or objects, then add them to the Send component. Coordinate the change with all downstream owners so they can take advantage of the
-new data without breaking existing logic.
-</Accordion>
-<Accordion title="How do I debug issues between modules?">
-First, inspect the upstream Speckle model in the web viewer to confirm that objects and properties look as expected. Then check the Receive component configuration and any conversion logic in the downstream
-file. Work from the interface inwards rather than from deep inside the definition.
-</Accordion>
-<Accordion title="Can non-Grasshopper tools participate in the workflow?">
-Yes. Any tool with a Speckle connector or SDK can read from and write to the same models and branches. For example, analysis tools, dashboards, or scripts can consume the outputs of Grasshopper modules or
-publish new stages in the pipeline.
-</Accordion>
-<Accordion title="How big can the Speckle models between modules get?">
-Models can grow large, but very heavy payloads will affect send/receive times and downstream performance. If models become unwieldy, consider splitting them by discipline, zone, or purpose so modules only
-consume what they need.
-</Accordion>
-<Accordion title="Do I need Automate for componentised workflows?">
-No. Componentised workflows work with manual sending and receiving. Automate becomes useful when you want these modules to run automatically on triggers, but it is not required for the pattern itself.
-</Accordion>
+  <Accordion title="How many modules should a workflow have?">
+    Use as many modules as you need to keep responsibilities clear and files manageable. A common
+    pattern is 2–4 modules (e.g. base geometry, analysis prep, reporting, and exports) rather than a
+    large number of very small ones.
+  </Accordion>
+  <Accordion title="Can multiple downstream modules consume the same Speckle model?">
+    Yes. Any number of Grasshopper files or other tools can receive from the same project, model,
+    and branch. This is a good way to centralise base geometry and fan out into specialised
+    workflows.
+  </Accordion>
+  <Accordion title="Should downstream modules always use the latest version?">
+    For exploratory work, using the latest version keeps things simple. For repeatable analysis or
+    production runs, pin receivers to specific versions so results can be reproduced and compared
+    reliably.
+  </Accordion>
+  <Accordion title="What if a downstream module needs extra data?">
+    Update the upstream module’s contract to include the additional properties or objects, then add
+    them to the Send component. Coordinate the change with all downstream owners so they can take
+    advantage of the new data without breaking existing logic.
+  </Accordion>
+  <Accordion title="How do I debug issues between modules?">
+    First, inspect the upstream Speckle model in the web viewer to confirm that objects and
+    properties look as expected. Then check the Receive component configuration and any conversion
+    logic in the downstream file. Work from the interface inwards rather than from deep inside the
+    definition.
+  </Accordion>
+  <Accordion title="Can non-Grasshopper tools participate in the workflow?">
+    Yes. Any tool with a Speckle connector or SDK can read from and write to the same models and
+    branches. For example, analysis tools, dashboards, or scripts can consume the outputs of
+    Grasshopper modules or publish new stages in the pipeline.
+  </Accordion>
+  <Accordion title="How big can the Speckle models between modules get?">
+    Models can grow large, but very heavy payloads will affect send/receive times and downstream
+    performance. If models become unwieldy, consider splitting them by discipline, zone, or purpose
+    so modules only consume what they need.
+  </Accordion>
+  <Accordion title="Do I need Automate for componentised workflows?">
+    No. Componentised workflows work with manual sending and receiving. Automate becomes useful when
+    you want these modules to run automatically on triggers, but it is not required for the pattern
+    itself.
+  </Accordion>
 </AccordionGroup>
 
 ## See Also
@@ -186,4 +216,3 @@ No. Componentised workflows work with manual sending and receiving. Automate bec
 - [Grasshopper connector](/connectors/grasshopper/grasshopper)
 - [Connectors overview](/connectors/overview)
 - [Intelligence Dashboards](/analytics/intelligence-dashboards)
-

@@ -17,6 +17,7 @@ This guide is for organisations who have a commercial license for Speckle Enterp
 ## Prerequisites
 
 Before you can configure Speckle Enterprise Desktop UI, your organization will have already completed the following steps:
+
 1. **License Acquisition**: Acquired a commercial license for Speckle Enterprise from Speckle Systems. This license should include permissions for deploying Desktop UI.
 1. **Package Registry Token**: Obtained a package registry token from Speckle Systems to access the private Helm charts & Docker images for Enterprise features.
 1. **Package Registry URL**: Received the URL for the private package registry hosting the Desktop UI Helm charts and Docker images.
@@ -32,22 +33,21 @@ Speckle Enterprise Desktop UI requires the following infrastructure components:
   - We recommend using a separate namespace for isolation, resource management, and security.
 - **Domain**: A domain name for accessing the Desktop UI. This must be a different domain from your Speckle Server deployment as there may be path routing conflicts if hosted on the same domain.
 
-
 ## Configuration Steps
 
 ### Retrieving the Helm Chart
 
 1. To access the private Helm charts for Speckle Enterprise Desktop UI, you need to log in to the Speckle Enterprise package registry:
 
-    ```bash
-    helm login <PACKAGE_REGISTRY_URL> --username <PACKAGE_REGISTRY_USERNAME> --password <PACKAGE_REGISTRY_TOKEN>
-    ```
+   ```bash
+   helm login <PACKAGE_REGISTRY_URL> --username <PACKAGE_REGISTRY_USERNAME> --password <PACKAGE_REGISTRY_TOKEN>
+   ```
 
 1. Once authenticated, you can pull the Desktop UI Helm chart and investigate its contents:
 
-    ```bash
-    helm pull <PACKAGE_REGISTRY_URL>/speckle-dui-chart --untar
-    ```
+   ```bash
+   helm pull <PACKAGE_REGISTRY_URL>/speckle-dui-chart --untar
+   ```
 
 1. We recommend reading the `values.yaml` file included in the Helm chart to understand all the configuration options available for Desktop UI. A `json.schema` file is also included to provide validation and documentation for each configuration option.
 
@@ -55,9 +55,9 @@ Speckle Enterprise Desktop UI requires the following infrastructure components:
 
 1. Create an empty `values.yaml` file which we will use to configure our deployment:
 
-    ```bash
-    touch values.yaml
-    ```
+   ```bash
+   touch values.yaml
+   ```
 
 ### Image Pull Secrets
 
@@ -97,24 +97,24 @@ To access the Desktop UI, you need to either configure an Ingress resource in Ku
 
 1. Update the Helm values.yaml file to include the appropriate ingress settings for your deployment:
 
-    ```yaml
-    ingress:
-      enabled: true
-      className: "nginx"
-      annotations:
-        # Add any necessary annotations for your ingress controller here, e.g. for cert-manager integration:
-        cert-manager.io/cluster-issuer: letsencrypt-prod
-      hosts:
-        - host: yourSpeckleDUIDomain.example.com
-          paths:
-            # Please retain this path, the dashboards expect to serve all paths under the root.
-            - path: /
-              pathType: ImplementationSpecific
-      tls:
-        - secretName: speckle-dui-tls
-          hosts:
-            - yourSpeckleDUIDomain.example.com
-    ```
+   ```yaml
+   ingress:
+     enabled: true
+     className: 'nginx'
+     annotations:
+       # Add any necessary annotations for your ingress controller here, e.g. for cert-manager integration:
+       cert-manager.io/cluster-issuer: letsencrypt-prod
+     hosts:
+       - host: yourSpeckleDUIDomain.example.com
+         paths:
+           # Please retain this path, the dashboards expect to serve all paths under the root.
+           - path: /
+             pathType: ImplementationSpecific
+     tls:
+       - secretName: speckle-dui-tls
+         hosts:
+           - yourSpeckleDUIDomain.example.com
+   ```
 
 ### Gateway API HttpRoute Configuration
 
@@ -124,22 +124,22 @@ The Helm Chart only provides the relevant HttpRoute configuration for the Deskto
 
 1. Update the Helm values.yaml file to include the appropriate configuration for your deployment:
 
-    ```yaml
-    httpRoute:
-      enabled: true
-      annotations: {}
-      parentRefs:
-      - name: gateway
-        sectionName: http
-      hostnames:
-      - yourSpeckleDUIDomain.example.com
-      rules:
-      - matches:
-        # Please retain this path, the dashboards expect to serve all paths under the root.
-        - path:
-            type: PathPrefix
-            value: /
-    ```
+   ```yaml
+   httpRoute:
+     enabled: true
+     annotations: {}
+     parentRefs:
+       - name: gateway
+         sectionName: http
+     hostnames:
+       - yourSpeckleDUIDomain.example.com
+     rules:
+       - matches:
+           # Please retain this path, the dashboards expect to serve all paths under the root.
+           - path:
+               type: PathPrefix
+               value: /
+   ```
 
 ### Deploying the Helm Chart
 
@@ -147,11 +147,11 @@ The Helm Chart only provides the relevant HttpRoute configuration for the Deskto
 
 1. Use Helm to deploy Speckle Enterprise Desktop UI:
 
-    ```bash
-    helm install speckle-dui <PACKAGE_REGISTRY_URL>/speckle-dui-chart \
-    --namespace <NAMESPACE> \
-    -f values.yaml
-    ```
+   ```bash
+   helm install speckle-dui <PACKAGE_REGISTRY_URL>/speckle-dui-chart \
+   --namespace <NAMESPACE> \
+   -f values.yaml
+   ```
 
 ## Updating Connectors configuration
 

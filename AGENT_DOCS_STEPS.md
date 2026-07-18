@@ -1,16 +1,20 @@
 # Docs agent; steps
 
 Purpose
+
 - Guide users through a deterministic task.
 
 Rules
+
 - Numbered steps only.
 - Each step ends with an observable outcome.
 - 3 to 7 steps per flow; split if longer.
 
 Wording
+
 - Start with a verb.
 - Avoid conditionals; branch into troubleshooting instead.
 
 Validation
+
 - Include a final verification section when failure is silent.

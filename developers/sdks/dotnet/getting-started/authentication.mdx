@@ -1,7 +1,7 @@
 ---
-title: "Authentication"
-description: "Connect your C# automation to Speckle Server — personal access tokens, environment variables, and desktop login"
-sidebarTitle: "Authentication"
+title: 'Authentication'
+description: 'Connect your C# automation to Speckle Server — personal access tokens, environment variables, and desktop login'
+sidebarTitle: 'Authentication'
 ---
 
 Connect your automation to Speckle Server. Before your code can load model data or publish results, SpeckleSharp needs an **Account** (a token plus server and user metadata) and an **IClient** built from it.
@@ -9,7 +9,9 @@ Connect your automation to Speckle Server. Before your code can load model data 
 **What this page covers:** the three .NET ways to obtain an Account — personal access token, interactive browser login, and locally stored accounts. **When to read it:** before any server call in a new app. **Read next:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) or [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
 
 <Info>
-For how to create a personal access token or register an OAuth application, see [Building with PATs](/developers/authentication/pats) and [OAuth 2.0](/developers/authentication/oauth2). This page covers the .NET-specific code that consumes them.
+  For how to create a personal access token or register an OAuth application, see [Building with
+  PATs](/developers/authentication/pats) and [OAuth 2.0](/developers/authentication/oauth2). This
+  page covers the .NET-specific code that consumes them.
 </Info>
 
 Speckle.Sdk exposes three ways to get an `Account`:
@@ -19,7 +21,13 @@ Speckle.Sdk exposes three ways to get an `Account`:
 - **Locally stored accounts** — reuse a login from Speckle desktop connectors
 
 <Warning>
-**Prefer a personal access token or your own OAuth flow over `Accounts.db`.** `IAccountManager.AuthenticateAccount` (below) always writes the resulting account to a local SQLite database (`Accounts.db`) — there's no way to opt out. That's the right behavior for a desktop connector that should share login state with Rhino, Revit, Grasshopper, and other Speckle apps on the same machine. It's very rarely what you want in a script, a server-side service, a CI pipeline, or a multi-user web backend, where a token you manage yourself (env var, secret manager, or your own OAuth exchange) is simpler and doesn't leave credentials on disk outside your control.
+  **Prefer a personal access token or your own OAuth flow over `Accounts.db`.**
+  `IAccountManager.AuthenticateAccount` (below) always writes the resulting account to a local
+  SQLite database (`Accounts.db`) — there's no way to opt out. That's the right behavior for a
+  desktop connector that should share login state with Rhino, Revit, Grasshopper, and other Speckle
+  apps on the same machine. It's very rarely what you want in a script, a server-side service, a CI
+  pipeline, or a multi-user web backend, where a token you manage yourself (env var, secret manager,
+  or your own OAuth exchange) is simpler and doesn't leave credentials on disk outside your control.
 </Warning>
 
 ## Choosing an Authentication Method
@@ -49,7 +57,9 @@ Console.WriteLine($"Authenticated as: {account.userInfo.name}");
 ```
 
 <Note>
-`IAccountFactory.CreateAccount` fetches user and server info from the token and returns an `Account` object. It does not write to the local account store — it's a lightweight factory for in-memory use, ideal for scripts, services, and CI.
+  `IAccountFactory.CreateAccount` fetches user and server info from the token and returns an
+  `Account` object. It does not write to the local account store — it's a lightweight factory for
+  in-memory use, ideal for scripts, services, and CI.
 </Note>
 
 ## Use Environment Variables (Recommended)
@@ -102,7 +112,13 @@ var account = await accountManager.AuthenticateAccount(
 ```
 
 <Warning>
-`AuthenticateAccount` **unconditionally** persists the resulting account to a local SQLite database file at the current user's application data folder (`.../Speckle/Accounts.db`) — the same store used by Speckle's desktop connectors. There is no in-memory-only mode for this method. If you need interactive OAuth login **without** writing to that shared store — for example, a web backend performing OAuth on behalf of many users — implement your own PKCE/authorization-code exchange (see [OAuth 2.0](/developers/authentication/oauth2)) and build the `Account` from the resulting token with `IAccountFactory.CreateAccount` instead, which never touches disk.
+  `AuthenticateAccount` **unconditionally** persists the resulting account to a local SQLite
+  database file at the current user's application data folder (`.../Speckle/Accounts.db`) — the same
+  store used by Speckle's desktop connectors. There is no in-memory-only mode for this method. If
+  you need interactive OAuth login **without** writing to that shared store — for example, a web
+  backend performing OAuth on behalf of many users — implement your own PKCE/authorization-code
+  exchange (see [OAuth 2.0](/developers/authentication/oauth2)) and build the `Account` from the
+  resulting token with `IAccountFactory.CreateAccount` instead, which never touches disk.
 </Warning>
 
 ## Reusing Locally Stored Accounts
@@ -125,7 +141,8 @@ if (defaultAccount is not null)
 ```
 
 <Warning>
-Older `AccountManager` methods such as `AddAccount` and `GetLocalAccounts` are obsolete and throw at runtime. Use `AuthenticateAccount`, `GetAccounts`, and `GetDefaultAccount` instead.
+  Older `AccountManager` methods such as `AddAccount` and `GetLocalAccounts` are obsolete and throw
+  at runtime. Use `AuthenticateAccount`, `GetAccounts`, and `GetDefaultAccount` instead.
 </Warning>
 
 ## Different Speckle Servers
@@ -155,44 +172,52 @@ if (!string.IsNullOrEmpty(account.token))
     **Cause:** The token is invalid, expired, or has been revoked.
 
     **Solution:** Generate a new personal access token and verify there are no extra spaces when copying it.
+
   </Accordion>
 
   <Accordion title="No accounts returned by GetAccounts / GetDefaultAccount">
     **Cause:** No account has been authenticated on this machine yet.
 
     **Solution:** Use token-based authentication via `IAccountFactory.CreateAccount`, or call `AuthenticateAccount` to sign in interactively first.
+
   </Accordion>
 
   <Accordion title="HTTP connection errors to a self-hosted server">
     **Cause:** The server URL is incorrect, or the server uses a self-signed certificate.
 
     **Solution:** Verify the server URL, check network/firewall settings, and ensure the certificate is trusted by the host machine — Speckle.Sdk does not expose a certificate-bypass option.
+
   </Accordion>
 </AccordionGroup>
 
 ## Security Best Practices
 
 <Check>
-Do:
-- Store tokens in environment variables or a secret manager
-- Use scoped tokens with the minimum permissions your application needs
-- Revoke tokens when they're no longer needed
+  Do: - Store tokens in environment variables or a secret manager - Use scoped tokens with the
+  minimum permissions your application needs - Revoke tokens when they're no longer needed
 </Check>
 
 <Warning>
-Don't:
-- Commit tokens to version control
-- Share tokens between team members or applications
-- Use personal access tokens in client-side or distributed desktop code — prefer OAuth for multi-user applications
+  Don't: - Commit tokens to version control - Share tokens between team members or applications -
+  Use personal access tokens in client-side or distributed desktop code — prefer OAuth for
+  multi-user applications
 </Warning>
 
 ## Next Steps
 
 <CardGroup cols={3}>
-  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+  <Card
+    title="Build your first model analysis tool"
+    icon="chart-bar"
+    href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool"
+  >
     Load model data after authenticating
   </Card>
-  <Card title="Automate with scripts" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
+  <Card
+    title="Automate with scripts"
+    icon="terminal"
+    href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks"
+  >
     Bootstrap and Receive2
   </Card>
   <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">

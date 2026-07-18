@@ -16,7 +16,8 @@ This section documents the entire mechanism so developers do not have to reverse
 - A Speckle project, where you have a `Can edit` role
 
 <Info>
-Get your personal access token from: **Avatar → Profile → Personal Access Tokens** in the Speckle web app.
+  Get your personal access token from: **Avatar → Profile → Personal Access Tokens** in the Speckle
+  web app.
 </Info>
 
 For all GraphQL mutations, make sure to send the token in as a request header named `Authorization`:
@@ -26,7 +27,10 @@ Authorization: Bearer YOUR_TOKEN
 ```
 
 <Note>
-This guide requires a Speckle server with the new file importer feature flag enabled. This is available by default on [app.speckle.systems](https://app.speckle.systems). For self-hosted instances, please ensure the `FF_NEXT_GEN_FILE_IMPORTER_ENABLED` and `FF_LARGE_FILE_IMPORTS_ENABLED` feature flags are enabled.
+  This guide requires a Speckle server with the new file importer feature flag enabled. This is
+  available by default on [app.speckle.systems](https://app.speckle.systems). For self-hosted
+  instances, please ensure the `FF_NEXT_GEN_FILE_IMPORTER_ENABLED` and
+  `FF_LARGE_FILE_IMPORTS_ENABLED` feature flags are enabled.
 </Note>
 
 ## Overview
@@ -49,6 +53,7 @@ Uploading a file and triggering Speckle's automatic ingestion pipeline is a mult
    (GraphQL query for the ingestion progress)
 
 Important notes:
+
 - Large files are never sent through the Speckle Server REST endpoints.
 - The upload URL points to your server's configured blob storage (S3, S3 compatible, or Azure).
 - The ETag returned from Blob storage is required for step 4 (file ingestion).
@@ -61,6 +66,7 @@ We start by notifying the Speckle Server of our intent to upload a file. The ser
 **POST** `/graphql`
 
 Mutation:
+
 ```graphql
 mutation GenerateFileUploadUrl($input: GenerateFileUploadUrlInput!) {
   fileUploadMutations {
@@ -73,6 +79,7 @@ mutation GenerateFileUploadUrl($input: GenerateFileUploadUrlInput!) {
 ```
 
 Variables example:
+
 ```json
 {
   "input": {
@@ -83,6 +90,7 @@ Variables example:
 ```
 
 Response example:
+
 ```json
 {
   "data": {
@@ -103,21 +111,25 @@ Response example:
 **PUT** `{presignedURL}`
 
 Headers required:
+
 ```
 Content-Type: application/octet-stream   # or appropriate type
 ```
 
 Body:
+
 ```
 <raw file bytes>
 ```
 
 Important:
+
 - Blob storage returns an ETag in the headers of the response.
 - The ETag is an unique identifier for the uploaded file content, which Speckle uses to verify the file integrity before ingesting the file.
 - The ETag is required for the final step.
 
 Example curl:
+
 ```bash
 curl -X PUT \
   -H "Content-Type: application/octet-stream" \
@@ -140,6 +152,7 @@ This step requires a target model, where the file data should be ingested to. If
 **POST** `/graphql`
 
 Mutation:
+
 ```graphql
 mutation CreateModel($input: CreateModelInput!) {
   modelMutations {
@@ -151,6 +164,7 @@ mutation CreateModel($input: CreateModelInput!) {
 ```
 
 Variables example:
+
 ```json
 {
   "input": {
@@ -161,6 +175,7 @@ Variables example:
 ```
 
 Response example:
+
 ```json
 {
   "data": {
@@ -182,6 +197,7 @@ Once the file is uploaded, tell Speckle to parse, convert, index and create a ne
 **POST** `/graphql`
 
 Mutation:
+
 ```graphql
 mutation StartFileIngestion($input: StartFileImportInput!) {
   fileUploadMutations {
@@ -196,6 +212,7 @@ mutation StartFileIngestion($input: StartFileImportInput!) {
 ```
 
 Variables example:
+
 ```json
 {
   "input": {
@@ -210,6 +227,7 @@ Variables example:
 **Important:** The `fileId` must be the exact value returned from Step 1's `generateUploadUrl` response. Do not use the filename - use the `fileId` from that response.
 
 Response example:
+
 ```json
 {
   "data": {
@@ -236,6 +254,7 @@ Once the ingestion has been started, the file ingestion job receives an ingestio
 **POST** `/graphql`
 
 Query:
+
 ```graphql
 query Ingestion($ingestionId: ID!, $projectId: String!) {
   project(id: $projectId) {
@@ -264,6 +283,7 @@ query Ingestion($ingestionId: ID!, $projectId: String!) {
 ```
 
 Variables example:
+
 ```json
 {
   "ingestionId": "your-file-ingestion-id",
@@ -272,6 +292,7 @@ Variables example:
 ```
 
 Response example:
+
 ```json
 {
   "data": {
@@ -311,16 +332,21 @@ In case of an error, the error response would look like:
     For [app.speckle.systems](https://app.speckle.systems): IFC, DWG, DXF, OBJ, STL, 3DM, and others depending on server version.
 
     For self-hosted servers, IFC only.
+
   </Accordion>
 
-  <Accordion title="Why are different formats supported in self-hosted vs cloud?">
-    Self-hosted servers use open-source code dependencies, which limits the file formats that can be supported. Formats like DWG, DXF, and 3DM require proprietary libraries that are not available in open-source distributions, so they are only available on [app.speckle.systems](https://app.speckle.systems).
-  </Accordion>
+<Accordion title="Why are different formats supported in self-hosted vs cloud?">
+  Self-hosted servers use open-source code dependencies, which limits the file formats that can be
+  supported. Formats like DWG, DXF, and 3DM require proprietary libraries that are not available in
+  open-source distributions, so they are only available on
+  [app.speckle.systems](https://app.speckle.systems).
+</Accordion>
 
   <Accordion title="Where did the StartFileImport mutation go?">
     The `StartFileImport` mutation has been deprecated and replaced with `StartFileIngestion`. The new mutation provides more granular status updates, and allows subscribing to real-time updates. The Ingestion queries are common across all ingestion processes, whether initiated by the file import service or by other Speckle integrations.
 
     Please update your code to use `StartFileIngestion` and the new Ingestion status queries.
+
   </Accordion>
 
   <Accordion title="Why is this not REST?">
@@ -329,6 +355,7 @@ In case of an error, the error response would look like:
     - Files should go direct to blob storage for performance and scale.
     - GraphQL mutations model "actions" better than REST for asynchronous workflows.
     - GraphQL subscriptions allow real-time updates on the ingestion status, which is not possible with REST.
+
   </Accordion>
 
   <Accordion title="Should I ever use the old REST upload?">
@@ -340,6 +367,7 @@ In case of an error, the error response would look like:
 
     In these cases, you may need to use the legacy REST endpoints (`/api/file/...`).
     However, we recommend configuring S3 storage and enabling the feature flag to use the modern file upload workflow described above.
+
   </Accordion>
 
   <Accordion title="Can I automate file uploads with SpecklePy?">

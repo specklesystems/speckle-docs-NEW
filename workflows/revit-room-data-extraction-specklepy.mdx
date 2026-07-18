@@ -1,7 +1,7 @@
 ---
-title: "Extracting Room Data from Revit using SpecklePy"
-sidebarTitle: "Revit Room Data Extraction"
-description: "Extract room data from Revit models using SpecklePy."
+title: 'Extracting Room Data from Revit using SpecklePy'
+sidebarTitle: 'Revit Room Data Extraction'
+description: 'Extract room data from Revit models using SpecklePy.'
 ---
 
 In this workflow, we will demonstrate how to extract room data from Revit models using SpecklePy SDK to a Pandas DataFrame.
@@ -9,6 +9,7 @@ In this workflow, we will demonstrate how to extract room data from Revit models
 ## Prerequisites
 
 Before you begin, ensure you have the following:
+
 - A Revit model with room data.
 - Send your model to Speckle using the Speckle Revit Connector. (Learn how [here](https://docs.speckle.systems/connectors/revit/revit))
 - [SpecklePy SDK](https://docs.speckle.systems/developers/sdks/python/introduction) installed in your Python environment.
@@ -18,7 +19,7 @@ Before you begin, ensure you have the following:
 
 You can install the required libraries using pip:
 
-```bash 
+```bash
 pip install specklepy pandas
 ```
 
@@ -45,7 +46,7 @@ SPECKLE_SERVER_URL = os.getenv("SPECKLE_SERVER_URL", "https://app.speckle.system
 if not SPECKLE_TOKEN:
     raise EnvironmentError("SPECKLE_TOKEN is not set. Add it to your .env file.")
 
-client = SpeckleClient(host=SPECKLE_SERVER_URL)# here add your custom server URL 
+client = SpeckleClient(host=SPECKLE_SERVER_URL)# here add your custom server URL
 client.authenticate_with_token(SPECKLE_TOKEN)
 ```
 
@@ -74,8 +75,8 @@ received_base = operations.receive(referenced_object_id, transport)
 # Flatten root object and get all objects in a list
 def flatten_base(base: Base) -> Iterable[Base]:
     """Flatten a base object into an iterable of bases.
-    
-    This function recursively traverses the `elements` or `@elements` attribute of the 
+
+    This function recursively traverses the `elements` or `@elements` attribute of the
     base object, yielding each nested base object.
 
     Args:
@@ -90,7 +91,7 @@ def flatten_base(base: Base) -> Iterable[Base]:
     if elements is not None:
         for element in elements:
             yield from flatten_base(element)
-    
+
     yield base
 
 all_objects = list(flatten_base(received_base))
@@ -180,9 +181,9 @@ def extract_object_data(objects, field_paths, include_defaults=True):
 In this step, we will define the field paths for the desired parameters and extract the data for the room objects into a Pandas DataFrame. You can use the Speckle 3D Viewer to inspect the structure of the properties and adjust the paths as needed.
 
 ```python
-# Define the field paths for the desired parameters, use the Speckle 3D Viewer to inspect the structure of the properties and adjust paths as needed. 
-# Select one of the rooms in the viewer, inspect its properties and find the path to the parameters you want to extract. 
-# The path is a list of keys to navigate through the nested dictionaries in obj.properties. For example, if the parameter is located at obj.properties['Parameters']['Instance Parameters']['Identity Data']['Number'], 
+# Define the field paths for the desired parameters, use the Speckle 3D Viewer to inspect the structure of the properties and adjust paths as needed.
+# Select one of the rooms in the viewer, inspect its properties and find the path to the parameters you want to extract.
+# The path is a list of keys to navigate through the nested dictionaries in obj.properties. For example, if the parameter is located at obj.properties['Parameters']['Instance Parameters']['Identity Data']['Number'],
 # then the path would be ['Parameters', 'Instance Parameters', 'Identity Data', 'Number'].
 field_paths = {
     'Number':       ['Parameters', 'Instance Parameters', 'Identity Data', 'Number'],
@@ -212,4 +213,3 @@ df_rooms.head()
 | 77aacf2216a7c55cdc72ef5f118f3113  | 103    | Outdoor Covered Dining | Restaurant     | Polished Concrete/LVT | L1 - Block 35 | 674.576823  | 14316.140687 | 114.583333 | 22.750000        |
 | f71f1d3a62b5457de25061e025a8f2c9  | 104    | Pocket Park            | Outdoor Public | Varies see Plan       | L1 - Block 35 | 1775.819324 | 39490.443882 | 225.443711 | 22.750000        |
 | c825211befa4530a133cf44fd21084cc  | S3     | Stair                  | None           | Concrete              | L2            | 180.062500  | 15500.451922 | 59.750000  | 87.708333        |
-

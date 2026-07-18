@@ -1,12 +1,11 @@
 ---
-title: "SpeckleClient"
-description: "API reference for the SpeckleClient class"
+title: 'SpeckleClient'
+description: 'API reference for the SpeckleClient class'
 ---
 
 <Info>
-  📚 **Complete API Documentation**: For detailed, auto-generated API reference
-  documentation with all methods, properties, and parameters, visit the
-  [specklepy API
+  📚 **Complete API Documentation**: For detailed, auto-generated API reference documentation with
+  all methods, properties, and parameters, visit the [specklepy API
   Documentation](https://specklepy.speckle.systems/specklepy/api/client/).
 </Info>
 
@@ -38,6 +37,7 @@ SpeckleClient(
 Creates a new Speckle client instance.
 
 Parameters:
+
 <ResponseField name="host" type="str" default='"https://app.speckle.systems"'>
   The Speckle server URL including protocol
 </ResponseField>
@@ -51,6 +51,7 @@ Parameters:
 </ResponseField>
 
 Examples:
+
 <Tabs>
   <Tab title="Hosted Server">
     ```python
@@ -84,8 +85,8 @@ Examples:
 </Tabs>
 
 <Warning>
-  Only set `verify_certificate=False` for local development or testing. Always
-  verify certificates in production!
+  Only set `verify_certificate=False` for local development or testing. Always verify certificates
+  in production!
 </Warning>
 
 ## Authentication
@@ -99,11 +100,13 @@ client.authenticate_with_token(token: str) -> None
 Authenticate using a personal access token.
 
 Parameters:
+
 <ResponseField name="token" type="str" required>
   Personal access token from your Speckle profile
 </ResponseField>
 
 Example:
+
 ```python
 from specklepy.api.client import SpeckleClient
 
@@ -112,8 +115,8 @@ client.authenticate_with_token("your_personal_access_token")
 ```
 
 <Info>
-  Get your personal access token from: **Avatar → Profile → Personal Access
-  Tokens** in the Speckle web app.
+  Get your personal access token from: **Avatar → Profile → Personal Access Tokens** in the Speckle
+  web app.
 </Info>
 
 ### authenticate_with_account()
@@ -125,11 +128,13 @@ client.authenticate_with_account(account: Account) -> None
 Authenticate using an Account object from local Speckle Manager/Connector.
 
 Parameters:
+
 <ResponseField name="account" type="Account" required>
   Account object from `get_default_account()` or `get_local_accounts()`
 </ResponseField>
 
 Example:
+
 ```python
 from specklepy.api.client import SpeckleClient
 from specklepy.api.credentials import get_default_account
@@ -140,8 +145,8 @@ client.authenticate_with_account(account)
 ```
 
 <Note>
-  This method requires that you've previously logged in via Speckle Manager or a
-  Speckle Connector (Rhino, Revit, etc.).
+  This method requires that you've previously logged in via Speckle Manager or a Speckle Connector
+  (Rhino, Revit, etc.).
 </Note>
 
 ## Properties
@@ -155,6 +160,7 @@ client.account: Account
 The currently authenticated account. Contains user information after authentication.
 
 Example:
+
 ```python
 client.authenticate_with_token(token)
 
@@ -202,6 +208,7 @@ client.project: ProjectResource
 Access project operations (create, get, update, delete, list).
 
 Example:
+
 ```python
 from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
 
@@ -224,6 +231,7 @@ client.model: ModelResource
 Access model operations (create, get, update, delete, list).
 
 Example:
+
 ```python
 from specklepy.core.api.inputs.model_inputs import CreateModelInput
 
@@ -244,6 +252,7 @@ client.version: VersionResource
 Access version operations (create, get, list, update, delete).
 
 Example:
+
 ```python
 from specklepy.core.api.inputs.version_inputs import CreateVersionInput
 
@@ -266,6 +275,7 @@ client.active_user: ActiveUserResource
 Operations on the currently authenticated user (get profile, update, get projects, etc.).
 
 Example:
+
 ```python
 user = client.active_user.get()
 print(f"Name: {user.name}")
@@ -283,6 +293,7 @@ client.other_user: OtherUserResource
 Operations for looking up other users (get by ID, search).
 
 Example:
+
 ```python
 user = client.other_user.get(user_id="other_user_id")
 results = client.other_user.search(query="john")
@@ -299,6 +310,7 @@ client.server: ServerResource
 Server information and metadata.
 
 Example:
+
 ```python
 version = client.server.version()
 info = client.server.get()
@@ -327,6 +339,7 @@ Check your server capabilities before using workspace operations, or wrap calls 
 Workspace operations (get workspace details, members, projects, settings).
 
 Example:
+
 ```python
 try:
     workspace = client.workspace.get("workspace_id")
@@ -350,16 +363,19 @@ client.execute_query(query: str) -> Dict
 Execute a raw GraphQL query against the Speckle server.
 
 Parameters:
+
 <ResponseField name="query" type="str" required>
   GraphQL query string (use `gql()` for proper formatting)
 </ResponseField>
 
 Returns:
+
 <ResponseField name="response" type="Dict">
   Raw GraphQL response
 </ResponseField>
 
 Example:
+
 ```python
 from gql import gql
 from specklepy.api.client import SpeckleClient
@@ -398,6 +414,7 @@ Use `execute_query()` when you need to:
 - Optimize queries by requesting only needed fields
 
 Example - Custom Fields:
+
 ```python
 # Query custom or new fields not in SDK
 query = gql("""
@@ -418,6 +435,7 @@ result = client.execute_query(query)
 ```
 
 Example - Mutations:
+
 ```python
 # Custom mutation not yet in SDK
 mutation = gql("""

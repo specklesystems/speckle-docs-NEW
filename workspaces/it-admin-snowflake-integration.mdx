@@ -1,16 +1,15 @@
 ---
-title: "Enable Snowflake Integration"
-sidebarTitle: "Snowflake"
-description: "IT administrator setup steps to prepare Snowflake and connect a warehouse in Speckle."
-tag: "Beta"
+title: 'Enable Snowflake Integration'
+sidebarTitle: 'Snowflake'
+description: 'IT administrator setup steps to prepare Snowflake and connect a warehouse in Speckle.'
+tag: 'Beta'
 ---
 
 This guide is for IT administrators who need to prepare Snowflake and connect a warehouse in Speckle before users can register tables and query them in AI chat and data tools.
 
 <Note>
-  The Snowflake integration is in **Beta** and is enabled per workspace. If you
-  don't see Snowflake under your project's **Integrations**, submit the [beta
-  access request
+  The Snowflake integration is in **Beta** and is enabled per workspace. If you don't see Snowflake
+  under your project's **Integrations**, submit the [beta access request
   form](https://share-eu1.hsforms.com/2Jy0rZrUfQpKkbvtomaxXMA2fs1ws).
 </Note>
 
@@ -80,6 +79,7 @@ Speckle undertakes all Snowflake actions via a dedicated **service user** you cr
     ```
 
     The service user can now read only the databases, schemas, tables, and views you granted.
+
   </Step>
   <Step title="Copy your account identifier">
     Account admins can find the account identifier in Snowsight from **Profile \> Account \> View account details**.
@@ -95,6 +95,7 @@ Speckle undertakes all Snowflake actions via a dedicated **service user** you cr
     <Frame>
       <img src="/images/connectors/data-warehouses/snowflake_account_identifier.png" alt="Find and copy the Snowflake account identifier" />
     </Frame>
+
   </Step>
 </Steps>
 
@@ -103,37 +104,42 @@ Speckle undertakes all Snowflake actions via a dedicated **service user** you cr
   account, you can ask it to generate the RSA key pair, create the service user,
   role, grants, and return the connection details you need for Speckle.
 
-<Accordion title="Prompt for Snowflake CoCo">
-  ```text
-  Configure read-only Snowflake access for Speckle.
+  <Accordion title="Prompt for Snowflake CoCo">
+    ```text
+    Configure read-only Snowflake access for Speckle.
 
-  Use these values:
-- Service user: SPECKLE_SVC
-- Read-only role: SPECKLE_READER
-- Warehouse: COMPUTE_WH
-- Database to expose: SPECKLE
+    Use these values:
 
-  Please do the following:
-  1. Generate a Snowflake key-pair credential for SPECKLE_SVC. The private key must be PKCS8 PEM format and the public key must be suitable for ALTER USER ... SET RSA_PUBLIC_KEY.
-  2. Create the SPECKLE_READER role if it does not exist.
-  3. Create the SPECKLE_SVC user as TYPE = SERVICE with SPECKLE_READER as the default role and COMPUTE_WH as the default warehouse.
-  4. Assign SPECKLE_READER to SPECKLE_SVC.
-  5. Set the generated RSA public key on SPECKLE_SVC.
-  6. Grant SPECKLE_READER access to use COMPUTE_WH.
-  7. Grant SPECKLE_READER read-only access to the SPECKLE database, including current and future schemas, tables, and views.
-  8. Verify the user, role, public key, warehouse grant, and data grants.
+    - Service user: SPECKLE_SVC
+    - Read-only role: SPECKLE_READER
+    - Warehouse: COMPUTE_WH
+    - Database to expose: SPECKLE
 
-  When you are done, output the exact values I should enter in Speckle:
-- Account identifier
-- Service user
-- Default warehouse
-- Role
-- Database
-- Schema, if you recommend setting one
-- Private key PEM, including the BEGIN and END markers
-- Key passphrase, if the private key is encrypted
-  ```
-</Accordion>
+    Please do the following:
+    1. Generate a Snowflake key-pair credential for SPECKLE_SVC. The private key must be PKCS8 PEM format and the public key must be suitable for ALTER USER ... SET RSA_PUBLIC_KEY.
+    2. Create the SPECKLE_READER role if it does not exist.
+    3. Create the SPECKLE_SVC user as TYPE = SERVICE with SPECKLE_READER as the default role and COMPUTE_WH as the default warehouse.
+    4. Assign SPECKLE_READER to SPECKLE_SVC.
+    5. Set the generated RSA public key on SPECKLE_SVC.
+    6. Grant SPECKLE_READER access to use COMPUTE_WH.
+    7. Grant SPECKLE_READER read-only access to the SPECKLE database, including current and future schemas, tables, and views.
+    8. Verify the user, role, public key, warehouse grant, and data grants.
+
+    When you are done, output the exact values I should enter in Speckle:
+
+    - Account identifier
+    - Service user
+    - Default warehouse
+    - Role
+    - Database
+    - Schema, if you recommend setting one
+    - Private key PEM, including the BEGIN and END markers
+    - Key passphrase, if the private key is encrypted
+    ```
+
+  </Accordion>
+
+Paste that prompt into CoCo, then copy the returned values into Speckle.
 
 </Info>
 
@@ -157,11 +163,13 @@ Speckle undertakes all Snowflake actions via a dedicated **service user** you cr
     </Frame>
 
     Your warehouse connection details are ready to test.
+
   </Step>
   <Step title="Test the connection">
     Select **Test connection**. Speckle runs a `SELECT 1` round-trip against your warehouse. Auto-suspended warehouses can take a few seconds to resume on the first query — if the test times out on a cold warehouse, try again once it's running.
 
     You should see a success message with the response time, or an error explaining what failed.
+
   </Step>
   <Step title="Save">
     Select **Connect**. The connection is now stored for your workspace and you can browse it.
@@ -172,13 +180,17 @@ Speckle undertakes all Snowflake actions via a dedicated **service user** you cr
 
 <AccordionGroup>
   <Accordion title="Can Speckle modify or write to my warehouse?">
-    No. Speckle is read-only in Snowflake. It only runs `SELECT`, `SHOW`, and `DESCRIBE` queries against objects users browse or register and never writes, alters, or deletes data in your warehouse.
+    No. Speckle is read-only in Snowflake. It only runs `SELECT`, `SHOW`, and `DESCRIBE` queries
+    against objects users browse or register and never writes, alters, or deletes data in your
+    warehouse.
   </Accordion>
   <Accordion title="What controls which Snowflake data Speckle can read?">
-    Snowflake grants define the boundary. Speckle can only read databases, schemas, tables, and views you explicitly granted to the service user — nothing more.
+    Snowflake grants define the boundary. Speckle can only read databases, schemas, tables, and
+    views you explicitly granted to the service user — nothing more.
   </Accordion>
   <Accordion title="How are Snowflake connection secrets protected?">
-    Connection secrets are encrypted in your browser before they are sent, stored encrypted at rest, and never shown again after you save the connection.
+    Connection secrets are encrypted in your browser before they are sent, stored encrypted at rest,
+    and never shown again after you save the connection.
   </Accordion>
 </AccordionGroup>
 

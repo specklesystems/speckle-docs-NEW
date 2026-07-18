@@ -8,6 +8,7 @@ This page explains how geometry is structured and organized in Speckle's data mo
 ## Geometry Storage Rule
 
 All visual geometry for a DataObject must be in `displayValue`.:
+
 ```mermaid
 classDiagram
     class DataObject {
@@ -35,7 +36,7 @@ classDiagram
 
 Geometry objects are never direct children of DataObjects—they're always in `displayValue`.
 
-*Why these primitives?* `displayValue` uses **minimum viable interoperable primitives** (Meshes, Lines, Points, etc.) that almost all AEC and 3D software can ingest, even if they don't understand higher-level concepts like "Wall" or "TopologicalSurface". This ensures maximum interoperability—a receiver application can always render the geometry, even if it can't interpret the DataObject's semantic meaning.
+_Why these primitives?_ `displayValue` uses **minimum viable interoperable primitives** (Meshes, Lines, Points, etc.) that almost all AEC and 3D software can ingest, even if they don't understand higher-level concepts like "Wall" or "TopologicalSurface". This ensures maximum interoperability—a receiver application can always render the geometry, even if it can't interpret the DataObject's semantic meaning.
 
 ## Geometry Object Types
 
@@ -91,12 +92,14 @@ classDiagram
 ```
 
 Conceptually, a mesh is a surface composed of polygons where:
+
 - **Vertices** define the 3D points in space
 - **Faces** define polygons by referencing vertex indices, with each face preceded by its vertex count
 - The mesh represents a surface through connected polygons (triangles are most common, but quads and ngons are supported)
 - **Hard-edged faces**: Speckle does not implicitly normalize meshes—they are sent as hard-edged faces, preserving the exact geometry from the source application
 
 Optional fields:
+
 - **colors**: Colors are stored per vertex (RGB values). Faces take the average of their vertex colors, enabling quasi-texture mapping or visualization of analytical results (e.g., stress values, temperature gradients).
 - **normals**: Vertex normals are supported but not heavily used in connectors due to lack of host application support.
 - **textureCoordinates**: Not yet utilized in the current implementation.
@@ -156,6 +159,7 @@ A single DataObject can have multiple geometry objects in `displayValue`:
 ```
 
 This is common for:
+
 - **Visual representation** (Mesh) + **Edge curves** (Line/Polyline)
 - **Main geometry** + **Annotation geometry** (Points, Lines for dimensions)
 - **Multiple LODs** (Level of Detail) - different representations for different purposes
@@ -168,6 +172,7 @@ Using an array allows:
 4. **Traversal** - Easy to iterate over all geometry for an object
 
 This design separates the object's identity and properties from its visual representation.
+
 </Accordion>
 
 ## Geometry Units
@@ -201,16 +206,19 @@ Conceptually, coordinate spaces work as follows:
 ## Geometry Primitives and Object Semantics
 
 Geometry primitives in `displayValue` are **agnostic** to the semantic meaning of the DataObject. A Mesh in a wall's `displayValue` is just a mesh—it doesn't "know" it represents a wall. The semantic meaning comes from:
+
 - The DataObject's `properties` (material, dimensions, type)
 - The DataObject's `speckle_type` (e.g., "Objects.Data.DataObject:Objects.Data.RevitObject")
 - The DataObject's position in the collection hierarchy
 
 This separation enables:
+
 - **Interoperability**: Receivers can render geometry even if they don't understand "Wall" semantics
 - **Flexibility**: The same geometry primitives work across different applications
 - **Clarity**: Geometry represents shape; properties represent meaning
 
 For example, a wall DataObject might have:
+
 - `properties.material = "Concrete"` (semantic: this is concrete)
 - `displayValue = [Mesh with gray color]` (geometric: this is a gray surface)
 
@@ -238,9 +246,9 @@ Both patterns are valid. The key rule is: **if a DataObject has geometry, it's i
 graph LR
     A[Instance] --> B["definitionId: 'block-123'<br/>applicationId"]
     A --> C["transform: Matrix"]
-    
+
     D[Definition Proxy<br/>at root] --> E["definition: {<br/>  displayValue: [Mesh, ...]<br/>}"]
-    
+
     B -.references.-> D
 ```
 
@@ -263,6 +271,7 @@ Some DataObjects are data-only (no visual representation). They might represent:
 - **Relationships** - Objects that encode relationships but have no geometry
 
 Always check if `displayValue` exists and has items before processing geometry.
+
 </Accordion>
 
 ## Conceptual Capability
@@ -273,4 +282,3 @@ After reading this page, you understand how geometry is structured in Speckle: h
 
 - **[Proxy Schema](/developers/data-schema/proxy-schema)** - How proxies encode relationships
 - **[Object Schema](/developers/data-schema/object-schema)** - Review object structure
-
