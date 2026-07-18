@@ -3,32 +3,30 @@
   "build": {
     "dockerfile": "Dockerfile",
     "args": {
-      "VARIANT": "20"
+      "VARIANT": "22"
+    }
+  },
+  "forwardPorts": [3333],
+  "portsAttributes": {
+    "3333": {
+      "label": "Mintlify",
+      "onAutoForward": "notify"
     }
   },
   "customizations": {
     "vscode": {
       "settings": {
-        "terminal.integrated.profiles.linux": {
-          "zsh": {
-            "path": "/usr/bin/zsh",
-            "args": ["-l"]
-          }
-        },
-        "terminal.integrated.defaultProfile.linux": "zsh"
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
       },
       "extensions": [
-        "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "mintlify.mintlify-vscode",
         "mintlify.mintlify-snippets",
-        "mintlify.document",
-        "unifiedjs.vscode-mdx",
-        "nuxt.mdc"
+        "unifiedjs.vscode-mdx"
       ]
     }
   },
-  "mounts": ["source=speckle-docs-zsh-history,target=/home/node/.zsh_history,type=volume"],
-  "postCreateCommand": "if [ -f package.json ]; then pnpm install || exit 1; else echo 'No package.json, skipping pnpm install'; fi; CHOKIDAR_USEPOLLING=true mint dev --verbose",
+  "postCreateCommand": "pnpm install",
   "remoteUser": "node"
 }
