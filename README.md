@@ -89,7 +89,7 @@ pnpm format
 pnpm lint:md:fix
 ```
 
-**Phase 2 (before making the check required):** clear current debt — Prettier/markdownlint noise, OpenAPI `developers/api/previews/preview-openapi.json`, `snippets/components/PowerBIVersionFetcher.jsx` react import, and broken-link hits (~41 MDX files, mostly `developers/viewer` and `legacy`). Then remove `continue-on-error` from the workflow and require **Docs PR checks** in branch protection.
+**Phase 2 (before making the check required):** clear current debt — ~430 Prettier files, ~1.3k markdownlint findings (mostly MD060/MD036), OpenAPI `developers/api/previews/preview-openapi.json`, `snippets/components/PowerBIVersionFetcher.jsx` react import, and broken-link hits (~41 MDX files, mostly `developers/viewer` and `legacy`). Then remove `continue-on-error` from the workflow and require **Docs PR checks** in branch protection.
 
 ### Generating universal-ai-config instructions
 
