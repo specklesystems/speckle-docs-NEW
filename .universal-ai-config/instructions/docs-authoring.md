@@ -16,7 +16,7 @@ This project uses **universal-ai-config** for canonical doc rules. Generated ins
 - **Plain language**: approachable, precise, no jargon; imperative steps.
 - **Honest guardrails**: call out limitations, known issues, version differences.
 - **Connectors are a subset**: everyone uses the web app; not everyone uses connectors.
-- **Developer docs: scripts first**: default SDK/API examples for citizen developers and AEC hackers (standalone scripts, notebooks, small automations). Connector and add-in development is secondary — see [Docs Agent — Persona and Audience](docs-persona-audience.md) § Developer Docs Audience Hierarchy.
+- **Developer docs: scripts first**: default SDK/API examples for citizen developers and AEC hackers (standalone scripts, notebooks, small automations). Connector and add-in development is secondary — see **Developer Docs Audience Hierarchy** in `docs-persona-audience.md`.
 
 ## Global Authoring Rules
 

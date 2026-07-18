@@ -1,6 +1,6 @@
 ---
-title: "Python SDK concepts"
-description: "Understand the fundamental concepts of specklepy and Speckle"
+title: 'Python SDK concepts'
+description: 'Understand the fundamental concepts of specklepy and Speckle'
 ---
 
 ## The Speckle Data Model
@@ -45,7 +45,7 @@ custom.nested.value = 42
 ```
 
 <Info>
-Objects are **immutable** once sent - their hash (object ID) uniquely identifies their content.
+  Objects are **immutable** once sent - their hash (object ID) uniquely identifies their content.
 </Info>
 
 #### Static vs Dynamic Properties
@@ -64,7 +64,9 @@ point.metadata = {"author": "Alice"}
 ```
 
 <Info>
-Learn more about [Static vs Dynamic Properties](/developers/sdks/python/concepts/objects#static-vs-dynamic-properties) including type checking, required vs optional properties, and how to work with both types.
+  Learn more about [Static vs Dynamic
+  Properties](/developers/sdks/python/concepts/objects#1-static-vs-dynamic-properties) including
+  type checking, required vs optional properties, and how to work with both types.
 </Info>
 
 ### 2. Projects, Models, and Versions
@@ -77,8 +79,6 @@ Project
       └─ Version
           └─ Object (Root object + children)
 ```
-
-
 
 **Projects** are top-level containers for related work.
 
@@ -95,8 +95,6 @@ project = client.project.create(ProjectCreateInput(
 ))
 project_id = project.id
 ```
-
-
 
 **Models** are branches within a project, representing different variants or disciplines.
 
@@ -133,8 +131,6 @@ version_input = CreateVersionInput(
 version = client.version.create(version_input)
 ```
 
-
-
 ### 3. Object IDs (Hashes)
 
 Every object has a unique **object ID** (also called a hash) that's deterministically generated from its content.
@@ -155,10 +151,8 @@ print(p3.get_id())  # "xyz789..." - different!
 ```
 
 <Check>
-This enables:
-- **Deduplication** - Identical objects stored once
-- **Incremental sync** - Only new/changed objects transferred
-- **Content addressing** - Objects referenced by their hash
+  This enables: - **Deduplication** - Identical objects stored once - **Incremental sync** - Only
+  new/changed objects transferred - **Content addressing** - Objects referenced by their hash
 </Check>
 
 ### 4. Transports
@@ -177,6 +171,7 @@ This enables:
         client=client
     )
     ```
+
   </Tab>
 
   <Tab title="SQLiteTransport" icon="database">
@@ -188,6 +183,7 @@ This enables:
     transport = SQLiteTransport()
     # Stores in ~/.local/share/Speckle
     ```
+
   </Tab>
 
   <Tab title="MemoryTransport" icon="memory">
@@ -199,6 +195,7 @@ This enables:
     transport = MemoryTransport()
     # Cleared when program ends
     ```
+
   </Tab>
 </Tabs>
 
@@ -224,12 +221,8 @@ object_id = operations.send(
 ```
 
 <Info>
-`send()` automatically handles:
-- Object serialization
-- Child object detection
-- Chunking large arrays
-- Deduplication
-- Parallel uploads
+  `send()` automatically handles: - Object serialization - Child object detection - Chunking large
+  arrays - Deduplication - Parallel uploads
 </Info>
 
 #### receive()
@@ -262,15 +255,16 @@ reconstructed_object = operations.deserialize(json_string)
 ```
 
 <Info>
-Most developers won't need to know the serialization and deserialization functions directly. The `send()` and `receive()` operations handle serialization and deserialization implicitly. Use these functions only when you need custom workflows like saving objects to files or working with JSON representations directly.
+  Most developers won't need to know the serialization and deserialization functions directly. The
+  `send()` and `receive()` operations handle serialization and deserialization implicitly. Use these
+  functions only when you need custom workflows like saving objects to files or working with JSON
+  representations directly.
 </Info>
 
 <Note>
-Serialization automatically handles:
-- Nested objects (converted to references)
-- Large arrays (chunked and detached)
-- Type information (preserved via `speckle_type`)
-- Units (tracked and converted)
+  Serialization automatically handles: - Nested objects (converted to references) - Large arrays
+  (chunked and detached) - Type information (preserved via `speckle_type`) - Units (tracked and
+  converted)
 </Note>
 
 ### 7. Orphaned Objects
@@ -278,6 +272,7 @@ Serialization automatically handles:
 <Warning>
 
 Objects sent to the server but not referenced by any version are called "orphaned" or "zombie" objects. While they exist in the database and have object IDs, they are effectively **unreachable** and cannot be browsed or retrieved through the normal Speckle UI or workflows.
+
 </Warning>
 
 ```python lines icon="python"
@@ -295,6 +290,7 @@ version = client.version.create(CreateVersionInput(
 ```
 
 **Key Points:**
+
 - Orphaned objects remain in the database but are not discoverable
 - You can still retrieve them if you have the object ID: `operations.receive(obj_id=object_id)`
 - Always create a version after sending important data
@@ -329,6 +325,7 @@ graph LR
     ```python lines icon="python"
     point = Point(x=1, y=2, z=3)
     ```
+
   </Step>
 
   <Step title="Send">
@@ -337,6 +334,7 @@ graph LR
     ```python lines icon="python"
     object_id = operations.send(base=point, transports=[transport])
     ```
+
   </Step>
 
   <Step title="Version">
@@ -353,6 +351,7 @@ graph LR
     )
     version = client.version.create(version_input)
     ```
+
   </Step>
 
   <Step title="Get Version">
@@ -365,6 +364,7 @@ graph LR
     # Access the referenced object ID
     object_id = version.referencedObject
     ```
+
   </Step>
 
   <Step title="Receive">
@@ -373,6 +373,7 @@ graph LR
     ```python lines icon="python"
     received = operations.receive(obj_id=object_id, remote_transport=transport)
     ```
+
   </Step>
 </Steps>
 
@@ -404,6 +405,7 @@ received = operations.receive(...)  # Comes back as Point, not Base
     ```python lines icon="python"
     from specklepy.objects.geometry import Point, Line, Mesh, Plane
     ```
+
   </Accordion>
 
   <Accordion title="Data (Objects.Data.*)">
@@ -414,6 +416,7 @@ received = operations.receive(...)  # Comes back as Point, not Base
     ```python lines icon="python"
     from specklepy.objects.data_objects import DataObject, BlenderObject
     ```
+
   </Accordion>
 
   <Accordion title="Annotation (Objects.Annotation.*)">
@@ -422,6 +425,7 @@ received = operations.receive(...)  # Comes back as Point, not Base
     ```python lines icon="python"
     from specklepy.objects.annotation.text import Text
     ```
+
   </Accordion>
 
   <Accordion title="Primitive (Objects.Primitive.*)">
@@ -430,6 +434,7 @@ received = operations.receive(...)  # Comes back as Point, not Base
     ```python lines icon="python"
     from specklepy.objects.primitive import Interval
     ```
+
   </Accordion>
 
   <Accordion title="Other (Objects.Other.*)">
@@ -440,6 +445,7 @@ received = operations.receive(...)  # Comes back as Point, not Base
     ```python lines icon="python"
     from specklepy.objects.other import RenderMaterial
     ```
+
   </Accordion>
 
 </AccordionGroup>
@@ -485,6 +491,7 @@ structure.displayValue = [mesh_representation]  # Add after creation
 ```
 
 See [Display Values](/developers/sdks/python/concepts/display-values) for more details on making your objects visible and interoperable.
+
 </Warning>
 
 ## Local Cache
@@ -528,13 +535,17 @@ Now that you understand the concepts, explore the API and apply your knowledge:
     SpeckleClient, resources, and operations API
   </Card>
 
-  <Card title="Objects & Base" icon="cube" href="/developers/sdks/python/concepts/objects">
-    Deep dive into the Base class and object model
-  </Card>
+<Card title="Objects & Base" icon="cube" href="/developers/sdks/python/concepts/objects">
+  Deep dive into the Base class and object model
+</Card>
 
-  <Card title="Data Traversal" icon="diagram-project" href="/developers/sdks/python/concepts/data-traversal">
-    Learn to navigate and extract data from object graphs
-  </Card>
+<Card
+  title="Data Traversal"
+  icon="diagram-project"
+  href="/developers/sdks/python/concepts/data-traversal"
+>
+  Learn to navigate and extract data from object graphs
+</Card>
 
   <Card title="Data Types" icon="table" href="/developers/sdks/python/concepts/data-types">
     Understanding the three types of Speckle data

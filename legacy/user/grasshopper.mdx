@@ -3,11 +3,10 @@ title: Grasshopper
 noindex: true
 ---
 
-
 import LegacyWarning from '/snippets/legacy-warning.mdx'
 import LegacyVersions from '/snippets/legacy-versions.mdx'
 
-<LegacyWarning connector="Grasshopper" /> 
+<LegacyWarning connector="Grasshopper" />
 <LegacyVersions app="Rhino Grasshopper" versions="v6, v7 & v8" />
 
 <Note>
@@ -60,6 +59,7 @@ Just go to `Speckle 2 -> Tabs` and enable the ones you do need. By default, all 
 <img src="/images/legacy/gh/gh-speckleMenu-tabs.png" alt="Grasshopper Tabs menu" />
 
 **Changes to this settings will take effect after Restarting Rhino**.
+
 </Tip>
 
 ## Streams and URLs
@@ -71,9 +71,10 @@ In visual programming environments, Speckle Streams are identified by their URLs
 - `https://app.speckle.systems/streams/3073b96e86/commits/604bea8cc6` points to a specific commit `604bea8cc6` on Stream `3073b96e86`
 
 <Tip>
-Unsure what _commits_ and _branches_ are? 🤔
+Unsure what *commits* and *branches* are? 🤔
 
 No worries, you don't need to know what they are to use Speckle!
+
 </Tip>
 
 We'll see how branch and commit URLs are used in the following sections.
@@ -82,7 +83,10 @@ We'll see how branch and commit URLs are used in the following sections.
 
 Let's look at how we would send some data in grasshopper. First, start by creating a new `Send` node.
 
-<img src="/images/legacy/gh/image-20210322180706379.png" alt="Creating a new Send node in Grasshopper" />
+<img
+  src="/images/legacy/gh/image-20210322180706379.png"
+  alt="Creating a new Send node in Grasshopper"
+/>
 
 To select the stream you want send data to,just pass in its URL as a string to the stream port.
 
@@ -98,26 +102,27 @@ Alternatively, you can also use one of the following nodes to create or retrieve
 While you can send data to streams and branches, you cannot send data to a specific commit. This is because commits represent your stream in a specific point in time. Therefore, everything that gets sent to Speckle is already a commit.
 
 Want to edit an old commit? Just re-send the data and use the new commit instead.
+
 </Note>
 
-#### Adding objects
+### Adding objects
 
 In order to select which objects to send in grasshopper, we just need to connect the desired nodes to the `Data` input in the `Send` node. The sender supports any type of data, in any structure (item, list, datatree), and will convert any supported Rhino objects into a Speckle-compatible format where necessary.
 
-#### Adding a commit message
+### Adding a commit message
 
 While not required, it's good practice to add a "commit message" whenever you send you data, especially if working with others. This message should briefly describe the changes being pushed.
 You can add a commit message by passing some text to the `message` port.
 The commit message will be visible in Speckle Web (where you will also be able to edit it).
 
-#### Sending
+### Sending
 
 Once you've lined up your objects (and optionally written a commit message) the only thing left to do is to press the **Send button**.
 
 ![gh-send](/images/legacy/gh/gh-send.gif)
 
 <Tip>
-To view the data you just sent in Grasshopper, right-click the `Send` node and select the `View commit ...` option. This should open a new browser window loading the _stream url_. You can share that url with any collaborators so they can receive the data.
+To view the data you just sent in Grasshopper, right-click the `Send` node and select the `View commit ...` option. This should open a new browser window loading the *stream url*. You can share that url with any collaborators so they can receive the data.
 
 <img src="/images/legacy/gh/image-20210322182801307.png" alt="View commit option in Send node context menu" />
 </Tip>
@@ -146,7 +151,10 @@ When new data is pushed to this stream a notification will appear on the receive
 
 By right-clicking on the node, you can enable/disable auto receiving. If enabled, new data pushed to this stream will be pulled automatically as it becomes available.
 
-<img src="/images/legacy/gh/image-20210322183400126.png" alt="Auto receive toggle in Receive node context menu" />
+<img
+  src="/images/legacy/gh/image-20210322183400126.png"
+  alt="Auto receive toggle in Receive node context menu"
+/>
 
 ### Receiving a specific branch
 
@@ -159,7 +167,8 @@ To receive from a specific branch, simply use the branch URL, such as: `https://
 As we've seen, you can retrieve data from both the 'stream' and 'branch' level. It goes deeper - it's possible to retrieve data from specific commits. To do so, simply use the commit URL, such as: `https://app.speckle.systems/streams/3073b96e86/commits/604bea8cc6`
 
 <Note>
-When receiving from a commit, the node will stop showing notifications about new activity on such stream and the auto receive toggle will be disabled.
+  When receiving from a commit, the node will stop showing notifications about new activity on such
+  stream and the auto receive toggle will be disabled.
 </Note>
 
 ### Receiving a specific object
@@ -179,17 +188,17 @@ There's several different ways to create custom speckle objects using the Grassh
 
 This node is a _variable parameter_ type, meaning if you zoom into the _inputs_ section, you should see a `+/-` sign that will allow you to add/remove properties from the object. Each input you define will represent a new property on the object. You can also modify the name of these properties, as well as their _access type_.
 
-#### Modifying the access type
+### Modifying the access type
 
 Access type operates in the same way as the `Python` and `C#` script components. In this case, you can specify if you want a specific property in the object to be a _list_ or a single _item_.
 
 <img src="/images/legacy/gh/menu-listAccess.gif" alt="Access type menu" />
 
 <Warning>
-Choosing the wrong access type for your data may result in duplicated data being generated.
+  Choosing the wrong access type for your data may result in duplicated data being generated.
 </Warning>
 
-#### Detach/Do not detach
+### Detach or do not detach
 
 Every property can also be specified as _detached/non-detached_. When a property is _detached_, it means that the objects it contains will be saved as independent entities in the Speckle database. All properties are detached by default for performance reasons, but you can choose not to by specifying `Do not detach` on the right-click menu. Primitive types (int/double/bool/etc...) are never detached even if flagged as such.
 
@@ -197,7 +206,7 @@ Want to dig deeper into Detach/Do Not Detatch? Take a look at the Decomposition 
 
 ![Detach/Do not detach](/images/legacy/gh/menu-DoNotDetach.gif)
 
-#### Optional
+### Optional
 
 Every property can also be flagged as _optional_. This will allow you to create new objects with _incomplete_ data.
 
@@ -211,7 +220,7 @@ When you activate any of the previous options, the corresponding icon will be sh
 <img src="/images/legacy/gh/menu-stateTags.png" alt="State tags" />
 </Tip>
 
-#### Renaming inputs
+### Renaming inputs
 
 All inputs can be renamed following the normal Grasshopper way. Just right-click the input you wish to rename, and write a new name for it in the first field of the pop-up menu.
 
@@ -231,8 +240,10 @@ All renaming options and shortcuts are available in any other "variable input" s
 
 - Send node
 - Extend speckle object
-</Tip>
 
+The same shortcuts apply across those nodes.
+
+</Tip>
 
 ## Grasshopper BIM
 
@@ -241,9 +252,9 @@ Speckle 2.0 lets you create _Speckle BIM Elements_ from Rhino Geometry, so you c
 <img src="/images/legacy/gh/gh-bim.png" alt="Grasshopper BIM" />
 
 <Tip>
-You'll find the same functionality for Rhino, which is now covered not by object types but by using [Speckle Mapper](/legacy/user/rhino#rhino-mapper).
+  You'll find the same functionality for Rhino, which is now covered not by object types but by
+  using [Speckle Mapper](/legacy/user/rhino#rhino-mapper).
 </Tip>
-
 
 ### Features
 
@@ -257,7 +268,10 @@ The functionality is currently split into 2 distinct categories: `Speckle 2 BIM`
 
 The `Speckle 2 BIM` tab holds all components that can create _generic_ BIM elements. These are the most basic BIM elements supported by Speckle, and consist on the minimum amount of information required to make them work.
 
-<img src="/images/legacy/gh/gh-bim-BuiltElements.png" alt="Example of simple floor, wall and level" />
+<img
+  src="/images/legacy/gh/gh-bim-BuiltElements.png"
+  alt="Example of simple floor, wall and level"
+/>
 
 ### The "Speckle 2 Revit" tab
 
@@ -273,6 +287,7 @@ Did you know?
 You can share all your Revit project information through Speckle, including all available families in the project, so you won't have to guess!
 
 Follow our [Revit to GH guide](https://speckle.systems/tutorials/create-revit-bim-models-in-grasshopper/) for more details.
+
 </Tip>
 
 #### Updating Revit parameters
@@ -309,7 +324,10 @@ In simple scenarios, Grasshopper BIM works by assigning a new `@speckleSchema` p
 
 The example bellow creates a `Floor` using a rectangle. If you expand the resulting `Polyline`'s properties, you can see the `@speckleSchema` property is present and it's type is `Objects.BuiltElements.Floor`
 
-<img src="/images/legacy/gh/gh-bim-be-floor.png" alt="Polyline with floor speckle schema attached" />
+<img
+  src="/images/legacy/gh/gh-bim-be-floor.png"
+  alt="Polyline with floor speckle schema attached"
+/>
 
 For more complex scenarios, where attaching a schema to the object is not viable, the result of the node will directly be the BIM object of choice, and it will contain all the geometric objects inside it.
 
@@ -326,7 +344,10 @@ Each `Grasshopper BIM` node has an option that allows the user to select between
 
 The precise language of the options varies depending on the BIM element you are trying to create, take for example the `Beam` node:
 
-<img src="/images/legacy/gh/speckle-gh-schema-option.png" alt="Schema conversion option for a Beam" />
+<img
+  src="/images/legacy/gh/speckle-gh-schema-option.png"
+  alt="Schema conversion option for a Beam"
+/>
 
 This option allows you to switch between generating `Speckle BIM` elements directly, or treat them as geometry with a special property attached (`@speckleSchema`). The advantage of selecting one over the other depends on your preference:
 
@@ -341,7 +362,10 @@ When the **Convert `Geometry` with `Schema` attached** option is enabled, the ou
 
 You can _expand_ the generated objects further to inspect differences:
 
-<img src="/images/legacy/gh/gh-schema-convertOption-nodes.png" alt="Difference in conversion methods" />
+<img
+  src="/images/legacy/gh/gh-schema-convertOption-nodes.png"
+  alt="Difference in conversion methods"
+/>
 
 As you can see, the resulting objects are quite different, but contain essentially the same information (one as `Geometry -> BIM Element` and the other as `BIM Element -> Geometry`).
 
@@ -356,9 +380,10 @@ This setting will be recorded in your Grasshopper installation, and will only af
 ### Schema Builder
 
 <Note>
-The _Schema Builder_ exists to allow the Grasshopper Connector to read and create _schema objects_ from any available kit.
+The *Schema Builder* exists to allow the Grasshopper Connector to read and create *schema objects* from any available kit.
 
 If you're just using the **Objects kit**, our recommended approach is to use the individual nodes in the `Speckle 2 BIM` and `Speckle 2 Revit` tabs.
+
 </Note>
 
 <img src="/images/legacy/gh/nodes-schema-builder.png" alt="Schema Builder node" />
@@ -372,7 +397,8 @@ When a new **Schema Builder** node is created, a pop-up window will be displayed
 <img src="/images/legacy/gh/nodes-schema-builder-popup.png" alt="Schema builder pop-up" />
 
 <Note>
-Check out our [tutorial on sending data from Grasshopper to Revit](https://speckle.systems/tutorials/process-revit-bim-models-in-grasshopper/)!
+  Check out our [tutorial on sending data from Grasshopper to
+  Revit](https://speckle.systems/tutorials/process-revit-bim-models-in-grasshopper/)!
 </Note>
 
 ## Object conversion
@@ -386,7 +412,10 @@ There are some situations where this behavior may not be ideal, as it may cause 
 
 Speckle can handle nested Speckle objects without any issues but, due to limitations in the Rhino API, you can only attach text to a specific geometry object's custom data, such as a line.
 
-<img src="/images/legacy/gh/speckle-gh-conversion-createNestedLine.png" alt="Creating a Speckle line with custom data attached" />
+<img
+  src="/images/legacy/gh/speckle-gh-conversion-createNestedLine.png"
+  alt="Creating a Speckle line with custom data attached"
+/>
 
 Since any valid geometry objects will be automatically converted to their Rhino representation when they're output by a node, this _non-supported_ data will be _"lost"_.
 
@@ -397,14 +426,23 @@ In order to provide a work-around to this problem, all nodes that perform conver
 <Accordion title="Handling geometry objects with nested data">
 Following the example above, we package and send the custom Speckle Line.
 
-<img src="/images/legacy/gh/speckle-gh-conversion-send.png" alt="Send custom line and normal rhino line" />
+<img
+  src="/images/legacy/gh/speckle-gh-conversion-send.png"
+  alt="Send custom line and normal rhino line"
+/>
 
 After receiving the data, when expanding Speckle objects you'll have several options:
 
 1. Default behavior when receiving data: Automatic conversion to Rhino objects
-   <img src="/images/legacy/gh/speckle-gh-conversion-expandAndConvert.png" alt="Expand and convert" />
+   <img
+     src="/images/legacy/gh/speckle-gh-conversion-expandAndConvert.png"
+     alt="Expand and convert"
+   />
 2. Behavior when "Do not convert" options is enabled: Output is a Speckle Line
-   <img src="/images/legacy/gh/speckle-gh-conversion-expandAndNoConvert.png" alt="Expand but don't convert" />
+   <img
+     src="/images/legacy/gh/speckle-gh-conversion-expandAndNoConvert.png"
+     alt="Expand but don't convert"
+   />
 
 Now you can access the custom data attached to the line:
 
@@ -412,10 +450,15 @@ Now you can access the custom data attached to the line:
 </Accordion>
 
 <Note>
-Don't worry, we always ensure all objects are converted to Speckle format before preforming a `Send` operation.
+  Don't worry, we always ensure all objects are converted to Speckle format before preforming a
+  `Send` operation.
 </Note>
 
-<Warning>**Changing document units: If you ever change the units of your Rhino document, make sure you recompute the entire Grasshopper definition (press `F5`) to ensure the change is properly propagated to all nodes.</Warning>
+<Warning>
+  **Changing document units: If you ever change the units of your Rhino document, make sure you
+  recompute the entire Grasshopper definition (press `F5`) to ensure the change is properly
+  propagated to all nodes.
+</Warning>
 
 ## Using the C#/Python script nodes
 
@@ -427,6 +470,7 @@ Fair warning
 About creating your own objects in scripting nodes: Creating objects with [`circular references`](https://en.wikipedia.org/wiki/Circular_reference) is **not supported**, and although there is nothing stopping you from creating this types of object relationships in your code, they will fail to be sent to the server (or any other transport for that matter).
 
 That said, they **will work** inside your Grasshopper definition, but we heavily suggest you don't. If you end up doing so (for whatever reason we don't want to know... 😉), just make sure you remove all those nasty `circular references` before sending.
+
 </Note>
 
 ### C# Script
@@ -485,6 +529,7 @@ The process to use Speckle in a python script is similar to the C# node steps, o
    ```
 
 4. Your final result should look like this:
+
    <img src="/images/legacy/gh/speckle-gh-script-pythoncode.png" alt="Python script code" />
 
 5. And that's it! The output will be a `Base` object you can operate with just like any other created with the `Object Management` nodes.
@@ -520,14 +565,13 @@ Just as in the `Create Speckle Object` node, you can add as many inputs as neces
 There is also an option to set the node to automatically send every time there is a change in the data. You will find this option in the right-click menu of the node.
 
 | <img src="/images/legacy/gh/nodes-send-automode-activate.png" alt="Activating auto mode in sender" /> | <img src="/images/legacy/gh/nodes-send-automode-active.png" alt="Auto-send mode active in sender" /> |
-| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-
+| ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 
 ##### Detach input data
 
 This option is enabled by default in all inputs, but it can be disabled on a per-input basis on the right-click menu of each input.
 
-You can find a more detailed explanation of this option [here](#detachdo-not-detach).
+You can find a more detailed explanation of this option [here](#detach-or-do-not-detach).
 
 ### Receive Node
 
@@ -585,7 +629,6 @@ The **Local Send** node performs sending operations directly to the users's loca
 
 The **Local Receive** node performs receive operations in the same way as the [Receive node](#receive-node). The only difference is that data is received locally from the Speckle's user local database, instead of the server or any other transport.
 
-
 #### Inputs
 
 - _localDataId_: The unique `id` for the data you want to fetch locally. This would be provided from a [Local Send node](#local-send-node)
@@ -599,7 +642,6 @@ The **Local Receive** node performs receive operations in the same way as the [R
 <img src="/images/legacy/gh/gh-sendSync.png" alt="Synchronous send node" />
 
 The **Synchronous Send** node performs receive operations in the same way as the [Send node](#send-node) but synchronously and it will lock the canvas.
-
 
 #### Input
 
@@ -629,18 +671,23 @@ The **Synchronous Receive** node performs receive operations in the same way as 
 
 Please refer to the [Creating custom objects](/legacy/user/grasshopper#creating-custom-objects) section.
 
-### Create Speckle Object by Key/Value pairs
+### Create Speckle Object by Key-Value pairs
 
 <img src="/images/legacy/gh/nodes-create-object-keyval.png" alt="Create object by key/value" />
 
 This node will create a new Speckle object using a list of `Keys` to be used as the object's properties, and a list of values (or nested list) to assign to each property.
 
-
 > When using this component, there is no option to specify a properties `detached` state, so all properties will be detached by default.
 
-<img src="/images/legacy/gh/nodes-create-keyval-item.png" alt="Creating an object with keys and values as items" />
+<img
+  src="/images/legacy/gh/nodes-create-keyval-item.png"
+  alt="Creating an object with keys and values as items"
+/>
 
-<img src="/images/legacy/gh/nodes-create-keyval-list.png" alt="Creating an object with keys and values as lists" />
+<img
+  src="/images/legacy/gh/nodes-create-keyval-list.png"
+  alt="Creating an object with keys and values as lists"
+/>
 
 > Notice when creating list items, the data structure must match. Meaning, the keys and values for each object must start with the same branch index.
 
@@ -682,7 +729,8 @@ The **Extend Speckle Object** node provides a way to add new properties to an al
 - _Speckle Object_: The Speckle object to be extended.
 
 <Tip>
-**Variable Inputs**: You can add or remove inputs just like you would with the `Create Speckle Object` node.
+  **Variable Inputs**: You can add or remove inputs just like you would with the `Create Speckle
+  Object` node.
 </Tip>
 
 #### Outputs
@@ -699,7 +747,7 @@ The **Extend Speckle Object by Key/Value** provides a way to add new properties 
 
 - _Speckle Object_: The Speckle object to be extended.
 - _Keys_: The Keys to extend the object with. When an existing key is overriden, a warning will be displayed.
-- _Values_: The values to assign to each individual key. Works in the same way as the [Create Object by KeyValue node](#create-speckle-object-by-keyvalue-pairs)
+- _Values_: The values to assign to each individual key. Works in the same way as the [Create Object by KeyValue node](#create-speckle-object-by-key-value-pairs)
 
 #### Outputs
 
@@ -747,9 +795,7 @@ Once an account has been provided, the node will generate a new stream and remem
 
 The **Get Stream** node will try to find an existing `Stream`, given its unique `id` (or its `stream url`) and a specific account to access that stream with.
 
-<Note>
-You can also use a stream URL copied from your browser instead of using this node.
-</Note>
+<Note>You can also use a stream URL copied from your browser instead of using this node.</Note>
 
 #### Inputs
 
@@ -766,9 +812,7 @@ You can also use a stream URL copied from your browser instead of using this nod
 
 The **List Streams** node returns a specified amount of streams available in an account. For performance reasons, it has been limited to fetching a maximum of 20 streams.
 
-<Note>
-You can also use a stream URL copied from your browser instead of using this node
-</Note>
+<Note>You can also use a stream URL copied from your browser instead of using this node</Note>
 
 #### Inputs
 
@@ -829,10 +873,7 @@ The **Convert to Speckle** node will try to convert any Rhino objects (such as l
 
 This node works **recursively**, meaning that if given any non-convertible `base` object, it will traverse through the properties and try to convert each value, leaving the structure intact.
 
-<Warning>
-This node was developed for testing/development purposes.
-</Warning>
-
+<Warning>This node was developed for testing/development purposes.</Warning>
 
 #### Convert to Native Node
 
@@ -840,9 +881,7 @@ The **Convert to Native** node will try to convert any Speckle objects into Rhin
 
 This node works **recursively**, meaning that if given any non-convertible `base` object, it will traverse through the properties and try to convert each value, leaving the structure intact.
 
-<Warning>
-This node was developed for testing/development purposes.
-</Warning>
+<Warning>This node was developed for testing/development purposes.</Warning>
 
 #### Serialize Speckle objects Node
 
@@ -897,6 +936,6 @@ Returns a flat list of any deeply nested collections within an existing collecti
 This node makes it easier to obtain the geometry elements within complex commit object structures (such as Rhino nested layers or Navisworks tree structure).
 
 <Note>
-For a given layer structure in Rhino you can easily extract the information from all the layers in grasshopper
+  For a given layer structure in Rhino you can easily extract the information from all the layers in
+  grasshopper
 </Note>
-

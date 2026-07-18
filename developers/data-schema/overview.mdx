@@ -4,13 +4,15 @@ description: Introduction to Speckle's Data Schema and how models are organized
 ---
 
 <Note>
-  Our Data Schemas and object model are still evolving, and there may be
-  discrepancies or incompleteness between our documentation and the latest in
-  development. If you have any questions, please contact us on the [Speckle
-  Community Forum: Developers](https://speckle.community/c/help/developers/18).
+  Our Data Schemas and object model are still evolving, and there may be discrepancies or
+  incompleteness between our documentation and the latest in development. If you have any questions,
+  please contact us on the [Speckle Community Forum:
+  Developers](https://speckle.community/c/help/developers/18).
 </Note>
 
 This page introduces the fundamental structure of Speckle's Data Schema—the conceptual framework that organizes how model data is structured, stored, and related. Understanding this structure is essential before working with any Speckle SDK, as it defines the relationships between objects, their organization, and how they reference each other.
+
+## Core Glossary
 
 <Note title="Core Glossary">
 Before diving into the structure, here are the essential terms you'll encounter:
@@ -23,6 +25,9 @@ Before diving into the structure, here are the essential terms you'll encounter:
 - **DisplayValue** - An array property on DataObjects containing geometry primitives (meshes, lines, points) that represent the visual appearance.
 - **Root Collection** - The top-level container for a data package, holding the collections hierarchy, proxies, info, and closures table.
 - **Info** - Metadata fields at the root level that apply to the entire data package (views, transforms, analysis results).
+
+These terms appear throughout Speckle documentation and SDKs.
+
 </Note>
 
 ## What is the Data Schema?
@@ -77,18 +82,18 @@ graph TD
     A --> C[Proxies<br/>cross-cutting relationships]
     A --> D[Info<br/>package-wide metadata]
     A --> E[Closures table<br/>flat list of nodes]
-    
+
     B --> F["Collection: 'Level 1'"]
     F --> G["Collection: 'Walls'"]
     G --> H[DataObject<br/>wall with properties + displayValue]
     F --> I["Collection: 'Doors'"]
     I --> J[DataObject<br/>door with properties + displayValue]
     B --> K["Collection: 'Level 2'"]
-    
+
     C --> L[RenderMaterial<br/>references objects by applicationId]
     C --> M[Level<br/>references objects by applicationId]
     C --> N[Definition<br/>stores geometry for Instances]
-    
+
     D --> O[Views, Transforms,<br/>Analysis Results]
 ```
 
@@ -142,14 +147,14 @@ graph TD
     B --> D[Proxies<br/>relationships]
     B --> E[Info<br/>metadata]
     B --> F[Closures table<br/>flat list of nodes]
-    
+
     C --> G[Collections]
     G --> H[Objects]
     H --> I[Properties<br/>key-value pairs]
     H --> J[Geometry<br/>in displayValue]
-    
+
     D --> K[Reference objects<br/>by applicationId]
-    
+
     E --> L[Data package-wide data]
 ```
 
@@ -164,19 +169,17 @@ This documentation is organized as a progressive learning experience:
 5. **[Connector Index](/developers/data-schema/connector-index)** - Overview of connector-specific behaviors
 
 <Accordion title="Why is the structure the same across all connectors?">
-  Speckle uses a unified Data Schema so that data from any source can be
-  consumed by any receiver. This means you can write code that works with
-  Speckle models without needing to know which application created them. The
-  connector-specific differences are captured in the object properties and
-  hierarchy structure, not in the fundamental Data Schema organization.
+  Speckle uses a unified Data Schema so that data from any source can be consumed by any receiver.
+  This means you can write code that works with Speckle models without needing to know which
+  application created them. The connector-specific differences are captured in the object properties
+  and hierarchy structure, not in the fundamental Data Schema organization.
 </Accordion>
 
 <Accordion title="What's the difference between a Speckle hierarchy and the source application's hierarchy?">
-  The **source application's hierarchy** (e.g., Revit's levels/categories,
-  Rhino's layers) is preserved in the Collections structure. However, Speckle
-  also imposes its own organizational structure through Proxies, which can
-  create additional relationships that don't exist in the source application.
-  This allows objects to be organized in multiple ways simultaneously without
+  The **source application's hierarchy** (e.g., Revit's levels/categories, Rhino's layers) is
+  preserved in the Collections structure. However, Speckle also imposes its own organizational
+  structure through Proxies, which can create additional relationships that don't exist in the
+  source application. This allows objects to be organized in multiple ways simultaneously without
   duplication.
 </Accordion>
 
