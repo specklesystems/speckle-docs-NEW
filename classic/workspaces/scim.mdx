@@ -1,14 +1,14 @@
 ---
-title: "User provisioning (SCIM)"
-description: "Sync workspace members from your identity provider"
+title: 'User provisioning (SCIM)'
+description: 'Sync workspace members from your identity provider'
 tag: Enterprise
 ---
 
 When someone joins or leaves your team, your identity provider (Okta, Azure AD, Authentik, etc.) can push that change directly to Speckle. Speckle's SCIM 2.0 endpoint creates new workspace members, keeps their emails and display name in sync, and removes them from the workspace when they're deprovisioned upstream — no manual invite or cleanup required.
 
 <Note>
-  SCIM is available on Speckle Cloud and is currently rolling out per workspace.
-  [Contact us](mailto:support@speckle.systems) to enable it on yours.
+  SCIM is available on Speckle Cloud and is currently rolling out per workspace. [Contact
+  us](mailto:support@speckle.systems) to enable it on yours.
 </Note>
 
 ### Set up SSO first
@@ -41,9 +41,8 @@ Configure SCIM under **Workspace Settings → Security**.
 </Frame>
 
 <Tip>
-  If you haven't configured [SSO](/workspaces/sso) yet, do it before enabling
-  SCIM. Provisioned users without SSO have to use the password reset flow on
-  first login.
+  If you haven't configured [SSO](/workspaces/sso) yet, do it before enabling SCIM. Provisioned
+  users without SSO have to use the password reset flow on first login.
 </Tip>
 
 <Steps>
@@ -94,8 +93,8 @@ Configure SCIM under **Workspace Settings → Security**.
 - An unverified Speckle email matching the identity provider push is marked verified — Speckle trusts the identity provider as authoritative for its own domains.
 
 <Note>
-  Email sync is restricted to verified workspace domains. Personal emails (e.g.
-  `@gmail.com`) pushed from the identity provider are ignored.
+  Email sync is restricted to verified workspace domains. Personal emails (e.g. `@gmail.com`) pushed
+  from the identity provider are ignored.
 </Note>
 
 ### When a user is deprovisioned
@@ -105,8 +104,8 @@ Configure SCIM under **Workspace Settings → Security**.
 - Reactivating the user in the identity provider later restores their workspace membership with the default seat type and `member` role.
 
 <Warning>
-  SCIM cannot remove the last admin from a workspace. Promote another admin
-  first, then deprovision in your identity provider.
+  SCIM cannot remove the last admin from a workspace. Promote another admin first, then deprovision
+  in your identity provider.
 </Warning>
 
 ## Rotate or disable
@@ -117,8 +116,8 @@ Open the SCIM card menu:
 - **Disable SCIM** — revokes the token and stops syncing. Existing workspace members are kept; manage them manually until SCIM is re-enabled.
 
 <Tip>
-  Rotate the token if you suspect it has leaked, when the admin who created it
-  leaves the team, or on your normal credential-rotation cadence.
+  Rotate the token if you suspect it has leaked, when the admin who created it leaves the team, or
+  on your normal credential-rotation cadence.
 </Tip>
 
 ## SCIM endpoint reference
@@ -137,37 +136,33 @@ All requests use `Authorization: Bearer {token}` and the `application/scim+json`
 
 <AccordionGroup>
   <Accordion title="Do I need SSO to use SCIM?">
-    Not strictly, but it is strongly recommended. SCIM provisions accounts but
-    does not handle login. Without SSO, every provisioned user must complete
-    Speckle's password reset flow on first access. With SSO enabled first,
-    provisioned users sign in directly through your identity provider — no
-    password reset, no friction. Set up [SSO](/workspaces/sso) before enabling
-    SCIM whenever possible.
+    Not strictly, but it is strongly recommended. SCIM provisions accounts but does not handle
+    login. Without SSO, every provisioned user must complete Speckle's password reset flow on first
+    access. With SSO enabled first, provisioned users sign in directly through your identity
+    provider — no password reset, no friction. Set up [SSO](/workspaces/sso) before enabling SCIM
+    whenever possible.
   </Accordion>
   <Accordion title="What happens if a user's email is unverified in Speckle?">
-    SCIM returns a 409 conflict. Ask the user to verify their email in Speckle
-    (or remove the email from their account), then retry the sync from your
-    identity provider. SCIM never silently links unverified accounts.
+    SCIM returns a 409 conflict. Ask the user to verify their email in Speckle (or remove the email
+    from their account), then retry the sync from your identity provider. SCIM never silently links
+    unverified accounts.
   </Accordion>
   <Accordion title="Can SCIM change a user's password or other workspace memberships?">
-    No. SCIM never touches passwords — users authenticate through SSO
-    (recommended) or via Speckle's password reset flow if SSO is not configured.
-    SCIM also only manages membership in the SCIM-enabled workspace; the user's
-    other workspace memberships are untouched.
+    No. SCIM never touches passwords — users authenticate through SSO (recommended) or via Speckle's
+    password reset flow if SSO is not configured. SCIM also only manages membership in the
+    SCIM-enabled workspace; the user's other workspace memberships are untouched.
   </Accordion>
   <Accordion title="Can the same user be SCIM-managed in multiple workspaces?">
-    No. A user can only be SCIM-managed in one workspace at a time. Provisioning
-    a user who is already SCIM-active in another workspace returns a 409
-    conflict — deprovision them in the first workspace before provisioning
-    elsewhere.
+    No. A user can only be SCIM-managed in one workspace at a time. Provisioning a user who is
+    already SCIM-active in another workspace returns a 409 conflict — deprovision them in the first
+    workspace before provisioning elsewhere.
   </Accordion>
   <Accordion title="What if I lose the SCIM token?">
-    Tokens cannot be recovered. Open **Workspace Settings → Security**, rotate
-    the token, and update your identity provider with the new value.
+    Tokens cannot be recovered. Open **Workspace Settings → Security**, rotate the token, and update
+    your identity provider with the new value.
   </Accordion>
   <Accordion title="Does SCIM upgrade roles or seats above the defaults?">
-    No. SCIM creates members on the workspace's default seat type with the
-    `member` role. Promote users to admin or upgrade their seat manually in
-    Speckle.
+    No. SCIM creates members on the workspace's default seat type with the `member` role. Promote
+    users to admin or upgrade their seat manually in Speckle.
   </Accordion>
 </AccordionGroup>
