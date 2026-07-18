@@ -21,9 +21,7 @@ export const PowerBIVersionFetcher = ({ fallbackVersion = '3.3.3' }) => {
           key.includes('build-artifacts/powerbi-v3/speckle.powerbi.installer-') &&
           key.endsWith('.zip')
         ) {
-          const versionMatch = key.match(
-            /speckle\.powerbi\.installer-(\d+\.\d+\.\d+)\.zip$/
-          )
+          const versionMatch = key.match(/speckle\.powerbi\.installer-(\d+\.\d+\.\d+)\.zip$/)
           if (versionMatch) {
             powerBIEntries.push({
               version: versionMatch[1],
