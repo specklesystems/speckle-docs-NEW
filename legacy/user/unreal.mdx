@@ -382,11 +382,11 @@ If you are looking to convert a type that we don't provide an Object Model, crea
 This process is very similar to defining an object model in the .NET and PY SDKs,
 But be aware of certain limitations:
 
-1.  The UE plugin **does not provide a reflection based (de)serializer**.
-    Object Models implement their own (de)serialization logic in the form of manually parsing JSON properties.
-2.  **Only certain Object Models are provided** out of the box, while most are direct ports of Objects kit, some are not!
-3.  The Speckle Type is defined in the Object Model's constructor, not by its Namespace like in .NET.
-4.  Units are applied while parsing (rather than ToNative conversion - subject to change)
+1. The UE plugin **does not provide a reflection based (de)serializer**.
+   Object Models implement their own (de)serialization logic in the form of manually parsing JSON properties.
+2. **Only certain Object Models are provided** out of the box, while most are direct ports of Objects kit, some are not!
+3. The Speckle Type is defined in the Object Model's constructor, not by its Namespace like in .NET.
+4. Units are applied while parsing (rather than ToNative conversion - subject to change)
 
 To implement your own Unreal Object Model, simply create a new class inheriting from `UBase`.
 Add your properties, and implement the `Parse` method to set these properties from the JSON object.
@@ -394,20 +394,20 @@ Add your properties, and implement the `Parse` method to set these properties fr
 ```cpp
 bool UMyObjectModel::Parse(const TSharedPtr<FJsonObject> Obj, const TScriptInterface<ITransport> ReadTransport)
 {
-	if(!Super::Parse(Obj, ReadTransport)) return false;
+  if(!Super::Parse(Obj, ReadTransport)) return false;
 
-	// Add your own JSON parsing here!
-	// Remove explicit properties from DynamicProperties array
+  // Add your own JSON parsing here!
+  // Remove explicit properties from DynamicProperties array
 
-	// Simple example of parsing an optional number property:
-	if(Obj->TryGetNumberField("myProperty", MyProperty)) DynamicProperties.Remove("myProperty");
+  // Simple example of parsing an optional number property:
+  if(Obj->TryGetNumberField("myProperty", MyProperty)) DynamicProperties.Remove("myProperty");
 
-	// Simple example of parsing an required number property:
-	if(!Obj->TryGetNumberField("myProperty", MyProperty)) return false; // Return false on error, rather than fatal assertions
-	DynamicProperties.Remove("myProperty");
+  // Simple example of parsing an required number property:
+  if(!Obj->TryGetNumberField("myProperty", MyProperty)) return false; // Return false on error, rather than fatal assertions
+  DynamicProperties.Remove("myProperty");
 
-	//Return true if parsed successfully
-	return true;
+  //Return true if parsed successfully
+  return true;
 }
 ```
 
@@ -430,12 +430,12 @@ You must implement the `ConvertToNative` and `CanConverToNative` methods.
 UCLASS(BlueprintType, Blueprintable)
 class SPECKLEUNREAL_API UMyConverter : public UObject, public ISpeckleConverter
 {
-	GENERATED_BODY()
+  GENERATED_BODY()
 
 public:
-	virtual UObject* ConvertToNative_Implementation(const UBase* SpeckleBase, UWorld*, TScriptInterface<ISpeckleConverter>&) override;
+  virtual UObject* ConvertToNative_Implementation(const UBase* SpeckleBase, UWorld*, TScriptInterface<ISpeckleConverter>&) override;
 
-	virtual bool CanConvertToNative_Implementation(TSubclassOf<UBase> BaseType) override;
+  virtual bool CanConvertToNative_Implementation(TSubclassOf<UBase> BaseType) override;
 
 }
 ```
@@ -448,17 +448,17 @@ The `StaticMeshConverter` for example, will use the `AvailableConverters` to con
 ```cpp
 UObject* UMyConverter::ConvertToNative_Implementation(const UBase* SpeckleBase, UWorld* World, TScriptInterface<ISpeckleConverter>& AvailableConverters)
 {
-	const UMyObjectModel* m = Cast<UMyObjectModel>(SpeckleBase);
+  const UMyObjectModel* m = Cast<UMyObjectModel>(SpeckleBase);
 
-	if(m == nullptr) return nullptr;
+  if(m == nullptr) return nullptr;
 
-	return MyObjectToNative(m);
+  return MyObjectToNative(m);
 }
 
 AActor* UMyConverter::MyObjectToNative(const UMyObjectModel* MyObject, UWorld* World)
 {
-	// Conversion logic here!!
-	// Convert MyObject into an Actor that we return
+  // Conversion logic here!!
+  // Convert MyObject into an Actor that we return
 }
 ```
 
