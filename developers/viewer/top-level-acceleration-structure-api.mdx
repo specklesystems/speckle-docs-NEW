@@ -1,6 +1,6 @@
 ---
 title: TopLevelAccelerationStructure
-description: The viewer is using three-mesh-bvh as the backbone for it's BVH implementation. 
+description: The viewer is using three-mesh-bvh as the backbone for it's BVH implementation.
 ---
 
 The AccelerationStructure class is a thin wrapper around the library's [_MeshBVH_](https://threejs.org/docs/index.html?q=box#api/en/math/Box3) class with some additional specific functionality.
@@ -26,12 +26,15 @@ Populates/constructs this top level acceleration structure with the group of obj
 ### accelerationStructure
 
 ```typescript
-accelerationStructure: AccelerationStructure;
+accelerationStructure: AccelerationStructure
 ```
 
 The top-level [_AccelerationStructure_](/developers/viewer/acceleration-structure-api) built on top of the group of bottom-level BVHs.
+
 <Warning>
-The top-level acceleration structure does not have it's own transformation space. It's identical to the world space. Unlike the bottom-level acceleration structure which is always centered around the world origin.
+  The top-level acceleration structure does not have it's own transformation space. It's identical
+  to the world space. Unlike the bottom-level acceleration structure which is always centered around
+  the world origin.
 </Warning>
 
 **Returns**: [_AccelerationStructure_](/developers/viewer/acceleration-structure-api)
@@ -51,7 +54,6 @@ Returns the closest point on the BVH to the provided argument
 - **point**: [_Vector3_](https://threejs.org/docs/index.html?q=box3#api/en/math/Vector3) The point in space we want to find the closest point in the BVH to
 
 **Returns**: [_HitPointInfo_](https://github.com/gkjohnson/three-mesh-bvh/blob/be976e6746123f37faa8527b63c13cec9782253c/src/index.d.ts#L17)
-
 
 ### getBoundingBox
 
@@ -110,8 +112,10 @@ refit(): void
 ```
 
 Rebuilds the top level acceleration structure. Whenever any of the comprising batch objects update their transfromation, a refit needs to be called.
+
 <Tip>
-`refit` is called automatically whenever any of the comprising [_BatchObjects_](/developers/viewer/batch-object-api) update their transformation.
+  `refit` is called automatically whenever any of the comprising
+  [_BatchObjects_](/developers/viewer/batch-object-api) update their transformation.
 </Tip>
 
 **Returns**: void
@@ -142,19 +146,17 @@ type ExtendedShapeCastCallbacks = {
     score: number | undefined,
     depth: number,
     nodeIndex: number
-  ) => ShapecastIntersection | boolean;
-  intersectTASRange?: (
-    batchObject: BatchObject
-  ) => ShapecastIntersection | boolean;
+  ) => ShapecastIntersection | boolean
+  intersectTASRange?: (batchObject: BatchObject) => ShapecastIntersection | boolean
   intersectsBounds: (
     box: Box3,
     isLeaf: boolean,
     score: number | undefined,
     depth: number,
     nodeIndex: number
-  ) => ShapecastIntersection | boolean;
+  ) => ShapecastIntersection | boolean
 
-  traverseBoundsOrder?: (box: Box3) => number;
+  traverseBoundsOrder?: (box: Box3) => number
 } & (
   | {
       intersectsRange: (
@@ -164,7 +166,7 @@ type ExtendedShapeCastCallbacks = {
         depth: number,
         nodeIndex: number,
         box: Box3
-      ) => boolean;
+      ) => boolean
     }
   | {
       intersectsTriangle: (
@@ -173,9 +175,9 @@ type ExtendedShapeCastCallbacks = {
         contained: boolean,
         depth: number,
         batchObject?: BatchObject
-      ) => boolean | void;
+      ) => boolean | void
     }
-);
+)
 ```
 
 Extension of three-mesh-bvh shapecast callbacks with the addition of top level acceleration structure stages.

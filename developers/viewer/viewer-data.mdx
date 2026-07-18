@@ -16,9 +16,9 @@ A node inside the tree looks like the following:
 
 ```typescript
 {
-  model: NodeData;
-  children: Array<TreeNode>;
-  parent: TreeNode;
+  model: NodeData
+  children: Array<TreeNode>
+  parent: TreeNode
 }
 ```
 
@@ -46,7 +46,7 @@ The TreeNodes in the WorldTree are nothing else than the objects you loaded in. 
 #### ID-based:
 
 ```typescript
-const nodes = viewer.getWorldTree().findId('6ddd42ca007461a3a33375b193bdf9b0');
+const nodes = viewer.getWorldTree().findId('6ddd42ca007461a3a33375b193bdf9b0')
 ```
 
 `findId` returns an array rather than a single node. That's because the speckle viewer does not assume a 1:1 relationship between an _id_ and a _node_/_object_. A good example for this is _instances_: when provided with the id of an instance, `findId` will return _all_ the instance nodes. Outside of this scenario, `findId` will return an array of one node.
@@ -54,17 +54,15 @@ const nodes = viewer.getWorldTree().findId('6ddd42ca007461a3a33375b193bdf9b0');
 A more specific way of using `findId` is
 
 ```typescript
-const subtreeId = 1;
-const nodes = viewer
-  .getWorldTree()
-  .findId('6ddd42ca007461a3a33375b193bdf9b0', subtreeId);
+const subtreeId = 1
+const nodes = viewer.getWorldTree().findId('6ddd42ca007461a3a33375b193bdf9b0', subtreeId)
 ```
 
 When providing a `subtreeId`, only that subtree will be searched. To disambiguate the term _subtree_: Each time you load something via `loadObject` that data will be stored in it's own _subtree_ with a unique id. Specifying an explicit subtreeId comes in handy in scenarios where you have multiple loaded resources, with identical objects between them, for example several versions of the same model.
 
 <Tip>
-  For best performance using `findId` over other search methods is recommended.
-  It's the fastest method for searching for nodes because it's backed up by maps
+  For best performance using `findId` over other search methods is recommended. It's the fastest
+  method for searching for nodes because it's backed up by maps
 </Tip>
 
 #### Generic:
@@ -82,8 +80,8 @@ Another alternative would be to walk the tree either synchronously:
 ```typescript World Tree Walk
 viewer.getWorldTree().walk((node: TreeNode) => {
   // do whatever is needed
-  return true;
-});
+  return true
+})
 ```
 
 Or asynchronously:
@@ -91,8 +89,8 @@ Or asynchronously:
 ```typescript
 await viewer.getWorldTree().walkAsync((node: TreeNode) => {
   // do whatever is needed
-  return true;
-});
+  return true
+})
 ```
 
 Returning `false` from the predicate of either `walk` or `walkAsync` will stop the walking immediately
@@ -101,7 +99,6 @@ Returning `false` from the predicate of either `walk` or `walkAsync` will stop t
   Be mindfull of what you execute inside the predicates for
   [*findAll*](/developers/viewer/world-tree-api#findall),
   [*walk*](/developers/viewer/world-tree-api#walk) and
-  [*walkAsync*](/developers/viewer/world-tree-api#walkasync) since it can easily amount
-  to long execution times on large trees. For further details please refer to
-  their linked API references.
+  [*walkAsync*](/developers/viewer/world-tree-api#walkasync) since it can easily amount to long
+  execution times on large trees. For further details please refer to their linked API references.
 </Tip>
