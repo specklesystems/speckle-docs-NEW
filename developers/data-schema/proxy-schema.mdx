@@ -8,10 +8,12 @@ This page explains how [Proxies](/developers/data-schema/overview#core-glossary)
 ## What Are Proxies?
 
 **Proxies** are relationship containers stored at the Root Collection level. They encode connections between:
+
 - Objects and shared resources (materials, levels, groups)
 - Objects and other objects (group memberships, instance definitions)
 
 Proxies allow a single object to be:
+
 - On "Level 1" (spatial organization)
 - In "Exterior Walls" group (functional grouping)
 - Using "Concrete" material (visual property)
@@ -32,11 +34,7 @@ All proxies follow this pattern:
     "color": [128, 128, 128],
     "opacity": 1.0
   },
-  "objects": [
-    "obj-app-id-1",
-    "obj-app-id-2",
-    "obj-app-id-3"
-  ]
+  "objects": ["obj-app-id-1", "obj-app-id-2", "obj-app-id-3"]
 }
 ```
 
@@ -111,20 +109,20 @@ graph TD
     A[Definition Proxy<br/>at Root Collection] --> B["applicationId: 'block-door'"]
     A --> C["name: 'Standard Door'"]
     A --> D["value: {<br/>  displayValue: [Mesh, ...]<br/>}<br/>Geometry stored once"]
-    
+
     E[Instance Objects<br/>in Collections] --> F[Instance 1]
     E --> G[Instance 2]
     E --> H[Instance 3]
-    
+
     F --> I["definitionId: 'block-door'<br/>References Definition"]
     F --> J["transform: matrix for position 1"]
-    
+
     G --> K["definitionId: 'block-door'<br/>References same Definition"]
     G --> L["transform: matrix for position 2"]
-    
+
     H --> M["definitionId: 'block-door'<br/>References same Definition"]
     H --> N["transform: matrix for position 3"]
-    
+
     I -.references.-> A
     K -.references.-> A
     M -.references.-> A
@@ -173,18 +171,20 @@ Proxies reference objects by **`applicationId`**, not `id`:
 ```mermaid
 graph LR
     A[Object] --> B["applicationId: 'wall-123'"]
-    
+
     C[RenderMaterial Proxy] --> D["objects: ['wall-123', 'wall-456']"]
-    
+
     B -.referenced by.-> D
 ```
 
 To find which objects use a material:
+
 1. Get the RenderMaterial proxy
 2. Read its `objects` array
 3. Find objects with matching `applicationId`
 
 To find which material an object uses:
+
 1. Get the object's `applicationId`
 2. Search all RenderMaterial proxies for one containing that `applicationId` in `objects`
 
@@ -192,6 +192,7 @@ To find which material an object uses:
 `applicationId` is stable within a model version and represents the source application's identifier. `id` is content-based and changes if the object's data changes. For relationships that should persist even when object data changes, `applicationId` is the right choice.
 
 Also, `applicationId` is what the source application uses, making it easier to map back to the original data.
+
 </Accordion>
 
 ## Proxy Location
@@ -203,9 +204,9 @@ graph TD
     A[Root Collection] --> B[Collections<br/>hierarchy]
     A --> C[Proxies<br/>at root level]
     A --> D[Info]
-    
+
     B --> E[Objects]
-    
+
     C --> F[RenderMaterial array]
     C --> G[Level array]
     C --> H[Group array]
@@ -213,6 +214,7 @@ graph TD
 ```
 
 This centralized storage makes it easy to:
+
 - Find all proxies of a type
 - Resolve references efficiently
 - Avoid duplication
@@ -224,7 +226,7 @@ A single object can be referenced by multiple proxies:
 ```mermaid
 graph TD
     A["Object<br/>applicationId: 'wall-1'"]
-    
+
     B[Level proxy<br/>'Level 1'] -.references.-> A
     C[Group proxy<br/>'Exterior Walls'] -.references.-> A
     D[RenderMaterial proxy<br/>'Concrete'] -.references.-> A
@@ -236,6 +238,7 @@ graph TD
 **Nested proxies** occur when a Definition proxy's `value` contains objects that themselves reference other proxies. For example, a Definition might contain a DataObject that uses a RenderMaterial proxy.
 
 Transform propagation works as follows:
+
 - **Instance transforms** apply to the geometry stored in the Definition proxy
 - When resolving an Instance, you:
   1. Find the Definition proxy by `definitionId` (using `applicationId`)
@@ -285,6 +288,7 @@ In addition to proxies, Speckle supports direct reference objects that point to 
 ```
 
 Fields:
+
 - **`referencedId`** (required) - The object `id` (hash) of the referenced object
 - **`closure`** (optional) - Dictionary mapping closure information
 
@@ -305,12 +309,14 @@ Unlike proxies which reference by `applicationId` and are stored at root level, 
 ```
 
 Fields:
+
 - **`definitionId`** (required) - The `applicationId` of the Definition proxy that contains the geometry
 - **`transform`** (required) - 4x4 transformation matrix for the instance placement
 - **`units`** (required) - Units of the host application file
 - **`maxDepth`** (required) - Maximum depth for nested instance resolution
 
 `InstanceProxy` objects are used to represent instances in the object graph. To get the geometry for an instance:
+
 1. Get the `InstanceProxy` object
 2. Use its `definitionId` to find the corresponding Definition proxy
 3. Access `definition_proxy.value.displayValue` for the geometry
@@ -324,7 +330,9 @@ Fields:
 5. **objects is a list** - Can reference zero or more objects
 
 <Accordion title="Can an object be in multiple groups?">
-Yes! An object's `applicationId` can appear in multiple Group proxy `objects` arrays. This allows objects to belong to multiple functional groups simultaneously. The same applies to materials, levels, and other proxy types.
+  Yes! An object's `applicationId` can appear in multiple Group proxy `objects` arrays. This allows
+  objects to belong to multiple functional groups simultaneously. The same applies to materials,
+  levels, and other proxy types.
 </Accordion>
 
 ## Conceptual Capability
@@ -335,4 +343,3 @@ After reading this page, you understand how Proxies encode relationships between
 
 - **[Connector Index](/developers/data-schema/connector-index)** - Connector-specific proxy usage
 - **[Object Schema](/developers/data-schema/object-schema)** - Review object structure
-

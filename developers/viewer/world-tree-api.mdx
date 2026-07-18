@@ -8,7 +8,7 @@ description: The WorldTree is a tree data structure that is used to store the sc
 ### constructor
 
 ```typescript
-new WorldTree();
+new WorldTree()
 ```
 
 **Returns**: [**_WorldTree_**](/developers/viewer/world-tree-api)
@@ -46,6 +46,7 @@ addNode(node: TreeNode, parent: TreeNode): void
 Adds a [_TreeNode_](/developers/viewer/world-tree-api#treenode) as a child of the provided parent node.
 
 Parameters:
+
 - **node**: The [_TreeNode_](/developers/viewer/world-tree-api#treenode) to add
 - **parent**: The parent [_TreeNode_](/developers/viewer/world-tree-api#treenode) to add the node to
 
@@ -57,12 +58,13 @@ Parameters:
 addSubtree(node: TreeNode): void
 ```
 
-Adds a [_TreeNode_](/developers/viewer/world-tree-api#treenode) as the root of a subtree. 
-The world tree can be split into subtrees, each of which will have it's dedicated 
-_NodeMap_ for optimal searching speed. A subtree does not differ structurally from 
+Adds a [_TreeNode_](/developers/viewer/world-tree-api#treenode) as the root of a subtree.
+The world tree can be split into subtrees, each of which will have it's dedicated
+_NodeMap_ for optimal searching speed. A subtree does not differ structurally from
 a regular node, and it does not alter the overall hierarchy of the world tree in any way.
 
 Parameters:
+
 - **node**: The [_TreeNode_](/developers/viewer/world-tree-api#treenode) to add as a subtree
 
 **Returns**: void
@@ -73,19 +75,21 @@ Parameters:
 findAll(predicate: SearchPredicate, node?: TreeNode): TreeNode[]
 ```
 
-Goes throught the tree starting at _node_ if provided, otherwise at the tree _root_ 
-and runs the provided predicate for each node. All nodes which satisfy the predicate 
+Goes throught the tree starting at _node_ if provided, otherwise at the tree _root_
+and runs the provided predicate for each node. All nodes which satisfy the predicate
 are returned.
+
 <Warning>
-Be mindful about the predicate's contents. If the tree is very large this operation 
-can lock the main thread for too long. If you need to execute complex predicates 
-on large trees, [_walkAsync_](/developers/viewer/world-tree-api#walkasync) is a better candidate.
+  Be mindful about the predicate's contents. If the tree is very large this operation can lock the
+  main thread for too long. If you need to execute complex predicates on large trees,
+  [_walkAsync_](/developers/viewer/world-tree-api#walkasync) is a better candidate.
 </Warning>
 
 Parameters:
-- **predicate**: The [_SearchPredicate_](/developers/viewer/world-tree-api#searchpredicate) 
+
+- **predicate**: The [_SearchPredicate_](/developers/viewer/world-tree-api#searchpredicate)
   to run for each node
-- _(optional)_ **node**: The [_TreeNode_](/developers/viewer/world-tree-api#treenode) to 
+- _(optional)_ **node**: The [_TreeNode_](/developers/viewer/world-tree-api#treenode) to
   start at. If not provided, the tree root will be used
 
 **Returns**: [_TreeNode_](/developers/viewer/world-tree-api#treenode)[]
@@ -96,17 +100,19 @@ Parameters:
 findId(id: string, subtreeId?: number): TreeNode[]
 ```
 
-Find a node by id. The optional _subtreeId_ argument can narrow down the search 
-to a specific subtree, otherwise it will search the entire tree. It returns an 
+Find a node by id. The optional _subtreeId_ argument can narrow down the search
+to a specific subtree, otherwise it will search the entire tree. It returns an
 array of nodes because multiple nodes can have the same id, like in the case of instances.
+
 <Tip>
-Using this method for tree searches is encouraged because it's accelerated by a 
-backing _NodeMap_ which brings down searches to just one or more lookups
+  Using this method for tree searches is encouraged because it's accelerated by a backing _NodeMap_
+  which brings down searches to just one or more lookups
 </Tip>
 
 Parameters:
+
 - **id**: The id of the node to search for
-- _(optional)_ **subtreeId**: The id of the subtree to search in. If _undefined_ 
+- _(optional)_ **subtreeId**: The id of the subtree to search in. If _undefined_
   the search will include the entire tree
 
 **Returns**: [_TreeNode_](/developers/viewer/world-tree-api#treenode)[]
@@ -120,6 +126,7 @@ getAncestors(node: TreeNode): TreeNode[]
 Gets the full list of node ancestors in hierarchical order.
 
 Parameters:
+
 - **node**: The node to search ancestors for
 
 **Returns**: [_TreeNode_](/developers/viewer/world-tree-api#treenode)[]
@@ -133,9 +140,10 @@ getInstances(subtree: string): { [id: string]: Record<string, TreeNode> }
 Gets all the instances in the provided subtree id.
 
 Parameters:
+
 - **subtree**: The root subtree id
 
-**Returns**: A dictionary where each instance id holds a record of 
+**Returns**: A dictionary where each instance id holds a record of
 [_TreeNode_](/developers/viewer/world-tree-api#treenode) grouped by their instance unique id.
 
 ### getRenderTree
@@ -145,11 +153,12 @@ getRenderTree(): RenderTree
 getRenderTree(subtreeId: string): RenderTree | null
 ```
 
-Gets the [_RenderTree_](/developers/viewer/render-tree-api) instance of the provided subtree id. 
-If the subtree id is not found, `null` is returned. The overloaded version with 
-no argument gets the _RenderTree_ instance for the entire tree, which can never be null. 
+Gets the [_RenderTree_](/developers/viewer/render-tree-api) instance of the provided subtree id.
+If the subtree id is not found, `null` is returned. The overloaded version with
+no argument gets the _RenderTree_ instance for the entire tree, which can never be null.
 
 Parameters:
+
 - **subtreeId**: The root subtree id
 
 **Returns**: [_RenderTree_](/developers/viewer/render-tree-api)
@@ -163,6 +172,7 @@ isRoot(node: TreeNode): boolean
 Checks is a [_TreeNode_](/developers/viewer/world-tree-api#treenode) is root.
 
 Parameters:
+
 - **node**: [_TreeNode_](/developers/viewer/world-tree-api#treenode)
 
 **Returns**: boolean
@@ -188,6 +198,7 @@ The input model needs to follow the form.
 The input _model_ can contain virtually anything, but it should have at least the properties defined above.
 
 Parameters:
+
 - **node**: `{ id: string, raw?: object, atomic?: boolean, children: []}`
 
 **Returns**: [_TreeNode_](/developers/viewer/world-tree-api#treenode)
@@ -199,11 +210,11 @@ purge(subtreeId?: string): void
 ```
 
 Destroys part of the tree, or in the absence of a _subtreeId_ argument, the entire tree.
-<Warning>
-Purged trees are no longer usable!
-</Warning>
+
+<Warning>Purged trees are no longer usable!</Warning>
 
 Parameters:
+
 - _optional_ **subtreeId**: The subtree root id. If undefined the whole tree will get purged
 
 **Returns**: void
@@ -217,6 +228,7 @@ removeNode(node: TreeNode): void
 Removed the provided [_TreeNode_](/developers/viewer/world-tree-api#treenode) from the tree.
 
 Parameters:
+
 - **node**: [_TreeNode_](/developers/viewer/world-tree-api#treenode)
 
 **Returns**: void
@@ -227,18 +239,20 @@ Parameters:
 walk(predicate: SearchPredicate, node?: TreeNode): void
 ```
 
-Walks the tree starting at _node_ and executes the [_SearchPredicate_](/developers/viewer/world-tree-api#searchpredicate) 
-for each node. If _node_ argument is undefined, walking starts at root. Walking 
+Walks the tree starting at _node_ and executes the [_SearchPredicate_](/developers/viewer/world-tree-api#searchpredicate)
+for each node. If _node_ argument is undefined, walking starts at root. Walking
 is stopped when the predicate returns _false_.
+
 <Warning>
-This function is **synchronous** and depending on the complexity of your 
-[_SearchPredicate_](/developers/viewer/world-tree-api#searchpredicate) and the total 
-number of nodes, it might block the main thread. For a heavy 
-[_SearchPredicate_](/developers/viewer/world-tree-api#searchpredicate) use 
-[_walkAsync_](/developers/viewer/world-tree-api#walkasync).
+  This function is **synchronous** and depending on the complexity of your
+  [_SearchPredicate_](/developers/viewer/world-tree-api#searchpredicate) and the total number of
+  nodes, it might block the main thread. For a heavy
+  [_SearchPredicate_](/developers/viewer/world-tree-api#searchpredicate) use
+  [_walkAsync_](/developers/viewer/world-tree-api#walkasync).
 </Warning>
 
 Parameters:
+
 - **predicate**: [_SearchPredicate_](/developers/viewer/world-tree-api#searchpredicate)
 - _optional_ **node**: [_TreeNode_](/developers/viewer/world-tree-api#treenode)
 
@@ -250,12 +264,13 @@ Parameters:
 async walkAsync(predicate: SearchPredicate, node?: TreeNode): Promise<boolean>
 ```
 
-The asynchronous version of [_walk_](/developers/viewer/world-tree-api#walk). The function 
-will yield for 16ms (one frame) after a cummulated 100ms spent executing. The return 
-promise will resolve to a boolean which determines if the tree was completely 
+The asynchronous version of [_walk_](/developers/viewer/world-tree-api#walk). The function
+will yield for 16ms (one frame) after a cummulated 100ms spent executing. The return
+promise will resolve to a boolean which determines if the tree was completely
 walked (true) or not (false).
 
 Parameters:
+
 - **predicate**: [_SearchPredicate_](/developers/viewer/world-tree-api#searchpredicate)
 - _optional_ **node**: [_TreeNode_](/developers/viewer/world-tree-api#treenode)
 
@@ -267,13 +282,13 @@ Parameters:
 
 ```typescript
 interface NodeData {
-  id: string;
-  raw: { [prop: string]: any };
-  children: TreeNode[];
-  atomic: boolean;
-  subtreeId?: number;
-  renderView?: NodeRenderView;
-  instanced?: boolean;
+  id: string
+  raw: { [prop: string]: any }
+  children: TreeNode[]
+  atomic: boolean
+  subtreeId?: number
+  renderView?: NodeRenderView
+  instanced?: boolean
 }
 ```
 
@@ -289,29 +304,30 @@ This is the data payload for each [_TreeNode_](/developers/viewer/world-tree-api
 ### SearchPredicate
 
 ```typescript
-type SearchPredicate = (node: TreeNode) => boolean;
+type SearchPredicate = (node: TreeNode) => boolean
 ```
 
-Delegate type used in tree's [_findAll_](/developers/viewer/world-tree-api#findall), 
-[_walk_](/developers/viewer/world-tree-api#walk) and 
+Delegate type used in tree's [_findAll_](/developers/viewer/world-tree-api#findall),
+[_walk_](/developers/viewer/world-tree-api#walk) and
 [_walkAsync_](/developers/viewer/world-tree-api#walkasync) methods.
+
 <Warning>
-When using the predicate in [_findAll_](/developers/viewer/world-tree-api#findall) the 
-return value detemines if the current node matche the search(_true_) or not(_false_). 
-When using the predicate in [_walk_](/developers/viewer/world-tree-api#walk) and 
-[_walkAsync_](/developers/viewer/world-tree-api#walkasync), return _false_ will stop 
-the tree walking early.
+  When using the predicate in [_findAll_](/developers/viewer/world-tree-api#findall) the return
+  value detemines if the current node matche the search(_true_) or not(_false_). When using the
+  predicate in [_walk_](/developers/viewer/world-tree-api#walk) and
+  [_walkAsync_](/developers/viewer/world-tree-api#walkasync), return _false_ will stop the tree
+  walking early.
 </Warning>
 
 ### TreeNode
 
 ```typescript
-type TreeNode = TreeModel.Node<NodeData>;
+type TreeNode = TreeModel.Node<NodeData>
 ```
 
 Abstraction of a tree node.
-The tree is implemented on top of an existing tree 
-[library](https://github.com/joaonuno/tree-model-js) which defines the tree nodes 
+The tree is implemented on top of an existing tree
+[library](https://github.com/joaonuno/tree-model-js) which defines the tree nodes
 it's own way. At runtime the nodes will consist of:
 
 ```typescript

@@ -3,8 +3,6 @@ title: Handling Data in Functions
 description: Comprehensive guide to working with Speckle data structures in Automate functions. Learn data handling strategies including flattening, filtering, hierarchical analysis, and model augmentation with practical examples in Python and C#.
 ---
 
-
-
 ## Core Concepts
 
 Once you've called `receive_version()`, you're now working with standard Speckle data structures. No special Speckle Automate handling is required—everything behaves just like it would in any Speckle-enabled workflow.
@@ -17,7 +15,6 @@ Speckle represents building data as a **directed acyclic graph (DAG)**:
 - **Common structures** include `elements`, `parameters`, `units`, `applicationId`, and legacy `@` prefixed properties.
 
 [→ Deep dive into Speckle's data model](https://speckle.guide/dev/decomposition.html)
-
 
 ## Strategy Selection
 
@@ -114,6 +111,7 @@ Console.WriteLine($"Flattened model contains {allObjects.Count} elements.");
 - **Great for Bulk Operations** – Need to tag, validate, or extract properties? Just loop over the list.
 
 Think of this as your "data dump" function—it won't give you structure, but it will give you everything. and probably the best way to get started.
+
 </Tip>
 
 ### Filtering and Collection: Extracting Meaningful Data
@@ -131,9 +129,9 @@ def collect_elements(base):
     is_beam = lambda obj: obj.speckle_type == "Objects.BuiltElements.Beam"
     is_long = lambda obj: getattr(obj, "length", 0) > 10.0
     has_material = lambda obj: "material" in obj.parameters
-    
+
     # Combine for complex queries
-    return base.query(lambda obj: 
+    return base.query(lambda obj:
         is_beam(obj) and is_long(obj) and has_material(obj)
     )
 ```
@@ -148,9 +146,8 @@ public IEnumerable<Base> CollectElements(Base baseObject)
 ```
 
 <Tip>
-💡 **Hacker Tip**:
-- This method is blazing fast because it avoids unnecessary traversal.
-- Combine multiple filters at once to cut down processing time.
+  💡 **Hacker Tip**: - This method is blazing fast because it avoids unnecessary traversal. -
+  Combine multiple filters at once to cut down processing time.
 </Tip>
 
 ### Hierarchical Analysis: Understanding Model Relationships
@@ -168,19 +165,18 @@ def analyze_structure(base):
     # Define context-specific rules
     def has_sufficient_support(floor, columns):
         return len(columns) >= 4
-    
+
     for floor in base.query(lambda o: o.speckle_type == "Objects.BuiltElements.Floor"):
         beams = floor.query(lambda o: o.speckle_type == "Objects.BuiltElements.Beam")
         columns = floor.query(lambda o: o.speckle_type == "Objects.BuiltElements.Column")
-        
+
         if not has_sufficient_support(floor, columns):
             floor.parameters["structural_review"] = "insufficient_support"
 ```
 
 <Tip>
-💡 **Hacker Tip**:
-- Instead of querying the whole model (slow!), query only relevant objects.
-- Add metadata ("structural_review": "insufficient_support") so later steps can flag these floors.
+  💡 **Hacker Tip**: - Instead of querying the whole model (slow!), query only relevant objects. -
+  Add metadata ("structural_review": "insufficient_support") so later steps can flag these floors.
 </Tip>
 
 ### Model Augmentation: Adding Intelligence to Models
@@ -197,4 +193,4 @@ async def analyze_and_tag(base, automate_context):
     # Define reusable tagging function
     def tag_element(elem, result):
         elem.parameters["analysis_status"] = result
-``` 
+```

@@ -1,7 +1,7 @@
 ---
-title: "Version"
-description: "client.Version — load the latest snapshot or publish after Send2"
-sidebarTitle: "Version"
+title: 'Version'
+description: 'client.Version — load the latest snapshot or publish after Send2'
+sidebarTitle: 'Version'
 ---
 
 Use **`client.Version`** to list versions on a model, read `referencedObject` for `Receive2`, or create a version after `Send2` so data appears in the Speckle UI.
@@ -9,16 +9,23 @@ Use **`client.Version`** to list versions on a model, read `referencedObject` fo
 **Guide:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) loads the latest version · [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart) shows publish after send
 
 <Note>
-After **`SendPipeline`** (connectors only), the server creates the version asynchronously — do not call `Version.Create` on that path.
+  After **`SendPipeline`** (connectors only), the server creates the version asynchronously — do not
+  call `Version.Create` on that path.
 </Note>
 
 ## Methods
 
-<ResponseField name="Get" type="Task<Version> Get(string versionId, string projectId, CancellationToken cancellationToken = default)">
+<ResponseField
+  name="Get"
+  type="Task<Version> Get(string versionId, string projectId, CancellationToken cancellationToken = default)"
+>
   Retrieves a version by id.
 </ResponseField>
 
-<ResponseField name="GetVersions" type="Task<ResourceCollection<Version>> GetVersions(string modelId, string projectId, int limit = 25, string? cursor = null, ModelVersionsFilter? filter = null, CancellationToken cancellationToken = default)">
+<ResponseField
+  name="GetVersions"
+  type="Task<ResourceCollection<Version>> GetVersions(string modelId, string projectId, int limit = 25, string? cursor = null, ModelVersionsFilter? filter = null, CancellationToken cancellationToken = default)"
+>
   Lists versions of a model.
 </ResponseField>
 
@@ -26,7 +33,10 @@ After **`SendPipeline`** (connectors only), the server creates the version async
   Creates a version pointing at an already-sent object. `CreateVersionInput(string objectId, string modelId, string projectId, string? message = null, string? sourceApplication = ".net", int? totalChildrenCount = null, IReadOnlyList<string>? parents = null)`.
 </ResponseField>
 
-<ResponseField name="Update" type="Task<Version> Update(UpdateVersionInput input, CancellationToken cancellationToken = default)">
+<ResponseField
+  name="Update"
+  type="Task<Version> Update(UpdateVersionInput input, CancellationToken cancellationToken = default)"
+>
   Updates a version's message.
 </ResponseField>
 
@@ -34,11 +44,17 @@ After **`SendPipeline`** (connectors only), the server creates the version async
   Moves one or more versions to a different model. Returns the target model id. `MoveVersionsInput(string projectId, string targetModelName, IReadOnlyList<string> versionIds)` — note `targetModelName` takes the destination model's **name**, not its id.
 </ResponseField>
 
-<ResponseField name="Delete" type="Task Delete(DeleteVersionsInput input, CancellationToken cancellationToken = default)">
+<ResponseField
+  name="Delete"
+  type="Task Delete(DeleteVersionsInput input, CancellationToken cancellationToken = default)"
+>
   Deletes one or more versions.
 </ResponseField>
 
-<ResponseField name="Received" type="Task Received(MarkReceivedVersionInput input, CancellationToken cancellationToken = default)">
+<ResponseField
+  name="Received"
+  type="Task Received(MarkReceivedVersionInput input, CancellationToken cancellationToken = default)"
+>
   Marks a version as received by the current application, for telemetry/analytics purposes.
 </ResponseField>
 
@@ -52,17 +68,26 @@ var version = await client.Version.Create(new CreateVersionInput(objectId, model
 ```
 
 <Note>
-Sending with `Send` or `Send2` does not create a version by itself — follow up with `client.Version.Create` to publish data to a model's history and viewer. The [`SendPipeline`](/developers/sdks/dotnet/guides/building-connector-scale-sends) path is different: after `WaitForUpload`, the server creates the version asynchronously — do not call `Version.Create` on that pathway.
+  Sending with `Send` or `Send2` does not create a version by itself — follow up with
+  `client.Version.Create` to publish data to a model's history and viewer. The
+  [`SendPipeline`](/developers/sdks/dotnet/guides/building-connector-scale-sends) path is different:
+  after `WaitForUpload`, the server creates the version asynchronously — do not call
+  `Version.Create` on that pathway.
 </Note>
 
 ## FAQ
 
 <AccordionGroup>
   <Accordion title="What objectId do I pass to Create?">
-    For **`Send`** and **`Send2`**, pass the id returned by the send operation — not a value from `Base.GetId()`, which is obsolete and may not match every send path. For **`SendPipeline`**, do not call `Version.Create` — the server creates the version after upload. See [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends).
+    For **`Send`** and **`Send2`**, pass the id returned by the send operation — not a value from
+    `Base.GetId()`, which is obsolete and may not match every send path. For **`SendPipeline`**, do
+    not call `Version.Create` — the server creates the version after upload. See [Publish large
+    models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends).
   </Accordion>
   <Accordion title="How do I receive the data behind a version?">
-    Call `client.Version.Get` to read `referencedObject`, then `IOperations.Receive2` with that id. See [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool).
+    Call `client.Version.Get` to read `referencedObject`, then `IOperations.Receive2` with that id.
+    See [Build your first model analysis
+    tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool).
   </Accordion>
 </AccordionGroup>
 
@@ -72,7 +97,11 @@ Sending with `Send` or `Send2` does not create a version by itself — follow up
   <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
     Orphaned objects and version lifecycle
   </Card>
-  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+  <Card
+    title="Build your first model analysis tool"
+    icon="chart-bar"
+    href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool"
+  >
     Load latest version with Receive2
   </Card>
   <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">

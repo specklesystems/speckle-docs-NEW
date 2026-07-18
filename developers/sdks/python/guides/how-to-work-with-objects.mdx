@@ -1,11 +1,12 @@
 ---
-title: "Working with Speckle Objects"
-description: "Learn how to create, structure, and work with Speckle Base objects"
+title: 'Working with Speckle Objects'
+description: 'Learn how to create, structure, and work with Speckle Base objects'
 ---
 
 ## What You'll Learn
 
 By the end of this guide, you'll understand:
+
 - ✅ How to create and structure `Base` objects
 - ✅ The difference between direct attributes and the properties dictionary
 - ✅ How to access and discover object properties
@@ -14,12 +15,14 @@ By the end of this guide, you'll understand:
 ## Prerequisites
 
 Before starting this guide, you should:
+
 - Have [specklepy installed](/developers/sdks/python/getting-started/installation)
 - Understand basic Python (classes, lists, dictionaries)
 - Be familiar with the [quickstart](/developers/sdks/python/getting-started/quickstart)
 
 <Info>
-This guide focuses on **working with objects** - not sending/receiving them. For send/receive operations, see the [Quickstart](/developers/sdks/python/getting-started/quickstart).
+  This guide focuses on **working with objects** - not sending/receiving them. For send/receive
+  operations, see the [Quickstart](/developers/sdks/python/getting-started/quickstart).
 </Info>
 
 ## How do I create a Speckle object?
@@ -47,6 +50,7 @@ print(f"Created: {obj.name}")
 `Base` objects are Python classes that accept any property name dynamically (no predefined schema needed), serialize automatically for Speckle, support nesting (objects within objects), and work with Python's native attribute access.
 
 When to create Base objects:
+
 - Building custom data structures (surveys, analysis results, schedules)
 - Grouping related objects together
 - Adding application-specific metadata
@@ -61,6 +65,7 @@ obj.id = "custom-123"  # This sets the Speckle hash ID
 # ✅ Good - use your own naming
 obj.elementId = "custom-123"
 ```
+
 </Warning>
 
 ## How do I add metadata: direct attributes vs. properties dictionary?
@@ -68,6 +73,7 @@ obj.elementId = "custom-123"
 You need to attach metadata to objects, but you're unsure whether to use direct attributes (`obj.name`) or the properties dictionary (`obj.properties["name"]`).
 
 Use direct attributes for structure and organization:
+
 ```python lines icon="python"
 from specklepy.objects import Base
 
@@ -87,6 +93,7 @@ building.levels.append(level)
 ```
 
 Use the properties dictionary for queryable metadata:
+
 ```python lines icon="python"
 from specklepy.objects import Base
 
@@ -114,10 +121,14 @@ thickness = wall.properties.get("thickness", 0)
 **Properties dictionary** (`obj.properties`) is a standardized metadata container, follows BIM connector conventions, makes data searchable across applications, and commonly uses keys like `category`, `family`, `type`, `material`.
 
 <Info>
-**Which to use?** Both are valid Speckle patterns! The `properties` dictionary is a *convention* that makes metadata more discoverable. If Revit sends a wall, its category will be in `properties["category"]` - following this pattern makes your data easier to work with across platforms.
+  **Which to use?** Both are valid Speckle patterns! The `properties` dictionary is a *convention*
+  that makes metadata more discoverable. If Revit sends a wall, its category will be in
+  `properties["category"]` - following this pattern makes your data easier to work with across
+  platforms.
 </Info>
 
 Combining both approaches:
+
 ```python lines icon="python"
 from specklepy.objects import Base
 from specklepy.objects.geometry import Point, Mesh
@@ -147,6 +158,7 @@ beam.properties = {
 You have a Speckle object and need to read its properties, but you don't know what properties it has or how to access them safely.
 
 For direct attributes:
+
 ```python lines icon="python"
 # Direct access (if you know the property exists)
 name = obj.name
@@ -164,6 +176,7 @@ height = getattr(obj, "height", 0.0)
 ```
 
 For properties dictionary:
+
 ```python lines icon="python"
 # Direct access (might raise KeyError)
 category = obj.properties["category"]  # KeyError if missing!
@@ -211,9 +224,11 @@ This means you get a clean list of just the data properties. No need to check `i
 for name in obj.get_member_names():
     value = getattr(obj, name, None)  # Clean, no filtering needed
 ```
+
 </Accordion>
 
 Safe property access pattern:
+
 ```python lines icon="python" expandable
 def safely_read_object(obj):
     """Read all properties from an object safely."""
@@ -253,6 +268,7 @@ name = obj.name
 category = obj.properties.get("category", "Unknown")
 name = getattr(obj, "name", "Unnamed")
 ```
+
 </Warning>
 
 ## How do I work with lists and collections?
@@ -260,6 +276,7 @@ name = getattr(obj, "name", "Unnamed")
 You need to work with multiple objects - filtering them, counting them, or processing them in bulk.
 
 Looping through lists:
+
 ```python lines icon="python"
 from specklepy.objects import Base
 
@@ -281,6 +298,7 @@ for element in building.elements:
 ```
 
 Filtering lists:
+
 ```python lines icon="python"
 # Filter with list comprehension
 walls = [
@@ -299,6 +317,7 @@ load_bearing_walls = [
 ```
 
 Counting and aggregating:
+
 ```python lines icon="python"
 # Count by category
 from collections import Counter
@@ -323,7 +342,11 @@ print(f"Total area: {total_area}")
 **Working with nested collections** - many Speckle objects use `elements` arrays for hierarchical structures:
 
 <Note>
-**Terminology Note:** Examples here use terms like "building", "level", "room" to illustrate hierarchical concepts. Real BIM data from connectors (Revit, Rhino, etc.) uses **proxy structures** rather than direct nesting - for example, Revit levels are `LevelProxy` objects that reference elements by ID. See [Proxification](/developers/sdks/python/concepts/proxification) and [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) for actual BIM structures.
+  **Terminology Note:** Examples here use terms like "building", "level", "room" to illustrate
+  hierarchical concepts. Real BIM data from connectors (Revit, Rhino, etc.) uses **proxy
+  structures** rather than direct nesting - for example, Revit levels are `LevelProxy` objects that
+  reference elements by ID. See [Proxification](/developers/sdks/python/concepts/proxification) and
+  [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) for actual BIM structures.
 </Note>
 
 ```python lines icon="python" expandable
@@ -358,6 +381,7 @@ for level in building.elements:
 ```
 
 Common collection patterns:
+
 ```python lines icon="python"
 # Check if object has elements
 if hasattr(obj, "elements") and obj.elements:
@@ -391,14 +415,15 @@ for element in obj.elements:
 # ✅ Good - safe check first
 
 if hasattr(obj, "elements"):
-    for element in obj.elements:
-        process(element)
+for element in obj.elements:
+process(element)
 
 # ✅ Also good - use getattr with default
 
 for element in getattr(obj, "elements", []):
-    process(element)
-```
+process(element)
+
+````
 </Warning>
 
 ## Practical Examples
@@ -438,7 +463,7 @@ for i, (x, y, z) in enumerate(coordinates):
     survey.points.append(point)
 
 print(f"Survey '{survey.name}' has {len(survey.points)} points")
-```
+````
 
 ## Example 2: Filter and Summarize Objects
 
@@ -545,14 +570,17 @@ for level in building.elements:
 ## Learn More
 
 Core Concepts:
+
 - [Objects & Base Class](/developers/sdks/python/concepts/objects) - Deep dive into Base and object system
 - [Data Types](/developers/sdks/python/concepts/data-types) - Understanding Speckle's type system
 
 Guides:
+
 - [Simple Data Patterns](/developers/sdks/python/guides/simple-data-patterns) - More examples of custom data structures
 - [Intermediate: Finding and Extracting Data](/developers/sdks/python/guides/how-to-find-and-extract-data) - Learn to traverse and filter nested structures
 
 API Reference:
+
 - [Base class methods](/developers/sdks/python/api-reference/operations) - Complete Base API documentation
 
 ## Next Steps

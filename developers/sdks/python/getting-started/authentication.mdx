@@ -1,6 +1,6 @@
 ---
-title: "Authentication"
-description: "Learn how to authenticate with Speckle Server using tokens"
+title: 'Authentication'
+description: 'Learn how to authenticate with Speckle Server using tokens'
 ---
 
 ## Overview
@@ -8,7 +8,7 @@ description: "Learn how to authenticate with Speckle Server using tokens"
 specklepy uses **personal access tokens** to authenticate with Speckle Server.
 
 <Info>
-Tokens are managed through your Speckle Server profile and can be scoped to limit permissions.
+  Tokens are managed through your Speckle Server profile and can be scoped to limit permissions.
 </Info>
 
 ## Get a Personal Access Token
@@ -18,9 +18,9 @@ Tokens are managed through your Speckle Server profile and can be scoped to limi
     Go to your Speckle Server (e.g., [app.speckle.systems](https://app.speckle.systems))
   </Step>
 
-  <Step title="Access Your Profile">
-    Click your avatar → Settings → Profile → Developer → Access Tokens
-  </Step>
+<Step title="Access Your Profile">
+  Click your avatar → Settings → Profile → Developer → Access Tokens
+</Step>
 
   <Step title="Create Token">
     Click "New Token", give it a name and select the required scopes, then copy the token.
@@ -28,7 +28,8 @@ Tokens are managed through your Speckle Server profile and can be scoped to limi
 </Steps>
 
 <Warning>
-Store your token securely! **Treat them like a password**: do not post them anywhere where they could be accessed by others (e.g., public repos).
+  Store your token securely! **Treat them like a password**: do not post them anywhere where they
+  could be accessed by others (e.g., public repos).
 </Warning>
 
 ## Token-Based Authentication
@@ -92,6 +93,7 @@ Set the environment variable:
     load_dotenv()
     token = os.getenv("SPECKLE_TOKEN")
     ```
+
   </Tab>
   <Tab title="Linux/macOS">
     ```bash
@@ -100,6 +102,7 @@ Set the environment variable:
     ```
 
     Or add to `~/.bashrc` or `~/.zshrc` for persistence.
+
   </Tab>
 
   <Tab title="Windows (PowerShell)">
@@ -109,6 +112,7 @@ Set the environment variable:
     ```
 
     Or set System Environment Variables for persistence.
+
   </Tab>
 
   <Tab title="Windows (Command Prompt)">
@@ -121,8 +125,8 @@ Set the environment variable:
     ```cmd
     setx SPECKLE_TOKEN "your_token_here"
     ```
-  </Tab>
 
+  </Tab>
 
 </Tabs>
 
@@ -151,9 +155,13 @@ if account:
 Local accounts are created by signing in and authenticating with any Speckle desktop connector (Revit, Rhino, Grasshopper, AutoCAD, etc.).
 
 Account files are stored in:
+
 - **Windows**: `%APPDATA%\Speckle\Accounts`
 - **macOS**: `~/.config/Speckle/Accounts`
 - **Linux**: `~/.local/share/Speckle/Accounts`
+
+Those paths are created when you add an account in a Speckle desktop client.
+
 </Note>
 
 ### Account Object Structure
@@ -204,9 +212,7 @@ client = SpeckleClient(
 )
 ```
 
-<Warning>
-Only disable certificate verification for trusted internal servers.
-</Warning>
+<Warning>Only disable certificate verification for trusted internal servers.</Warning>
 
 ## Authentication Best Practices
 
@@ -227,6 +233,7 @@ Choose the authentication method that best fits your use case:
     token = os.getenv("SPECKLE_TOKEN")
     client.authenticate_with_token(token)
     ```
+
   </Tab>
 
   <Tab title="Production">
@@ -238,6 +245,7 @@ Choose the authentication method that best fits your use case:
     token = os.environ["SPECKLE_TOKEN"]
     client.authenticate_with_token(token)
     ```
+
   </Tab>
 
   <Tab title="CI/CD">
@@ -250,12 +258,14 @@ Choose the authentication method that best fits your use case:
     env:
       SPECKLE_TOKEN: ${{ secrets.SPECKLE_TOKEN }}
     ```
+
   </Tab>
 
   <Tab title="Multi-User Apps">
     Implement OAuth 2.0 flow:
 
     For web apps where users authenticate themselves. Each user gets their own token via OAuth.
+
   </Tab>
 </Tabs>
 
@@ -291,15 +301,11 @@ When creating a token, you can limit its permissions:
 Scopes will be documented later but for now you can view all those available in the Access Token creation step:
 
 <Frame>
-<img src="/images/developers/sdks/scopes.png" alt="Token Scopes" />
+  <img src="/images/developers/sdks/scopes.png" alt="Token Scopes" />
 </Frame>
 
-<Tip>
-Follow the principle of least privilege - only grant the scopes your application needs.
-</Tip>
-<Note>
-  Scopes retain the nomenclature of v2 Speckle where `project` is `stream`
-</Note>
+<Tip>Follow the principle of least privilege - only grant the scopes your application needs.</Tip>
+<Note>Scopes retain the nomenclature of v2 Speckle where `project` is `stream`</Note>
 
 ## Common Authentication Errors
 
@@ -312,6 +318,7 @@ Follow the principle of least privilege - only grant the scopes your application
     - Check the token hasn't been revoked
     - Ensure the token has the required scopes
     - Generate a new token if needed
+
   </Accordion>
 
   <Accordion title="Connection Refused">
@@ -322,6 +329,7 @@ Follow the principle of least privilege - only grant the scopes your application
     - Check your internet connection
     - For local servers, ensure the server is running
     - Check firewall settings
+
   </Accordion>
 
   <Accordion title="SSL Certificate Error">
@@ -331,6 +339,7 @@ Follow the principle of least privilege - only grant the scopes your application
     - For self-signed certificates, use `verify_certificate=False`
     - Install the certificate in your system's trust store
     - For production, use properly signed certificates
+
   </Accordion>
 
   <Accordion title="No Local Accounts Found">
@@ -342,27 +351,22 @@ Follow the principle of least privilege - only grant the scopes your application
     token = os.environ.get("SPECKLE_TOKEN")
     client.authenticate_with_token(token)
     ```
+
   </Accordion>
 </AccordionGroup>
 
 ## Security Best Practices
 
 <Check>
-Do:
-- Store tokens in environment variables
-- Use `.gitignore` to exclude `.env` files
-- Rotate tokens periodically
-- Use scoped tokens with minimal permissions
-- Revoke tokens when no longer needed
+  Do: - Store tokens in environment variables - Use `.gitignore` to exclude `.env` files - Rotate
+  tokens periodically - Use scoped tokens with minimal permissions - Revoke tokens when no longer
+  needed
 </Check>
 
 <Warning>
-Don't:
-- Commit tokens to version control
-- Share tokens between team members
-- Use tokens in client-side code (use OAuth instead)
-- Store tokens in plain text files
-- Use overly permissive scopes
+  Don't: - Commit tokens to version control - Share tokens between team members - Use tokens in
+  client-side code (use OAuth instead) - Store tokens in plain text files - Use overly permissive
+  scopes
 </Warning>
 
 ## Next Steps

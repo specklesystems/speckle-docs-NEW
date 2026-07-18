@@ -1,6 +1,6 @@
 ---
-title: "Proxification"
-description: "Understanding proxy references and resolution strategies in Speckle data"
+title: 'Proxification'
+description: 'Understanding proxy references and resolution strategies in Speckle data'
 ---
 
 ## Overview
@@ -8,6 +8,7 @@ description: "Understanding proxy references and resolution strategies in Speckl
 **Proxification** is a data organization technique that enables objects to be referenced by **multiple overlapping hierarchical systems** simultaneously - groups, layers, levels, blocks, instances, materials - without duplicating the objects themselves. This allows rich organizational metadata while keeping payloads efficient.
 
 Instead of forcing a single parent-child hierarchy, proxification lets a single wall be:
+
 - On "Level 1" (level hierarchy)
 - In "Exterior Walls" group (functional grouping)
 - On "A-WALL" layer (layer organization)
@@ -16,7 +17,10 @@ Instead of forcing a single parent-child hierarchy, proxification lets a single 
 All without duplicating the wall object or creating conflicting nested structures.
 
 <Note>
-**For SDK Consumers:** Proxification is primarily important when **consuming** data from Speckle (e.g., from connectors like Revit, Rhino, ArchiCAD). When **publishing** custom data with specklepy, you typically don't need to use proxification yourself - the SDK handles it automatically where needed.
+  **For SDK Consumers:** Proxification is primarily important when **consuming** data from Speckle
+  (e.g., from connectors like Revit, Rhino, ArchiCAD). When **publishing** custom data with
+  specklepy, you typically don't need to use proxification yourself - the SDK handles it
+  automatically where needed.
 </Note>
 
 ## Why Proxification Exists (Beyond Detachment)
@@ -30,6 +34,7 @@ But detachment doesn't solve the problem of **multiple overlapping organizationa
 ### The Problem: Single Hierarchy Limitations
 
 Imagine a building model where you need to organize objects by:
+
 - **Building Level** - Level 1, Level 2, Roof
 - **Functional Group** - Exterior Walls, Interior Partitions, Structure
 - **Drawing Layer** - A-WALL, A-DOOR, S-COLS
@@ -37,12 +42,14 @@ Imagine a building model where you need to organize objects by:
 - **Instance Type** - Standard Door, Window Type A
 
 A single wall might belong to:
+
 - Level: "Level 1"
 - Group: "Exterior Walls"
 - Layer: "A-WALL"
 - Material: "Concrete"
 
 Without proxification - you must choose ONE hierarchy:
+
 ```python
 # Option A: Nest by level (lose group info)
 level_1 = {
@@ -60,6 +67,7 @@ exterior_walls = {
 ```
 
 Problems:
+
 - Can only have ONE primary hierarchy (level OR group OR layer)
 - Querying "exterior walls on Level 1" requires complex traversal
 - Can't represent that objects belong to multiple organizational systems
@@ -68,6 +76,7 @@ Problems:
 ### The Solution With Proxification
 
 With proxification - MULTIPLE overlapping hierarchies:
+
 ```python
 root = {
     # Objects stored once in flat/hierarchical elements
@@ -96,6 +105,7 @@ root = {
 ```
 
 Benefits:
+
 - Objects stored once, referenced by multiple organizational systems
 - Can query "exterior walls on Level 1" efficiently (intersection of two proxy lists)
 - Supports overlapping hierarchies (groups + layers + levels + materials)
@@ -117,6 +127,7 @@ Both optimize data transfer, but solve different problems:
 | **Resolution**     | Automatic on receive                      | Manual (build index + resolve)                           |
 
 **Detachment:** "This single object is too big, store it separately"
+
 ```python
 # Before detachment
 {"name": "Wall", "displayValue": {huge mesh object}}
@@ -127,6 +138,7 @@ Both optimize data transfer, but solve different problems:
 ```
 
 **Proxification:** "This object belongs to multiple organizational systems simultaneously"
+
 ```python
 # Without proxification - forced to choose ONE hierarchy
 {"level_1": {"walls": [wall_1]}}  # Lose group/layer info
@@ -237,7 +249,9 @@ obj = {
 ```
 
 <Warning>
-**Display Value Proxies:** When `displayValue` contains strings (applicationIds) instead of Mesh objects, you must resolve these references by finding the corresponding objects in the elements hierarchy. This is less common than direct `displayValue` lists but can occur in large models.
+  **Display Value Proxies:** When `displayValue` contains strings (applicationIds) instead of Mesh
+  objects, you must resolve these references by finding the corresponding objects in the elements
+  hierarchy. This is less common than direct `displayValue` lists but can occur in large models.
 </Warning>
 
 ### 4. Instance Proxies
@@ -640,6 +654,7 @@ for wall in walls:
 ### As a Data Consumer (Reading from Connectors)
 
 You WILL encounter proxification when:
+
 - Reading BIM/CAD data from Revit, Rhino, ArchiCAD, AutoCAD connectors
 - Working with organized models (levels, layers, groups, blocks)
 - Need to query by multiple criteria (e.g., "exterior walls on Level 1")
@@ -647,6 +662,7 @@ You WILL encounter proxification when:
 - Understanding instance/definition relationships
 
 Resolution is required for:
+
 - Finding objects by level, group, layer, or material
 - Querying intersections ("walls that are both exterior AND on Level 1")
 - Understanding which organizational systems an object belongs to
@@ -655,17 +671,20 @@ Resolution is required for:
 ### As a Data Producer (Publishing with specklepy)
 
 You typically DON'T need to create proxies when:
+
 - Publishing custom data with specklepy
 - Creating simple models
 - Working with small datasets
 
 The SDK handles proxification automatically when:
+
 - Sending large objects via `operations.send()`
 - Detachable properties are detected
 - Objects exceed chunking thresholds
 
 <Info>
-**Recommendation:** Focus on understanding proxy resolution as a consumer. Let the SDK handle proxification automatically when publishing data.
+  **Recommendation:** Focus on understanding proxy resolution as a consumer. Let the SDK handle
+  proxification automatically when publishing data.
 </Info>
 
 ## Reference Implementation: speckle-blender
@@ -703,6 +722,7 @@ def resolve_proxies(root):
 ```
 
 See Also:
+
 - `speckle-blender` repository for working implementations
 - Connector source code for practical proxy handling patterns
 
@@ -765,18 +785,21 @@ for wall in walls:
 ## Summary
 
 Key Concepts:
+
 - **Proxification** = Storing objects separately and referencing by ID
 - **Proxy collections** live at root level with `@` prefix
 - **Resolution** requires two steps: build index, then resolve references
 - **All proxy types** follow the same resolution pattern
 
 When to worry about proxification:
+
 - ✅ Reading BIM data from connectors (common)
 - ✅ Analyzing model organization (levels, groups, materials)
 - ✅ Working with large models
 - ❌ Publishing simple custom data (SDK handles it)
 
 The Resolution Pattern:
+
 1. Build applicationId index
 2. Get proxy collections from root
 3. Resolve applicationId strings to objects
@@ -789,13 +812,17 @@ The Resolution Pattern:
     See proxification in action with Pattern 7
   </Card>
 
-  <Card title="Data Traversal" icon="diagram-project" href="/developers/sdks/python/concepts/data-traversal">
-    Learn to navigate object graphs effectively
-  </Card>
+<Card
+  title="Data Traversal"
+  icon="diagram-project"
+  href="/developers/sdks/python/concepts/data-traversal"
+>
+  Learn to navigate object graphs effectively
+</Card>
 
-  <Card title="Objects & Base" icon="cube" href="/developers/sdks/python/concepts/objects">
-    Understand applicationId and object identity
-  </Card>
+<Card title="Objects & Base" icon="cube" href="/developers/sdks/python/concepts/objects">
+  Understand applicationId and object identity
+</Card>
 
   <Card title="Operations" icon="code" href="/developers/sdks/python/api-reference/operations">
     How send() and receive() handle proxification

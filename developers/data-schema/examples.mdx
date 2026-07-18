@@ -11,12 +11,12 @@ This page provides complete, working examples for common operations on Speckle m
 def find_all_walls(root_collection):
     """Find all wall objects in a Revit model."""
     walls = []
-    
+
     def traverse(coll):
         if hasattr(coll, 'elements'):
             for item in coll.elements:
                 # Check if it's a RevitObject with category "Walls"
-                if (hasattr(item, 'speckle_type') and 
+                if (hasattr(item, 'speckle_type') and
                     "RevitObject" in item.speckle_type and
                     hasattr(item, 'category') and
                     item.category == "Walls"):
@@ -25,7 +25,7 @@ def find_all_walls(root_collection):
                 elif (hasattr(item, 'speckle_type') and
                       "Collection" in item.speckle_type):
                     traverse(item)
-    
+
     traverse(root_collection)
     return walls
 
@@ -41,12 +41,12 @@ print(f"Found {len(walls)} walls")
 def extract_all_geometry(root_collection):
     """Extract all geometry objects from a model."""
     all_geometry = []
-    
+
     def traverse(coll):
         if hasattr(coll, 'elements'):
             for item in coll.elements:
                 # Check if it's a DataObject with displayValue
-                if (hasattr(item, 'displayValue') and 
+                if (hasattr(item, 'displayValue') and
                     item.displayValue):
                     all_geometry.extend(item.displayValue)
                 # Check if it's standalone geometry
@@ -57,7 +57,7 @@ def extract_all_geometry(root_collection):
                 elif (hasattr(item, 'speckle_type') and
                       "Collection" in item.speckle_type):
                     traverse(item)
-    
+
     traverse(root_collection)
     return all_geometry
 
@@ -82,13 +82,13 @@ def find_objects_by_material(root_collection, material_name):
                 item.name == material_name):
                 material_proxy = item
                 break
-    
+
     if not material_proxy or not hasattr(material_proxy, 'objects'):
         return []
-    
+
     # Get referenced object IDs
     referenced_ids = material_proxy.objects
-    
+
     # Find objects by applicationId
     objects = []
     def traverse(coll):
@@ -100,7 +100,7 @@ def find_objects_by_material(root_collection, material_name):
                 elif (hasattr(item, 'speckle_type') and
                       "Collection" in item.speckle_type):
                     traverse(item)
-    
+
     traverse(root_collection)
     return objects
 
@@ -117,7 +117,7 @@ def resolve_instance_geometry(root_collection, instance):
     """Get geometry for a block instance."""
     if not hasattr(instance, 'definitionId'):
         return None
-    
+
     # Find the definition proxy
     definition_proxy = None
     if hasattr(root_collection, 'elements'):
@@ -128,15 +128,15 @@ def resolve_instance_geometry(root_collection, instance):
                 item.applicationId == instance.definitionId):
                 definition_proxy = item
                 break
-    
+
     if not definition_proxy:
         return None
-    
+
     # Get geometry from definition value
     if (hasattr(definition_proxy, 'value') and
         hasattr(definition_proxy.value, 'displayValue')):
         return definition_proxy.value.displayValue
-    
+
     return None
 
 # Usage
@@ -161,21 +161,21 @@ def build_material_report(root_collection):
             if (hasattr(item, 'speckle_type') and
                 "RenderMaterial" in item.speckle_type):
                 material_proxies.append(item)
-    
+
     # Build report
     report = {}
     for material in material_proxies:
         material_name = getattr(material, 'name', 'Unknown')
         referenced_ids = getattr(material, 'objects', [])
-        
+
         # Count objects using this material
         count = len(referenced_ids)
-        
+
         report[material_name] = {
             'count': count,
             'object_ids': referenced_ids
         }
-    
+
     return report
 
 # Usage
@@ -191,7 +191,7 @@ for material, data in report.items():
 def find_objects_by_property(root_collection, property_path, value):
     """Find objects with a specific property value."""
     matches = []
-    
+
     def get_nested_property(props, path):
         """Get nested property using dot notation."""
         keys = path.split('.')
@@ -202,7 +202,7 @@ def find_objects_by_property(root_collection, property_path, value):
             else:
                 return None
         return current
-    
+
     def traverse(coll):
         if hasattr(coll, 'elements'):
             for item in coll.elements:
@@ -216,7 +216,7 @@ def find_objects_by_property(root_collection, property_path, value):
                 elif (hasattr(item, 'speckle_type') and
                       "Collection" in item.speckle_type):
                     traverse(item)
-    
+
     traverse(root_collection)
     return matches
 
@@ -246,24 +246,24 @@ def get_model_statistics(root_collection):
         'object_types': {},
         'connector': None
     }
-    
+
     def traverse(coll):
         if hasattr(coll, 'elements'):
             for item in coll.elements:
                 speckle_type = getattr(item, 'speckle_type', '')
-                
+
                 if "Collection" in speckle_type:
                     stats['collections'] += 1
                     traverse(item)
                 elif "DataObject" in speckle_type:
                     stats['data_objects'] += 1
                     stats['total_objects'] += 1
-                    
+
                     # Track object type
                     stats['object_types'][speckle_type] = (
                         stats['object_types'].get(speckle_type, 0) + 1
                     )
-                    
+
                     # Detect connector
                     if not stats['connector']:
                         if "RevitObject" in speckle_type:
@@ -273,7 +273,7 @@ def get_model_statistics(root_collection):
                         elif "TeklaObject" in speckle_type:
                             stats['connector'] = "Tekla"
                         # ... add more connector detection
-                    
+
                     # Count geometry
                     if hasattr(item, 'displayValue') and item.displayValue:
                         for geom in item.displayValue:
@@ -287,7 +287,7 @@ def get_model_statistics(root_collection):
                     stats['total_objects'] += 1
                 elif "RenderMaterial" in speckle_type or "Level" in speckle_type:
                     stats['proxies'] += 1
-    
+
     traverse(root_collection)
     return stats
 
@@ -305,10 +305,10 @@ print(f"Geometry types: {stats['geometry_types']}")
 def process_by_path(root_collection):
     """Process objects with their collection path context."""
     results = []
-    
+
     def traverse(coll, path=""):
         current_path = f"{path}/{coll.name}" if hasattr(coll, 'name') else path
-        
+
         if hasattr(coll, 'elements'):
             for item in coll.elements:
                 if (hasattr(item, 'speckle_type') and
@@ -322,7 +322,7 @@ def process_by_path(root_collection):
                 elif (hasattr(item, 'speckle_type') and
                       "Collection" in item.speckle_type):
                     traverse(item, current_path)
-    
+
     traverse(root_collection)
     return results
 
@@ -348,4 +348,3 @@ These examples demonstrate common patterns:
 
 - Check [Connector pages](/developers/data-schema/connector-index) for connector-specific examples
 - See [Object Schema](/developers/data-schema/object-schema) for data model details
-

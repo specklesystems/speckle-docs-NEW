@@ -1,7 +1,7 @@
 ---
-title: "Resolve groups and instances"
-description: "Resolve group, level, and instance proxies back to BIM elements after receive"
-sidebarTitle: "Proxies"
+title: 'Resolve groups and instances'
+description: 'Resolve group, level, and instance proxies back to BIM elements after receive'
+sidebarTitle: 'Proxies'
 ---
 
 ## Goal
@@ -52,15 +52,17 @@ var colorProxy = new ColorProxy
 ```
 
 <Note>
-Additional proxy types (materials, levels, instance definitions) follow the same pattern. Exact shapes: [Proxy Schemas](/developers/data-schema/proxy-schema).
+  Additional proxy types (materials, levels, instance definitions) follow the same pattern. Exact
+  shapes: [Proxy Schemas](/developers/data-schema/proxy-schema).
 </Note>
 
 <Info>
-**As a producer:** you typically do **not** create proxies when publishing from a script or service — send your `Base`/`DataObject` graph and let connectors produce proxy collections from host-app organization.
+  **As a producer:** you typically do **not** create proxies when publishing from a script or
+  service — send your `Base`/`DataObject` graph and let connectors produce proxy collections from
+  host-app organization.
 </Info>
 
 ## Complete Example
-
 
 ```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
 using Speckle.Sdk.Models;
@@ -113,7 +115,8 @@ Dictionary<string, List<Base>> ResolveProxies<T>(
 ```
 
 <Warning>
-Not every `applicationId` in a proxy's `objects` list is guaranteed to resolve. Always use `GetValueOrDefault`, never a direct indexer that throws.
+  Not every `applicationId` in a proxy's `objects` list is guaranteed to resolve. Always use
+  `GetValueOrDefault`, never a direct indexer that throws.
 </Warning>
 
 ### Resolving Instance Definitions
@@ -157,26 +160,38 @@ Prefer root-level property lookup (`receivedData["instanceDefinitionProxies"]`) 
 
 <AccordionGroup>
   <Accordion title="Proxy collection property not found on the root object">
-    Root-level property names (`groupProxies`, `colorProxies`, etc.) are a sender convention. Check [Proxy Schemas](/developers/data-schema/proxy-schema) or the sending connector's documentation.
+    Root-level property names (`groupProxies`, `colorProxies`, etc.) are a sender convention. Check
+    [Proxy Schemas](/developers/data-schema/proxy-schema) or the sending connector's documentation.
   </Accordion>
   <Accordion title="InstanceProxy resolved to the wrong object">
-    `InstanceProxy.definitionId` matches an `InstanceDefinitionProxy.applicationId`, not `id`. Index definitions by `applicationId`.
+    `InstanceProxy.definitionId` matches an `InstanceDefinitionProxy.applicationId`, not `id`. Index
+    definitions by `applicationId`.
   </Accordion>
   <Accordion title="Rebuilding the applicationId index per proxy">
-    Build it once per received graph — see [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data).
+    Build it once per received graph — see [Find objects by
+    property](/developers/sdks/dotnet/guides/finding-and-extracting-data).
   </Accordion>
   <Accordion title="Nested instances">
-    A definition's `objects` list can contain another `InstanceProxy`. Resolve and compose transforms recursively, multiplying matrices from outermost to innermost.
+    A definition's `objects` list can contain another `InstanceProxy`. Resolve and compose
+    transforms recursively, multiplying matrices from outermost to innermost.
   </Accordion>
 </AccordionGroup>
 
 ## Next Steps
 
 <CardGroup cols={3}>
-  <Card title="Objects and Traversal" icon="book" href="/developers/sdks/dotnet/concepts/objects-and-traversal">
+  <Card
+    title="Objects and Traversal"
+    icon="book"
+    href="/developers/sdks/dotnet/concepts/objects-and-traversal"
+  >
     Base graph structure proxies attach to
   </Card>
-  <Card title="Find objects by property" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
+  <Card
+    title="Find objects by property"
+    icon="magnifying-glass"
+    href="/developers/sdks/dotnet/guides/finding-and-extracting-data"
+  >
     applicationId index pattern
   </Card>
   <Card title="Client API" icon="code" href="/developers/sdks/dotnet/api-reference/client">

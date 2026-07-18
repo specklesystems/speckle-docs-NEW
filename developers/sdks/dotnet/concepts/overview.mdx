@@ -1,7 +1,7 @@
 ---
-title: "How your code talks to Speckle Server"
-description: "The SpeckleSharp mental model — projects, models, versions, object graphs, and the recommended automation workflow"
-sidebarTitle: "Core concepts"
+title: 'How your code talks to Speckle Server'
+description: 'The SpeckleSharp mental model — projects, models, versions, object graphs, and the recommended automation workflow'
+sidebarTitle: 'Core concepts'
 ---
 
 When you automate AEC workflows from C#, your code uses **SpeckleSharp** to talk to **Speckle Server**. Speckle Server stores **projects**, **models**, **versions**, and **objects** — structured model data instead of files.
@@ -63,7 +63,8 @@ Most AEC automation scripts follow these steps:
 6. **Optionally send results back** — `Send2` plus `Version.Create` when you want a new published snapshot
 
 <Tip>
-The recommended approach for most AEC automation scripts: PAT via env var → `Receive2` latest version → `Flatten` → analyse → optional `Send2` + `Version.Create`.
+  The recommended approach for most AEC automation scripts: PAT via env var → `Receive2` latest
+  version → `Flatten` → analyse → optional `Send2` + `Version.Create`.
 </Tip>
 
 ## Platform concepts
@@ -79,7 +80,8 @@ var version = await client.Version.Create(new CreateVersionInput(objectId, model
 ```
 
 <Info>
-Some lower-level APIs (transports, `Send`/`Receive`) still use `streamId` for what the GraphQL API calls `projectId`. Pass your project's `id` — they are the same value.
+  Some lower-level APIs (transports, `Send`/`Receive`) still use `streamId` for what the GraphQL API
+  calls `projectId`. Pass your project's `id` — they are the same value.
 </Info>
 
 Object modeling (`Base`, `DataObject`, `Collection`, detachment, `displayValue`): [Work with model objects](/developers/sdks/dotnet/concepts/objects-and-traversal).
@@ -89,7 +91,9 @@ Object modeling (`Base`, `DataObject`, `Collection`, detachment, `displayValue`)
 Every sent object has a unique **object ID**, deterministically generated from its content.
 
 <Warning>
-`Base.GetId()` is obsolete and does not match the IDs produced by every send path. Always use the ID returned by the send operation you actually called (`Operations.Send`, `Send2`, or `SendPipeline`) rather than computing it separately.
+  `Base.GetId()` is obsolete and does not match the IDs produced by every send path. Always use the
+  ID returned by the send operation you actually called (`Operations.Send`, `Send2`, or
+  `SendPipeline`) rather than computing it separately.
 </Warning>
 
 ## Load and publish model data
@@ -108,7 +112,8 @@ var received = await operations.Receive(objectId, remoteTransport: transport);
 ## Orphaned objects
 
 <Warning>
-Objects sent to the server but not referenced by any version are **orphaned** — stored with an object ID but unreachable through the Speckle UI until a version references them.
+  Objects sent to the server but not referenced by any version are **orphaned** — stored with an
+  object ID but unreachable through the Speckle UI until a version references them.
 </Warning>
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
@@ -133,7 +138,9 @@ Console.WriteLine(point.speckle_type); // "Objects.Geometry.Point"
 ```
 
 <Info>
-Custom types and traversal: [Work with model objects](/developers/sdks/dotnet/concepts/objects-and-traversal). Geometry types: [Working with Geometry](/developers/sdks/dotnet/guides/working-with-geometry).
+  Custom types and traversal: [Work with model
+  objects](/developers/sdks/dotnet/concepts/objects-and-traversal). Geometry types: [Working with
+  Geometry](/developers/sdks/dotnet/guides/working-with-geometry).
 </Info>
 
 ## Local cache
@@ -144,23 +151,37 @@ Speckle.Sdk maintains a local SQLite cache under the current user's application 
 
 <AccordionGroup>
   <Accordion title="What happens if I send data but never create a version?">
-    The object is stored on the server with an object ID, but it is **orphaned** until a version references it. Always create a version after sending data you want others to find.
+    The object is stored on the server with an object ID, but it is **orphaned** until a version
+    references it. Always create a version after sending data you want others to find.
   </Accordion>
   <Accordion title="Should I use Send or Send2?">
-    Use **Send2**/`Receive2` for scripts, notebooks, and most new server-facing code. Use **Send**/`Receive` with an `ITransport` when you follow the [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart), need `MemoryTransport`/`SQLiteTransport`, or integrate with code that already uses transports. See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths).
+    Use **Send2**/`Receive2` for scripts, notebooks, and most new server-facing code. Use
+    **Send**/`Receive` with an `ITransport` when you follow the [Full send/receive
+    tour](/developers/sdks/dotnet/getting-started/quickstart), need
+    `MemoryTransport`/`SQLiteTransport`, or integrate with code that already uses transports. See
+    [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths).
   </Accordion>
   <Accordion title="Why does streamId appear in transport code?">
-    Older transport APIs use `streamId` for what the GraphQL API calls `projectId`. Pass your project's `id` — they are the same value.
+    Older transport APIs use `streamId` for what the GraphQL API calls `projectId`. Pass your
+    project's `id` — they are the same value.
   </Accordion>
 </AccordionGroup>
 
 ## Next Steps
 
 <CardGroup cols={3}>
-  <Card title="Build your first model analysis tool" icon="chart-bar" href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool">
+  <Card
+    title="Build your first model analysis tool"
+    icon="chart-bar"
+    href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool"
+  >
     Load, traverse, and export a CSV report
   </Card>
-  <Card title="Load and publish model data" icon="route" href="/developers/sdks/dotnet/concepts/send-and-receive-paths">
+  <Card
+    title="Load and publish model data"
+    icon="route"
+    href="/developers/sdks/dotnet/concepts/send-and-receive-paths"
+  >
     Choose Send2, Send, or SendPipeline
   </Card>
   <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">

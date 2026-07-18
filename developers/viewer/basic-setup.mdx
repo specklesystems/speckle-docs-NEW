@@ -2,9 +2,10 @@
 title: Basic Setup
 ---
 
-The first thing you'll need is a container for the viewer and a [javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)/[typescript](https://www.typescriptlang.org/) script which will run the viewer code. 
+The first thing you'll need is a container for the viewer and a [javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)/[typescript](https://www.typescriptlang.org/) script which will run the viewer code.
 
 We'll create a simple HTML and a simple typescript file
+
 ```html Basic Setup HTML
 <!DOCTYPE html>
 <html>
@@ -21,55 +22,51 @@ We'll create a simple HTML and a simple typescript file
   </body>
 </html>
 ```
+
 Now save this HTML snippet as `index.html`
 
-Next we'll create the typescript file: 
+Next we'll create the typescript file:
 
 ```typescript Basic Setup JavaScript [expandable]
-import {
-  Viewer,
-  DefaultViewerParams,
-  SpeckleLoader,
-  UrlHelper,
-} from "@speckle/viewer";
-import { CameraController, SelectionExtension } from "@speckle/viewer";
+import { Viewer, DefaultViewerParams, SpeckleLoader, UrlHelper } from '@speckle/viewer'
+import { CameraController, SelectionExtension } from '@speckle/viewer'
 
 async function main() {
   /** Get the HTML container */
-  const container = document.getElementById("speckle");
+  const container = document.getElementById('speckle')
 
   /** Configure the viewer params */
-  const params = DefaultViewerParams;
-  params.showStats = true;
-  params.verbose = true;
+  const params = DefaultViewerParams
+  params.showStats = true
+  params.verbose = true
 
   /** Create Viewer instance */
-  const viewer = new Viewer(container, params);
+  const viewer = new Viewer(container, params)
   /** Initialise the viewer */
-  await viewer.init();
+  await viewer.init()
 
   /** Add the stock camera controller extension */
-  viewer.createExtension(CameraController);
+  viewer.createExtension(CameraController)
   /** Add the selection extension for extra interactivity */
-  viewer.createExtension(SelectionExtension);
+  viewer.createExtension(SelectionExtension)
 
   /** Create a loader for the speckle stream */
   const urls = await UrlHelper.getResourceUrls(
-    "https://app.speckle.systems/projects/7591c56179/models/32213f5381"
-  );
+    'https://app.speckle.systems/projects/7591c56179/models/32213f5381'
+  )
   for (const url of urls) {
-    const loader = new SpeckleLoader(viewer.getWorldTree(), url, "");
+    const loader = new SpeckleLoader(viewer.getWorldTree(), url, '')
     /** Load the speckle data */
-    await viewer.loadObject(loader, true);
+    await viewer.loadObject(loader, true)
   }
 }
 
-main();
-
+main()
 ```
+
 Now save this typescript snippet as`index.ts`
 
-You can run the live example [here](https://stackblitz.com/edit/speckle-basic-setup?embed=1&file=src/main.ts&view=preview&hideExplorer=true&hideNavigation=true) 
+You can run the live example [here](https://stackblitz.com/edit/speckle-basic-setup?embed=1&file=src/main.ts&view=preview&hideExplorer=true&hideNavigation=true)
 or <Tooltip tip="Embedding works only on chromium based browsers">embedded</Tooltip> below:
 
 <Frame caption="Basic Setup Example">

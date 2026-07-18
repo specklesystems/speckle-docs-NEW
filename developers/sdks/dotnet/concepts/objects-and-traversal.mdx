@@ -1,7 +1,7 @@
 ---
-title: "Work with model objects"
-description: "DataObject, Collection, Base, display values, and traversing Speckle model data in .NET"
-sidebarTitle: "Objects"
+title: 'Work with model objects'
+description: 'DataObject, Collection, Base, display values, and traversing Speckle model data in .NET'
+sidebarTitle: 'Objects'
 ---
 
 When you load model data from Speckle, you work with **`DataObject`** (BIM elements), **`Collection`** (hierarchy), and **`Base`** (foundation type). Connector-published walls, doors, and rooms are usually `DataObject` instances with BIM fields in **`properties`**.
@@ -9,7 +9,9 @@ When you load model data from Speckle, you work with **`DataObject`** (BIM eleme
 **When to read this:** before filtering or exporting model data. **Read next:** [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data) for filter recipes, or [BIM data patterns](/developers/sdks/dotnet/guides/bim-data-patterns) for connector data structure.
 
 <Info>
-For filtering and indexing recipes, see [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data). Bootstrap: [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
+  For filtering and indexing recipes, see [Find objects by
+  property](/developers/sdks/dotnet/guides/finding-and-extracting-data). Bootstrap: [Automate with
+  scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
 </Info>
 
 ## Find doors and walls in received data
@@ -52,7 +54,8 @@ custom["count"] = 42;
 ```
 
 <Info>
-Objects are content-addressed: once sent, an object's `id` is a hash of its serialized content. Identical content always produces the same id.
+  Objects are content-addressed: once sent, an object's `id` is a hash of its serialized content.
+  Identical content always produces the same id.
 </Info>
 
 ### Static vs Dynamic Properties
@@ -70,11 +73,13 @@ point["customId"] = "POINT_001";
 Use a typed subclass when you control the shape and want compile-time safety; use plain `Base` with the indexer when the shape is unknown or ad hoc. Both produce the same wire format.
 
 <Note>
-Property names starting with `__` are ignored entirely (not hashed, not serialized). Property names cannot contain `.` or `/`. Avoid dynamic names starting with `_` or `@` unless you intend to detach that property — a double `@@` prefix or invalid characters throw `InvalidPropNameException`.
+  Property names starting with `__` are ignored entirely (not hashed, not serialized). Property
+  names cannot contain `.` or `/`. Avoid dynamic names starting with `_` or `@` unless you intend to
+  detach that property — a double `@@` prefix or invalid characters throw
+  `InvalidPropNameException`.
 </Note>
 
 ## Complete Example
-
 
 ```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
 using Speckle.Sdk.Models;
@@ -108,7 +113,8 @@ foreach (var (key, value) in room.GetMembers())
 ```
 
 <Info>
-The `Room` example teaches `Base` mechanics directly. For real BIM-like data, model with `DataObject` and `Collection` instead — the same detachment and introspection rules apply.
+  The `Room` example teaches `Base` mechanics directly. For real BIM-like data, model with
+  `DataObject` and `Collection` instead — the same detachment and introspection rules apply.
 </Info>
 
 ### Discovering Properties at Runtime
@@ -149,11 +155,14 @@ public required List<double> Measurements { get; set; }
 ```
 
 <Note>
-`[Chunkable]` is honored by `Serialize`/`Send`/`Send2`. The connector-scale `SendPipeline` path (see [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends)) detaches on `[DetachProperty]` but does not currently act on `[Chunkable]`.
+  `[Chunkable]` is honored by `Serialize`/`Send`/`Send2`. The connector-scale `SendPipeline` path
+  (see [Publish large models
+  (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends)) detaches on
+  `[DetachProperty]` but does not currently act on `[Chunkable]`.
 </Note>
 
 <Warning>
-`[DetachProperty(false)]` is obsolete — use the parameterless `[DetachProperty]` only.
+  `[DetachProperty(false)]` is obsolete — use the parameterless `[DetachProperty]` only.
 </Warning>
 
 ## Custom Types
@@ -171,7 +180,8 @@ public class Wall : Base
 ```
 
 <Warning>
-Most Speckle connectors will not recognize custom types during host-app conversion. Include a `displayValue` property so the object is at least visible in the 3D viewer.
+  Most Speckle connectors will not recognize custom types during host-app conversion. Include a
+  `displayValue` property so the object is at least visible in the 3D viewer.
 </Warning>
 
 ## Display Values
@@ -246,29 +256,39 @@ foreach (var traversalContext in results)
 `DefaultTraversal` understands `elements`/`@elements`, `displayValue`/`@displayValue`, and `definition`/`@definition`.
 
 <Info>
-Platform traversal patterns: [Traversal Recipes](/developers/data-schema/traversal-recipes). .NET filter/index recipes: [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data).
+  Platform traversal patterns: [Traversal Recipes](/developers/data-schema/traversal-recipes). .NET
+  filter/index recipes: [Find objects by
+  property](/developers/sdks/dotnet/guides/finding-and-extracting-data).
 </Info>
 
 ## FAQ and Pitfalls
 
 <AccordionGroup>
   <Accordion title="Why did my custom type deserialize as plain Base?">
-    The type's assembly was not passed to `AddSpeckleSdk`. Register it in the `assemblies` argument — see [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection#registering-your-own-types).
+    The type's assembly was not passed to `AddSpeckleSdk`. Register it in the `assemblies` argument
+    — see [Dependency injection
+    (connectors)](/developers/sdks/dotnet/concepts/dependency-injection#registering-your-own-types).
   </Accordion>
   <Accordion title="When should I use Flatten vs GraphTraversal?">
-    Use **Flatten** for simple filtering or indexing on small-to-medium graphs. Use **GraphTraversal** with `DefaultTraversal` when you need connector-style rules on large BIM graphs.
+    Use **Flatten** for simple filtering or indexing on small-to-medium graphs. Use
+    **GraphTraversal** with `DefaultTraversal` when you need connector-style rules on large BIM
+    graphs.
   </Accordion>
   <Accordion title="Sent an object but nothing shows in the viewer">
-    Check that the object (or one of its `elements`) has a `displayValue` containing `Mesh`, `Line`, or `Point` geometry.
+    Check that the object (or one of its `elements`) has a `displayValue` containing `Mesh`, `Line`,
+    or `Point` geometry.
   </Accordion>
   <Accordion title="InvalidPropNameException when setting a dynamic property">
-    The key is empty, starts with `@@`, or contains `.`/`/`. Use `IsPropNameValid` to check before setting if the key comes from untrusted input.
+    The key is empty, starts with `@@`, or contains `.`/`/`. Use `IsPropNameValid` to check before
+    setting if the key comes from untrusted input.
   </Accordion>
   <Accordion title="obj.id is null right after construction">
-    `id` is only populated after send or deserialization — it's a content hash, not something you set.
+    `id` is only populated after send or deserialization — it's a content hash, not something you
+    set.
   </Accordion>
   <Accordion title="Detached property comes back null after receive">
-    Confirm the property was marked with `[DetachProperty]` (typed) or an `@` prefix (dynamic) before sending.
+    Confirm the property was marked with `[DetachProperty]` (typed) or an `@` prefix (dynamic)
+    before sending.
   </Accordion>
 </AccordionGroup>
 
@@ -278,7 +298,11 @@ Platform traversal patterns: [Traversal Recipes](/developers/data-schema/travers
   <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
     Projects, models, and version lifecycle
   </Card>
-  <Card title="Find objects by property" icon="magnifying-glass" href="/developers/sdks/dotnet/guides/finding-and-extracting-data">
+  <Card
+    title="Find objects by property"
+    icon="magnifying-glass"
+    href="/developers/sdks/dotnet/guides/finding-and-extracting-data"
+  >
     Flatten, filter, and index recipes
   </Card>
   <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">

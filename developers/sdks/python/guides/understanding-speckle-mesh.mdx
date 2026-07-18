@@ -1,5 +1,5 @@
 ---
-title: "Understanding Speckle Mesh"
+title: 'Understanding Speckle Mesh'
 description: "How Speckle's Mesh format works - vertices, faces, nGons, normals, and colors explained"
 ---
 
@@ -8,7 +8,9 @@ description: "How Speckle's Mesh format works - vertices, faces, nGons, normals,
 The Speckle `Mesh` format is different from most 3D libraries you've encountered. Understanding its unique structure is critical to avoid frustration when creating or consuming geometry.
 
 <Warning>
-**Common Confusion:** Speckle's mesh format uses a **packed face array with nGon support** that's fundamentally different from libraries like three.js, Babylon.js, or standard OBJ files. The `faces` array encodes BOTH face size AND vertex indices in a single flat list.
+  **Common Confusion:** Speckle's mesh format uses a **packed face array with nGon support** that's
+  fundamentally different from libraries like three.js, Babylon.js, or standard OBJ files. The
+  `faces` array encodes BOTH face size AND vertex indices in a single flat list.
 </Warning>
 
 ## The Speckle Mesh Structure
@@ -54,6 +56,7 @@ vertex_count = len(vertices) // 3  # = 4
 ```
 
 Key points:
+
 - Always a multiple of 3 (X, Y, Z)
 - Indexed starting from 0
 - Units apply to these coordinates
@@ -61,7 +64,8 @@ Key points:
 ## The Faces Array: The Tricky Part
 
 <Warning>
-**This is where it gets different!** The `faces` array is NOT a simple list of triangle indices. It's a **packed format** that supports nGons (polygons with any number of sides).
+  **This is where it gets different!** The `faces` array is NOT a simple list of triangle indices.
+  It's a **packed format** that supports nGons (polygons with any number of sides).
 </Warning>
 
 ### Face Array Format
@@ -74,6 +78,7 @@ The `faces` array encodes face information as:
 ```
 
 Structure:
+
 - First number = how many vertices in this face
 - Next N numbers = vertex indices for this face
 - Then repeat for next face
@@ -150,12 +155,14 @@ faces = [
 Most mesh libraries only support triangles (or triangles + quads). Speckle supports **nGons** - faces with any number of vertices.
 
 Advantages:
+
 - **Preserves design intent** - Doesn't force triangulation
 - **BIM compatibility** - Revit, Rhino often use quads and nGons
 - **Round-trip fidelity** - Original face structure preserved
 - **Smaller data** - No unnecessary triangulation
 
 Trade-off:
+
 - More complex to parse
 - Rendering engines must triangulate
 
@@ -292,6 +299,7 @@ mesh = Mesh(
 ```
 
 Important:
+
 - Length of `colors` must equal number of vertices
 - Colors interpolate across faces (gradient effect)
 - If empty, viewer uses default material color
@@ -339,6 +347,7 @@ material = RenderMaterial(
 ```
 
 Properties:
+
 - `name` (str, required): Material name
 - `diffuse` (int, required): Base color as ARGB integer (see [Vertex Colors](#vertex-colors))
 - `opacity` (float): Transparency level (default: 1.0)
@@ -366,21 +375,23 @@ mesh.renderMaterial = material
 For efficiently sharing materials across multiple objects in a collection, use `RenderMaterialProxy`. This is the standard pattern used by Speckle connectors.
 
 <Info>
-**See the [Proxification guide](/developers/sdks/python/concepts/proxification#rendermaterialproxy)** for detailed information on how `RenderMaterialProxy` works, including:
-- How to create and use material proxies
-- Resolving proxy references
-- Best practices for large models
+  **See the [Proxification
+  guide](/developers/sdks/python/concepts/proxification#rendermaterialproxy)** for detailed
+  information on how `RenderMaterialProxy` works, including: - How to create and use material
+  proxies - Resolving proxy references - Best practices for large models
 </Info>
 
 ### Material vs Vertex Colors
 
 Use RenderMaterial when:
+
 - Applying consistent appearance to entire objects
 - Using physically-based properties (metalness, roughness)
 - Need transparency or emissive effects
 - Sharing materials across multiple objects
 
 Use vertex colors when:
+
 - Per-vertex color variation (gradients, heatmaps)
 - Visualizing analysis data
 - Color-coding mesh regions
@@ -409,6 +420,7 @@ mesh = Mesh(
 ```
 
 Important facts:
+
 - Length of `vertexNormals` must be same as `vertices` (3x vertex count)
 - Normals should be unit vectors (length = 1)
 - If empty, viewer auto-calculates normals
@@ -418,31 +430,35 @@ Important facts:
 ### Hard vs Soft Edges
 
 <Info>
-**Speckle connectors produce meshes with all hard-edged faces by default** - meaning every face has its own duplicated vertices rather than sharing vertices between faces. This approach prioritizes conversion speed and ensures consistent rendering.
+  **Speckle connectors produce meshes with all hard-edged faces by default** - meaning every face
+  has its own duplicated vertices rather than sharing vertices between faces. This approach
+  prioritizes conversion speed and ensures consistent rendering.
 </Info>
 
 Understanding edge behavior:
+
 - **Hard edges** are the default - each face has its own vertices, creating sharp transitions
 - **Soft edges** would require shared vertices with averaged normals, but connectors don't typically create these
 - This means most Speckle meshes have "flat" shading rather than smooth shading
 
 <Note>
-If smooth shading or mixed hard/soft edges are required for your use case, mesh normalization can be performed as a server-side automation that processes the geometry and writes back properly normalized meshes with shared vertices where appropriate.
+  If smooth shading or mixed hard/soft edges are required for your use case, mesh normalization can
+  be performed as a server-side automation that processes the geometry and writes back properly
+  normalized meshes with shared vertices where appropriate.
 </Note>
 
 ## Two-Sidedness: Not Supported
 
 <Info>
-**Speckle doesn't have a "two-sided" material flag.** Faces have a front and back determined by winding order, but both sides render the same in the viewer.
+  **Speckle doesn't have a "two-sided" material flag.** Faces have a front and back determined by
+  winding order, but both sides render the same in the viewer.
 </Info>
 
 Winding order:
+
 - Right-hand rule determines front face
 - Counter-clockwise = front (when viewed from front)
 - Most viewers render both sides regardless
-
-
-
 
 ## Creating Meshes: Complete Examples
 
@@ -560,6 +576,7 @@ def create_box_quads(width, height, depth):
     # ✅ CORRECT - Include vertex count
     faces = [3, 0, 1, 2]  # 3 = triangle, then indices
     ```
+
   </Accordion>
 
   <Accordion title="How do I ensure colors display properly?">
@@ -580,6 +597,7 @@ def create_box_quads(width, height, depth):
         colors=[0xFFFF0000, 0xFF00FF00, 0xFF0000FF]  # 3 colors
     )
     ```
+
   </Accordion>
 
   <Accordion title="Why should I always specify units?">
@@ -592,12 +610,14 @@ def create_box_quads(width, height, depth):
     # ✅ GOOD - Always specify units
     mesh = Mesh(vertices=[...], faces=[...], units="m")
     ```
+
   </Accordion>
 
   <Accordion title="Why do my meshes look faceted/flat instead of smooth?">
     Speckle connectors produce meshes with all hard-edged faces by default - each face has its own duplicated vertices rather than sharing vertices between faces. This creates flat shading rather than smooth shading.
 
     If you need smooth shading, you can perform mesh normalization as a server-side automation to create shared vertices where appropriate.
+
   </Accordion>
 </AccordionGroup>
 
@@ -703,6 +723,7 @@ def print_mesh_info(mesh):
 ## Summary
 
 Key takeaways:
+
 1. **Vertices** = Flat list `[x,y,z, x,y,z, ...]`
 2. **Faces** = Packed format `[count, i1, i2, i3, count, ...]`
 3. **nGons supported** = Any number of vertices per face
@@ -714,6 +735,7 @@ Key takeaways:
 9. **Always specify units**
 
 Common gotchas:
+
 - ❌ Don't forget the vertex count in faces array
 - ❌ Colors/normals must match vertex count
 - ❌ Connectors create flat shading by default (no shared vertices)
@@ -727,17 +749,25 @@ Common gotchas:
     How meshes are used in displayValue for viewer visibility
   </Card>
 
-  <Card title="Proxification" icon="link" href="/developers/sdks/python/concepts/proxification">
-    Learn about RenderMaterialProxy and other proxy patterns
-  </Card>
+<Card title="Proxification" icon="link" href="/developers/sdks/python/concepts/proxification">
+  Learn about RenderMaterialProxy and other proxy patterns
+</Card>
 
-  <Card title="Working with Geometry" icon="shapes" href="/developers/sdks/python/guides/working-with-geometry">
-    Creating and manipulating geometry objects
-  </Card>
+<Card
+  title="Working with Geometry"
+  icon="shapes"
+  href="/developers/sdks/python/guides/working-with-geometry"
+>
+  Creating and manipulating geometry objects
+</Card>
 
-  <Card title="Simple Data Patterns" icon="cube" href="/developers/sdks/python/guides/simple-data-patterns">
-    Patterns for working with geometry and properties
-  </Card>
+<Card
+  title="Simple Data Patterns"
+  icon="cube"
+  href="/developers/sdks/python/guides/simple-data-patterns"
+>
+  Patterns for working with geometry and properties
+</Card>
 
   <Card title="Objects & Base" icon="cube" href="/developers/sdks/python/concepts/objects">
     Understanding the Base class and detachment

@@ -1,5 +1,5 @@
 ---
-title: "Handling server capabilities"
+title: 'Handling server capabilities'
 description: "Ask the server what it supports before you call — the pattern Speckle's own connectors use for multi-deployment compatibility"
 ---
 
@@ -14,7 +14,6 @@ Not every Speckle server is the same — workspace support, server version, and 
 - Familiarity with [ServerResource](/developers/sdks/dotnet/api-reference/resources/server), [ProjectResource](/developers/sdks/dotnet/api-reference/resources/project), and [ModelResource](/developers/sdks/dotnet/api-reference/resources/model)
 
 ## Complete Example
-
 
 This mirrors the pattern Speckle's own connectors use to decide whether a server supports connector-scale model ingestion, adapted from `SendOperation.CheckUseModelIngestionSend` in [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors):
 
@@ -66,7 +65,7 @@ Speckle's Grasshopper connector uses exactly this check before even attempting t
 
 ### Permission Checks Returned Alongside Resources
 
-Several resources return permission information *with* the data, so you can gate UI and code paths before the user attempts anything:
+Several resources return permission information _with_ the data, so you can gate UI and code paths before the user attempts anything:
 
 - `client.Project.GetPermissions(projectId)` → `ProjectPermissionChecks` (`canCreateModel`, `canDelete`, `canLoad`; `canPublish` is obsolete — use `ModelPermissionChecks.canCreateVersion`)
 - `client.Model.GetPermissions(projectId, modelId)` → `ModelPermissionChecks` (`canUpdate`, `canDelete`, `canCreateVersion`)
@@ -97,7 +96,8 @@ public void EnsureAuthorised(); // throws WorkspacePermissionException if author
 ```
 
 <Note>
-The property is `authorized` (US spelling); the guard method is `EnsureAuthorised()` (UK spelling) — both match the SDK.
+  The property is `authorized` (US spelling); the guard method is `EnsureAuthorised()` (UK spelling)
+  — both match the SDK.
 </Note>
 
 Call `EnsureAuthorised()` as a guard clause instead of hand-rolling an `if (!result.authorized) throw ...` at every call site.
@@ -109,23 +109,37 @@ This is the part that's easy to get wrong with a blanket `catch`. A server old e
 Catch only the narrow exception that represents "this server doesn't know this concept," as shown in the [Complete Example](#complete-example) above. Don't catch `SpeckleException` or `AggregateException` broadly around the whole check — that would also swallow a genuine `WorkspacePermissionException` (if you don't re-throw it) or mask unrelated failures (network errors, auth expiry) as capability gaps.
 
 <Info>
-Some older, internal Speckle tooling also uses raw HTTP endpoint probing (checking for a `404` response) to detect feature availability outside GraphQL. That's an implementation detail of specific legacy code paths, not a documented part of the Speckle.Sdk public surface — prefer the GraphQL capability and permission checks above, which are part of the supported API.
+  Some older, internal Speckle tooling also uses raw HTTP endpoint probing (checking for a `404`
+  response) to detect feature availability outside GraphQL. That's an implementation detail of
+  specific legacy code paths, not a documented part of the Speckle.Sdk public surface — prefer the
+  GraphQL capability and permission checks above, which are part of the supported API.
 </Info>
 
 ## Common Pitfalls
 
 <AccordionGroup>
   <Accordion title="Wrapping a mutation in try/catch (Exception) instead of checking first">
-    A blanket catch can't tell a user "your server needs an upgrade" apart from "you don't have permission" apart from "the network dropped." Check server capability and permissions first, and let genuinely unexpected exceptions propagate — see [Exceptions](/developers/sdks/dotnet/api-reference/exceptions).
+    A blanket catch can't tell a user "your server needs an upgrade" apart from "you don't have
+    permission" apart from "the network dropped." Check server capability and permissions first, and
+    let genuinely unexpected exceptions propagate — see
+    [Exceptions](/developers/sdks/dotnet/api-reference/exceptions).
   </Accordion>
   <Accordion title="Assuming workspaces are always enabled">
-    Many self-hosted and community servers run without the workspaces module. Code that only exercises `client.Workspace` and workspace-scoped `client.ActiveUser` methods will throw `SpeckleGraphQLWorkspaceNotEnabledException` (wrapped in `AggregateException`) on those servers. Check `client.Server.IsWorkspaceEnabled()` and support the personal-project path too.
+    Many self-hosted and community servers run without the workspaces module. Code that only
+    exercises `client.Workspace` and workspace-scoped `client.ActiveUser` methods will throw
+    `SpeckleGraphQLWorkspaceNotEnabledException` (wrapped in `AggregateException`) on those servers.
+    Check `client.Server.IsWorkspaceEnabled()` and support the personal-project path too.
   </Accordion>
   <Accordion title="Catching AggregateException without inspecting InnerExceptions">
-    An unqualified `catch (AggregateException)` around a capability check treats old-server incompatibility and a real permission denial identically. Filter with an exception `when` clause (as in the Complete Example) or inspect `InnerExceptions` before deciding how to respond.
+    An unqualified `catch (AggregateException)` around a capability check treats old-server
+    incompatibility and a real permission denial identically. Filter with an exception `when` clause
+    (as in the Complete Example) or inspect `InnerExceptions` before deciding how to respond.
   </Accordion>
   <Accordion title="Expecting EnsureAuthorised() to throw an AggregateException">
-    `PermissionCheckResult.EnsureAuthorised()` throws `WorkspacePermissionException` directly — it is not wrapped, because it isn't a GraphQL response error. Don't put it inside a `catch (AggregateException)` block expecting to catch it there. See [Exceptions: Workspace Permission Errors](/developers/sdks/dotnet/api-reference/exceptions#workspace-permission-errors).
+    `PermissionCheckResult.EnsureAuthorised()` throws `WorkspacePermissionException` directly — it
+    is not wrapped, because it isn't a GraphQL response error. Don't put it inside a `catch
+    (AggregateException)` block expecting to catch it there. See [Exceptions: Workspace Permission
+    Errors](/developers/sdks/dotnet/api-reference/exceptions#workspace-permission-errors).
   </Accordion>
 </AccordionGroup>
 
@@ -135,10 +149,18 @@ Some older, internal Speckle tooling also uses raw HTTP endpoint probing (checki
   <Card title="Core concepts" icon="book" href="/developers/sdks/dotnet/concepts/overview">
     Server capability patterns in context
   </Card>
-  <Card title="Publish large models (connectors)" icon="upload" href="/developers/sdks/dotnet/guides/building-connector-scale-sends">
+  <Card
+    title="Publish large models (connectors)"
+    icon="upload"
+    href="/developers/sdks/dotnet/guides/building-connector-scale-sends"
+  >
     CanCreateModelIngestion in upload flow
   </Card>
-  <Card title="ServerResource" icon="code" href="/developers/sdks/dotnet/api-reference/resources/server">
+  <Card
+    title="ServerResource"
+    icon="code"
+    href="/developers/sdks/dotnet/api-reference/resources/server"
+  >
     IsWorkspaceEnabled API surface
   </Card>
 </CardGroup>

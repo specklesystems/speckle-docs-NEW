@@ -14,6 +14,9 @@ This directory is for automations used to keep your function code up to date and
 
 - `dependabot.yml`.: This specification keeps track of GitHub actions used and will recommend updates when necessary.
 - `workflows/main.yml`: When you make a Release of your function code, this action will trigger and publish a revision to Speckle Automate
+
+Leave that automation in place unless you have a custom release pipeline.
+
 </Tip>
 
 The template projects for specklepy and speckle-sharp include all required for a working function to deploy in an automation. The anatomy doesn't have to match exactly, but it does have to have these key components:
@@ -32,14 +35,14 @@ class FunctionInputs(AutomateBase):
         title="Text Input",
         description="Values given in this field will be available with the `text_input` key."
     )
-    
+
     scalar_value: float = Field(
         default=25.0,
         title="Numerical value",
-        description=( "Annotating a field and providing a default value will tell the " 
+        description=( "Annotating a field and providing a default value will tell the "
                     "Automate UI to treat the input field as a number" )
     )
-    
+
     selection: str = Field(
         default=Selection.default,
         title="Select an option",
@@ -49,14 +52,14 @@ class FunctionInputs(AutomateBase):
             "examples": ["default", "option 2", "option 3"]
         }
     )
-    
+
     read_only: str = Field(
         default="Placeholder",
         title="Disabled Input Field",
         description=( "Marking a field as readOnly will disable the UI input,"
                     "which can be used to mock input UI for future revision "
-                    "or pass values specific to a function revision." ) 
-    ) 
+                    "or pass values specific to a function revision." )
+    )
 ```
 
 ### C
@@ -74,8 +77,8 @@ struct FunctionInputs
 
     [DisplayName("Specific Input Title")]
     [Description("This is a description for the example input.")]
-    public string DecoratedInput; // A range of Attributes applied. 
-} 
+    public string DecoratedInput; // A range of Attributes applied.
+}
 ```
 
 ### Secrets Management
@@ -89,7 +92,7 @@ struct FunctionInputs
 {
     [Secret]
     public string SecretInput; // Mark a field as secret for passwords and 3rd party tokens
-} 
+}
 ```
 
 #### Python
@@ -103,8 +106,8 @@ class FunctionInputs(AutomateBase):
         title="Secret Input",
         description=( "Marking a field as readOnly will disable the UI input,"
                     "which can be used to mock input UI for future revision "
-                    "or pass values specific to a function revision." ) 
-    ) 
+                    "or pass values specific to a function revision." )
+    )
 ```
 
 ## Run Entry Points
@@ -140,6 +143,7 @@ return await AutomationRunner
 💡 You may rename and restructure your function code as you wish as long as these execution entry points are followed. However, it may make sense to adopt the template's structure to debug easily and allow others to follow the flow.
 
 The main `.csproj` for dotnet functions should be renamed to reflect your function name; make sure to adjust the `workflow/main.yml` file to reflect this.
+
 </Tip>
 
 ## Testing
@@ -147,5 +151,7 @@ The main `.csproj` for dotnet functions should be renamed to reflect your functi
 Functions must be registered to Automations to trigger by events. It is recommended that you implement a structure of your project such that a lot of the business logic can be tested independently of the specifics of both the Automate environment and the Speckle data triggering the events.
 
 <Warning>
-TODO: We will cover testing strategies more later, but the demonstration projects are all available to explore. We have examples of testing on live project data for unit tests and end-to-end integration testing.
-</Warning> 
+  TODO: We will cover testing strategies more later, but the demonstration projects are all
+  available to explore. We have examples of testing on live project data for unit tests and
+  end-to-end integration testing.
+</Warning>

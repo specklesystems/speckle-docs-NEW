@@ -21,7 +21,10 @@ The supported flow is:
 For the complete GraphQL schema, see [Apollo Studio — Speckle Server API](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems). This guide covers the project-metadata operations only.
 
 <Note>
-  Project metadata is in active development. **Today**, the GraphQL API backs the **Metadata** card on project **Home**. We are seeking feedback on how you want to use it next—for example **user-facing project filters**, **automation context**, or **reference bounds for Speckle Intelligence** chat responses. Share feedback on [Speckle Community](https://speckle.community).
+  Project metadata is in active development. **Today**, the GraphQL API backs the **Metadata** card
+  on project **Home**. We are seeking feedback on how you want to use it next—for example
+  **user-facing project filters**, **automation context**, or **reference bounds for Speckle
+  Intelligence** chat responses. Share feedback on [Speckle Community](https://speckle.community).
 </Note>
 
 ## Prerequisites
@@ -39,11 +42,13 @@ Authorization: Bearer YOUR_TOKEN
 ```
 
 <Note>
-  Project metadata is available on the **Enterprise** plan. The workspaces module must be enabled on the server.
+  Project metadata is available on the **Enterprise** plan. The workspaces module must be enabled on
+  the server.
 </Note>
 
 <Info>
-  End-user setup: [Project metadata](/workspaces/configuration/project-metadata) (template builder) and [Metadata on Projects](/workspaces/projects#metadata) (**Home** card, drift, layout).
+  End-user setup: [Project metadata](/workspaces/configuration/project-metadata) (template builder)
+  and [Metadata on Projects](/workspaces/projects#metadata) (**Home** card, drift, layout).
 </Info>
 
 ## Before you start: IDs and permission checks
@@ -60,6 +65,7 @@ Query permission checks before you build automation:
 **POST** `/graphql`
 
 Query:
+
 ```graphql
 query WorkspaceProjectMetadataPermissions($workspaceId: String!) {
   workspace(id: $workspaceId) {
@@ -89,6 +95,7 @@ query ProjectMetadataPermissions($projectId: String!) {
 ```
 
 Variables example:
+
 ```json
 {
   "workspaceId": "your-workspace-id",
@@ -111,7 +118,9 @@ Two layers work together:
 - **Project values** — stored data (`project.metadata.values`) keyed by field name
 
 <Warning>
-  Changing the workspace schema does **not** migrate or delete existing project values. Removed template fields disappear from the web UI but can remain in `metadata.values` until you clear them with `null`.
+  Changing the workspace schema does **not** migrate or delete existing project values. Removed
+  template fields disappear from the web UI but can remain in `metadata.values` until you clear them
+  with `null`.
 </Warning>
 
 ## Step 1: Read the workspace schema
@@ -121,6 +130,7 @@ Use this to discover the template before reading or writing project values.
 **POST** `/graphql`
 
 Query:
+
 ```graphql
 query GetWorkspaceProjectMetadataSchema($workspaceId: String!) {
   workspace(id: $workspaceId) {
@@ -135,6 +145,7 @@ query GetWorkspaceProjectMetadataSchema($workspaceId: String!) {
 ```
 
 Variables example:
+
 ```json
 {
   "workspaceId": "your-workspace-id"
@@ -142,6 +153,7 @@ Variables example:
 ```
 
 Response example:
+
 ```json
 {
   "data": {
@@ -186,10 +198,9 @@ Workspace admins define or replace the template for all projects in the workspac
 **POST** `/graphql`
 
 Mutation:
+
 ```graphql
-mutation SetWorkspaceProjectMetadataSchema(
-  $input: SetWorkspaceProjectMetadataSchemaInput!
-) {
+mutation SetWorkspaceProjectMetadataSchema($input: SetWorkspaceProjectMetadataSchemaInput!) {
   workspaceMutations {
     setProjectMetadataSchema(input: $input) {
       id
@@ -203,6 +214,7 @@ mutation SetWorkspaceProjectMetadataSchema(
 ```
 
 Variables example:
+
 ```json
 {
   "input": {
@@ -236,6 +248,7 @@ Variables example:
 ```
 
 Response example:
+
 ```json
 {
   "data": {
@@ -255,7 +268,10 @@ Response example:
 Invalid schema documents return `PROJECT_METADATA_SCHEMA_DOC_VALIDATION_ERROR` with JSON Pointer paths (for example `/properties/nested/type`).
 
 <Note>
-  Include `propertyOrder` with every property key when you care about display order. The web app builder sets it from drag order ([Field types](/workspaces/configuration/project-metadata#field-types)). PostgreSQL `jsonb` does not preserve key insertion order.
+  Include `propertyOrder` with every property key when you care about display order. The web app
+  builder sets it from drag order ([Field
+  types](/workspaces/configuration/project-metadata#field-types)). PostgreSQL `jsonb` does not
+  preserve key insertion order.
 </Note>
 
 ## Step 3: Read project metadata
@@ -263,6 +279,7 @@ Invalid schema documents return `PROJECT_METADATA_SCHEMA_DOC_VALIDATION_ERROR` w
 **POST** `/graphql`
 
 Query:
+
 ```graphql
 query GetProjectMetadata($projectId: String!) {
   project(id: $projectId) {
@@ -276,6 +293,7 @@ query GetProjectMetadata($projectId: String!) {
 ```
 
 Variables example:
+
 ```json
 {
   "projectId": "your-project-id"
@@ -283,6 +301,7 @@ Variables example:
 ```
 
 Response example:
+
 ```json
 {
   "data": {
@@ -310,6 +329,7 @@ Response example:
 **POST** `/graphql`
 
 Mutation:
+
 ```graphql
 mutation UpdateProjectMetadata($input: UpdateProjectMetadataInput!) {
   projectMutations {
@@ -325,6 +345,7 @@ mutation UpdateProjectMetadata($input: UpdateProjectMetadataInput!) {
 ```
 
 Variables example (partial update):
+
 ```json
 {
   "input": {
@@ -338,6 +359,7 @@ Variables example (partial update):
 ```
 
 Variables example (clear one key):
+
 ```json
 {
   "input": {
@@ -350,6 +372,7 @@ Variables example (clear one key):
 ```
 
 Response example:
+
 ```json
 {
   "data": {
@@ -370,6 +393,7 @@ Response example:
 ```
 
 Common errors:
+
 - `PROJECT_METADATA_SCHEMA_NOT_CONFIGURED` — workspace has no template yet
 - `PROJECT_METADATA_VALUES_VALIDATION_ERROR` — value fails type, enum, pattern, or URI format checks
 
@@ -380,6 +404,7 @@ Workspace admins can remove the template and all stored values. This is irrevers
 **POST** `/graphql`
 
 Mutation:
+
 ```graphql
 mutation DeleteWorkspaceProjectMetadataSchema($workspaceId: ID!) {
   workspaceMutations {
@@ -394,6 +419,7 @@ mutation DeleteWorkspaceProjectMetadataSchema($workspaceId: ID!) {
 ```
 
 Variables example:
+
 ```json
 {
   "workspaceId": "your-workspace-id"
@@ -401,7 +427,8 @@ Variables example:
 ```
 
 <Warning>
-  `deleteProjectMetadataSchema` deletes the template and **all** per-project metadata values in the workspace across every data region. This cannot be undone.
+  `deleteProjectMetadataSchema` deletes the template and **all** per-project metadata values in the
+  workspace across every data region. This cannot be undone.
 </Warning>
 
 ## Operational notes
@@ -429,6 +456,7 @@ Variables example:
 | `boolean` | `title`, `description`                                                                     |
 
     Not supported: nested objects, arrays, `integer`, `$ref`, `oneOf`, `anyOf`, `format: email`.
+
   </Accordion>
 
   <Accordion title="How do web app field types map to JSON Schema?">
@@ -445,9 +473,12 @@ Variables example:
 
   </Accordion>
 
-  <Accordion title="What is x-ui-type?">
-    Optional hint for the web app JSONForms renderer. Valid values: `text`, `textarea`, `url`, `dropdown`. Omit it only when `enum` or `format: uri` already implies the control (dropdown and URL fields). Invalid values fail schema validation. Integrations that only read or write API values can ignore `x-ui-type`; it does not affect server value validation.
-  </Accordion>
+<Accordion title="What is x-ui-type?">
+  Optional hint for the web app JSONForms renderer. Valid values: `text`, `textarea`, `url`,
+  `dropdown`. Omit it only when `enum` or `format: uri` already implies the control (dropdown and
+  URL fields). Invalid values fail schema validation. Integrations that only read or write API
+  values can ignore `x-ui-type`; it does not affect server value validation.
+</Accordion>
 
   <Accordion title="How does schema evolution affect stored values?">
     Updating the template does not rewrite project data. If you remove a field from the template, existing values for that key can remain in `metadata.values` until cleared.
@@ -462,21 +493,23 @@ Variables example:
       }
     }
     ```
+
   </Accordion>
 
   <Accordion title="What is drift and does the server enforce it?">
     The web app flags drift (missing required values, type mismatches, constraint violations) for **project owners and workspace admins** on project **Home**. Project members see read-only values without drift warnings. The server does not block writes based on `required` or drift.
 
     Integrations may replicate drift checks client-side or ignore them. Orphaned keys (removed from the template) are not writable until the key exists in the schema again. See [Metadata on Projects](/workspaces/projects#metadata).
+
   </Accordion>
 
-  <Accordion title="Which GraphQL error codes should I handle?">
-| Code                                           | When                                               |
-| ---------------------------------------------- | -------------------------------------------------- |
-| `PROJECT_METADATA_SCHEMA_DOC_VALIDATION_ERROR` | Invalid workspace schema document                  |
-| `PROJECT_METADATA_VALUES_VALIDATION_ERROR`     | Invalid values on `updateMetadata`                 |
-| `PROJECT_METADATA_SCHEMA_NOT_CONFIGURED`       | `updateMetadata` when no workspace template exists |
-  </Accordion>
+<Accordion title="Which GraphQL error codes should I handle?">
+  | Code | When | | ---------------------------------------------- |
+  -------------------------------------------------- | |
+  `PROJECT_METADATA_SCHEMA_DOC_VALIDATION_ERROR` | Invalid workspace schema document | |
+  `PROJECT_METADATA_VALUES_VALIDATION_ERROR` | Invalid values on `updateMetadata` | |
+  `PROJECT_METADATA_SCHEMA_NOT_CONFIGURED` | `updateMetadata` when no workspace template exists |
+</Accordion>
 
   <Accordion title="Can I automate this with SpecklePy?">
     Yes. Use `authenticate_with_token`, then [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries) or POST the same payloads to `{host}/graphql` with `requests` or `httpx`. Pass the operations from this guide as query strings and variables.

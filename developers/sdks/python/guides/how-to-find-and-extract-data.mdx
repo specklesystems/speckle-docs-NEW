@@ -1,11 +1,12 @@
 ---
-title: "Finding and Extracting Data"
-description: "Learn to traverse, filter, and extract data from nested Speckle structures"
+title: 'Finding and Extracting Data'
+description: 'Learn to traverse, filter, and extract data from nested Speckle structures'
 ---
 
 ## What You'll Learn
 
 By the end of this guide, you'll understand:
+
 - ✅ How to recursively traverse nested object structures
 - ✅ How to filter objects by property values while traversing
 - ✅ How to extract geometry from BIM objects
@@ -14,12 +15,14 @@ By the end of this guide, you'll understand:
 ## Prerequisites
 
 Before starting this guide, you should:
+
 - Understand [how to work with Speckle objects](/developers/sdks/python/guides/how-to-work-with-objects)
 - Be familiar with [data traversal concepts](/developers/sdks/python/concepts/data-traversal)
 - Know basic Python recursion
 
 <Info>
-This guide builds on traversal fundamentals from the Core Concepts. We focus on **practical patterns** for finding and extracting data from real-world Speckle projects.
+  This guide builds on traversal fundamentals from the Core Concepts. We focus on **practical
+  patterns** for finding and extracting data from real-world Speckle projects.
 </Info>
 
 ## How do I traverse nested Speckle data?
@@ -27,7 +30,12 @@ This guide builds on traversal fundamentals from the Core Concepts. We focus on 
 Speckle data is often deeply nested - buildings contain levels, levels contain rooms, rooms contain elements. You need to visit every object in the tree to process or analyze them.
 
 <Note>
-**Terminology Note:** When we use terms like "levels", "rooms", or reference property names in examples, these are for **illustrative purposes**. Real BIM data from connectors (Revit, Rhino, etc.) uses **proxy structures** - for example, Revit levels are represented as `LevelProxy` objects in dedicated collections, not as direct hierarchy. See the [Proxification guide](/developers/sdks/python/concepts/proxification) and [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) for actual BIM data structures.
+  **Terminology Note:** When we use terms like "levels", "rooms", or reference property names in
+  examples, these are for **illustrative purposes**. Real BIM data from connectors (Revit, Rhino,
+  etc.) uses **proxy structures** - for example, Revit levels are represented as `LevelProxy`
+  objects in dedicated collections, not as direct hierarchy. See the [Proxification
+  guide](/developers/sdks/python/concepts/proxification) and [BIM Data
+  Patterns](/developers/sdks/python/guides/bim-data-patterns) for actual BIM data structures.
 </Note>
 
 **Basic manual traversal** - here's the fundamental pattern:
@@ -82,6 +90,7 @@ The SDK provides three key components for traversal:
    - `_should_return_to_output` - Include objects in results? (boolean)
 
 In the examples below, look for comments showing where each component is used.:
+
 </Accordion>
 
 ```python lines icon="python"
@@ -101,6 +110,7 @@ for context in traversal.traverse(root):
 ```
 
 Understanding the traversal flow:
+
 ```python lines icon="python"
 # Visual Flow:
 #
@@ -117,6 +127,7 @@ Understanding the traversal flow:
 ```
 
 Why use GraphTraversal?:
+
 - ✅ Handles all edge cases (dicts, lists, nested Base objects)
 - ✅ Provides context (parent object, property name)
 - ✅ Supports custom rules for filtering during traversal
@@ -124,6 +135,7 @@ Why use GraphTraversal?:
 - ✅ Battle-tested in production SDK code
 
 The traversal pattern has three parts:
+
 1. **Base case:** Check if object is a `Base` instance
 2. **Process:** Do something with the current object
 3. **Recurse:** Visit all child objects via `get_member_names()`
@@ -243,6 +255,7 @@ for context in traversal.traverse(root):
 ```
 
 Comprehensive example - all three components together:
+
 ```python lines icon="python" expandable
 from specklepy.objects.graph_traversal.traversal import (
     GraphTraversal,
@@ -300,6 +313,7 @@ for item in results[:5]:  # Show first 5
 ```
 
 Output example:
+
 ```
 Building A (from root.root)
 Level 1 (from Building A.elements)
@@ -336,6 +350,7 @@ def traverse(obj):
                 if isinstance(item, Base):
                     traverse(item)
 ```
+
 </Warning>
 
 ## How do I find specific objects?
@@ -370,13 +385,11 @@ print(f"Found {len(walls)} walls")
 ```
 
 <Note>
-**About "category" property:** When we reference
-`properties["category"]` in examples, this demonstrates the
-pattern. Real BIM data may organize categories differently -
-Revit data, for instance, uses both `properties["category"]`
-on individual objects AND category-based proxy collections.
-See [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns)
-for production patterns.
+  **About "category" property:** When we reference `properties["category"]` in examples, this
+  demonstrates the pattern. Real BIM data may organize categories differently - Revit data, for
+  instance, uses both `properties["category"]` on individual objects AND category-based proxy
+  collections. See [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) for
+  production patterns.
 </Note>
 
 Multiple filter criteria:
@@ -636,6 +649,7 @@ for name in obj.get_member_names():  # includes "displayValue"
 if name != "displayValue":
     # Only recurse into non-geometry properties
 ```
+
 </Warning>
 
 ## How do I work with hierarchical collections?
@@ -643,14 +657,13 @@ if name != "displayValue":
 BIM data often has hierarchical structures: Building → Levels → Rooms → Elements. You need to process these hierarchies while maintaining context about where each object came from.
 
 <Warning>
-**Real BIM structures use proxies!** When working with
-actual connector data (Revit, Rhino, ArchiCAD), "Levels"
-aren't nested hierarchies - they're represented as
-`LevelProxy` collections that reference objects by ID.
-The examples here show *conceptual* hierarchies for
-learning. For production code with real BIM data, see:
-- [Proxification guide](/developers/sdks/python/concepts/proxification) - Understanding proxy structures
-- [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) - Working with real connector data
+  **Real BIM structures use proxies!** When working with actual connector data (Revit, Rhino,
+  ArchiCAD), "Levels" aren't nested hierarchies - they're represented as `LevelProxy` collections
+  that reference objects by ID. The examples here show *conceptual* hierarchies for learning. For
+  production code with real BIM data, see: - [Proxification
+  guide](/developers/sdks/python/concepts/proxification) - Understanding proxy structures - [BIM
+  Data Patterns](/developers/sdks/python/guides/bim-data-patterns) - Working with real connector
+  data
 </Warning>
 
 Track hierarchy levels during traversal:
@@ -684,6 +697,7 @@ process_hierarchy(root)
 ```
 
 Output:
+
 ```
 Building A (Buildings)
   Level 1 (Levels)
@@ -995,15 +1009,18 @@ report = generate_category_report(root)
 ## Learn More
 
 Core Concepts:
+
 - [Data Traversal](/developers/sdks/python/concepts/data-traversal) - Deep dive into traversal patterns
 - [Display Values](/developers/sdks/python/concepts/display-values) - Understanding geometry representation
 
 Guides:
+
 - [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) - Advanced BIM-specific patterns
 - [Working with Geometry](/developers/sdks/python/guides/working-with-geometry) - Geometry manipulation
 - [Understanding Speckle Mesh](/developers/sdks/python/guides/understanding-speckle-mesh) - Mesh structure details
 
 Next Steps:
+
 - [Advanced: Performance and Complex Patterns](/developers/sdks/python/guides/how-to-optimize-and-handle-complexity) - Learn optimization techniques
 
 ## Next Steps

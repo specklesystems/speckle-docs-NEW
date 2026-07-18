@@ -22,6 +22,7 @@ docker ps --filter name='pgadmin'
 ```
 
 If not running, create `docker-compose-pgadmin.yml` with the following configuration:
+
 ```yaml
 version: '3'
 services:
@@ -43,9 +44,11 @@ volumes:
 ```
 
 Then start pgAdmin:
+
 ```bash
 docker compose --file docker-compose-pgadmin.yml up --detach
 ```
+
 </Step>
 
 <Step title="Access pgAdmin">
@@ -55,15 +58,17 @@ docker ps --filter name='pgadmin'
 ```
 
 Open `http://127.0.0.1:16543/` in your browser (replace 16543 with your actual port).
+
 </Step>
 </Steps>
 
 ## Backup
 
 <Steps>
-<Step title="Backup database">
-Connect to pgAdmin, then connect to your Postgres server. Right-click on the `speckle` database, select `Backup...`, choose a location, and click `Backup` to start the process.
-</Step>
+  <Step title="Backup database">
+    Connect to pgAdmin, then connect to your Postgres server. Right-click on the `speckle` database,
+    select `Backup...`, choose a location, and click `Backup` to start the process.
+  </Step>
 </Steps>
 
 ## Upgrade
@@ -79,27 +84,25 @@ docker compose -f ./docker-compose-deps.yml up --detach
 ```
 </Step>
 
-<Step title="Verify deployment">
-Check that all containers are running:
-```bash
-docker ps
-```
-</Step>
+<Step title="Verify deployment">Check that all containers are running: ```bash docker ps```</Step>
 
 <Step title="Stop and clean up old database">
 ⚠️ **CAUTION** This will cause Speckle to stop working until restored. Notify users before proceeding.
 
 Stop and remove the old Postgres container:
+
 ```bash
 docker stop speckle-server-postgres-1
 docker rm speckle-server-postgres-1
 ```
 
 Find and delete the database volume:
+
 ```bash
 docker volume ls --filter name='postgres'
 docker volume rm speckle-server_postgres-data
 ```
+
 </Step>
 </Steps>
 
@@ -113,6 +116,7 @@ docker cp BACKUP_FILE_NAME speckle-server-pgadmin-1:'/var/lib/pgadmin/storage/ad
 ```
 
 Connect to pgAdmin, create a new `speckle` database, then right-click it and select `restore` to load your backup.
+
 </Step>
 
 <Step title="Verify restoration">

@@ -57,6 +57,7 @@ The **`id`** is a content-based hash that uniquely identifies the object's data.
 ### `speckle_type`
 
 The **`speckle_type`** identifies what kind of object this is. Examples:
+
 - `"Objects.Geometry.Point"`
 - `"Objects.Geometry.Mesh"`
 - `"Objects.Data.DataObject"`
@@ -79,9 +80,7 @@ The **`applicationId`** is the identifier from the source application (e.g., a R
   "properties": {
     "string": "any value"
   },
-  "displayValue": [
-    "Base (geometry objects)"
-  ],
+  "displayValue": ["Base (geometry objects)"],
   "units": "string"
 }
 ```
@@ -93,6 +92,7 @@ A human-readable name for the object (e.g., "Basic Wall - 200mm", "Column A1").
 ### `properties`
 
 A dictionary of key-value pairs containing all metadata about the object. This is where connector-specific data lives:
+
 - **Revit**: Instance parameters, type parameters, material quantities
 - **Rhino**: User strings, user dictionaries
 - **AutoCAD**: Extension dictionaries, XData
@@ -128,11 +128,12 @@ classDiagram
 **Role of displayValue**: The `displayValue` array contains the geometric representation—the visual shape of the object. This is distinct from the semantic meaning stored in `properties`. A wall DataObject has properties describing it as a wall (material, dimensions, type), while `displayValue` contains the mesh geometry showing where and how it appears in 3D space.
 
 **Distinction between DataObject, Semantic Object, and DisplayValue**:
+
 - **DataObject** is the container—it combines semantic data (`properties`) with geometric representation (`displayValue`)
 - **Semantic Object** refers to the domain meaning encoded in `properties` (e.g., "this is a wall with concrete material")
 - **DisplayValue** is the geometric representation—the actual 3D geometry primitives that can be rendered
 
-*Why `displayValue`?* This keeps DataObjects flat as a best practice—geometry is stored separately in an array, allowing multiple representations (mesh + curves + points) while maintaining a simple object structure. More importantly, `displayValue` uses **minimum viable interoperable primitives** (Meshes, Lines, Points) that almost all AEC and 3D software can ingest, even if they have no concept of higher-level objects like "Wall" or "TopologicalSurface". This ensures maximum interoperability across different applications. Note that some DataObjects (like Revit curtain walls) may also have an `elements` property containing child DataObjects when required by the source application.
+_Why `displayValue`?_ This keeps DataObjects flat as a best practice—geometry is stored separately in an array, allowing multiple representations (mesh + curves + points) while maintaining a simple object structure. More importantly, `displayValue` uses **minimum viable interoperable primitives** (Meshes, Lines, Points) that almost all AEC and 3D software can ingest, even if they have no concept of higher-level objects like "Wall" or "TopologicalSurface". This ensures maximum interoperability across different applications. Note that some DataObjects (like Revit curtain walls) may also have an `elements` property containing child DataObjects when required by the source application.
 
 ### `units`
 
@@ -192,7 +193,7 @@ When processing objects, you may encounter missing or optional fields. Here's ho
 
 These rules apply to all objects:
 
-1. **No nested DataObjects (guideline)** - As a best practice, DataObjects should not contain other DataObjects as direct children. Use `displayValue` for geometry, and use proxies for relationships. *However, some connectors (e.g., Revit curtain walls, IFC data) may use an `elements` property to contain child DataObjects when the source application's structure requires it. Traversal code should anticipate and handle both patterns.*
+1. **No nested DataObjects (guideline)** - As a best practice, DataObjects should not contain other DataObjects as direct children. Use `displayValue` for geometry, and use proxies for relationships. _However, some connectors (e.g., Revit curtain walls, IFC data) may use an `elements` property to contain child DataObjects when the source application's structure requires it. Traversal code should anticipate and handle both patterns._
 
 2. **Geometry always in `displayValue`** - All visual geometry for a DataObject must be in the `displayValue` array, not as direct properties.
 
@@ -209,6 +210,7 @@ As a best practice, DataObjects should not contain other DataObjects to prevent 
 3. Properties to store references (data-level relationships)
 
 **However**, some connectors (like Revit curtain walls, IFC data) may use an `elements` property on DataObjects when the source application's structure requires it. **Your traversal code should handle both patterns**—check for `elements` properties on both Collections and DataObjects to ensure robust data processing.
+
 </Accordion>
 
 <Accordion title="What's the difference between `id` and `applicationId`?">
@@ -216,6 +218,7 @@ As a best practice, DataObjects should not contain other DataObjects to prevent 
 - **`applicationId`**: The source application's identifier (Revit element ID, Rhino GUID, etc.). Used for references, proxies, and tracking objects across versions.
 
 You use `applicationId` to track objects across versions (it's more stable—the same logical element keeps the same `applicationId` even if its content changes). You use `id` for deduplication and content-based lookups. Proxies reference objects by `applicationId`.
+
 </Accordion>
 
 ## Connector-Specific Extensions

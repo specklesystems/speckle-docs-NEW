@@ -1,7 +1,7 @@
 ---
-title: "Use SpeckleSharp in a Grasshopper C# node"
-description: "Build DataObjects and Collections from Grasshopper geometry and computed metadata, then inspect the object graph locally"
-sidebarTitle: "Grasshopper C#"
+title: 'Use SpeckleSharp in a Grasshopper C# node'
+description: 'Build DataObjects and Collections from Grasshopper geometry and computed metadata, then inspect the object graph locally'
+sidebarTitle: 'Grasshopper C#'
 ---
 
 This guide teaches building Speckle object graphs inside Grasshopper — computed metadata, nested collections, and local inspection — without publishing to a server first.
@@ -70,7 +70,10 @@ flowchart LR
 Solid lines = main guide. Dotted = ecosystem / appendix only.
 
 <Frame>
-<img src="/images/connectors/grasshopper/developer_csharp.jpg" alt="Grasshopper C# Script component with NuGet package references" />
+  <img
+    src="/images/connectors/grasshopper/developer_csharp.jpg"
+    alt="Grasshopper C# Script component with NuGet package references"
+  />
 </Frame>
 
 ## Mission and when you need the SDK
@@ -78,7 +81,8 @@ Solid lines = main guide. Dotted = ecosystem / appendix only.
 Passthrough nodes move geometry and attach **static** attributes. They do not run graph-wide computation or build nested structures from rules. The use cases above cover when to reach for Speckle.Sdk in a C# Script.
 
 <Info>
-The same workflow applies to room footprints (`floorArea`, `occupancy`, `carbonEstimate`, `qaStatus`) or any case where **per-element computed fields** do not scale on wires.
+  The same workflow applies to room footprints (`floorArea`, `occupancy`, `carbonEstimate`,
+  `qaStatus`) or any case where **per-element computed fields** do not scale on wires.
 </Info>
 
 ## Prerequisites
@@ -135,7 +139,9 @@ static class SpeckleBootstrap
 ```
 
 <Tip>
-The Grasshopper connector converts Rhino points the same way — see [`PointToSpeckleConverter.cs`](https://github.com/specklesystems/speckle-sharp-connectors/blob/main/Converters/Rhino/Speckle.Converters.RhinoShared/ToSpeckle/Raw/PointToSpeckleConverter.cs) in speckle-sharp-connectors.
+  The Grasshopper connector converts Rhino points the same way — see
+  [`PointToSpeckleConverter.cs`](https://github.com/specklesystems/speckle-sharp-connectors/blob/main/Converters/Rhino/Speckle.Converters.RhinoShared/ToSpeckle/Raw/PointToSpeckleConverter.cs)
+  in speckle-sharp-connectors.
 </Tip>
 
 ## Grasshopper execution model
@@ -157,7 +163,6 @@ On large lists, cache the `summary` string in a script field and only rebuild it
 | `nearestGridLine`    | Index of closest line in `gridLines`                                           |
 
 ### Complete example
-
 
 ```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
 // Grasshopper C# Script — structural layout enrichment
@@ -293,18 +298,21 @@ static string BuildSummary(List<DataObject> footings)
     Convert each Rhino `Point3d` to a Speckle `Point` and assign it to `DataObject.displayValue`. The viewer and connector expect renderable geometry here — the same field [Deconstruct](/connectors/grasshopper/grasshopper-developer) reads on a published param.
 
     In the script, `BuildFooting` creates `specklePoint` and sets `displayValue = new List<Base> { specklePoint }`. Each footing `DataObject` now carries geometry the viewer can render.
+
   </Step>
 
   <Step title="Compute properties on each `DataObject`">
     Store BIM-like fields in `DataObject.properties`, not on the root `Base` indexer. Derive every field from point position, grid proximity, and `capacity` — that is the justification for code over passthrough nodes.
 
     After this step, each footing has computed keys such as `distanceFromOrigin`, `quadrant`, `bearing`, `utilization`, and `nearestGridLine` in its `properties` dictionary.
+
   </Step>
 
   <Step title="Group footings into a `Collection` hierarchy">
     Nest footings into child collections by computed `quadrant`. `Collection.elements` mirrors how [Create Collection](/connectors/grasshopper/grasshopper-collections) nodes organize a canvas — except the grouping rule runs in C#.
 
     `BuildRootByQuadrant` returns a root `Collection` named `Structural layout` with one child collection per quadrant. The full graph is ready to traverse.
+
   </Step>
 
   <Step title="Inspect the graph locally">
@@ -320,13 +328,19 @@ static string BuildSummary(List<DataObject> footings)
     </AccordionGroup>
 
     When `status` reads `OK`, `elementCount` matches the flattened graph and `summary` reports footing counts and average utilization.
+
   </Step>
 </Steps>
 
 You now have a **publish-ready data model in memory**. Success means a correct `DataObject` / `Collection` graph and a trustworthy `summary`. When you are ready to **exchange** it, use **Publish** on the connector (normal workflow) or [Appendix A](#a-publish-the-same-graph-from-code) (programmatic). Do not rebuild the same graph with Collection nodes on the canvas.
 
 <Tip>
-The graph shape aligns with [`GrasshopperRootObjectBuilder`](https://github.com/specklesystems/speckle-sharp-connectors/blob/main/Connectors/Rhino/Speckle.Connectors.GrasshopperShared/Operations/Send/GrasshopperSendOperation.cs) — the same model Publish would pack. Connector wire casting uses [`SpeckleGeometryWrapperGoo.cs`](https://github.com/specklesystems/speckle-sharp-connectors/blob/main/Connectors/Rhino/Speckle.Connectors.GrasshopperShared/Parameters/Wrappers/SpeckleGeometryWrapperGoo.cs); Deconstruct reads the same fields via [`DeconstructSpeckleParam.cs`](https://github.com/specklesystems/speckle-sharp-connectors/blob/main/Connectors/Rhino/Speckle.Connectors.GrasshopperShared/Components/Dev/DeconstructSpeckleParam.cs).
+  The graph shape aligns with
+  [`GrasshopperRootObjectBuilder`](https://github.com/specklesystems/speckle-sharp-connectors/blob/main/Connectors/Rhino/Speckle.Connectors.GrasshopperShared/Operations/Send/GrasshopperSendOperation.cs)
+  — the same model Publish would pack. Connector wire casting uses
+  [`SpeckleGeometryWrapperGoo.cs`](https://github.com/specklesystems/speckle-sharp-connectors/blob/main/Connectors/Rhino/Speckle.Connectors.GrasshopperShared/Parameters/Wrappers/SpeckleGeometryWrapperGoo.cs);
+  Deconstruct reads the same fields via
+  [`DeconstructSpeckleParam.cs`](https://github.com/specklesystems/speckle-sharp-connectors/blob/main/Connectors/Rhino/Speckle.Connectors.GrasshopperShared/Components/Dev/DeconstructSpeckleParam.cs).
 </Tip>
 
 ## Extend the graph
@@ -377,10 +391,18 @@ Production connector code lives in [speckle-sharp-connectors](https://github.com
 ## Next Steps
 
 <CardGroup cols={3}>
-  <Card title="Objects and Traversal" icon="book" href="/developers/sdks/dotnet/concepts/objects-and-traversal">
+  <Card
+    title="Objects and Traversal"
+    icon="book"
+    href="/developers/sdks/dotnet/concepts/objects-and-traversal"
+  >
     DataObject, Collection, displayValue
   </Card>
-  <Card title="Automate with scripts" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
+  <Card
+    title="Automate with scripts"
+    icon="terminal"
+    href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks"
+  >
     Send2 when ready to publish
   </Card>
   <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
@@ -394,16 +416,32 @@ Production connector code lives in [speckle-sharp-connectors](https://github.com
   <Card title="Developer Nodes" icon="code" href="/connectors/grasshopper/grasshopper-developer">
     Deconstruct and inspect published params
   </Card>
-  <Card title="Grasshopper Objects" icon="shapes" href="/connectors/grasshopper/grasshopper-objects">
+  <Card
+    title="Grasshopper Objects"
+    icon="shapes"
+    href="/connectors/grasshopper/grasshopper-objects"
+  >
     Passthrough geometry and static attributes
   </Card>
-  <Card title="Collections" icon="layer-group" href="/connectors/grasshopper/grasshopper-collections">
+  <Card
+    title="Collections"
+    icon="layer-group"
+    href="/connectors/grasshopper/grasshopper-collections"
+  >
     Canvas-side collection hierarchy
   </Card>
-  <Card title="Objects and traversal" icon="sitemap" href="/developers/sdks/dotnet/concepts/objects-and-traversal">
+  <Card
+    title="Objects and traversal"
+    icon="sitemap"
+    href="/developers/sdks/dotnet/concepts/objects-and-traversal"
+  >
     DataObject, Collection, Flatten
   </Card>
-  <Card title="Automate with scripts" icon="terminal" href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks">
+  <Card
+    title="Automate with scripts"
+    icon="terminal"
+    href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks"
+  >
     Send2 / Receive2 when you need transport from code
   </Card>
   <Card title="Grasshopper connector" icon="plug" href="/connectors/grasshopper/grasshopper">
@@ -433,6 +471,7 @@ Production connector code lives in [speckle-sharp-connectors](https://github.com
     ```
 
     See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) and [Authentication](/developers/sdks/dotnet/getting-started/authentication) (Appendix C).
+
   </Accordion>
   <Accordion title="B. Fetch and query after Load">
     After **Load** on the connector, traverse received graphs with [Find objects by property](/developers/sdks/dotnet/guides/finding-and-extracting-data). Server access requires [Authentication](/developers/sdks/dotnet/getting-started/authentication).
