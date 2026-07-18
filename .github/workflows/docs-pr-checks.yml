@@ -1,9 +1,9 @@
 # Phase 1: report-only docs quality checks on pull requests.
 # Steps use continue-on-error so the workflow does not block merge yet.
-# Phase 2: clear debt below, then remove continue-on-error and require this
-# check in branch protection.
+# Format + markdownlint run on changed files only (full-repo still ~430 / ~1.3k debt).
+# Phase 2: clear debt, then remove continue-on-error and require this check.
 #
-# Known debt on main (do not require until cleared):
+# Known full-repo debt (do not require until cleared):
 # - pnpm valid: OpenAPI developers/api/previews/preview-openapi.json schema;
 #   snippets/components/PowerBIVersionFetcher.jsx non-local react import
 # - pnpm check-links: ~41 MDX files (mostly developers/viewer + legacy anchors)
@@ -28,6 +28,8 @@ on:
       - '.prettierrc.json'
       - '.prettierignore'
       - '.markdownlint-cli2.jsonc'
+      - 'scripts/format-check-changed.sh'
+      - 'scripts/lint-md-changed.sh'
       - '.github/workflows/docs-pr-checks.yml'
 
 concurrency:
@@ -43,6 +45,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # version comes from package.json "packageManager" (do not also set version here)
       - name: Setup pnpm
@@ -58,15 +62,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Prettier check
+      - name: Prettier check (changed files)
         id: format
         continue-on-error: true
-        run: pnpm format:check
+        run: pnpm format:check:changed "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
 
-      - name: Markdownlint
+      - name: Markdownlint (changed files)
         id: lintmd
         continue-on-error: true
-        run: pnpm lint:md
+        run: pnpm lint:md:changed "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
 
       - name: Mintlify validate
         id: validate
@@ -91,10 +95,13 @@ jobs:
             echo ''
             echo '| Check | Result |'
             echo '| ----- | ------ |'
-            echo "| \`pnpm format:check\` | ${FORMAT_OUTCOME} |"
-            echo "| \`pnpm lint:md\` | ${LINTMD_OUTCOME} |"
+            echo "| \`pnpm format:check:changed\` | ${FORMAT_OUTCOME} |"
+            echo "| \`pnpm lint:md:changed\` | ${LINTMD_OUTCOME} |"
             echo "| \`pnpm valid\` | ${VALIDATE_OUTCOME} |"
             echo "| \`pnpm check-links\` | ${LINKS_OUTCOME} |"
+            echo ''
+            echo 'Format/lint scope: **files changed in this PR only**.'
+            echo 'Full-repo \`pnpm format:check\` / \`pnpm lint:md\` still have backlog debt.'
             echo ''
             echo 'This workflow is **report-only**. Failures do not block merge yet.'
             echo 'Clear existing debt, then remove `continue-on-error` and require this check.'
