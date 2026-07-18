@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Require Docs PR check jobs on main (validate + links + format-lint).
+# Leaves enforce_admins off so repo admins can still bypass when needed.
 # Needs: gh auth login with admin on specklesystems/speckle-docs-NEW
 #
 # Usage:
@@ -23,7 +24,7 @@ gh api \
     "strict": true,
     "contexts": ["Mintlify validate", "Broken links", "Format and lint"]
   },
-  "enforce_admins": true,
+  "enforce_admins": false,
   "required_pull_request_reviews": {
     "required_approving_review_count": 1
   },
