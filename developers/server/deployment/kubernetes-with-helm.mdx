@@ -104,7 +104,7 @@ Speckle requires a Valkey cache to function. You can provide your own if you hav
     <img src="/images/developers/server/kubernetes/07_redis_trusted_source.png" />
   </Frame>
 
-- In the Overview tab for your Valkey database. Select `connection string` from the dropdown, and copy the displayed Connection String. You will require this when configuring your deployment in [step 4](#step-4-configure-your-deployment).
+- In the Overview tab for your Valkey database. Select `connection string` from the dropdown, and copy the displayed Connection String. You will require this when configuring your deployment in [step 4](#configure-your-deployment).
   <Frame>
     <img src="/images/developers/server/kubernetes/08_redis_connection_string.png" />
   </Frame>
@@ -132,7 +132,7 @@ Speckle requires a Postgres database to function. You can provide your own if yo
     <img src="/images/developers/server/kubernetes/10_postgres_trusted_source_edit.png" />
   </Frame>
 
-- In the Overview tab for your Valkey database. Select `connection string` from the dropdown, and copy the displayed Connection String. You will require this for when configuring your deployment in [step 4](#step-4-configure-your-deployment).
+- In the Overview tab for your Valkey database. Select `connection string` from the dropdown, and copy the displayed Connection String. You will require this for when configuring your deployment in [step 4](#configure-your-deployment).
   <Frame>
     <img src="/images/developers/server/kubernetes/11_postgres_connection_string.png" />
   </Frame>
@@ -437,7 +437,7 @@ helm repo update
 </Step>
 <Step>
 
-Now we can deploy NGINX to our kubernetes cluster. The additional annotation allows CertManager, deployed in the [previous step](#3d-certificate-manager), to advise NGINX which certificate to use for https connections. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.
+Now we can deploy NGINX to our kubernetes cluster. The additional annotation allows CertManager, deployed in the [previous step](#certificate-manager), to advise NGINX which certificate to use for https connections. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.
 
 ```shell
 cat <<'EOF' | helm upgrade ingress-nginx ingress-nginx/ingress-nginx \
@@ -488,7 +488,7 @@ EOF
   - `server.email`: optional, enabling emails will enable extra features like sending invites.
     - You will need to set `server.email.enabled` to `true`.
     - Please set `server.email.host`, `server.email.username`, and optionally, depending on your email server, `server.email.port`
-    - This also requires the `email_password` secret to have been set in [Step 3](#step-3b-create-secrets).
+    - This also requires the `email_password` secret to have been set in [Step 3](#create-secrets).
   - `cert_manager_issuer`: optional, the default is set for Let's Encrypt staging api `letsencrypt-staging`. For production, or if you encounter an issue with certificates, change the value to `letsencrypt-prod`.
 
 The remaining values can be left as their defaults.
@@ -502,7 +502,7 @@ The remaining values can be left as their defaults.
 
 ## Deploy Speckle to Kubernetes
 
-Run the following command to deploy the Helm chart to your Kubernetes cluster configured with the values you configured in the [prior step](#step-4-configure-your-deployment). Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.
+Run the following command to deploy the Helm chart to your Kubernetes cluster configured with the values you configured in the [prior step](#configure-your-deployment). Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.
 
 ```shell
 helm upgrade my-speckle-server oci://registry-1.docker.io/speckle/speckle-server \
