@@ -1,0 +1,149 @@
+# Phase 1: report-only docs quality checks on pull requests.
+# Jobs run in parallel. Each uses continue-on-error so debt does not block merge.
+# Phase 2: clear debt per job, drop continue-on-error, require specific jobs in
+# branch protection (e.g. require format-lint first; links later).
+#
+# Known full-repo debt:
+# - format-lint full-repo: ~430 Prettier / ~1.3k markdownlint (CI uses changed files)
+# broken-links and validate are green; next Phase 2 step is requiring those jobs.
+
+name: Docs PR checks
+
+on:
+  pull_request:
+    paths:
+      - '**/*.md'
+      - '**/*.mdx'
+      - '**/*.jsx'
+      - '**/*.tsx'
+      - '**/*.js'
+      - '**/*.ts'
+      - '**/*.json'
+      - '**/*.jsonc'
+      - 'docs.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.prettierrc.json'
+      - '.prettierignore'
+      - '.markdownlint-cli2.jsonc'
+      - 'scripts/format-check-changed.sh'
+      - 'scripts/lint-md-changed.sh'
+      - '.github/workflows/docs-pr-checks.yml'
+
+concurrency:
+  group: docs-pr-checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  DIFF_RANGE: ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}
+
+jobs:
+  format-lint:
+    name: Format and lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prettier check (changed files)
+        run: pnpm format:check:changed "$DIFF_RANGE"
+
+      - name: Markdownlint (changed files)
+        run: pnpm lint:md:changed "$DIFF_RANGE"
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '## Format and lint (changed files)'
+            echo ''
+            echo 'Prettier + markdownlint on files changed in this PR only.'
+            echo 'Report-only in Phase 1 (`continue-on-error` on this job).'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  validate:
+    name: Mintlify validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Mintlify validate
+        run: pnpm valid
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '## Mintlify validate (full site)'
+            echo ''
+            echo 'Report-only in Phase 1 until this job is made required.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  broken-links:
+    name: Broken links
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check broken links and anchors
+        run: pnpm check-links
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '## Broken links (full site)'
+            echo ''
+            echo 'Separate from format/lint so link failures do not muddy style feedback.'
+            echo 'Report-only in Phase 1 until this job is made required.'
+          } >> "$GITHUB_STEP_SUMMARY"

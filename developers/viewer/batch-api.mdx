@@ -13,7 +13,7 @@ The `Batch` is defined as an `interface`, and is implemented by several batch ty
 ### batchMaterial
 
 ```typescript
-batchMaterial: Material;
+batchMaterial: Material
 ```
 
 The batch's default material. Batch objects have been grouped by this material.
@@ -23,17 +23,17 @@ The batch's default material. Batch objects have been grouped by this material.
 ### geometryType
 
 ```typescript
-geometryType: GeometryType;
+geometryType: GeometryType
 ```
 
-The batch's [_GeometryType_](/developers/viewer/render-view-api#geometrytypeenum).
+The batch's [_GeometryType_](/developers/viewer/render-view-api#geometrytype-enum).
 
-**Returns**: [_GeometryType_](/developers/viewer/render-view-api#geometrytypeenum)
+**Returns**: [_GeometryType_](/developers/viewer/render-view-api#geometrytype-enum)
 
 ### id
 
 ```typescript
-id: string;
+id: string
 ```
 
 The UUID of the batch. Follows three.js uuid format.
@@ -43,7 +43,7 @@ The UUID of the batch. Follows three.js uuid format.
 ### renderObject
 
 ```typescript
-renderObject: Object3D;
+renderObject: Object3D
 ```
 
 The batch's renderable object. Depending on the batch type, this can be either
@@ -67,7 +67,7 @@ The collection of render views that make up the batch.
 ### subtreeId
 
 ```typescript
-subtreeId: number;
+subtreeId: number
 ```
 
 The id of the subtree the batch is part of.
@@ -151,13 +151,13 @@ Gets the batch's vertex count.
 ### buildBatch
 
 ```typescript
-buildBatch();
+buildBatch()
 ```
 
 Build this batch. The implementation needs to make the batch renderable by:
 
 - Building the geometry
-- Creating appropriate [*BatchObjects*](if any) and their acceleration structures(if any)
+- Creating appropriate _BatchObjects_ (if any) and their acceleration structures (if any)
 - Setting appropriate batch data to the render views
 - Initialising the batch's [_renderObject_](/developers/viewer/batch-api#renderobject)
 
@@ -191,7 +191,7 @@ getMaterial(renderView: NodeRenderView): Material
 
 Gets the current material of the provided render view.
 
-**Parameters**
+Parameters:
 
 - **renderView**: [_NodeRenderView_](/developers/viewer/render-view-api)
 
@@ -205,7 +205,7 @@ getMaterialAtIndex(index: number): Material
 
 Gets the current material of the provided primitive index. Batches that build acceleration structures do not need to implement this.
 
-**Parameters**
+Parameters:
 
 - **index**: The primitive index to lookup
 
@@ -229,7 +229,7 @@ getRenderView(index: number): NodeRenderView
 
 Gets the render view at the specified index. Batches that build acceleration structures do not need to implement this.
 
-**Parameters**
+Parameters:
 
 - **index**: The primitive index to lookup
 
@@ -263,7 +263,7 @@ getVisibleRange(): BatchUpdateRange
 
 Gets the batch's visible [_BatchUpdateRange_](/developers/viewer/batch-api#batchupdaterange).
 
-**Returns**: [_BatchUpdateRange_](/developers/viewer/batch-api#batchupd
+**Returns**: [*BatchUpdateRange*](/developers/viewer/batch-api#batchupd
 
 ### onRender
 
@@ -273,7 +273,7 @@ onRender(renderer: WebGLRenderer): void
 
 Callback for the viewer's render loop.
 
-**Parameters**
+Parameters:
 
 - **renderer**: [_WebGLRenderer_](https://threejs.org/docs/index.html?q=webglre#api/en/renderers/WebGLRenderer)
 
@@ -287,7 +287,7 @@ onUpdate(deltaTime: number): void
 
 Callback for the viewer's update loop.
 
-**Parameters**
+Parameters:
 
 - **deltaTime**: number
 
@@ -321,7 +321,7 @@ setBatchBuffers(range: BatchUpdateRange[]): void
 
 Updates relevant batch buffers based on the [_MaterialOptions_](/developers/viewer/speckle-material-api#materialoptions) from the provided [_BatchUpdateRange_](/developers/viewer/batch-api#batchupdaterange). Implementation specific.
 
-**Parameters**
+Parameters:
 
 - **range**: [_BatchUpdateRange_](/developers/viewer/batch-api#batchupdaterange)
 
@@ -335,7 +335,7 @@ setBatchMaterial(material: Material): void
 
 Sets the default batch material.
 
-**Parameters**
+Parameters:
 
 - **material**: [_Material_](https://threejs.org/docs/index.html?q=mater#api/en/materials/Material)
 
@@ -350,14 +350,13 @@ setDrawRanges(ranges: BatchUpdateRange[]): void
 Sets materials to specific objects inside the batch by specifying their draw ranges.
 
 <Tip>
-  Materials are assigned to objects inside batches by using this method.
-  Normally, the viewer offers a higher level of assigning materials through
-  SpeckleRenderer's
-  [_setMaterial_](/developers/viewer/speckle-renderer-api#setmaterial) which calls this
-  method internally.
+  Materials are assigned to objects inside batches by using this method. Normally, the viewer offers
+  a higher level of assigning materials through SpeckleRenderer's
+  [*setMaterial*](/developers/viewer/speckle-renderer-api#setmaterial) which calls this method
+  internally.
 </Tip>
 
-**Parameters**
+Parameters:
 
 - **ranges**: [_BatchUpdateRange_](/developers/viewer/batch-api#batchupdaterange)
 
@@ -370,11 +369,13 @@ setVisibleRange(range: BatchUpdateRange[]): void
 ```
 
 Sets visibility of objects inside the batch. Implementation specific.
+
 <Warning>
-Mesh batches currently only allow for contiguous visibility between draw ranges. i.e no different visibility gaps. Line batches however are not restricted by this.
+  Mesh batches currently only allow for contiguous visibility between draw ranges. i.e no different
+  visibility gaps. Line batches however are not restricted by this.
 </Warning>
 
-**Parameters**
+Parameters:
 
 - **ranges**: [_BatchUpdateRange_](/developers/viewer/batch-api#batchupdaterange)
 
@@ -386,10 +387,10 @@ Mesh batches currently only allow for contiguous visibility between draw ranges.
 
 ```typescript
 interface BatchUpdateRange {
-  offset: number;
-  count: number;
-  material?: Material;
-  materialOptions?: FilterMaterialOptions;
+  offset: number
+  count: number
+  material?: Material
+  materialOptions?: FilterMaterialOptions
 }
 ```
 
@@ -399,18 +400,17 @@ Represents a region of the batch. Multi purpose. It can represent either a speci
 
 ```typescript
 interface DrawGroup {
-  start: number;
-  count: number;
-  materialIndex?: number;
+  start: number
+  count: number
+  materialIndex?: number
 }
 ```
 
 Formalisation of three.js's notion of draw group.
 
 <Tip>
-  The viewer's [_MeshBatch_](/developers/viewer/batch-api#meshbatch) implementation of
-  Batch uses three.js's geometry groups as a means to render parts of the batch
-  with different materials.
+  The viewer's [*MeshBatch*](/developers/viewer/batch-api#meshbatch) implementation of Batch uses
+  three.js's geometry groups as a means to render parts of the batch with different materials.
 </Tip>
 
 ### LineBatch
