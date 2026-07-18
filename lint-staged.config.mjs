@@ -1,7 +1,7 @@
 /**
- * Staged-file format/lint — aligned with CI Format and lint (Phase 1).
+ * Staged-file format/lint — aligned with CI Format and lint (Phase 2b).
  * - Prettier: blocking (auto-writes)
- * - markdownlint: report-only (large staged-file debt; CI also continue-on-error)
+ * - markdownlint: blocking on staged markdown (matches CI changed-file gate)
  * Does not run mint validate / links / a11y.
  */
 

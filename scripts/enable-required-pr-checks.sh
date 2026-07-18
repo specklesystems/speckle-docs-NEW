@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Require Docs PR check jobs on main (Phase 2b: validate + links + format-lint).
 # Require Docs PR check jobs on main (Phase 2a: validate + broken links).
 # Needs: gh auth login with admin on specklesystems/speckle-docs-NEW
 #
@@ -11,7 +12,7 @@ REPO="${REPO:-specklesystems/speckle-docs-NEW}"
 BRANCH="${BRANCH:-main}"
 
 echo "Updating branch protection on ${REPO}@${BRANCH}"
-echo "Required status checks: Mintlify validate, Broken links"
+echo "Required status checks: Mintlify validate, Broken links, Format and lint"
 
 gh api \
   --method PUT \
@@ -21,7 +22,7 @@ gh api \
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": ["Mintlify validate", "Broken links"]
+    "contexts": ["Mintlify validate", "Broken links", "Format and lint"]
   },
   "enforce_admins": true,
   "required_pull_request_reviews": {
