@@ -119,7 +119,6 @@ pnpm lint:md:fix
 ```
 
 **Phase 2c:** drop `continue-on-error` on Accessibility and require that job when ready.
-**Phase 2b+:** clear markdownlint debt (MD060 → MD036 → leftovers), then drop `continue-on-error` on Format and lint and require that job; a11y last.
 
 ### Generating universal-ai-config instructions
 
