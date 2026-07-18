@@ -227,7 +227,7 @@ You will need to configure postgres to handle transactions, `max_prepared_transa
    postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>:<DB_PORT>/<DB_NAME>?sslmode=require
    ```
 
-    The `null` value for the default project region key means that the `main` region will be used as the default region for new projects. This can be updated later as we add support for additional regions.
+   The `null` value for the default project region key means that the `main` region will be used as the default region for new projects. This can be updated later as we add support for additional regions.
 
 1. Update the same json file with the connection details for each additional region you wish to support. Each region should be given a unique region id. Each region is appended to the `regions` object as follows:
 
@@ -344,23 +344,23 @@ In addition to S3 compatible blob storage supported by the open source Speckle s
 
 To use Azure Blob Storage with Speckle Enterprise Server, you will need to update your Helm values.yaml file to include the necessary configuration details for your Azure Blob Storage account. This includes setting the provider to 'azure' and providing the endpoint URL, bucket name, and access key for your Azure Blob Storage account.
 
-   ```yaml
-   # for legacy backwards-compatibility reasons, the blob storage configuration is still nested under an 's3' key, but the provider can be set to 'azure' to use Azure Blob Storage instead of S3 compatible storage
-   s3:
-     protocol: 'azure' # defaults to 's3', which is the only option for open source deployments, and can be set to 'azure' to use Azure Blob Storage
-     endpoint: https://<YOUR_AZURE_STORAGE_ACCOUNT_NAME>.blob.core.windows.net # required when provider is set to 'azure', this should be the endpoint URL for your Azure Blob Storage account and must be reachable by the Speckle server.
-     publicEndpoint: https://<YOUR_AZURE_FRONT_DOOR_HOSTNAME> # optional, if not provided will default to the same value as endpoint. This must be a domain that is reachable by both your end users and the Speckle server. When configuring Azure Front Door in front of your Azure Blob Storage, the origin header must not be rewritten and must match the publicEndpoint hostname.
-     bucket: <YOUR_AZURE_BLOB_CONTAINER_NAME> # required when provider is set to 'azure', this should be the name of the blob container you wish to use for Speckle
-     access_key: <YOUR_AZURE_STORAGE_ACCOUNT_KEY> # required when provider is set to 'azure', this should be the access key for your Azure Blob Storage account
-     secret_key:
-       secretName: 'server-vars' # The secret access key for Azure Blob Storage should be stored in a Kubernetes secret, named `server-vars` with the property `s3_secret_key`
-       secretKey: 's3_secret_key'
-   ```
+```yaml
+# for legacy backwards-compatibility reasons, the blob storage configuration is still nested under an 's3' key, but the provider can be set to 'azure' to use Azure Blob Storage instead of S3 compatible storage
+s3:
+  protocol: 'azure' # defaults to 's3', which is the only option for open source deployments, and can be set to 'azure' to use Azure Blob Storage
+  endpoint: https://<YOUR_AZURE_STORAGE_ACCOUNT_NAME>.blob.core.windows.net # required when provider is set to 'azure', this should be the endpoint URL for your Azure Blob Storage account and must be reachable by the Speckle server.
+  publicEndpoint: https://<YOUR_AZURE_FRONT_DOOR_HOSTNAME> # optional, if not provided will default to the same value as endpoint. This must be a domain that is reachable by both your end users and the Speckle server. When configuring Azure Front Door in front of your Azure Blob Storage, the origin header must not be rewritten and must match the publicEndpoint hostname.
+  bucket: <YOUR_AZURE_BLOB_CONTAINER_NAME> # required when provider is set to 'azure', this should be the name of the blob container you wish to use for Speckle
+  access_key: <YOUR_AZURE_STORAGE_ACCOUNT_KEY> # required when provider is set to 'azure', this should be the access key for your Azure Blob Storage account
+  secret_key:
+    secretName: 'server-vars' # The secret access key for Azure Blob Storage should be stored in a Kubernetes secret, named `server-vars` with the property `s3_secret_key`
+    secretKey: 's3_secret_key'
+```
 
-   The secret access key for Azure Blob Storage should be stored in a Kubernetes secret, named `server-vars` with the property `s3_secret_key`, similar to the instructions for setting up S3 compatible blob storage in our [Kubernetes deployment guide](/developers/server/deployment/kubernetes-with-helm).
+The secret access key for Azure Blob Storage should be stored in a Kubernetes secret, named `server-vars` with the property `s3_secret_key`, similar to the instructions for setting up S3 compatible blob storage in our [Kubernetes deployment guide](/developers/server/deployment/kubernetes-with-helm).
 
 ### Upgrade notes
 
 #### Upgrading to 3.0.21
 
-* If you have enabled the Ingress, you will first need to delete all Ingress resources in your namespace before upgrading to version 3.0.21. This is because we have changed the Ingress controller in a way which does not allow for in-place patching during the upgrade process.
+- If you have enabled the Ingress, you will first need to delete all Ingress resources in your namespace before upgrading to version 3.0.21. This is because we have changed the Ingress controller in a way which does not allow for in-place patching during the upgrade process.

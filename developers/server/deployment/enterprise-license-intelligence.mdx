@@ -21,6 +21,7 @@ We recommend that you first [familiarise yourself with Intelligence](/analytics/
 ## Prerequisites
 
 Before you can configure Speckle Enterprise Intelligence, your organization will have already completed the following steps:
+
 1. **Speckle Server**: Deployed Speckle Enterprise Server on Kubernetes. See our instructions for [deploying on Kubernetes](/developers/server/deployment/kubernetes-with-helm) and configuring [Speckle Enterprise Server](/developers/server/deployment/enterprise-license) for more details.
 1. **Speckle Automate**: Deployed Speckle Automate on Kubernetes. See our instructions for [deploying Speckle Automate](/developers/server/deployment/enterprise-license-automate) for more details.
 1. **License Acquisition**: Acquired a commercial license for Speckle Enterprise from Speckle Systems. This license should include permissions for deploying Intelligence.
@@ -38,22 +39,21 @@ Speckle Enterprise Intelligence requires the following infrastructure components
   - We recommend using a separate namespace for isolation, resource management, and security.
 - **Domain**: A domain name for accessing the Intelligence dashboard. This must be a different domain from your Speckle Server deployment as there may be path routing conflicts if hosted on the same domain.
 
-
 ## Configuration Steps
 
 ### Retrieving the Helm Chart
 
 1. To access the private Helm charts for Speckle Enterprise Intelligence, you need to log in to the Speckle Enterprise package registry:
 
-    ```bash
-    helm login <PACKAGE_REGISTRY_URL> --username <PACKAGE_REGISTRY_USERNAME> --password <PACKAGE_REGISTRY_TOKEN>
-    ```
+   ```bash
+   helm login <PACKAGE_REGISTRY_URL> --username <PACKAGE_REGISTRY_USERNAME> --password <PACKAGE_REGISTRY_TOKEN>
+   ```
 
 1. Once authenticated, you can pull the Intelligence Helm chart and investigate its contents:
 
-    ```bash
-    helm pull <PACKAGE_REGISTRY_URL>/speckle-intelligence-chart --untar
-    ```
+   ```bash
+   helm pull <PACKAGE_REGISTRY_URL>/speckle-intelligence-chart --untar
+   ```
 
 1. We recommend reading the `values.yaml` file included in the Helm chart to understand all the configuration options available for Intelligence. A `json.schema` file is also included to provide validation and documentation for each configuration option.
 
@@ -61,9 +61,9 @@ Speckle Enterprise Intelligence requires the following infrastructure components
 
 1. Create an empty `values.yaml` file which we will use to configure our deployment:
 
-    ```bash
-    touch values.yaml
-    ```
+   ```bash
+   touch values.yaml
+   ```
 
 ### Image Pull Secrets
 
@@ -115,7 +115,9 @@ The trustedProxies settings specify which proxies are trusted to forward request
        - 'yourSpeckleIntelligenceDomain.example.com'
      trustedProxies:
        - 'IP_ADDRESS' # e.g. your ingress controller IP address or CIDR range
-  ```
+   ```
+
+````
 
 ### Ingress Configuration
 
@@ -123,24 +125,24 @@ To access the Intelligence dashboard, you need to either configure an Ingress re
 
 1. Update the Helm values.yaml file to include the appropriate ingress settings for your deployment:
 
-    ```yaml
-    ingress:
-      enabled: true
-      className: "nginx"
-      annotations:
-        # Add any necessary annotations for your ingress controller here, e.g. for cert-manager integration:
-        cert-manager.io/cluster-issuer: letsencrypt-prod
-      hosts:
-        - host: yourSpeckleIntelligenceDomain.example.com
-          paths:
-            # Please retain this path, the dashboards expect to serve all paths under the root.
-            - path: /
-              pathType: ImplementationSpecific
-      tls:
-        - secretName: speckle-intelligence-tls
-          hosts:
-            - yourSpeckleIntelligenceDomain.example.com
-    ```
+  ```yaml
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      # Add any necessary annotations for your ingress controller here, e.g. for cert-manager integration:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: yourSpeckleIntelligenceDomain.example.com
+        paths:
+          # Please retain this path, the dashboards expect to serve all paths under the root.
+          - path: /
+            pathType: ImplementationSpecific
+    tls:
+      - secretName: speckle-intelligence-tls
+        hosts:
+          - yourSpeckleIntelligenceDomain.example.com
+  ```
 
 ### Gateway API HttpRoute Configuration
 
@@ -150,22 +152,22 @@ The Helm Chart only provides the relevant HttpRoute configuration for the Intell
 
 1. Update the Helm values.yaml file to include the appropriate configuration for your deployment:
 
-    ```yaml
-    httpRoute:
-      enabled: true
-      annotations: {}
-      parentRefs:
-      - name: gateway
-        sectionName: http
-      hostnames:
-      - yourSpeckleIntelligenceDomain.example.com
-      rules:
-      - matches:
-        # Please retain this path, the dashboards expect to serve all paths under the root.
-        - path:
-            type: PathPrefix
-            value: /
-    ```
+  ```yaml
+  httpRoute:
+    enabled: true
+    annotations: {}
+    parentRefs:
+    - name: gateway
+      sectionName: http
+    hostnames:
+    - yourSpeckleIntelligenceDomain.example.com
+    rules:
+    - matches:
+      # Please retain this path, the dashboards expect to serve all paths under the root.
+      - path:
+          type: PathPrefix
+          value: /
+  ```
 
 ### Deploying the Helm Chart
 
@@ -173,11 +175,11 @@ The Helm Chart only provides the relevant HttpRoute configuration for the Intell
 
 1. Use Helm to deploy Speckle Enterprise Intelligence:
 
-    ```bash
-    helm install speckle-intelligence <PACKAGE_REGISTRY_URL>/speckle-intelligence-chart \
-    --namespace <NAMESPACE> \
-    -f values.yaml
-    ```
+  ```bash
+  helm install speckle-intelligence <PACKAGE_REGISTRY_URL>/speckle-intelligence-chart \
+  --namespace <NAMESPACE> \
+  -f values.yaml
+  ```
 
 ## Updating Speckle Server Configuration
 
@@ -185,7 +187,8 @@ After deploying Speckle Enterprise Intelligence, you need to update your Speckle
 
 1. Update the Speckle Server configuration (`values.yaml`) file to include the URL (including `https` protocol)of your Intelligence deployment:
 
-    ```yaml
-    dashboards:
-      origin: 'https://yourSpeckleIntelligenceDomain.example.com'
-    ```
+  ```yaml
+  dashboards:
+    origin: 'https://yourSpeckleIntelligenceDomain.example.com'
+  ```
+````
