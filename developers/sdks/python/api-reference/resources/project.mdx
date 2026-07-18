@@ -1,6 +1,6 @@
 ---
-title: "ProjectResource"
-description: "Complete API reference for project operations in SpecklePy"
+title: 'ProjectResource'
+description: 'Complete API reference for project operations in SpecklePy'
 ---
 
 ## Overview
@@ -54,6 +54,7 @@ print(f"Workspace ID: {project.workspaceId}")
 ```
 
 See [Project](#project) for property details.
+
 ### get_permissions()
 
 Get permission checks for a project.
@@ -92,6 +93,7 @@ if permissions.canPublish.authorized:
 ```
 
 See [PermissionCheckResult](/developers/sdks/python/api-reference/resources/project#permissioncheckresult) for property details.
+
 ### get_with_models()
 
 Get a project with its models included.
@@ -154,6 +156,7 @@ if project.models.cursor:
 ```
 
 See [ProjectModelsFilter](#projectmodelsfilter) for filtering options.
+
 ### get_with_team()
 
 Get a project with its team members and pending invitations.
@@ -190,6 +193,7 @@ for invite in project.invitedTeam:
     user_name = invite.user.name if invite.user else invite.title
     print(f"  - {user_name} ({invite.role}) - invited by {invited_by}")
 ```
+
 ### create()
 
 Create a new personal project (non-workspace).
@@ -228,7 +232,8 @@ print(f"Created project: {project.name} (ID: {project.id})")
 See [ProjectCreateInput](#projectcreateinput) for all available fields.
 
 <Note>
-Check if you can create personal projects using `client.active_user.can_create_personal_projects()` before calling this method.
+  Check if you can create personal projects using
+  `client.active_user.can_create_personal_projects()` before calling this method.
 </Note>
 ### create_in_workspace()
 
@@ -241,7 +246,8 @@ client.project.create_in_workspace(input: WorkspaceProjectCreateInput) -> Projec
 **Parameters:**
 
 <ResponseField name="input" type="WorkspaceProjectCreateInput" required>
-  Workspace project creation parameters. See [WorkspaceProjectCreateInput](#workspaceprojectcreateinput)
+  Workspace project creation parameters. See
+  [WorkspaceProjectCreateInput](#workspaceprojectcreateinput)
 </ResponseField>
 
 **Returns:**
@@ -274,7 +280,8 @@ print(f"Workspace ID: {project.workspaceId}")
 See [WorkspaceProjectCreateInput](#workspaceprojectcreateinput) for all available fields.
 
 <Warning>
-This method only works on workspace-enabled servers (e.g., app.speckle.systems). Check workspace permissions using `workspace.permissions.canCreateProject` before calling.
+  This method only works on workspace-enabled servers (e.g., app.speckle.systems). Check workspace
+  permissions using `workspace.permissions.canCreateProject` before calling.
 </Warning>
 ### update()
 
@@ -314,6 +321,7 @@ print(f"Updated: {updated_project.name}")
 ```
 
 See [ProjectUpdateInput](#projectupdateinput) for all available fields.
+
 ### delete()
 
 Delete a project permanently.
@@ -347,7 +355,8 @@ else:
 ```
 
 <Warning>
-This operation is irreversible! All models, versions, and data in the project will be permanently deleted.
+  This operation is irreversible! All models, versions, and data in the project will be permanently
+  deleted.
 </Warning>
 ### update_role()
 
@@ -397,6 +406,7 @@ for member in project.team:
 - `stream:owner` - Full control, can delete project and manage team
 - `stream:contributor` - Can create models and versions
 - `stream:reviewer` - Read-only access
+
 ## Types
 
 ### Project
@@ -472,9 +482,11 @@ ProjectCreateInput(
 Used with [`create()`](#create).
 
 **Fields:**
+
 - `name` (str) - Project name
 - `description` (str, optional) - Project description
 - `visibility` (str, optional) - `"PRIVATE"`, `"PUBLIC"`, or `"UNLISTED"`
+
 ### ProjectUpdateInput
 
 ```python
@@ -490,11 +502,13 @@ ProjectUpdateInput(
 Used with [`update()`](#update).
 
 **Fields:**
+
 - `id` (str) - Project ID
 - `name` (str, optional) - New project name
 - `description` (str, optional) - New description
 - `allow_public_comments` (bool, optional) - Allow public comments
 - `visibility` (str, optional) - New visibility setting
+
 ### WorkspaceProjectCreateInput
 
 ```python
@@ -509,10 +523,12 @@ WorkspaceProjectCreateInput(
 Used with [`create_in_workspace()`](#create_in_workspace).
 
 **Fields:**
+
 - `name` (str) - Project name
 - `description` (str, optional) - Project description
 - `visibility` (str, optional) - `"PRIVATE"`, `"PUBLIC"`, or `"UNLISTED"`
 - `workspaceId` (str) - Workspace ID
+
 ## Filters
 
 ### ProjectModelsFilter
@@ -531,12 +547,14 @@ ProjectModelsFilter(
 Used with [`get_with_models()`](#get_with_models) and `client.model.get_models()`.
 
 **Fields:**
+
 - `contributors` (List[str], optional) - Filter by contributor user IDs
 - `exclude_ids` (List[str], optional) - Exclude specific model IDs
 - `ids` (List[str], optional) - Include only specific model IDs
 - `only_with_versions` (bool, optional) - Only return models with versions
 - `search` (str, optional) - Search by model name
 - `source_apps` (List[str], optional) - Filter by source application
+
 ## Related Resources
 
 <CardGroup cols={2}>
@@ -544,13 +562,21 @@ Used with [`get_with_models()`](#get_with_models) and `client.model.get_models()
     Work with models in projects
   </Card>
 
-  <Card title="VersionResource" icon="clock-rotate-left" href="/developers/sdks/python/api-reference/resources/version">
-    Manage versions in models
-  </Card>
+<Card
+  title="VersionResource"
+  icon="clock-rotate-left"
+  href="/developers/sdks/python/api-reference/resources/version"
+>
+  Manage versions in models
+</Card>
 
-  <Card title="ActiveUserResource" icon="user" href="/developers/sdks/python/api-reference/resources/active-user">
-    Get user's projects and permissions
-  </Card>
+<Card
+  title="ActiveUserResource"
+  icon="user"
+  href="/developers/sdks/python/api-reference/resources/active-user"
+>
+  Get user's projects and permissions
+</Card>
 
   <Card title="SpeckleClient" icon="plug" href="/developers/sdks/python/api-reference/client">
     Main client documentation
