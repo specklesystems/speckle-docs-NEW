@@ -28,6 +28,7 @@ In this section:
 - [Use the field in your dashboard](#use-the-field-in-your-dashboard)
 - [Build one field on top of another](#build-one-field-on-top-of-another)
 - [Things to watch out for](#things-to-watch-out-for)
+- [Ratio filter targeting](#ratio-filter-targeting)
 
 ## Create a calculated field
 
@@ -100,6 +101,12 @@ areas, or check whether one number is larger than another.
 
 You write a short formula with letters such as `a` and `b`, then tell Speckle which
 model property each letter means. If a value is missing, the result is blank.
+
+<Tip>
+  Arithmetic can also bind [dashboard constants](#dashboard-constants) (scalars) so formulas stay
+  stable when people filter the dashboard. A **Dashboard constant** Aggregate can source from a
+  per-object calculated field when you need a masked or conditional total as a scalar.
+</Tip>
 
 ### Aggregate
 
@@ -261,6 +268,27 @@ Safer patterns today:
   **Dashboard constant** aggregates in the Ratio widget — constants are not stamped per
   object, so they do not get multiplied by element count. See
   [Dashboard constants](#dashboard-constants).
+
+### Ratio filter targeting
+
+**Ratio Value** and **Ratio Value by Property** let you choose which side of the fraction
+filters affect. In the widget sidebar, **Apply filter to** (widget filters) and **Apply
+global filter to** (page-level filters) each have four states:
+
+| State          | Effect                                        |
+| -------------- | --------------------------------------------- |
+| **Off**        | That filter is not applied to the ratio       |
+| **Part only**  | Filters apply to the Part (numerator) only    |
+| **Total only** | Filters apply to the Total (denominator) only |
+| **Both**       | Filters apply to Part and Total (default)     |
+
+Use **Part only** when the numerator should be a filtered subset and the denominator
+should stay the whole (for example completion-style ratios). Dashboard constants used as
+operands stay filter-immune; targeting only affects property-based sides.
+
+In **Single property** mode, Part vs Total targeting is what creates the two
+populations. Setting both sides on or both sides off collapses that meaning — easy to
+misread as bad data.
 
 **Total property value** has special handling for Aggregate fields so it does not sum
 the same total once per element. Do not assume every other widget does the same yet for

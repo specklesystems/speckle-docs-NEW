@@ -1,11 +1,12 @@
 # Phase 1: report-only docs quality checks on pull requests.
 # Jobs run in parallel. Each uses continue-on-error so debt does not block merge.
-# Phase 2: clear debt per job, drop continue-on-error, require specific jobs in
-# branch protection (e.g. require format-lint first; links later).
+# Phase 2: clear debt per job, drop continue-on-error, require jobs in branch
+# protection (prefer: validate + links first; then format-lint; a11y last).
 #
 # Known full-repo debt:
-# - format-lint full-repo: ~430 Prettier / ~1.3k markdownlint (CI uses changed files)
-# broken-links and validate are green; next Phase 2 step is requiring those jobs.
+# - format-lint full-repo: large Prettier / markdownlint backlog (CI uses changed files)
+# - a11y: expect findings until alt/contrast debt is cleared
+# validate + core links were green; redirects/snippets/a11y are new report-only surface.
 
 name: Docs PR checks
 
@@ -26,9 +27,11 @@ on:
       - '.prettierrc.json'
       - '.prettierignore'
       - '.markdownlint-cli2.jsonc'
+      - 'lint-staged.config.mjs'
       - 'scripts/format-check-changed.sh'
       - 'scripts/lint-md-changed.sh'
       - '.github/workflows/docs-pr-checks.yml'
+      - '.github/workflows/docs-scheduled-checks.yml'
 
 concurrency:
   group: docs-pr-checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -116,6 +119,42 @@ jobs:
   broken-links:
     name: Broken links
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check broken links (anchors, redirects, snippets)
+        run: pnpm check-links
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '## Broken links (full site)'
+            echo ''
+            echo 'Anchors + docs.json redirects + links inside Snippet components.'
+            echo 'External URLs are checked on the scheduled workflow, not on PRs.'
+            echo 'Report-only in Phase 1 until this job is made required.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  accessibility:
+    name: Accessibility
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     continue-on-error: true
 
@@ -135,15 +174,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check broken links and anchors
-        run: pnpm check-links
+      - name: Mintlify accessibility check
+        run: pnpm check:a11y
 
       - name: Job summary
         if: always()
         run: |
           {
-            echo '## Broken links (full site)'
+            echo '## Accessibility (full site)'
             echo ''
-            echo 'Separate from format/lint so link failures do not muddy style feedback.'
-            echo 'Report-only in Phase 1 until this job is made required.'
+            echo '`mint a11y` — alt text and contrast. Expect debt; report-only in Phase 1.'
           } >> "$GITHUB_STEP_SUMMARY"

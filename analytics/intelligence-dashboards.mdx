@@ -13,8 +13,8 @@ Dashboards let you create custom, interactive views of your model data. Analyze 
 share insights with your team—all without leaving Speckle.
 
 <Note>
-  If you blend model data with other sources, join the external data source blending study on the
-  [User testing opportunities page](/get-involved/user-testing).
+  If you blend model data with other sources, join the Databricks integration study on the [User
+  testing opportunities page](/get-involved/user-testing#databricks).
 </Note>
 
 <Info>
@@ -67,17 +67,18 @@ share insights with your team—all without leaving Speckle.
 The images below illustrate the structure and layout of the dashboard.
 
 <Frame>
-  <img src="/images/analytics/speckle_intelligence_nav_01.jpg" />
+  <img src="/images/analytics/speckle_intelligence_nav_01.jpg" alt="Speckle intelligence nav 01" />
 </Frame>
 
 <Frame>
-  <img src="/images/analytics/speckle_intelligence_nav_02.jpg" />
+  <img src="/images/analytics/speckle_intelligence_nav_02.jpg" alt="Speckle intelligence nav 02" />
 </Frame>
 
 ## Bring in your data
 
 Your dashboard needs at least one model; the **Model Viewer** widget provides that data to every other widget. The
-model viewer displays your 3D model; a **Dual viewer** widget lets you compare two models side by side.
+model viewer displays your 3D model; a **Dual viewer** widget lets you compare two models with a swipe/slider
+reveal from one shared camera.
 
 In dashboards, each data source has a 1:1 relationship with a model loaded via a model viewer. Model-less data
 sources are not yet supported.
@@ -94,6 +95,23 @@ To add a model:
 Use **latest** if you want the dashboard to update when new versions are published. Pin to a specific version if you
 need to analyze a particular state of the model. You can add models from any project you have access to within the
 workspace.
+
+Open the **Sources** sidebar to see mounted models. Sources are grouped by project so it is easier to find the
+right mount when several projects contribute to one dashboard.
+
+### Change a pinned version
+
+When a model has moved on and you want the same charts and tables to follow a different version — without deleting
+the source, remounting it, and re-pointing every widget — change the pin in place from the Sources sidebar.
+
+1. Open **Sources** in the left sidebar.
+2. On the model row, choose **Change version** (or the pin control that lets you pick another version or latest).
+3. Confirm the new version (or unpin to track latest).
+
+The dashboard saves immediately. Widgets keep their bindings to the same source id and recompute against the new
+version’s properties. Paths that only existed on the old version go empty until you rebind them.
+
+You still cannot mount two sources on the same model and version (or both tracking latest for that model).
 
 <Frame>
   <iframe
@@ -158,6 +176,18 @@ same viewpoint. Sync requires at least two data sources; the option is disabled 
 
 [See the video here on how to use sync camera.](/analytics/intelligence-dashboards#comparing-models-and-versions)
 
+#### Dual viewer
+
+**Dual viewer** compares two models or versions with a swipe/slider between panes. The cameras in both panes stay
+synced — you always navigate one shared viewpoint.
+
+- Both panes need a model before either side renders.
+- Section box and measurements are not available on Dual viewer (they are misleading on a split view).
+- Bottom view-mode controls drive the left pane; modes mirror to the right.
+
+Use Dual viewer when you want a spatial reveal between two schemes. Use two **Model Viewer** widgets with
+**Sync camera** when you prefer independent canvases that stay lined up.
+
 #### Context models
 
 Use a **context model** when a model should appear in the 3D view for spatial reference but should not be affected
@@ -216,10 +246,7 @@ counts and breakdowns to exclude a site or reference model.
     source.
   </Accordion>
   <Accordion title="Can I pass configuration values via the URL?">
-    No, not yet. If you have a use case (e.g. deep-linking to a project, model, or filter), we'd
-    like to hear about it. Tell us more via the [Dashboards
-    category](https://speckle.community/c/making-speckle/bashboards/79) on the Speckle Community or
-    Intercom.
+    Yes for [Scenarios](/analytics/dashboards/sharing#scenarios). Apply a scenario and share the dashboard URL with `?scenario=<id>` so recipients open the same filters and colour-by. Other configuration (project, model, or arbitrary filter params) is not passed via the URL yet — tell us what you need via the [Dashboards category](https://speckle.community/c/making-speckle/bashboards/79) on the Speckle Community or Intercom.
   </Accordion>
   <Accordion title="When should I use a context model?">
     Use a context model when you need geometry in the 3D view (for example a site or existing
@@ -264,17 +291,17 @@ are still evolving.
 
 Use this table to pick a widget for what you want to do.
 
-| Goal / task                                                           | Widget list                                | Notes                                                                                                                                                                                                                                                                                                                                        |
-| --------------------------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Count how many elements (e.g. walls, doors) in the model              | Element count 🔄                           | No extra widget needed to slice: click a value in another chart to add a page filter; count updates.                                                                                                                                                                                                                                         |
-| Aggregate a numeric (e.g. area, length) across the model              | Total property value 🔄                    | In **Settings**, choose **Aggregation**: Sum (default), Average, Min, Max, or Median. With Sum, a secondary average also appears. Property must be numeric.                                                                                                                                                                                  |
-| See counts or totals by Category, Type, or Family                     | Count by property, Total value by property | Count by property = counts per group; Total value by property = Sum, Average, Min, Max, or Median per group (**Settings** → **Aggregation**). Revit: use Categories, Types, or Families.                                                                                                                                                     |
-| Cross-tab by two or more properties (e.g. area by level and category) | Pivot table                                | Filter or limit categories first; large cross-tabs can be hard to read.                                                                                                                                                                                                                                                                      |
-| See the model as a tree (layers, blocks, discipline)                  | Model structure                            | Structure depends on source (e.g. Revit discipline, CAD layers). Expand/collapse; click to add page filter if enabled.                                                                                                                                                                                                                       |
-| Count unique values for a property                                    | Distinct values count                      | Use this to quickly measure cardinality (for example, unique types, systems, or names).                                                                                                                                                                                                                                                      |
-| Browse or export element rows (custom columns, filter)                | Element table                              | Export to CSV from the widget menu. Column choice is per widget. Chips appear at top; remove with X. No "clear all"; widgets can opt out of page filters in settings.                                                                                                                                                                        |
-| Run pass/fail rules (e.g. doors must have fire rating)                | Property checker, Model Validation         | For dashboard-based validation widgets, see [Validation Widgets in Dashboards](/analytics/dashboards/validation-widgets). For Data Validation (checks and standards), see [Data Validation Overview](/analytics/data-validation/overview).                                                                                                   |
-| Show site location or model on a map                                  | Map, Context (beta)                        | **Map** — dashboard site location and location pins; no Speckle geometry on the map. **Context** — beta 3D-on-map view at the same site location (not the same as [context models](#context-models)). See [Show your model on a map with Context (beta)](/analytics/dashboards/common-workflows#show-your-model-on-a-map-with-context-beta). |
+| Goal / task                                                           | Widget list                                | Notes                                                                                                                                                                                                                                                                                                                                              |
+| --------------------------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Count how many elements (e.g. walls, doors) in the model              | Element count 🔄                           | No extra widget needed to slice: click a value in another chart to add a page filter; count updates.                                                                                                                                                                                                                                               |
+| Aggregate a numeric (e.g. area, length) across the model              | Total property value 🔄                    | In **Settings**, choose **Aggregation**: Sum (default), Average, Min, Max, or Median. With Sum, a secondary average also appears. Property must be numeric.                                                                                                                                                                                        |
+| See counts or totals by Category, Type, or Family                     | Count by property, Total value by property | Count by property = counts per group; Total value by property = Sum, Average, Min, Max, or Median per group (**Settings** → **Aggregation**). Revit: use Categories, Types, or Families.                                                                                                                                                           |
+| Cross-tab by two or more properties (e.g. area by level and category) | Pivot table                                | Filter or limit categories first; large cross-tabs can be hard to read.                                                                                                                                                                                                                                                                            |
+| See the model as a tree (layers, blocks, discipline)                  | Model structure                            | Structure depends on source (e.g. Revit discipline, CAD layers). Expand/collapse; click to add page filter if enabled.                                                                                                                                                                                                                             |
+| Count unique values for a property                                    | Distinct values count                      | Use this to quickly measure cardinality (for example, unique types, systems, or names).                                                                                                                                                                                                                                                            |
+| Browse or export element rows (custom columns, filter)                | Element table                              | Export to CSV from the widget menu. Column choice is per widget. Chips appear at top; remove with X. No "clear all"; widgets can opt out of page filters in settings.                                                                                                                                                                              |
+| Run pass/fail rules (e.g. doors must have fire rating)                | Property checker, Model Validation         | For dashboard-based validation widgets, see [Validation Widgets in Dashboards](/analytics/dashboards/validation-widgets). For Data Validation (checks and standards), see [Data Validation Overview](/analytics/data-validation/overview).                                                                                                         |
+| Show site location or model on a map                                  | Map, Context (beta)                        | **Map** — dashboard site location and location pins; no Speckle geometry on the map. **Context** — beta 3D-on-map view at the same site location (not the same as [context models](#context-models)). See [Show your model on a map with GeoSpeckle (beta)](/analytics/dashboards/common-workflows#show-your-model-on-a-map-with-geospeckle-beta). |
 
 <sup>🔄 = supports **Compare mode** (multiple data sources).</sup>
 
@@ -481,8 +508,14 @@ dashboard flow to inspect context without leaving your analysis.
 
 You can resize and reorder widgets, add **Section** widgets to group areas, and use the **Themes** panel for chart and
 validation colors. Dashboards are shared at the workspace level; roles control who can view or edit. Duplicate a
-dashboard to use it as a template. For layout steps, themes, sharing, and FAQs, see
-[Layout and sharing](/analytics/dashboards/layout-and-sharing).
+dashboard to use it as a template. For layout and themes, see
+[Layout](/analytics/dashboards/layout). For roles, share links, and presentation mode, see
+[Sharing](/analytics/dashboards/sharing).
+
+For named filter and colour-by snapshots in edit and presentation mode — including deep
+links — see [Scenarios](/analytics/dashboards/sharing#scenarios) on the Sharing page.
+Presentation mode is what anyone you share with always sees (also called view mode or
+shared mode).
 
 For step-by-step guides (quantity takeoff, portfolio analysis, finding a family), see
 [Common workflows](/analytics/dashboards/common-workflows).

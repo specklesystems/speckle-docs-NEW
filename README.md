@@ -69,30 +69,48 @@ Connector pages are naturally more detailed because they must cover multiple hos
 
 ### PR checks (CI)
 
-Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as **three parallel jobs** (each report-only / `continue-on-error` for now):
+Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as **four parallel jobs** (each report-only / `continue-on-error` for now):
 
 - **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only)
 - **Mintlify validate** — `pnpm valid` (full site)
-- **Broken links** — `pnpm check-links` (full site; separate so link debt does not muddy style feedback)
+- **Broken links** — `pnpm check-links` (anchors + redirects + Snippet links; full site)
+- **Accessibility** — `pnpm check:a11y` (`mint a11y`; full site)
 
-Locally:
+Scheduled / manual ([`.github/workflows/docs-scheduled-checks.yml`](.github/workflows/docs-scheduled-checks.yml)):
+
+- **External links** — `pnpm check-links:external` (flaky; not on PRs)
+- **Agent readiness score** — `mint score` when repo variable `DOCS_SITE_URL` is set
+
+#### Pre-commit (format / lint)
+
+After `pnpm install`, Husky installs a **pre-commit** hook that runs [lint-staged](https://github.com/lint-staged/lint-staged) on staged files only:
+
+- **Prettier** `--write` — blocking (must format cleanly)
+- **markdownlint** — Phase 1 **report-only** (prints findings, does not block the commit). Staging many migrated pages otherwise fails on backlog MD036/MD001/etc. Same spirit as CI `continue-on-error` on Format and lint.
+
+Does **not** run validate, links, or a11y. Skip once: `git commit --no-verify`.
+
+Locally (defaults match CI — **changed files** for format/lint):
 
 ```bash
-pnpm check:format-lint:changed   # matches Format and lint job
-pnpm check:validate              # matches Mintlify validate job
-pnpm check:links                 # matches Broken links job
-pnpm check:changed               # all three
+pnpm check                 # same as check:changed (CI-equivalent)
+pnpm check:format-lint     # Prettier + markdownlint on changed files only
+pnpm check:validate        # Mintlify validate
+pnpm check:links           # anchors, redirects, snippets
+pnpm check:a11y            # accessibility
 ```
 
-Full-repo format/lint (large backlog until Phase 2):
+Full-repo format/lint (large backlog — not what CI runs):
 
 ```bash
-pnpm check:format-lint
+pnpm check:all             # full-repo format/lint + validate + links + a11y
+pnpm check:format-lint:all # Prettier + markdownlint on entire tree
+pnpm lint:md:all           # markdownlint entire tree (expect many findings)
 pnpm format
 pnpm lint:md:fix
 ```
 
-**Phase 2:** clear debt per job, drop that job’s `continue-on-error`, then require jobs in branch protection one at a time (format-lint first is usually easiest).
+**Phase 2:** clear debt per job, drop that job’s `continue-on-error`, then require jobs in branch protection one at a time (validate + links first; format-lint next; a11y last).
 
 ### Generating universal-ai-config instructions
 

@@ -8,58 +8,69 @@ description: Working with Speckle developer nodes
 If you are using Speckle for Grasshopper in a headless Rhino environment such as Rhino Compute, or you want access to a Speckle account via developer access token, you can use the **Speckle Model URL** node.
 
 <Frame>
-<img src="/images/connectors/grasshopper/node_modeltoken.jpg" />
+  <img src="/images/connectors/grasshopper/node_modeltoken.jpg" alt="Node modeltoken" />
 </Frame>
 
 <Note>
-The developer token used must have the following scopes enabled:
-`profile:read`, `profile:email`, `stream:read`, and `workspace:read` (unless on a non-workspace enabled server), as well as any other write scopes needed
+  The developer token used must have the following scopes enabled: `profile:read`, `profile:email`,
+  `stream:read`, and `workspace:read` (unless on a non-workspace enabled server), as well as any
+  other write scopes needed
 </Note>
 
-**Inputs**
+Inputs:
+
 1. Add the **Speckle URL** input to the Speckle Model you want to create a resource for.
 2. Add the **Speckle Token** input string of your developer access token.
-    Tokens can be created [in the Speckle app](https://app.speckle.systems/settings/user/developer) with your desired permissions.
+   Tokens can be created [in the Speckle app](https://app.speckle.systems/settings/user/developer) with your desired permissions.
 
-**Outputs**
+Outputs:
+
 1. The **Speckle Model** output contains the Model resource of your input URL.
 
 ## Inspecting all attributes on Speckle params
 
 When viewing your model in Speckle's web app, you can switch to [Dev Mode](../../3d-viewer/exploration#dev-eloper-mode) to thoroughly inspect all attributes on your Speckle objects. Some examples of exposed fields in dev mode are:
+
 - The **Speckle ID**, which uniquely identifies this object in the Speckle server.
 - **Geometric** attributes
-    ex: the knot vector of a NURBS curve.
+  ex: the knot vector of a NURBS curve.
 - **Application-specific** attributes on Data Objects
-    ex: the category, family, and level of Revit Objects.
+  ex: the category, family, and level of Revit Objects.
 - Any **children objects** in Data Objects
-    ex: the baselines of corridor Civil Objects.
+  ex: the baselines of corridor Civil Objects.
 - Any **dynamically attached** attributes.
 
 Use the **Deconstruct** node to access all fields of your Speckle param in Grasshopper as you would in Dev Mode in your browser.
 
 <Info>
-**Inspect → construct → exchange:** Deconstruct is the **inspect** layer (one object on a wire). To **construct** rich graphs with computed metadata and nested collections in C#, see [Enrich Speckle data in Grasshopper](/developers/sdks/dotnet/guides/use-speckle-sdk-in-grasshopper-csharp). **Publish** on the connector is the **exchange** layer when you are ready to move data.
+  **Inspect → construct → exchange:** Deconstruct is the **inspect** layer (one object on a wire).
+  To **construct** rich graphs with computed metadata and nested collections in C#, see [Enrich
+  Speckle data in
+  Grasshopper](/developers/sdks/dotnet/guides/use-speckle-sdk-in-grasshopper-csharp). **Publish** on
+  the connector is the **exchange** layer when you are ready to move data.
 </Info>
 
 <Frame>
-<img src="/images/connectors/grasshopper/node_deconstruct.jpg" />
+  <img src="/images/connectors/grasshopper/node_deconstruct.jpg" alt="Node deconstruct" />
 </Frame>
 
-**Inputs**
+Inputs:
+
 1. Add a **Speckle Param** input of any Speckle parameter you would like to inspect.
 
-**Outputs**
+Outputs:
+
 1. An output will be created for every direct attribute on the input Speckle Param.
 
-**Additional Settings**
-
+Additional Settings:
 `Right-click` an output param for additional settings:
+
 - Select **extract parameter** to automatically create a new param node with the value and name of the output param.
 
 <Warning>
-This node is intended for attribute inspection on individual objects, or on lists of objects of the same Speckle type.
-If you would like access to properties across different objects, please request this to be added to our passthrough nodes on our forum.
+  This node is intended for attribute inspection on individual objects, or on lists of objects of
+  the same Speckle type. If you would like access to properties across different objects, please
+  request this to be added to our passthrough nodes on our forum.
 </Warning>
 
 ## Synchronous operations
@@ -71,11 +82,12 @@ For any scripts operating in contexts which require synchronous solving of nodes
 ### C# script
 
 Speckle publishes nuget packages for our C# SDK. You will need to install the following nugets for your custom C# script:
+
 - Use the [Speckle.Sdk](https://www.nuget.org/packages/Speckle.Sdk) nuget for publish and load operations, serialization, core objects classes like **Base** and **Collection**, and more.
 - Use the [Speckle.Objects](https://www.nuget.org/packages/Speckle.Objects) nuget for access to all geometry and additional object classes.
 
 <Frame>
-<img src="/images/connectors/grasshopper/developer_csharp.jpg" />
+  <img src="/images/connectors/grasshopper/developer_csharp.jpg" alt="Developer csharp" />
 </Frame>
 
 <Steps>
@@ -100,15 +112,17 @@ Speckle publishes nuget packages for our C# SDK. You will need to install the fo
       #r "nuget: Speckle.Objects, 3.5.5"
       ```
     </Step>
+
 </Steps>
 
 ### Python script
 
 Speckle python SDK can be installed with pip for your custom Grasshopper python script
+
 - Use the [specklepy](https://pypi.org/project/specklepy/) package for publish and load operations, serialization, all objects classes, and more.
 
 <Frame>
-<img src="/images/connectors/grasshopper/developer_python.jpg" />
+  <img src="/images/connectors/grasshopper/developer_python.jpg" alt="Developer python" />
 </Frame>
 
 <Steps>
@@ -124,4 +138,5 @@ Speckle python SDK can be installed with pip for your custom Grasshopper python 
       specklepy
       ```
     </Step>
+
 </Steps>
