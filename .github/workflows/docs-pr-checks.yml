@@ -1,0 +1,109 @@
+# Phase 1: report-only docs quality checks on pull requests.
+# Steps use continue-on-error so the workflow does not block merge yet.
+# Phase 2: clear debt below, then remove continue-on-error and require this
+# check in branch protection.
+#
+# Known debt on main (do not require until cleared):
+# - pnpm valid: OpenAPI developers/api/previews/preview-openapi.json schema;
+#   snippets/components/PowerBIVersionFetcher.jsx non-local react import
+# - pnpm check-links: ~41 MDX files (mostly developers/viewer + legacy anchors)
+# - pnpm format:check / pnpm lint:md: existing formatting and markdownlint debt
+
+name: Docs PR checks
+
+on:
+  pull_request:
+    paths:
+      - '**/*.md'
+      - '**/*.mdx'
+      - '**/*.jsx'
+      - '**/*.tsx'
+      - '**/*.js'
+      - '**/*.ts'
+      - '**/*.json'
+      - '**/*.jsonc'
+      - 'docs.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.prettierrc.json'
+      - '.prettierignore'
+      - '.markdownlint-cli2.jsonc'
+      - '.github/workflows/docs-pr-checks.yml'
+
+concurrency:
+  group: docs-pr-checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs-checks:
+    name: Format, lint, validate, links
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prettier check
+        id: format
+        continue-on-error: true
+        run: pnpm format:check
+
+      - name: Markdownlint
+        id: lintmd
+        continue-on-error: true
+        run: pnpm lint:md
+
+      - name: Mintlify validate
+        id: validate
+        continue-on-error: true
+        run: pnpm valid
+
+      - name: Check broken links and anchors
+        id: links
+        continue-on-error: true
+        run: pnpm check-links
+
+      - name: Summarize results
+        if: always()
+        env:
+          FORMAT_OUTCOME: ${{ steps.format.outcome }}
+          LINTMD_OUTCOME: ${{ steps.lintmd.outcome }}
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+          LINKS_OUTCOME: ${{ steps.links.outcome }}
+        run: |
+          {
+            echo '## Docs PR checks (report-only)'
+            echo ''
+            echo '| Check | Result |'
+            echo '| ----- | ------ |'
+            echo "| \`pnpm format:check\` | ${FORMAT_OUTCOME} |"
+            echo "| \`pnpm lint:md\` | ${LINTMD_OUTCOME} |"
+            echo "| \`pnpm valid\` | ${VALIDATE_OUTCOME} |"
+            echo "| \`pnpm check-links\` | ${LINKS_OUTCOME} |"
+            echo ''
+            echo 'This workflow is **report-only**. Failures do not block merge yet.'
+            echo 'Clear existing debt, then remove `continue-on-error` and require this check.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$FORMAT_OUTCOME" != 'success' ] || [ "$LINTMD_OUTCOME" != 'success' ] \
+            || [ "$VALIDATE_OUTCOME" != 'success' ] || [ "$LINKS_OUTCOME" != 'success' ]; then
+            echo 'One or more docs checks reported issues (see logs and summary).'
+            echo 'Workflow stays green in Phase 1 so PRs are not blocked.'
+          else
+            echo 'All docs checks passed.'
+          fi

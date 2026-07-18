@@ -67,6 +67,30 @@ Connector pages are naturally more detailed because they must cover multiple hos
 * `pnpm install` to install dependencies
 * `pnpm dev` to start the local dev server
 
+### PR checks (CI)
+
+Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) in **report-only** mode (failures do not block merge yet):
+
+* `pnpm format:check` — Prettier
+* `pnpm lint:md` — markdownlint-cli2 (MD036 and MD060 enforced; MD033 off for Mintlify JSX)
+* `pnpm valid` — Mintlify build validation
+* `pnpm check-links` — internal links and anchors
+
+Run the same locally before opening a PR:
+
+```bash
+pnpm check
+```
+
+Format or auto-fix locally:
+
+```bash
+pnpm format
+pnpm lint:md:fix
+```
+
+**Phase 2 (before making the check required):** clear current debt — Prettier/markdownlint noise, OpenAPI `developers/api/previews/preview-openapi.json`, `snippets/components/PowerBIVersionFetcher.jsx` react import, and broken-link hits (~41 MDX files, mostly `developers/viewer` and `legacy`). Then remove `continue-on-error` from the workflow and require **Docs PR checks** in branch protection.
+
 ### Generating universal-ai-config instructions
 
 Doc rules for AI assistants (Cursor, Copilot, Claude) are maintained as templates in `.universal-ai-config/instructions/`. To emit tool-specific config (e.g. `.cursor/rules/*.mdc` for Cursor), run:
