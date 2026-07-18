@@ -30,7 +30,7 @@ while IFS= read -r file; do
   files[${#files[@]}]="$file"
 done <<EOF
 $(git diff --name-only --diff-filter=ACMRT "$RANGE" -- \
-  '*.md' '*.mdx' '*.js' '*.jsx' '*.ts' '*.tsx' '*.json' '*.jsonc' '*.yml' '*.yaml' \
+  '*.md' '*.mdx' '*.js' '*.jsx' '*.mjs' '*.cjs' '*.ts' '*.tsx' '*.json' '*.jsonc' '*.yml' '*.yaml' '*.css' \
   || true)
 EOF
 

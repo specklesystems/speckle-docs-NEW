@@ -37,7 +37,6 @@ function loadStringWidth() {
 const stringWidthMod = loadStringWidth()
 const stringWidth = stringWidthMod.default ?? stringWidthMod
 
-
 function isSepCell(c) {
   const t = c.trim().replace(/ /g, '')
   return /^:?-{3,}:?$/.test(t)

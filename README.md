@@ -74,7 +74,7 @@ Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/doc
 - **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only; **blocking**)
 - **Mintlify validate** — `pnpm valid` (full site; **blocking**)
 - **Broken links** — `pnpm check-links` (anchors + redirects + Snippet links; full site; **blocking**)
-- **Accessibility** — `pnpm check:a11y` (`mint a11y`; full site; report-only)
+- **Accessibility** — `pnpm check:a11y` (`mint a11y`; full site; **blocking**)
 
 Require the blocking jobs on `main`:
 
@@ -82,7 +82,7 @@ Require the blocking jobs on `main`:
 bash scripts/enable-required-pr-checks.sh
 ```
 
-(Needs `gh auth login` with repo admin.) Or set branch protection manually to require status checks **Mintlify validate**, **Broken links**, and **Format and lint**.
+(Needs `gh auth login` with repo admin.) Or set branch protection manually to require status checks **Mintlify validate**, **Broken links**, **Format and lint**, and **Accessibility**.
 
 Scheduled / manual ([`.github/workflows/docs-scheduled-checks.yml`](.github/workflows/docs-scheduled-checks.yml)):
 
@@ -117,8 +117,6 @@ pnpm lint:md:all           # markdownlint entire tree
 pnpm format
 pnpm lint:md:fix
 ```
-
-Accessibility still uses `continue-on-error` in CI. Drop that and require the job in branch protection when ready to gate on a11y.
 
 ### Generating universal-ai-config instructions
 

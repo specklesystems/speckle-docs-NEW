@@ -21,7 +21,7 @@ Work from the **docs package root** (`speckle-docs-NEW`). Do not edit sibling wo
 
 ## Commands (match CI)
 
-Validate, broken links, and format-lint (changed files) are **blocking**. Accessibility stays report-only until Phase 2c. Prefer changed-file scripts for format/lint; full-tree lint is optional.
+Validate, broken links, format-lint (changed files), and accessibility are **blocking**. Prefer changed-file scripts for format/lint; full-tree lint is optional.
 
 ```bash
 pnpm check                       # CI-equivalent (changed format/lint + validate + links + a11y)
@@ -55,9 +55,9 @@ pnpm format
 2. **Prettier** — then re-run validate (format can break MDX; see footguns)
 3. **Broken links** (`pnpm check-links`) — includes redirects and Snippet links
 4. **Markdownlint** on changed files — blocking in CI and pre-commit; fix before push
-5. **a11y** (`pnpm check:a11y`) — fix alts on pages you touch; full-site gate is still Phase 2c
+5. **a11y** (`pnpm check:a11y`) — blocking; fix missing alts and related issues before push
 
-Stop when `pnpm check:changed` is green (or only remaining failure is known a11y debt the user accepts).
+Stop when `pnpm check:changed` is green.
 
 ## Footguns (learned the hard way)
 
@@ -122,6 +122,6 @@ Commit generated outputs only if this repo tracks them. Never hand-edit generate
 - `pnpm check:links` succeeds
 - `pnpm format:check:changed` succeeds for the PR range
 - markdownlint on changed files succeeds (blocking)
-- `pnpm check:a11y`: fixed for touched pages or left as known Phase 2c debt
+- `pnpm check:a11y` succeeds (blocking)
 
-Report which commands passed and any remaining intentional a11y debt.
+Report which commands passed.

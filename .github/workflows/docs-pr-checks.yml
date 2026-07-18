@@ -1,8 +1,8 @@
-# Docs PR checks: Format and lint (changed files), Mintlify validate, and Broken
-# links are blocking. Accessibility runs with continue-on-error until required.
+# Docs PR checks: Format and lint (changed files), Mintlify validate, Broken
+# links, and Accessibility are blocking.
 #
-# Branch protection: require "Mintlify validate", "Broken links", and
-# "Format and lint" (see scripts/enable-required-pr-checks.sh).
+# Branch protection: require "Mintlify validate", "Broken links",
+# "Format and lint", and "Accessibility" (see scripts/enable-required-pr-checks.sh).
 
 name: Docs PR checks
 
@@ -14,7 +14,10 @@ on:
       - '**/*.jsx'
       - '**/*.tsx'
       - '**/*.js'
+      - '**/*.mjs'
+      - '**/*.cjs'
       - '**/*.ts'
+      - '**/*.css'
       - '**/*.json'
       - '**/*.jsonc'
       - 'docs.json'
@@ -150,7 +153,6 @@ jobs:
     name: Accessibility
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    continue-on-error: true
 
     steps:
       - name: Checkout
@@ -177,5 +179,5 @@ jobs:
           {
             echo '## Accessibility (full site)'
             echo ''
-            echo '`mint a11y` — report-only (`continue-on-error`); not required yet.'
+            echo '`mint a11y` — blocking; required status check on `main`.'
           } >> "$GITHUB_STEP_SUMMARY"
