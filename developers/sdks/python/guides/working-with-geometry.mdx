@@ -1,6 +1,6 @@
 ---
-title: "Working with Geometry"
-description: "Complete guide to creating and manipulating geometric objects in specklepy"
+title: 'Working with Geometry'
+description: 'Complete guide to creating and manipulating geometric objects in specklepy'
 ---
 
 ## Overview
@@ -119,7 +119,7 @@ def create_grid(width, height, spacing):
     grid = Base()
     grid.name = "Grid"
     grid.lines = []
-    
+
     # Horizontal lines
     for i in range(0, height + 1, spacing):
         line = Line(
@@ -128,7 +128,7 @@ def create_grid(width, height, spacing):
         )
         line.label = f"H-{i//spacing}"
         grid.lines.append(line)
-    
+
     # Vertical lines
     for i in range(0, width + 1, spacing):
         line = Line(
@@ -137,7 +137,7 @@ def create_grid(width, height, spacing):
         )
         line.label = f"V-{i//spacing}"
         grid.lines.append(line)
-    
+
     return grid
 
 # Use it
@@ -187,7 +187,7 @@ def polyline_from_points(points):
     coords = []
     for point in points:
         coords.extend([point.x, point.y, point.z])
-    
+
     polyline = Polyline(value=coords)
     if points:
         polyline.units = points[0].units
@@ -259,9 +259,8 @@ print(f"Vertices: {mesh.vertices_count}")  # 4
 ```
 
 <Info>
-**Mesh face format:** Each face starts with vertex count, followed by vertex indices.
-`[3, 0, 1, 2]` = triangle with vertices 0, 1, 2.
-`[4, 0, 1, 2, 3]` = quad with vertices 0, 1, 2, 3.
+  **Mesh face format:** Each face starts with vertex count, followed by vertex indices. `[3, 0, 1,
+  2]` = triangle with vertices 0, 1, 2. `[4, 0, 1, 2, 3]` = quad with vertices 0, 1, 2, 3.
 </Info>
 
 ### Mesh with Colors
@@ -331,21 +330,21 @@ def create_cylinder(radius, height, segments=16):
     """Create a cylindrical mesh."""
     vertices = []
     faces = []
-    
+
     # Bottom circle vertices
     for i in range(segments):
         angle = (i / segments) * 2 * math.pi
         x = radius * math.cos(angle)
         y = radius * math.sin(angle)
         vertices.extend([x, y, 0])
-    
+
     # Top circle vertices
     for i in range(segments):
         angle = (i / segments) * 2 * math.pi
         x = radius * math.cos(angle)
         y = radius * math.sin(angle)
         vertices.extend([x, y, height])
-    
+
     # Side faces (quads)
     for i in range(segments):
         next_i = (i + 1) % segments
@@ -356,11 +355,11 @@ def create_cylinder(radius, height, segments=16):
             next_i + segments,    # Top next
             i + segments,         # Top current
         ])
-    
+
     mesh = Mesh(vertices=vertices, faces=faces)
     mesh.units = "m"
     mesh.name = "Cylinder"
-    
+
     return mesh
 
 # Use it
@@ -449,7 +448,8 @@ mesh.units = "ft"
 ```
 
 <Warning>
-specklepy doesn't automatically convert units. Ensure all geometry in a collection uses consistent units, or handle conversion in your code.
+  specklepy doesn't automatically convert units. Ensure all geometry in a collection uses consistent
+  units, or handle conversion in your code.
 </Warning>
 
 ### Common Units
@@ -488,7 +488,8 @@ column.displayValue.units = "m"
 ```
 
 <Info>
-Always provide `displayValue` for custom objects - it ensures they're visible in Speckle viewers even without native support.
+  Always provide `displayValue` for custom objects - it ensures they're visible in Speckle viewers
+  even without native support.
 </Info>
 
 ## Practical Examples
@@ -503,14 +504,14 @@ def calculate_bounding_box(points):
     """Calculate bounding box from list of points."""
     if not points:
         return None
-    
+
     min_x = min(p.x for p in points)
     max_x = max(p.x for p in points)
     min_y = min(p.y for p in points)
     max_y = max(p.y for p in points)
     min_z = min(p.z for p in points)
     max_z = max(p.z for p in points)
-    
+
     bbox = Base()
     bbox.name = "Bounding Box"
     bbox.min = Point(x=min_x, y=min_y, z=min_z)
@@ -521,7 +522,7 @@ def calculate_bounding_box(points):
         z=(min_z + max_z) / 2
     )
     bbox.dimensions = [max_x - min_x, max_y - min_y, max_z - min_z]
-    
+
     return bbox
 
 # Use it
@@ -544,38 +545,38 @@ from specklepy.objects.geometry import Polyline, Point
 def simplify_polyline(polyline, tolerance=0.1):
     """Remove points that don't significantly change direction."""
     points = polyline.get_points()
-    
+
     if len(points) <= 2:
         return polyline  # Can't simplify further
-    
+
     simplified = [points[0]]  # Always keep first point
-    
+
     for i in range(1, len(points) - 1):
         prev = simplified[-1]
         curr = points[i]
         next_pt = points[i + 1]
-        
+
         # Calculate distance from current point to line between prev and next
         # If distance > tolerance, keep the point
         # (Simplified distance calculation)
         dist = abs(
-            (next_pt.x - prev.x) * (prev.y - curr.y) - 
+            (next_pt.x - prev.x) * (prev.y - curr.y) -
             (prev.x - curr.x) * (next_pt.y - prev.y)
         ) / prev.distance_to(next_pt)
-        
+
         if dist > tolerance:
             simplified.append(curr)
-    
+
     simplified.append(points[-1])  # Always keep last point
-    
+
     # Build new polyline
     coords = []
     for p in simplified:
         coords.extend([p.x, p.y, p.z])
-    
+
     result = Polyline(value=coords)
     result.units = polyline.units
-    
+
     return result
 ```
 
@@ -588,7 +589,7 @@ def mesh_from_heightmap(heights, width, height, scale=1.0):
     """Create a mesh from a 2D height array."""
     vertices = []
     faces = []
-    
+
     # Create vertices
     for y in range(height):
         for x in range(width):
@@ -597,7 +598,7 @@ def mesh_from_heightmap(heights, width, height, scale=1.0):
                 y * scale,
                 heights[y][x] * scale
             ])
-    
+
     # Create faces (two triangles per grid cell)
     for y in range(height - 1):
         for x in range(width - 1):
@@ -606,14 +607,14 @@ def mesh_from_heightmap(heights, width, height, scale=1.0):
             i1 = y * width + (x + 1)
             i2 = (y + 1) * width + (x + 1)
             i3 = (y + 1) * width + x
-            
+
             # Two triangles per quad
             faces.extend([3, i0, i1, i2])
             faces.extend([3, i0, i2, i3])
-    
+
     mesh = Mesh(vertices=vertices, faces=faces)
     mesh.units = "m"
-    
+
     return mesh
 
 # Use it
@@ -713,6 +714,7 @@ specklepy provides comprehensive geometry types:
 - ✅ **Solids** - Boxes and parametric shapes
 
 All geometry:
+
 - Inherits from `Base`
 - Supports units
 - Can have custom properties
@@ -724,12 +726,20 @@ All geometry:
   <Card title="Objects & Base Class" icon="cube" href="/developers/sdks/python/concepts/objects">
     Understand the Base class that all geometry inherits from
   </Card>
-  
-  <Card title="Custom Objects" icon="wrench" href="/developers/sdks/python/concepts/objects#creating-custom-objects">
-    Create your own geometry types
-  </Card>
-  
-  <Card title="Working with Data" icon="diagram-project" href="developers/sdks/python/concepts/data-traversal">
+
+<Card
+  title="Custom Objects"
+  icon="wrench"
+  href="/developers/sdks/python/concepts/objects#creating-custom-objects"
+>
+  Create your own geometry types
+</Card>
+
+  <Card
+    title="Working with Data"
+    icon="diagram-project"
+    href="developers/sdks/python/concepts/data-traversal"
+  >
     Traverse and extract data from complex objects
   </Card>
 </CardGroup>
