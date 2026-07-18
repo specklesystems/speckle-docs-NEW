@@ -1,11 +1,11 @@
 /**
- * Staged-file format/lint — aligned with CI Format and lint (Phase 2b).
+ * Staged-file format/lint — aligned with CI Format and lint.
  * - Prettier: blocking (auto-writes)
  * - markdownlint: blocking on staged markdown (matches CI changed-file gate)
  * Does not run mint validate / links / a11y.
  */
 
-const prettierGlobs = '*.{md,mdx,js,jsx,ts,tsx,json,jsonc,yml,yaml}'
+const prettierGlobs = '*.{md,mdx,js,jsx,mjs,cjs,ts,tsx,json,jsonc,yml,yaml,css}'
 
 /** Paths markdownlint should skip (same idea as scripts/lint-md-changed.sh). */
 function shouldLintMarkdown(file) {

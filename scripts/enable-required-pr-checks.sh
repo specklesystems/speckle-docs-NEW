@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Require Docs PR check jobs on main (validate + links + format-lint).
+# Require Docs PR check jobs on main (validate + links + format-lint + a11y).
 # Leaves enforce_admins off so repo admins can still bypass when needed.
 # Needs: gh auth login with admin on specklesystems/speckle-docs-NEW
 #
@@ -12,7 +12,7 @@ REPO="${REPO:-specklesystems/speckle-docs-NEW}"
 BRANCH="${BRANCH:-main}"
 
 echo "Updating branch protection on ${REPO}@${BRANCH}"
-echo "Required status checks: Mintlify validate, Broken links, Format and lint"
+echo "Required status checks: Mintlify validate, Broken links, Format and lint, Accessibility"
 
 gh api \
   --method PUT \
@@ -22,7 +22,7 @@ gh api \
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": ["Mintlify validate", "Broken links", "Format and lint"]
+    "contexts": ["Mintlify validate", "Broken links", "Format and lint", "Accessibility"]
   },
   "enforce_admins": false,
   "required_pull_request_reviews": {
