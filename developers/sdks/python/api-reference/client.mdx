@@ -37,8 +37,7 @@ SpeckleClient(
 
 Creates a new Speckle client instance.
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="host" type="str" default='"https://app.speckle.systems"'>
   The Speckle server URL including protocol
 </ResponseField>
@@ -51,8 +50,7 @@ Creates a new Speckle client instance.
   Whether to verify SSL certificates
 </ResponseField>
 
-**Examples:**
-
+Examples:
 <Tabs>
   <Tab title="Hosted Server">
     ```python
@@ -100,14 +98,12 @@ client.authenticate_with_token(token: str) -> None
 
 Authenticate using a personal access token.
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="token" type="str" required>
   Personal access token from your Speckle profile
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python
 from specklepy.api.client import SpeckleClient
 
@@ -128,14 +124,12 @@ client.authenticate_with_account(account: Account) -> None
 
 Authenticate using an Account object from local Speckle Manager/Connector.
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="account" type="Account" required>
   Account object from `get_default_account()` or `get_local_accounts()`
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python
 from specklepy.api.client import SpeckleClient
 from specklepy.api.credentials import get_default_account
@@ -160,8 +154,7 @@ client.account: Account
 
 The currently authenticated account. Contains user information after authentication.
 
-**Example:**
-
+Example:
 ```python
 client.authenticate_with_token(token)
 
@@ -175,8 +168,7 @@ print(f"User ID: {client.account.userInfo.id}")
 The client provides access to various resource APIs through these properties. Each resource has its own detailed documentation page.
 
 <Note>
-**Listing Projects: Workspace vs Non-Workspace Servers**
-
+Listing Projects: Workspace vs Non-Workspace Servers:
 The method for listing projects differs depending on your server deployment:
 
 - **Workspace-enabled servers** (e.g., app.speckle.systems): Use `client.workspace.get_projects(workspace_id)` to list projects within a workspace, or `client.active_user.get_projects(filter=UserProjectsFilter(personalOnly=True))` for personal projects.
@@ -209,8 +201,7 @@ client.project: ProjectResource
 
 Access project operations (create, get, update, delete, list).
 
-**Example:**
-
+Example:
 ```python
 from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
 
@@ -232,8 +223,7 @@ client.model: ModelResource
 
 Access model operations (create, get, update, delete, list).
 
-**Example:**
-
+Example:
 ```python
 from specklepy.core.api.inputs.model_inputs import CreateModelInput
 
@@ -253,8 +243,7 @@ client.version: VersionResource
 
 Access version operations (create, get, list, update, delete).
 
-**Example:**
-
+Example:
 ```python
 from specklepy.core.api.inputs.version_inputs import CreateVersionInput
 
@@ -276,8 +265,7 @@ client.active_user: ActiveUserResource
 
 Operations on the currently authenticated user (get profile, update, get projects, etc.).
 
-**Example:**
-
+Example:
 ```python
 user = client.active_user.get()
 print(f"Name: {user.name}")
@@ -294,8 +282,7 @@ client.other_user: OtherUserResource
 
 Operations for looking up other users (get by ID, search).
 
-**Example:**
-
+Example:
 ```python
 user = client.other_user.get(user_id="other_user_id")
 results = client.other_user.search(query="john")
@@ -311,8 +298,7 @@ client.server: ServerResource
 
 Server information and metadata.
 
-**Example:**
-
+Example:
 ```python
 version = client.server.version()
 info = client.server.get()
@@ -329,8 +315,7 @@ client.workspace: WorkspaceResource
 ```
 
 <Note>
-**Workspace Resource Availability**
-
+Workspace Resource Availability:
 The `workspace` resource is available on the hosted Speckle server at **app.speckle.systems** and other workspace-enabled deployments.
 
 **Self-hosted/open-source server deployments do not include workspace features** and this resource will not be available. Attempting to use workspace methods on non-workspace servers will raise an error.
@@ -341,8 +326,7 @@ Check your server capabilities before using workspace operations, or wrap calls 
 
 Workspace operations (get workspace details, members, projects, settings).
 
-**Example:**
-
+Example:
 ```python
 try:
     workspace = client.workspace.get("workspace_id")
@@ -365,20 +349,17 @@ client.execute_query(query: str) -> Dict
 
 Execute a raw GraphQL query against the Speckle server.
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="query" type="str" required>
   GraphQL query string (use `gql()` for proper formatting)
 </ResponseField>
 
-**Returns:**
-
+Returns:
 <ResponseField name="response" type="Dict">
   Raw GraphQL response
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python
 from gql import gql
 from specklepy.api.client import SpeckleClient
@@ -416,8 +397,7 @@ Use `execute_query()` when you need to:
 - Use new API features before SDK support is added
 - Optimize queries by requesting only needed fields
 
-**Example - Custom Fields:**
-
+Example - Custom Fields:
 ```python
 # Query custom or new fields not in SDK
 query = gql("""
@@ -437,8 +417,7 @@ query = gql("""
 result = client.execute_query(query)
 ```
 
-**Example - Mutations:**
-
+Example - Mutations:
 ```python
 # Custom mutation not yet in SDK
 mutation = gql("""
@@ -457,8 +436,7 @@ result = client.execute_query(mutation)
 ```
 
 <Note>
-**GraphQL Schema Documentation**
-
+GraphQL Schema Documentation:
 To explore available queries, mutations, and fields, visit your Speckle server's GraphQL playground:
 
 - Hosted server: `https://app.speckle.systems/graphql`

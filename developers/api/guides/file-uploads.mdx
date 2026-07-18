@@ -48,8 +48,7 @@ Uploading a file and triggering Speckle's automatic ingestion pipeline is a mult
 5. **Check the ingestion status**
    (GraphQL query for the ingestion progress)
 
-**Important notes:**
-
+Important notes:
 - Large files are never sent through the Speckle Server REST endpoints.
 - The upload URL points to your server's configured blob storage (S3, S3 compatible, or Azure).
 - The ETag returned from Blob storage is required for step 4 (file ingestion).
@@ -61,8 +60,7 @@ We start by notifying the Speckle Server of our intent to upload a file. The ser
 
 **POST** `/graphql`
 
-**Mutation:**
-
+Mutation:
 ```graphql
 mutation GenerateFileUploadUrl($input: GenerateFileUploadUrlInput!) {
   fileUploadMutations {
@@ -74,8 +72,7 @@ mutation GenerateFileUploadUrl($input: GenerateFileUploadUrlInput!) {
 }
 ```
 
-**Variables example:**
-
+Variables example:
 ```json
 {
   "input": {
@@ -85,8 +82,7 @@ mutation GenerateFileUploadUrl($input: GenerateFileUploadUrlInput!) {
 }
 ```
 
-**Response example:**
-
+Response example:
 ```json
 {
   "data": {
@@ -106,26 +102,22 @@ mutation GenerateFileUploadUrl($input: GenerateFileUploadUrlInput!) {
 
 **PUT** `{presignedURL}`
 
-**Headers required:**
-
+Headers required:
 ```
 Content-Type: application/octet-stream   # or appropriate type
 ```
 
-**Body:**
-
+Body:
 ```
 <raw file bytes>
 ```
 
-**Important:**
-
+Important:
 - Blob storage returns an ETag in the headers of the response.
 - The ETag is an unique identifier for the uploaded file content, which Speckle uses to verify the file integrity before ingesting the file.
 - The ETag is required for the final step.
 
-**Example curl:**
-
+Example curl:
 ```bash
 curl -X PUT \
   -H "Content-Type: application/octet-stream" \
@@ -147,8 +139,7 @@ This step requires a target model, where the file data should be ingested to. If
 
 **POST** `/graphql`
 
-**Mutation:**
-
+Mutation:
 ```graphql
 mutation CreateModel($input: CreateModelInput!) {
   modelMutations {
@@ -159,8 +150,7 @@ mutation CreateModel($input: CreateModelInput!) {
 }
 ```
 
-**Variables example:**
-
+Variables example:
 ```json
 {
   "input": {
@@ -170,8 +160,7 @@ mutation CreateModel($input: CreateModelInput!) {
 }
 ```
 
-**Response example:**
-
+Response example:
 ```json
 {
   "data": {
@@ -192,8 +181,7 @@ Once the file is uploaded, tell Speckle to parse, convert, index and create a ne
 
 **POST** `/graphql`
 
-**Mutation:**
-
+Mutation:
 ```graphql
 mutation StartFileIngestion($input: StartFileImportInput!) {
   fileUploadMutations {
@@ -207,8 +195,7 @@ mutation StartFileIngestion($input: StartFileImportInput!) {
 }
 ```
 
-**Variables example:**
-
+Variables example:
 ```json
 {
   "input": {
@@ -222,8 +209,7 @@ mutation StartFileIngestion($input: StartFileImportInput!) {
 
 **Important:** The `fileId` must be the exact value returned from Step 1's `generateUploadUrl` response. Do not use the filename - use the `fileId` from that response.
 
-**Response example:**
-
+Response example:
 ```json
 {
   "data": {
@@ -249,8 +235,7 @@ Once the ingestion has been started, the file ingestion job receives an ingestio
 
 **POST** `/graphql`
 
-**Query:**
-
+Query:
 ```graphql
 query Ingestion($ingestionId: ID!, $projectId: String!) {
   project(id: $projectId) {
@@ -278,8 +263,7 @@ query Ingestion($ingestionId: ID!, $projectId: String!) {
 }
 ```
 
-**Variables example:**
-
+Variables example:
 ```json
 {
   "ingestionId": "your-file-ingestion-id",
@@ -287,8 +271,7 @@ query Ingestion($ingestionId: ID!, $projectId: String!) {
 }
 ```
 
-**Response example:**
-
+Response example:
 ```json
 {
   "data": {

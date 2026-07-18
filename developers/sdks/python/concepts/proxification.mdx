@@ -42,7 +42,7 @@ A single wall might belong to:
 - Layer: "A-WALL"
 - Material: "Concrete"
 
-**Without proxification - you must choose ONE hierarchy:**
+Without proxification - you must choose ONE hierarchy:
 ```python
 # Option A: Nest by level (lose group info)
 level_1 = {
@@ -59,7 +59,7 @@ exterior_walls = {
 # OR just lose the organizational structure entirely
 ```
 
-**Problems:**
+Problems:
 - Can only have ONE primary hierarchy (level OR group OR layer)
 - Querying "exterior walls on Level 1" requires complex traversal
 - Can't represent that objects belong to multiple organizational systems
@@ -67,7 +67,7 @@ exterior_walls = {
 
 ### The Solution With Proxification
 
-**With proxification - MULTIPLE overlapping hierarchies:**
+With proxification - MULTIPLE overlapping hierarchies:
 ```python
 root = {
     # Objects stored once in flat/hierarchical elements
@@ -95,7 +95,7 @@ root = {
 }
 ```
 
-**Benefits:**
+Benefits:
 - Objects stored once, referenced by multiple organizational systems
 - Can query "exterior walls on Level 1" efficiently (intersection of two proxy lists)
 - Supports overlapping hierarchies (groups + layers + levels + materials)
@@ -636,14 +636,14 @@ for wall in walls:
 
 ### As a Data Consumer (Reading from Connectors)
 
-**You WILL encounter proxification when:**
+You WILL encounter proxification when:
 - Reading BIM/CAD data from Revit, Rhino, ArchiCAD, AutoCAD connectors
 - Working with organized models (levels, layers, groups, blocks)
 - Need to query by multiple criteria (e.g., "exterior walls on Level 1")
 - Analyzing material assignments across objects
 - Understanding instance/definition relationships
 
-**Resolution is required for:**
+Resolution is required for:
 - Finding objects by level, group, layer, or material
 - Querying intersections ("walls that are both exterior AND on Level 1")
 - Understanding which organizational systems an object belongs to
@@ -651,12 +651,12 @@ for wall in walls:
 
 ### As a Data Producer (Publishing with specklepy)
 
-**You typically DON'T need to create proxies when:**
+You typically DON'T need to create proxies when:
 - Publishing custom data with specklepy
 - Creating simple models
 - Working with small datasets
 
-**The SDK handles proxification automatically when:**
+The SDK handles proxification automatically when:
 - Sending large objects via `operations.send()`
 - Detachable properties are detected
 - Objects exceed chunking thresholds
@@ -699,7 +699,7 @@ def resolve_proxies(root):
     # Similar for other proxy types
 ```
 
-**See Also:**
+See Also:
 - `speckle-blender` repository for working implementations
 - Connector source code for practical proxy handling patterns
 
@@ -761,22 +761,19 @@ for wall in walls:
 
 ## Summary
 
-**Key Concepts:**
-
+Key Concepts:
 - **Proxification** = Storing objects separately and referencing by ID
 - **Proxy collections** live at root level with `@` prefix
 - **Resolution** requires two steps: build index, then resolve references
 - **All proxy types** follow the same resolution pattern
 
-**When to worry about proxification:**
-
+When to worry about proxification:
 - ✅ Reading BIM data from connectors (common)
 - ✅ Analyzing model organization (levels, groups, materials)
 - ✅ Working with large models
 - ❌ Publishing simple custom data (SDK handles it)
 
-**The Resolution Pattern:**
-
+The Resolution Pattern:
 1. Build applicationId index
 2. Get proxy collections from root
 3. Resolve applicationId strings to objects

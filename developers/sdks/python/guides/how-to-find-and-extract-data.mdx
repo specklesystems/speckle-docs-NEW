@@ -81,7 +81,7 @@ The SDK provides three key components for traversal:
    - `_members_to_traverse` - What properties to traverse? (function returning list)
    - `_should_return_to_output` - Include objects in results? (boolean)
 
-**In the examples below, look for comments showing where each component is used.**
+In the examples below, look for comments showing where each component is used.:
 </Accordion>
 
 ```python lines icon="python"
@@ -100,8 +100,7 @@ for context in traversal.traverse(root):
     print(f"Visiting: {name}")
 ```
 
-**Understanding the traversal flow:**
-
+Understanding the traversal flow:
 ```python lines icon="python"
 # Visual Flow:
 #
@@ -117,15 +116,14 @@ for context in traversal.traverse(root):
 #       context.member_name ←  Access property name (optional)
 ```
 
-**Why use GraphTraversal?**
+Why use GraphTraversal?:
 - ✅ Handles all edge cases (dicts, lists, nested Base objects)
 - ✅ Provides context (parent object, property name)
 - ✅ Supports custom rules for filtering during traversal
 - ✅ Memory efficient (uses iterators, not lists)
 - ✅ Battle-tested in production SDK code
 
-**The traversal pattern has three parts:**
-
+The traversal pattern has three parts:
 1. **Base case:** Check if object is a `Base` instance
 2. **Process:** Do something with the current object
 3. **Recurse:** Visit all child objects via `get_member_names()`
@@ -141,8 +139,7 @@ for name in obj.get_member_names():
     # Value is always a data property, never a method
 ```
 
-**Collecting objects during traversal using GraphTraversal:**
-
+Collecting objects during traversal using GraphTraversal:
 Instead of just visiting objects, you often want to collect them
 into a list. Here are two approaches - collecting all at once or
 processing as you go:
@@ -169,8 +166,7 @@ for context in traversal.traverse(root):
             print(f"Found {category}: {obj_name}")
 ```
 
-**Understanding TraversalContext:**
-
+Understanding TraversalContext:
 Each context provides information about where you are in the
 object tree - the current object, what property it came from,
 and its parent:
@@ -191,8 +187,7 @@ for context in traversal.traverse(root):
         print(f"{obj.name} is in {parent_obj.name}.{prop_name}")
 ```
 
-**Using TraversalRule to control traversal:**
-
+Using TraversalRule to control traversal:
 Rules give you fine-grained control over what gets traversed
 and returned. They're useful when you want to skip certain
 properties or limit results during traversal:
@@ -229,8 +224,7 @@ for context in traversal.traverse(root):
     # displayValue won't be traversed due to our rule
 ```
 
-**Simpler approach - filter after traversal:**
-
+Simpler approach - filter after traversal:
 If you just need to skip certain objects, filtering after
 traversal is often clearer than writing a custom rule:
 
@@ -248,8 +242,7 @@ for context in traversal.traverse(root):
     print(f"Visiting: {getattr(obj, 'name', 'unnamed')}")
 ```
 
-**Comprehensive example - all three components together:**
-
+Comprehensive example - all three components together:
 ```python lines icon="python" expandable
 from specklepy.objects.graph_traversal.traversal import (
     GraphTraversal,
@@ -386,8 +379,7 @@ See [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns)
 for production patterns.
 </Note>
 
-**Multiple filter criteria:**
-
+Multiple filter criteria:
 When you need to match objects on several properties at once
 (e.g., walls that are also concrete), pass multiple key-value
 pairs to check all conditions:
@@ -432,8 +424,7 @@ concrete_walls = find_by_properties(
 )
 ```
 
-**Using custom filter functions:**
-
+Using custom filter functions:
 For complex filtering logic (numeric comparisons, nested
 properties, combined conditions), pass a custom function
 that returns `True` for objects you want to keep:
@@ -516,8 +507,7 @@ meshes = extract_display_meshes(root)
 print(f"Found {len(meshes)} meshes")
 ```
 
-**Extracting geometry with metadata:**
-
+Extracting geometry with metadata:
 Often you need to know which object each mesh came from.
 Use TraversalContext to track source objects and their
 properties:
@@ -579,8 +569,7 @@ for item in mesh_data:
     print(f"  Vertices: {vert_count}")
 ```
 
-**Handling different geometry types:**
-
+Handling different geometry types:
 Not all geometry is meshes - you might also encounter
 points, lines, and polylines. Check for all geometry types
 you're interested in:
@@ -705,8 +694,7 @@ Building A (Buildings)
   Level 2 (Levels)
 ```
 
-**Collecting objects by level:**
-
+Collecting objects by level:
 To analyze your data by depth in the tree (e.g., root
 objects vs. deeply nested objects), organize objects by
 their hierarchy level:
@@ -746,8 +734,7 @@ for level, objects in sorted(by_level.items()):
     print(f"Level {level}: {len(objects)} objects")
 ```
 
-**Flattening vs. preserving hierarchy:**
-
+Flattening vs. preserving hierarchy:
 Choose between flattening (all objects in one list) or
 preserving structure (nested dictionaries). Flatten when
 you just need to process objects; preserve when hierarchy
@@ -1007,16 +994,16 @@ report = generate_category_report(root)
 
 ## Learn More
 
-**Core Concepts:**
+Core Concepts:
 - [Data Traversal](/developers/sdks/python/concepts/data-traversal) - Deep dive into traversal patterns
 - [Display Values](/developers/sdks/python/concepts/display-values) - Understanding geometry representation
 
-**Guides:**
+Guides:
 - [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) - Advanced BIM-specific patterns
 - [Working with Geometry](/developers/sdks/python/guides/working-with-geometry) - Geometry manipulation
 - [Understanding Speckle Mesh](/developers/sdks/python/guides/understanding-speckle-mesh) - Mesh structure details
 
-**Next Steps:**
+Next Steps:
 - [Advanced: Performance and Complex Patterns](/developers/sdks/python/guides/how-to-optimize-and-handle-complexity) - Learn optimization techniques
 
 ## Next Steps
