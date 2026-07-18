@@ -69,11 +69,17 @@ Connector pages are naturally more detailed because they must cover multiple hos
 
 ### PR checks (CI)
 
-Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as **three parallel jobs** (each report-only / `continue-on-error` for now):
+Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as **four parallel jobs** (each report-only / `continue-on-error` for now):
 
 - **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only)
 - **Mintlify validate** — `pnpm valid` (full site)
-- **Broken links** — `pnpm check-links` (full site; separate so link debt does not muddy style feedback)
+- **Broken links** — `pnpm check-links` (anchors + redirects + Snippet links; full site)
+- **Accessibility** — `pnpm check:a11y` (`mint a11y`; full site)
+
+Scheduled / manual ([`.github/workflows/docs-scheduled-checks.yml`](.github/workflows/docs-scheduled-checks.yml)):
+
+- **External links** — `pnpm check-links:external` (flaky; not on PRs)
+- **Agent readiness score** — `mint score` when repo variable `DOCS_SITE_URL` is set
 
 #### Pre-commit (format / lint)
 
@@ -82,17 +88,18 @@ After `pnpm install`, Husky installs a **pre-commit** hook that runs [lint-stage
 - Prettier `--write` on staged `md` / `mdx` / JS/TS / JSON / YAML
 - `markdownlint-cli2` on staged `md` / `mdx` (skips UAC, notebooks, generated AI config paths)
 
-This matches the CI **Format and lint** job scope. It does **not** run `pnpm valid` or `pnpm check-links` (run those before push / in CI).
+This matches the CI **Format and lint** job scope. It does **not** run validate, links, or a11y (run those before push / in CI).
 
 Skip once when needed: `git commit --no-verify` (avoid for docs PRs you want CI-green).
 
-Locally (full checks):
+Locally (PR-equivalent):
 
 ```bash
-pnpm check:format-lint:changed   # matches Format and lint job
-pnpm check:validate              # matches Mintlify validate job
-pnpm check:links                 # matches Broken links job
-pnpm check:changed               # all three
+pnpm check:format-lint:changed   # Format and lint job
+pnpm check:validate              # Mintlify validate job
+pnpm check:links                 # Broken links job (anchors, redirects, snippets)
+pnpm check:a11y                  # Accessibility job
+pnpm check:changed               # all of the above
 ```
 
 Full-repo format/lint (large backlog until Phase 2):
@@ -103,7 +110,7 @@ pnpm format
 pnpm lint:md:fix
 ```
 
-**Phase 2:** clear debt per job, drop that job’s `continue-on-error`, then require jobs in branch protection one at a time (format-lint first is usually easiest).
+**Phase 2:** clear debt per job, drop that job’s `continue-on-error`, then require jobs in branch protection one at a time (validate + links first; format-lint next; a11y last).
 
 ### Generating universal-ai-config instructions
 
