@@ -27,6 +27,10 @@ function shouldLintMarkdown(file) {
   return true
 }
 
+function shellQuote(file) {
+  return `'${file.replace(/'/g, `'\\''`)}'`
+}
+
 export default {
   [prettierGlobs]: 'prettier --write',
   '*.{md,mdx}': (files) => {
@@ -34,6 +38,7 @@ export default {
     if (lintable.length === 0) {
       return []
     }
-    return ['bash', 'scripts/lint-md-staged.sh', ...lintable]
+    // Single shell string — lint-staged array form (`bash`, script, files) was hanging.
+    return [`bash scripts/lint-md-staged.sh ${lintable.map(shellQuote).join(' ')}`]
   }
 }

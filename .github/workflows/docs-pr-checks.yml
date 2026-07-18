@@ -1,12 +1,8 @@
-# Phase 1: report-only docs quality checks on pull requests.
-# Jobs run in parallel. Each uses continue-on-error so debt does not block merge.
-# Phase 2: clear debt per job, drop continue-on-error, require jobs in branch
-# protection (prefer: validate + links first; then format-lint; a11y last).
+# Phase 2a: validate + broken-links are blocking. Format-lint and a11y stay
+# report-only until markdownlint debt PRs land and format-lint is required.
 #
-# Known full-repo debt:
-# - format-lint full-repo: large Prettier / markdownlint backlog (CI uses changed files)
-# - a11y: expect findings until alt/contrast debt is cleared
-# validate + core links were green; redirects/snippets/a11y are new report-only surface.
+# Branch protection: require status checks named "Mintlify validate" and
+# "Broken links" (see scripts/enable-required-pr-checks.sh).
 
 name: Docs PR checks
 
@@ -30,6 +26,7 @@ on:
       - 'lint-staged.config.mjs'
       - 'scripts/format-check-changed.sh'
       - 'scripts/lint-md-changed.sh'
+      - 'scripts/enable-required-pr-checks.sh'
       - '.github/workflows/docs-pr-checks.yml'
       - '.github/workflows/docs-scheduled-checks.yml'
 
@@ -79,14 +76,13 @@ jobs:
             echo '## Format and lint (changed files)'
             echo ''
             echo 'Prettier + markdownlint on files changed in this PR only.'
-            echo 'Report-only in Phase 1 (`continue-on-error` on this job).'
+            echo 'Still report-only until markdownlint debt PRs land.'
           } >> "$GITHUB_STEP_SUMMARY"
 
   validate:
     name: Mintlify validate
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
 
     steps:
       - name: Checkout
@@ -113,14 +109,13 @@ jobs:
           {
             echo '## Mintlify validate (full site)'
             echo ''
-            echo 'Report-only in Phase 1 until this job is made required.'
+            echo 'Blocking. Require this check in branch protection for `main`.'
           } >> "$GITHUB_STEP_SUMMARY"
 
   broken-links:
     name: Broken links
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    continue-on-error: true
 
     steps:
       - name: Checkout
@@ -148,8 +143,8 @@ jobs:
             echo '## Broken links (full site)'
             echo ''
             echo 'Anchors + docs.json redirects + links inside Snippet components.'
-            echo 'External URLs are checked on the scheduled workflow, not on PRs.'
-            echo 'Report-only in Phase 1 until this job is made required.'
+            echo 'Blocking. Require this check in branch protection for `main`.'
+            echo 'External URLs stay on the scheduled workflow.'
           } >> "$GITHUB_STEP_SUMMARY"
 
   accessibility:
@@ -183,5 +178,5 @@ jobs:
           {
             echo '## Accessibility (full site)'
             echo ''
-            echo '`mint a11y` — alt text and contrast. Expect debt; report-only in Phase 1.'
+            echo '`mint a11y` — still report-only (Phase 2c).'
           } >> "$GITHUB_STEP_SUMMARY"
