@@ -1,8 +1,8 @@
-# Phase 2a: validate + broken-links are blocking. Format-lint and a11y stay
-# report-only until markdownlint debt PRs land and format-lint is required.
+# Phase 2b: validate, broken-links, and format-lint (changed files) are blocking.
+# Accessibility stays report-only (Phase 2c).
 #
-# Branch protection: require status checks named "Mintlify validate" and
-# "Broken links" (see scripts/enable-required-pr-checks.sh).
+# Branch protection: require "Mintlify validate", "Broken links", and
+# "Format and lint" (see scripts/enable-required-pr-checks.sh).
 
 name: Docs PR checks
 
@@ -43,7 +43,6 @@ jobs:
     name: Format and lint
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
 
     steps:
       - name: Checkout
@@ -76,7 +75,7 @@ jobs:
             echo '## Format and lint (changed files)'
             echo ''
             echo 'Prettier + markdownlint on files changed in this PR only.'
-            echo 'Still report-only until markdownlint debt PRs land.'
+            echo 'Blocking — required status check after Phase 2b merges.'
           } >> "$GITHUB_STEP_SUMMARY"
 
   validate:

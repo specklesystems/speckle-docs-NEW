@@ -71,19 +71,18 @@ Connector pages are naturally more detailed because they must cover multiple hos
 
 Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as **four parallel jobs**:
 
-- **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only; still report-only until lint debt PRs land)
+- **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only; **blocking**)
 - **Mintlify validate** — `pnpm valid` (full site; **blocking**)
 - **Broken links** — `pnpm check-links` (anchors + redirects + Snippet links; full site; **blocking**)
 - **Accessibility** — `pnpm check:a11y` (`mint a11y`; full site; report-only)
 
-After merging this Phase 2a change, require the blocking jobs on `main`:
+After merging Phase 2b, require the blocking jobs on `main`:
 
 ```bash
 bash scripts/enable-required-pr-checks.sh
 ```
 
-(Needs `gh auth login` with repo admin.) Or set branch protection manually to require status checks **Mintlify validate** and **Broken links**.
-
+(Needs `gh auth login` with repo admin.) Or set branch protection manually to require status checks **Mintlify validate**, **Broken links**, and **Format and lint**.
 Scheduled / manual ([`.github/workflows/docs-scheduled-checks.yml`](.github/workflows/docs-scheduled-checks.yml)):
 
 - **External links** — `pnpm check-links:external` (flaky; not on PRs)
@@ -94,10 +93,9 @@ Scheduled / manual ([`.github/workflows/docs-scheduled-checks.yml`](.github/work
 After `pnpm install`, Husky installs a **pre-commit** hook that runs [lint-staged](https://github.com/lint-staged/lint-staged) on staged files only:
 
 - **Prettier** `--write` — blocking (must format cleanly)
-- **markdownlint** — report-only until format-lint is required in CI (prints findings, does not block the commit)
+- **markdownlint** — blocking on staged markdown (same rules as CI changed-file lint)
 
 Does **not** run validate, links, or a11y. Skip once: `git commit --no-verify`.
-
 Locally (defaults match CI — **changed files** for format/lint):
 
 ```bash
@@ -108,17 +106,17 @@ pnpm check:links           # anchors, redirects, snippets
 pnpm check:a11y            # accessibility
 ```
 
-Full-repo format/lint (large backlog — not what CI runs):
+Full-repo format/lint (not what CI runs on PRs):
 
 ```bash
 pnpm check:all             # full-repo format/lint + validate + links + a11y
 pnpm check:format-lint:all # Prettier + markdownlint on entire tree
-pnpm lint:md:all           # markdownlint entire tree (expect many findings)
+pnpm lint:md:all           # markdownlint entire tree
 pnpm format
 pnpm lint:md:fix
 ```
 
-**Phase 2b+:** clear markdownlint debt (MD060 → MD036 → leftovers), then drop `continue-on-error` on Format and lint and require that job; a11y last.
+**Phase 2c:** drop `continue-on-error` on Accessibility and require that job when ready.
 
 ### Generating universal-ai-config instructions
 
