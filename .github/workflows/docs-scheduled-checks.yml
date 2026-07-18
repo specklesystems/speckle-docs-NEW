@@ -1,0 +1,92 @@
+# Flaky / slow docs checks — not on every PR.
+# - External link rot (third-party timeouts / 429s)
+# - Optional agent-readiness score against the deployed docs site
+
+name: Docs scheduled checks
+
+on:
+  schedule:
+    # Weekdays 06:15 UTC
+    - cron: '15 6 * * 1-5'
+  workflow_dispatch:
+
+concurrency:
+  group: docs-scheduled-checks
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  external-links:
+    name: External links
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check external links
+        run: pnpm check-links:external
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '## External links'
+            echo ''
+            echo 'Full broken-links pass including `--check-external`.'
+            echo 'Scheduled / manual only — too flaky for PR gates.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  agent-score:
+    name: Agent readiness score
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    # Needs a public docs URL; set DOCS_SITE_URL repo variable (e.g. docs.speckle.systems)
+    # or pass via workflow_dispatch later. Skip cleanly when unset.
+    if: ${{ vars.DOCS_SITE_URL != '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Mint score
+        run: pnpm exec mint score "${{ vars.DOCS_SITE_URL }}" --format plain
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '## Agent readiness score'
+            echo ''
+            echo "Ran \`mint score\` against \`${{ vars.DOCS_SITE_URL }}\`."
+            echo 'Informational only.'
+          } >> "$GITHUB_STEP_SUMMARY"
