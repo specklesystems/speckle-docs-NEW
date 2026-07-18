@@ -166,15 +166,18 @@ Install our GitHub App to auto-propagate changes from your repo to your deployme
 
 ### Optional: Using Devcontainers
 
-This repository also includes a devcontainer/Dockerfile setup. It provides a pre-configured environment with Node, Mintlify, and ZSH installed, along with a convenient `mintdev` alias.
+This repository includes a Dev Container (Node **22**, pnpm, zsh) aligned with CI and `package.json`.
 
-- To use it in VS Code, open the repo and choose **Reopen in Container**. The devcontainer will build itself.
-- Once inside the container, run:
+- In VS Code / Cursor: **Reopen in Container**. The image builds, then `pnpm install` runs.
+- Port **3333** is forwarded for the Mintlify preview.
+- Mint comes from the project (`pnpm install`), not a global CLI baked into the image.
+
+Inside the container:
 
 ```bash
 mintdev
 ```
 
-This will start Mintlify in verbose mode with polling enabled, ensuring file changes are picked up reliably.
+That runs `pnpm dev` (Mintlify on port 3333) with file-watch polling enabled.
 
-Using the devcontainer is optional but recommended if you want a consistent, containerised environment without managing Node or Mintlify versions on your local machine.
+Dev Containers are optional; useful for a consistent environment without managing Node or pnpm locally.

@@ -2,7 +2,8 @@ HISTFILE=$HOME/.zsh_history
 HISTSIZE=10000
 SAVEHIST=10000
 
-setopt INC_APPEND_HISTORY   # write each command as you go
-setopt SHARE_HISTORY        # pull in commands from other sessions
+setopt INC_APPEND_HISTORY
+setopt SHARE_HISTORY
 
+# Uses package.json "dev" (mint on port 3333). Polling helps file watch in containers.
 alias mintdev='CHOKIDAR_USEPOLLING=true pnpm dev'
