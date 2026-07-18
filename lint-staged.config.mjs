@@ -1,6 +1,8 @@
 /**
- * Staged-file format/lint — mirrors CI Format and lint job scope.
- * Does not run mint validate or broken-links (too slow for every commit).
+ * Staged-file format/lint — aligned with CI Format and lint (Phase 1).
+ * - Prettier: blocking (auto-writes)
+ * - markdownlint: report-only (large staged-file debt; CI also continue-on-error)
+ * Does not run mint validate / links / a11y.
  */
 
 const prettierGlobs = '*.{md,mdx,js,jsx,ts,tsx,json,jsonc,yml,yaml}'
@@ -32,6 +34,6 @@ export default {
     if (lintable.length === 0) {
       return []
     }
-    return ['markdownlint-cli2', '--no-globs', ...lintable]
+    return ['bash', 'scripts/lint-md-staged.sh', ...lintable]
   }
 }
