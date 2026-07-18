@@ -85,27 +85,27 @@ Scheduled / manual ([`.github/workflows/docs-scheduled-checks.yml`](.github/work
 
 After `pnpm install`, Husky installs a **pre-commit** hook that runs [lint-staged](https://github.com/lint-staged/lint-staged) on staged files only:
 
-- Prettier `--write` on staged `md` / `mdx` / JS/TS / JSON / YAML
-- `markdownlint-cli2` on staged `md` / `mdx` (skips UAC, notebooks, generated AI config paths)
+- **Prettier** `--write` — blocking (must format cleanly)
+- **markdownlint** — Phase 1 **report-only** (prints findings, does not block the commit). Staging many migrated pages otherwise fails on backlog MD036/MD001/etc. Same spirit as CI `continue-on-error` on Format and lint.
 
-This matches the CI **Format and lint** job scope. It does **not** run validate, links, or a11y (run those before push / in CI).
+Does **not** run validate, links, or a11y. Skip once: `git commit --no-verify`.
 
-Skip once when needed: `git commit --no-verify` (avoid for docs PRs you want CI-green).
-
-Locally (PR-equivalent):
+Locally (defaults match CI — **changed files** for format/lint):
 
 ```bash
-pnpm check:format-lint:changed   # Format and lint job
-pnpm check:validate              # Mintlify validate job
-pnpm check:links                 # Broken links job (anchors, redirects, snippets)
-pnpm check:a11y                  # Accessibility job
-pnpm check:changed               # all of the above
+pnpm check                 # same as check:changed (CI-equivalent)
+pnpm check:format-lint     # Prettier + markdownlint on changed files only
+pnpm check:validate        # Mintlify validate
+pnpm check:links           # anchors, redirects, snippets
+pnpm check:a11y            # accessibility
 ```
 
-Full-repo format/lint (large backlog until Phase 2):
+Full-repo format/lint (large backlog — not what CI runs):
 
 ```bash
-pnpm check:format-lint
+pnpm check:all             # full-repo format/lint + validate + links + a11y
+pnpm check:format-lint:all # Prettier + markdownlint on entire tree
+pnpm lint:md:all           # markdownlint entire tree (expect many findings)
 pnpm format
 pnpm lint:md:fix
 ```
