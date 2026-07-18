@@ -82,6 +82,14 @@ Inside UAC markdown, do **not** use Markdown links to sibling instruction files.
 - CI format/lint = **changed files only** (`scripts/format-check-changed.sh`, `scripts/lint-md-changed.sh`)
 - Do not try to Prettier/markdownlint the whole repo unless the user asks (hundreds of findings)
 
+### markdownlint on API / MDX pages
+
+- Do not run `pnpm lint:md:fix` on the whole tree while clearing a PR — scope to changed files
+- MD036: a lone bold line like Parameters counts as a fake heading. Prefer a plain label `Parameters:` (not `#### Parameters` under every method — that causes MD022/MD024 noise)
+- MD051 often means the target heading was not parsed (common: heading stuck to a closing JSX tag with no blank line). Add the blank line; do not only rewrite the fragment
+- Slash in headings (`Detach/Do not detach`) yields fragments without the slash; match that slug or rename the heading
+- MD049 (* vs _ emphasis) is disabled in this repo — do not mass-convert emphasis styles
+
 ### Workflow / tooling notes
 
 - Node **22** in CI; `packageManager` in `package.json` pins pnpm — do not also set `version` on `pnpm/action-setup` (hash conflict)
