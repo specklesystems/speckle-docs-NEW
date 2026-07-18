@@ -1,13 +1,12 @@
 # Phase 1: report-only docs quality checks on pull requests.
-# Steps use continue-on-error so the workflow does not block merge yet.
-# Format + markdownlint run on changed files only (full-repo still ~430 / ~1.3k debt).
-# Phase 2: clear debt, then remove continue-on-error and require this check.
+# Jobs run in parallel. Each uses continue-on-error so debt does not block merge.
+# Phase 2: clear debt per job, drop continue-on-error, require specific jobs in
+# branch protection (e.g. require format-lint first; links later).
 #
-# Known full-repo debt (do not require until cleared):
-# - pnpm valid: OpenAPI developers/api/previews/preview-openapi.json schema;
-#   snippets/components/PowerBIVersionFetcher.jsx non-local react import
-# - pnpm check-links: ~41 MDX files (mostly developers/viewer + legacy anchors)
-# - pnpm format:check / pnpm lint:md: existing formatting and markdownlint debt
+# Known full-repo debt:
+# - validate: OpenAPI preview-openapi.json; PowerBIVersionFetcher.jsx react import
+# - broken-links: ~41 MDX files (mostly developers/viewer + legacy anchors)
+# - format-lint full-repo: ~430 Prettier / ~1.3k markdownlint (CI uses changed files)
 
 name: Docs PR checks
 
@@ -36,11 +35,16 @@ concurrency:
   group: docs-pr-checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: '22'
+  DIFF_RANGE: ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}
+
 jobs:
-  docs-checks:
-    name: Format, lint, validate, links
+  format-lint:
+    name: Format and lint
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
+    continue-on-error: true
 
     steps:
       - name: Checkout
@@ -48,69 +52,99 @@ jobs:
         with:
           fetch-depth: 0
 
-      # version comes from package.json "packageManager" (do not also set version here)
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          # Match package.json engines (^22.x). Avoids Actions Node 20 deprecation path.
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Prettier check (changed files)
-        id: format
-        continue-on-error: true
-        run: pnpm format:check:changed "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
+        run: pnpm format:check:changed "$DIFF_RANGE"
 
       - name: Markdownlint (changed files)
-        id: lintmd
-        continue-on-error: true
-        run: pnpm lint:md:changed "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
+        run: pnpm lint:md:changed "$DIFF_RANGE"
 
-      - name: Mintlify validate
-        id: validate
-        continue-on-error: true
-        run: pnpm valid
-
-      - name: Check broken links and anchors
-        id: links
-        continue-on-error: true
-        run: pnpm check-links
-
-      - name: Summarize results
+      - name: Job summary
         if: always()
-        env:
-          FORMAT_OUTCOME: ${{ steps.format.outcome }}
-          LINTMD_OUTCOME: ${{ steps.lintmd.outcome }}
-          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
-          LINKS_OUTCOME: ${{ steps.links.outcome }}
         run: |
           {
-            echo '## Docs PR checks (report-only)'
+            echo '## Format and lint (changed files)'
             echo ''
-            echo '| Check | Result |'
-            echo '| ----- | ------ |'
-            echo "| \`pnpm format:check:changed\` | ${FORMAT_OUTCOME} |"
-            echo "| \`pnpm lint:md:changed\` | ${LINTMD_OUTCOME} |"
-            echo "| \`pnpm valid\` | ${VALIDATE_OUTCOME} |"
-            echo "| \`pnpm check-links\` | ${LINKS_OUTCOME} |"
-            echo ''
-            echo 'Format/lint scope: **files changed in this PR only**.'
-            echo 'Full-repo \`pnpm format:check\` / \`pnpm lint:md\` still have backlog debt.'
-            echo ''
-            echo 'This workflow is **report-only**. Failures do not block merge yet.'
-            echo 'Clear existing debt, then remove `continue-on-error` and require this check.'
+            echo 'Prettier + markdownlint on files changed in this PR only.'
+            echo 'Report-only in Phase 1 (`continue-on-error` on this job).'
           } >> "$GITHUB_STEP_SUMMARY"
 
-          if [ "$FORMAT_OUTCOME" != 'success' ] || [ "$LINTMD_OUTCOME" != 'success' ] \
-            || [ "$VALIDATE_OUTCOME" != 'success' ] || [ "$LINKS_OUTCOME" != 'success' ]; then
-            echo 'One or more docs checks reported issues (see logs and summary).'
-            echo 'Workflow stays green in Phase 1 so PRs are not blocked.'
-          else
-            echo 'All docs checks passed.'
-          fi
+  validate:
+    name: Mintlify validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Mintlify validate
+        run: pnpm valid
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '## Mintlify validate (full site)'
+            echo ''
+            echo 'Report-only in Phase 1. Known debt: preview OpenAPI + PowerBI snippet.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  broken-links:
+    name: Broken links
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check broken links and anchors
+        run: pnpm check-links
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '## Broken links (full site)'
+            echo ''
+            echo 'Separate from format/lint so link debt does not muddy style feedback.'
+            echo 'Report-only in Phase 1. Known debt: ~41 MDX files (viewer + legacy).'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -69,28 +69,30 @@ Connector pages are naturally more detailed because they must cover multiple hos
 
 ### PR checks (CI)
 
-Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) in **report-only** mode (failures do not block merge yet):
+Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as **three parallel jobs** (each report-only / `continue-on-error` for now):
 
-- `pnpm format:check:changed` — Prettier on files changed in the PR
-- `pnpm lint:md:changed` — markdownlint on files changed in the PR (MD036/MD060 on; MD033 off for Mintlify JSX)
-- `pnpm valid` — Mintlify build validation (full site)
-- `pnpm check-links` — internal links and anchors (full site)
+- **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only)
+- **Mintlify validate** — `pnpm valid` (full site)
+- **Broken links** — `pnpm check-links` (full site; separate so link debt does not muddy style feedback)
 
-PR-scoped checks locally (matches CI):
+Locally:
 
 ```bash
-pnpm check:changed
+pnpm check:format-lint:changed   # matches Format and lint job
+pnpm check:validate              # matches Mintlify validate job
+pnpm check:links                 # matches Broken links job
+pnpm check:changed               # all three
 ```
 
-Full-repo checks (large backlog until Phase 2):
+Full-repo format/lint (large backlog until Phase 2):
 
 ```bash
-pnpm check
+pnpm check:format-lint
 pnpm format
 pnpm lint:md:fix
 ```
 
-**Phase 2 (before making the check required):** clear full-repo debt — ~430 Prettier files, ~1.3k markdownlint findings (mostly MD060/MD036), OpenAPI `developers/api/previews/preview-openapi.json`, `snippets/components/PowerBIVersionFetcher.jsx` react import, and broken-link hits (~41 MDX files, mostly `developers/viewer` and `legacy`). Then remove `continue-on-error` from the workflow and require **Docs PR checks** in branch protection.
+**Phase 2:** clear debt per job, drop that job’s `continue-on-error`, then require jobs in branch protection one at a time (format-lint first is usually easiest).
 
 ### Generating universal-ai-config instructions
 
