@@ -69,12 +69,20 @@ Connector pages are naturally more detailed because they must cover multiple hos
 
 ### PR checks (CI)
 
-Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as **four parallel jobs** (each report-only / `continue-on-error` for now):
+Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as **four parallel jobs**:
 
-- **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only)
-- **Mintlify validate** — `pnpm valid` (full site)
-- **Broken links** — `pnpm check-links` (anchors + redirects + Snippet links; full site)
-- **Accessibility** — `pnpm check:a11y` (`mint a11y`; full site)
+- **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only; still report-only until lint debt PRs land)
+- **Mintlify validate** — `pnpm valid` (full site; **blocking**)
+- **Broken links** — `pnpm check-links` (anchors + redirects + Snippet links; full site; **blocking**)
+- **Accessibility** — `pnpm check:a11y` (`mint a11y`; full site; report-only)
+
+After merging this Phase 2a change, require the blocking jobs on `main`:
+
+```bash
+bash scripts/enable-required-pr-checks.sh
+```
+
+(Needs `gh auth login` with repo admin.) Or set branch protection manually to require status checks **Mintlify validate** and **Broken links**.
 
 Scheduled / manual ([`.github/workflows/docs-scheduled-checks.yml`](.github/workflows/docs-scheduled-checks.yml)):
 
@@ -86,7 +94,7 @@ Scheduled / manual ([`.github/workflows/docs-scheduled-checks.yml`](.github/work
 After `pnpm install`, Husky installs a **pre-commit** hook that runs [lint-staged](https://github.com/lint-staged/lint-staged) on staged files only:
 
 - **Prettier** `--write` — blocking (must format cleanly)
-- **markdownlint** — Phase 1 **report-only** (prints findings, does not block the commit). Staging many migrated pages otherwise fails on backlog MD036/MD001/etc. Same spirit as CI `continue-on-error` on Format and lint.
+- **markdownlint** — report-only until format-lint is required in CI (prints findings, does not block the commit)
 
 Does **not** run validate, links, or a11y. Skip once: `git commit --no-verify`.
 
@@ -110,7 +118,7 @@ pnpm format
 pnpm lint:md:fix
 ```
 
-**Phase 2:** clear debt per job, drop that job’s `continue-on-error`, then require jobs in branch protection one at a time (validate + links first; format-lint next; a11y last).
+**Phase 2b+:** clear markdownlint debt (MD060 → MD036 → leftovers), then drop `continue-on-error` on Format and lint and require that job; a11y last.
 
 ### Generating universal-ai-config instructions
 
