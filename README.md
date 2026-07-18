@@ -166,18 +166,16 @@ Install our GitHub App to auto-propagate changes from your repo to your deployme
 
 ### Optional: Using Devcontainers
 
-This repository includes a Dev Container (Node **22**, pnpm, zsh) aligned with CI and `package.json`.
+This repository includes a Dev Container (Node **22**, pnpm) aligned with CI and `package.json`.
 
 - In VS Code / Cursor: **Reopen in Container**. The image builds, then `pnpm install` runs.
 - Port **3333** is forwarded for the Mintlify preview.
 - Mint comes from the project (`pnpm install`), not a global CLI baked into the image.
 
-Inside the container:
+Start the preview with:
 
 ```bash
-mintdev
+pnpm dev
 ```
-
-That runs `pnpm dev` (Mintlify on port 3333) with file-watch polling enabled.
 
 Dev Containers are optional; useful for a consistent environment without managing Node or pnpm locally.
