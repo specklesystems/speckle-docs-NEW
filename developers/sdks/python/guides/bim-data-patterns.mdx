@@ -35,8 +35,7 @@ print(obj.properties.keys())  # Properties dictionary with BIM metadata
 
 ## Characteristics of BIM Data
 
-**Deep Nesting**
-
+Deep Nesting:
 BIM data often has nested structures with properties and sub-objects:
 
 ```python lines icon="python"
@@ -46,8 +45,7 @@ obj.properties["materials"]["Steel"]["area"]  # Nested material data
 #   └─1st level──┘  └──2nd level──┘  └─3rd─┘
 ```
 
-**Understanding v3 Object Types**
-
+Understanding v3 Object Types:
 In v3, there are **no typed BIM classes** like `Wall` or `Column`. Everything is a generic container:
 
 ```python lines icon="python"
@@ -64,8 +62,7 @@ print(obj.properties["family"])  # "Basic Wall"
 print(obj.properties["type"])  # "200mm"
 ```
 
-**Check properties, not types:**
-
+Check properties, not types:
 ```python lines icon="python"
 # Good - check properties for BIM semantics
 if obj.properties.get("category") == "Walls":
@@ -77,8 +74,7 @@ if "Wall" in obj.speckle_type:  # This won't match anything useful
     pass
 ```
 
-**Reference-Based Architecture**
-
+Reference-Based Architecture:
 Large nested objects are stored separately:
 
 ```python lines icon="python"
@@ -93,8 +89,7 @@ obj["@displayValue"]  # Returns: "hash123abc..."
 
 Revit objects have rich parameter collections organized by category.
 
-**Understanding Revit Parameter Structure**
-
+Understanding Revit Parameter Structure:
 ```python lines icon="python"
 # Typical Revit parameter structure
 {
@@ -132,8 +127,7 @@ Revit objects have rich parameter collections organized by category.
 }
 ```
 
-**Extracting Revit Parameters**
-
+Extracting Revit Parameters:
 ```python lines icon="python"
 from specklepy.objects import Base
 
@@ -197,8 +191,7 @@ for key, data in params.items():
     print(f"{key}: {value} {units}")
 ```
 
-**Filtering by Parameter Value**
-
+Filtering by Parameter Value:
 ```python lines icon="python"
 def filter_by_parameter(objects, param_name, param_value):
     """Find all objects with a specific parameter value."""
@@ -220,8 +213,7 @@ exterior_walls = filter_by_parameter(walls, "Function", "Exterior")
 print(f"Found {len(exterior_walls)} exterior walls")
 ```
 
-**Converting Parameters to DataFrame**
-
+Converting Parameters to DataFrame:
 ```python lines icon="python"
 import pandas as pd
 
@@ -286,8 +278,7 @@ Display geometry is often detached for performance.
 **Proxified Display Values:** In many BIM models, display values are stored as **instance references** that need to be resolved using applicationId lookups. When `displayValue` contains references instead of direct meshes, see [Extracting Display Values and Transform Instances](/developers/sdks/python/guides/working-with-proxies) for the complete workflow on building applicationId indexes and resolving these references.
 </Note>
 
-**Understanding Display Values**
-
+Understanding Display Values:
 BIM objects (like `DataObject`) have a `displayValue` property containing visualization geometry as a list of `Mesh` objects or other geometry.
 
 <Info>
@@ -312,8 +303,7 @@ if hasattr(wall, "displayValue"):
             print(f"  - {mesh.vertices_count} vertices")
 ```
 
-**Extracting All Display Geometry**
-
+Extracting All Display Geometry:
 ```python lines icon="python"
 from specklepy.objects.geometry import Mesh
 
@@ -353,8 +343,7 @@ total_vertices = sum(m.vertices_count for m in all_meshes)
 print(f"Total display geometry: {len(all_meshes)} meshes, {total_vertices} vertices")
 ```
 
-**Finding Atomic Displayable Objects**
-
+Finding Atomic Displayable Objects:
 Extract all objects with `displayValue` - these are the atomic, viewer-selectable BIM elements:
 
 ```python lines icon="python"
@@ -413,8 +402,7 @@ for category, count in sorted(by_category.items()):
     print(f"  {category}: {count}")
 ```
 
-**Computing Bounding Box from Display**
-
+Computing Bounding Box from Display:
 ```python lines icon="python"
 from specklepy.objects.geometry import Point
 
@@ -463,8 +451,7 @@ print(f"Center: ({bbox['center'].x}, {bbox['center'].y}, {bbox['center'].z})")
 
 Rhino objects may include native binary data for Rhino-to-Rhino workflows.
 
-**Understanding EncodedValue**
-
+Understanding EncodedValue:
 ```python lines icon="python"
 # Rhino extrusion with encodedValue
 {
@@ -474,8 +461,7 @@ Rhino objects may include native binary data for Rhino-to-Rhino workflows.
 }
 ```
 
-**Checking for EncodedValue**
-
+Checking for EncodedValue:
 ```python lines icon="python"
 def has_native_rhino_data(obj):
     """Check if object has Rhino native data."""
@@ -524,8 +510,7 @@ Complex models use instance/definition patterns for efficiency (like Revit famil
 **Instance Definitions Location:** Instance definitions are stored in the `instanceDefinitionProxies` collection on the root object, not nested in the hierarchy. You need to build an applicationId index to resolve instance references, similar to how level proxies work (see Pattern 5).
 </Note>
 
-**Understanding Instances**
-
+Understanding Instances:
 Instance objects reference their definition by `applicationId`:
 
 ```python lines icon="python"
@@ -548,8 +533,7 @@ root.instanceDefinitionProxies = [
 }
 ```
 
-**Extracting Instances and Definitions**
-
+Extracting Instances and Definitions:
 ```python lines icon="python"
 def extract_instance_definitions(root):
     """Extract instance definitions from instanceDefinitionProxies."""
@@ -622,8 +606,7 @@ This models real-world CAD/BIM organization where groups, layers, levels, and bl
 </Note>
 
 <Info>
-**The Proxy Pattern Workflow:**
-
+The Proxy Pattern Workflow:
 1. **Proxies live at root level** - Look for `levelProxies`, `colorProxies`, etc. on the root object
 2. **Proxies contain applicationId lists** - Each proxy has an `objects` array of applicationId strings
 3. **Build an applicationId index** - Map applicationIds to actual objects in the `elements[]` hierarchy
@@ -633,8 +616,7 @@ This models real-world CAD/BIM organization where groups, layers, levels, and bl
 This is a **two-step lookup process**, not direct nesting!
 </Info>
 
-**Understanding Proxy Collections**
-
+Understanding Proxy Collections:
 Proxy collections are stored as **properties at the root object level**:
 
 - `levelProxies` - Building levels/storeys organization
@@ -645,8 +627,7 @@ Proxy collections are stored as **properties at the root object level**:
 
 **Key Concept:** These are **reference collections**, not nested hierarchies. They contain lists of `applicationId` strings that point to objects in the `elements[]` hierarchy.
 
-**LevelProxy Structure**
-
+LevelProxy Structure:
 ```python lines icon="python"
 from specklepy.objects.proxies import LevelProxy
 
@@ -669,8 +650,7 @@ for level_proxy in level_proxies:
     print(level_proxy.applicationId)  # "level-guid"
 ```
 
-**Finding LevelProxy Collections at Root**
-
+Finding LevelProxy Collections at Root:
 ```python lines icon="python"
 from specklepy.objects.proxies import LevelProxy
 
@@ -700,8 +680,7 @@ for level in level_proxies:
     print(f"{level_name}: {object_count} objects at {elevation}m")
 ```
 
-**Resolving Objects by applicationId**
-
+Resolving Objects by applicationId:
 The challenge: LevelProxy contains `applicationId` strings, but you need to find the actual objects in the `elements[]` hierarchy.
 
 ```python lines icon="python"
@@ -751,8 +730,7 @@ if app_id in app_id_index:
     print(f"Found: {obj.name}")
 ```
 
-**Grouping Objects by Level**
-
+Grouping Objects by Level:
 Combine proxy collections with applicationId index to organize objects:
 
 ```python lines icon="python"
@@ -801,8 +779,7 @@ for level_name, objects in levels.items():
         print(f"  {category}: {count}")
 ```
 
-**Complete Proxy Pattern Helper**
-
+Complete Proxy Pattern Helper:
 A comprehensive helper for working with all proxy types:
 
 ```python lines icon="python"
@@ -865,8 +842,7 @@ for level_proxy in proxies["levels"]:
     print(f"  {level_name}: {len(level_proxy.objects)} objects")
 ```
 
-**Finding an Object's Level**
-
+Finding an Object's Level:
 To find which level an object belongs to, you need to **reverse lookup** from the proxy collections:
 
 ```python lines icon="python"
@@ -900,8 +876,7 @@ print(f"Wall is on: {level_name}")
 
 Revit objects can contain detailed material quantity takeoffs stored in `properties["Material Quantities"]`. These quantities exist **only on individual objects** - there is no pre-aggregated total at the model level. To get project-wide material totals, you need to traverse all objects and aggregate their material quantities.
 
-**Understanding Material Quantities**
-
+Understanding Material Quantities:
 Each object with materials contains a `Material Quantities` dictionary with material breakdowns:
 
 ```python lines icon="python"
@@ -935,8 +910,7 @@ obj.properties["Material Quantities"] = {
 }
 ```
 
-**Extracting Material Quantities from Individual Objects**
-
+Extracting Material Quantities from Individual Objects:
 ```python lines icon="python"
 def extract_material_quantities(obj):
     """Extract material quantities from a single object's properties."""
@@ -956,8 +930,7 @@ for material_name, mat_data in mat_quantities.items():
     print(f"  {material_name}: {volume} {units}")
 ```
 
-**Aggregating Model-Wide Material Totals**
-
+Aggregating Model-Wide Material Totals:
 To get total material quantities across the entire model version, traverse all objects and aggregate:
 
 ```python lines icon="python"
@@ -1032,8 +1005,7 @@ for material, data in sorted(materials.items()):
         print(f"  Estimated Weight: {weight:.2f} kg")
 ```
 
-**Converting to DataFrame for Analysis**
-
+Converting to DataFrame for Analysis:
 ```python lines icon="python"
 import pandas as pd
 
