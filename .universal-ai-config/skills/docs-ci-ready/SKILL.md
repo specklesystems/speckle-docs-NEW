@@ -81,6 +81,7 @@ Inside UAC markdown, do **not** use Markdown links to sibling instruction files.
 
 - CI format/lint = **changed files only** (`scripts/format-check-changed.sh`, `scripts/lint-md-changed.sh`)
 - Do not try to Prettier/markdownlint the whole repo unless the user asks (hundreds of findings)
+- **Pre-commit:** Husky + `lint-staged` (`lint-staged.config.mjs`) runs Prettier write + markdownlint on **staged** files. Same scope as Format and lint CI. Not validate/links. After cloning, `pnpm install` runs `prepare` → `husky`.
 
 ### markdownlint on API / MDX pages
 
