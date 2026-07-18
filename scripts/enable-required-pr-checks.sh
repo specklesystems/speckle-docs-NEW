@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Require Docs PR check jobs on main (Phase 2b: validate + links + format-lint).
+# Require Docs PR check jobs on main (validate + links + format-lint).
 # Needs: gh auth login with admin on specklesystems/speckle-docs-NEW
 #
 # Usage:
