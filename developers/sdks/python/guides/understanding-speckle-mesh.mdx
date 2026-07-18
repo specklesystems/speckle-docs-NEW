@@ -53,7 +53,7 @@ vertices = [
 vertex_count = len(vertices) // 3  # = 4
 ```
 
-**Key points:**
+Key points:
 - Always a multiple of 3 (X, Y, Z)
 - Indexed starting from 0
 - Units apply to these coordinates
@@ -73,7 +73,7 @@ The `faces` array encodes face information as:
 └── size ─┘└────── indices ─────┘└─ next face... ──────────┘
 ```
 
-**Structure:**
+Structure:
 - First number = how many vertices in this face
 - Next N numbers = vertex indices for this face
 - Then repeat for next face
@@ -149,13 +149,13 @@ faces = [
 
 Most mesh libraries only support triangles (or triangles + quads). Speckle supports **nGons** - faces with any number of vertices.
 
-**Advantages:**
+Advantages:
 - **Preserves design intent** - Doesn't force triangulation
 - **BIM compatibility** - Revit, Rhino often use quads and nGons
 - **Round-trip fidelity** - Original face structure preserved
 - **Smaller data** - No unnecessary triangulation
 
-**Trade-off:**
+Trade-off:
 - More complex to parse
 - Rendering engines must triangulate
 
@@ -291,7 +291,7 @@ mesh = Mesh(
 )
 ```
 
-**Important:**
+Important:
 - Length of `colors` must equal number of vertices
 - Colors interpolate across faces (gradient effect)
 - If empty, viewer uses default material color
@@ -338,7 +338,7 @@ material = RenderMaterial(
 )
 ```
 
-**Properties:**
+Properties:
 - `name` (str, required): Material name
 - `diffuse` (int, required): Base color as ARGB integer (see [Vertex Colors](#vertex-colors))
 - `opacity` (float): Transparency level (default: 1.0)
@@ -374,13 +374,13 @@ For efficiently sharing materials across multiple objects in a collection, use `
 
 ### Material vs Vertex Colors
 
-**Use RenderMaterial when:**
+Use RenderMaterial when:
 - Applying consistent appearance to entire objects
 - Using physically-based properties (metalness, roughness)
 - Need transparency or emissive effects
 - Sharing materials across multiple objects
 
-**Use vertex colors when:**
+Use vertex colors when:
 - Per-vertex color variation (gradients, heatmaps)
 - Visualizing analysis data
 - Color-coding mesh regions
@@ -408,7 +408,7 @@ mesh = Mesh(
 )
 ```
 
-**Important facts:**
+Important facts:
 - Length of `vertexNormals` must be same as `vertices` (3x vertex count)
 - Normals should be unit vectors (length = 1)
 - If empty, viewer auto-calculates normals
@@ -421,7 +421,7 @@ mesh = Mesh(
 **Speckle connectors produce meshes with all hard-edged faces by default** - meaning every face has its own duplicated vertices rather than sharing vertices between faces. This approach prioritizes conversion speed and ensures consistent rendering.
 </Info>
 
-**Understanding edge behavior:**
+Understanding edge behavior:
 - **Hard edges** are the default - each face has its own vertices, creating sharp transitions
 - **Soft edges** would require shared vertices with averaged normals, but connectors don't typically create these
 - This means most Speckle meshes have "flat" shading rather than smooth shading
@@ -436,7 +436,7 @@ If smooth shading or mixed hard/soft edges are required for your use case, mesh 
 **Speckle doesn't have a "two-sided" material flag.** Faces have a front and back determined by winding order, but both sides render the same in the viewer.
 </Info>
 
-**Winding order:**
+Winding order:
 - Right-hand rule determines front face
 - Counter-clockwise = front (when viewed from front)
 - Most viewers render both sides regardless
@@ -702,8 +702,7 @@ def print_mesh_info(mesh):
 
 ## Summary
 
-**Key takeaways:**
-
+Key takeaways:
 1. **Vertices** = Flat list `[x,y,z, x,y,z, ...]`
 2. **Faces** = Packed format `[count, i1, i2, i3, count, ...]`
 3. **nGons supported** = Any number of vertices per face
@@ -714,8 +713,7 @@ def print_mesh_info(mesh):
 8. **No two-sided flag** = Must duplicate faces with reversed winding
 9. **Always specify units**
 
-**Common gotchas:**
-
+Common gotchas:
 - ❌ Don't forget the vertex count in faces array
 - ❌ Colors/normals must match vertex count
 - ❌ Connectors create flat shading by default (no shared vertices)

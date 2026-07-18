@@ -46,7 +46,7 @@ print(f"Created: {obj.name}")
 
 `Base` objects are Python classes that accept any property name dynamically (no predefined schema needed), serialize automatically for Speckle, support nesting (objects within objects), and work with Python's native attribute access.
 
-**When to create Base objects:**
+When to create Base objects:
 - Building custom data structures (surveys, analysis results, schedules)
 - Grouping related objects together
 - Adding application-specific metadata
@@ -67,8 +67,7 @@ obj.elementId = "custom-123"
 
 You need to attach metadata to objects, but you're unsure whether to use direct attributes (`obj.name`) or the properties dictionary (`obj.properties["name"]`).
 
-**Use direct attributes for structure and organization:**
-
+Use direct attributes for structure and organization:
 ```python lines icon="python"
 from specklepy.objects import Base
 
@@ -87,8 +86,7 @@ level.elements = []  # Objects on this level
 building.levels.append(level)
 ```
 
-**Use the properties dictionary for queryable metadata:**
-
+Use the properties dictionary for queryable metadata:
 ```python lines icon="python"
 from specklepy.objects import Base
 
@@ -119,8 +117,7 @@ thickness = wall.properties.get("thickness", 0)
 **Which to use?** Both are valid Speckle patterns! The `properties` dictionary is a *convention* that makes metadata more discoverable. If Revit sends a wall, its category will be in `properties["category"]` - following this pattern makes your data easier to work with across platforms.
 </Info>
 
-**Combining both approaches:**
-
+Combining both approaches:
 ```python lines icon="python"
 from specklepy.objects import Base
 from specklepy.objects.geometry import Point, Mesh
@@ -149,8 +146,7 @@ beam.properties = {
 
 You have a Speckle object and need to read its properties, but you don't know what properties it has or how to access them safely.
 
-**For direct attributes:**
-
+For direct attributes:
 ```python lines icon="python"
 # Direct access (if you know the property exists)
 name = obj.name
@@ -167,8 +163,7 @@ name = getattr(obj, "name", "Unnamed")
 height = getattr(obj, "height", 0.0)
 ```
 
-**For properties dictionary:**
-
+For properties dictionary:
 ```python lines icon="python"
 # Direct access (might raise KeyError)
 category = obj.properties["category"]  # KeyError if missing!
@@ -218,8 +213,7 @@ for name in obj.get_member_names():
 ```
 </Accordion>
 
-**Safe property access pattern:**
-
+Safe property access pattern:
 ```python lines icon="python" expandable
 def safely_read_object(obj):
     """Read all properties from an object safely."""
@@ -265,8 +259,7 @@ name = getattr(obj, "name", "Unnamed")
 
 You need to work with multiple objects - filtering them, counting them, or processing them in bulk.
 
-**Looping through lists:**
-
+Looping through lists:
 ```python lines icon="python"
 from specklepy.objects import Base
 
@@ -287,8 +280,7 @@ for element in building.elements:
     print(f"{name}: {category}")
 ```
 
-**Filtering lists:**
-
+Filtering lists:
 ```python lines icon="python"
 # Filter with list comprehension
 walls = [
@@ -306,8 +298,7 @@ load_bearing_walls = [
 ]
 ```
 
-**Counting and aggregating:**
-
+Counting and aggregating:
 ```python lines icon="python"
 # Count by category
 from collections import Counter
@@ -366,8 +357,7 @@ for level in building.elements:
     print(f"{level_name}: {room_count} rooms")
 ```
 
-**Common collection patterns:**
-
+Common collection patterns:
 ```python lines icon="python"
 # Check if object has elements
 if hasattr(obj, "elements") and obj.elements:
@@ -392,8 +382,7 @@ wall = find_first(building.elements, "Walls")
 ```
 
 <Warning>
-**Check if elements exists before looping:**
-
+Check if elements exists before looping:
 ```python
 # ❌ Bad - crashes if no elements property
 for element in obj.elements:
@@ -553,15 +542,15 @@ for level in building.elements:
 
 ## Learn More
 
-**Core Concepts:**
+Core Concepts:
 - [Objects & Base Class](/developers/sdks/python/concepts/objects) - Deep dive into Base and object system
 - [Data Types](/developers/sdks/python/concepts/data-types) - Understanding Speckle's type system
 
-**Guides:**
+Guides:
 - [Simple Data Patterns](/developers/sdks/python/guides/simple-data-patterns) - More examples of custom data structures
 - [Intermediate: Finding and Extracting Data](/developers/sdks/python/guides/how-to-find-and-extract-data) - Learn to traverse and filter nested structures
 
-**API Reference:**
+API Reference:
 - [Base class methods](/developers/sdks/python/api-reference/operations) - Complete Base API documentation
 
 ## Next Steps

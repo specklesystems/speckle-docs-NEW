@@ -26,14 +26,13 @@ print(f"Properties: {obj.get_member_names()}")
 
 **What it is:** Data you create from scratch with your own structure.
 
-**Characteristics:**
+Characteristics:
 - Simple Base objects with custom properties
 - No connector-specific structure
 - Direct property access
 - Full control over schema
 
-**Example:**
-
+Example:
 ```python lines icon="python"
 from specklepy.objects import Base
 from specklepy.objects.geometry import Point
@@ -49,7 +48,7 @@ survey.points = [
 survey.notes = "Initial survey"
 ```
 
-**When you see it:**
+When you see it:
 - Python-to-Python workflows
 - Custom data pipelines
 - Analysis results you're sending
@@ -59,15 +58,14 @@ survey.notes = "Initial survey"
 
 **What it is:** Geometry with attached properties, typically from simple exports or scripts.
 
-**Characteristics:**
+Characteristics:
 - Geometry objects (Point, Line, Mesh)
 - Properties as dictionaries or direct attributes
 - Optional `displayValue` for visualization
 - Material and layer information
 - Moderate nesting (1-2 levels)
 
-**Example:**
-
+Example:
 ```json
 {
     "speckle_type": "Objects.Geometry.Mesh",
@@ -83,7 +81,7 @@ survey.notes = "Initial survey"
 }
 ```
 
-**When you see it:**
+When you see it:
 - Grasshopper exports
 - Rhino script outputs
 - Simple geometry with metadata
@@ -94,7 +92,7 @@ survey.notes = "Initial survey"
 
 **What it is:** Rich application data from BIM tools with complex nested structures.
 
-**Characteristics:**
+Characteristics:
 - Deep nesting (3+ levels)
 - Rich property collections
 - Display value proxies
@@ -102,8 +100,7 @@ survey.notes = "Initial survey"
 - Instance/definition patterns
 - Data chunk references
 
-**Example:**
-
+Example:
 ```json
 {
     "speckle_type": "Objects.Data.DataObject",
@@ -127,7 +124,7 @@ survey.notes = "Initial survey"
 }
 ```
 
-**When you see it:**
+When you see it:
 - Connector exports from any BIM authoring tool
 - Rhino exports with complex objects
 - ArchiCAD, Revit, Tekla exports
@@ -169,19 +166,19 @@ else:
 
 <Tabs>
   <Tab title="Structure">
-    **Custom Data:**
+    Custom Data:
     ```python lines icon="python"
     obj.myProperty  # Direct access
     obj.myList[0]   # Simple nesting
     ```
 
-    **Simple Model Data:**
+    Simple Model Data:
     ```python lines icon="python"
     obj.properties["Material"]  # Properties dict
     obj.displayValue.vertices   # Geometry access
     ```
 
-    **Complex BIM Data:**
+    Complex BIM Data:
     ```python lines icon="python"
     obj.properties["Volume"]  # Properties dict access
     obj.displayValue  # List of geometry representations
@@ -189,21 +186,21 @@ else:
   </Tab>
   
   <Tab title="Access Pattern">
-    **Custom Data:**
+    Custom Data:
     ```python lines icon="python"
     # You know the structure
     name = obj.name
     value = obj.measurements[0].value
     ```
 
-    **Simple Model Data:**
+    Simple Model Data:
     ```python lines icon="python"
     # Check for common properties
     if hasattr(obj, "properties"):
         material = obj.properties.get("Material")
     ```
 
-    **Complex BIM Data:**
+    Complex BIM Data:
     ```python lines icon="python"
     # Defensive traversal required
     properties = getattr(obj, "properties", {})
@@ -213,21 +210,21 @@ else:
   </Tab>
   
   <Tab title="Traversal">
-    **Custom Data:**
+    Custom Data:
     ```python lines icon="python"
     # Simple iteration
     for item in obj.items:
         process(item)
     ```
 
-    **Simple Model Data:**
+    Simple Model Data:
     ```python lines icon="python"
     # Check a few known properties
     if hasattr(obj, "displayValue"):
         mesh = obj.displayValue
     ```
 
-    **Complex BIM Data:**
+    Complex BIM Data:
     ```python lines icon="python"
     # Recursive traversal needed
     def traverse(obj):
@@ -265,8 +262,7 @@ else:
 
 Speckle uses a standardized convention for organizing hierarchical data: the **`elements`** property. This property has a special meaning and is the predictable way to traverse object hierarchies.
 
-**Key Concepts:**
-
+Key Concepts:
 - **Atomic Objects** - Objects that represent actual "things" (walls, beams, points, etc.)
 - **Property Objects** - Objects stored as properties for reference (materials, styles, etc.)
 - **Container Objects** - Objects that organize other objects via `elements`
@@ -292,8 +288,7 @@ project.elements = [
 ```
 
 <Info>
-**Why `elements`?** 
-
+Why `elements`?:
 While *any* property can technically contain Speckle objects, `elements` is the internal convention for managing hierarchy in a predictable way. This allows traversal code, connectors, and the viewer to consistently understand object relationships.
 
 Some typed properties also expect arrays of objects (like `displayValue`), but these serve different purposes - `displayValue` is for visualization, while `elements` is for logical hierarchy.
@@ -330,8 +325,7 @@ building.elements = [
 ]
 ```
 
-**Collection Properties:**
-
+Collection Properties:
 - `name` - Human-readable name (not necessarily unique)
 - `elements` - List of contained objects (can include nested Collections)
 - `applicationId` - Unique identifier for the collection
@@ -404,8 +398,7 @@ traverse_elements(project)
 ```
 
 <Warning>
-**Not all objects use `elements`**
-
+Not all objects use `elements`:
 Simple geometry objects (Point, Line, Mesh) typically don't have `elements` - they are leaf nodes. Always check `hasattr(obj, "elements")` before accessing it.
 </Warning>
 
@@ -445,21 +438,21 @@ for element in obj.elements:
 
 <CardGroup cols={3}>
   <Card title="Custom Data" icon="code">
-    **You create it**
+    You create it:
     - Direct access
     - Simple structure
     - Full control
   </Card>
   
   <Card title="Simple Model" icon="cube">
-    **Geometry + Props**
+    Geometry + Props:
     - Properties dict
     - DisplayValue
     - Moderate nesting
   </Card>
   
   <Card title="Complex BIM" icon="building">
-    **Rich BIM Data**
+    Rich BIM Data:
     - Deep nesting
     - Properties dict
     - Defensive code

@@ -37,8 +37,7 @@ floors = find_by_category(root, "Floors")    # Traverse 2
 columns = find_by_category(root, "Columns")  # Traverse 3
 ```
 
-**Build an index once, then perform fast lookups using GraphTraversal:**
-
+Build an index once, then perform fast lookups using GraphTraversal:
 ```python lines icon="python" expandable
 from specklepy.objects.graph_traversal.traversal import GraphTraversal
 
@@ -74,8 +73,7 @@ print(f"Columns: {len(columns)}")
 
 **Indexing pattern:** (1) **Traverse once** - Visit every object in the tree, (2) **Extract key** - Get the property value to index by (e.g., category), (3) **Store reference** - Add object to a dictionary by that key, (4) **Fast lookup** - Use dictionary access (O(1)) instead of tree traversal (O(n)).
 
-**Performance comparison:**
-
+Performance comparison:
 ```python lines icon="python"
 # Without index (repeated traversal)
 # Time: O(n * m) where n = objects, m = searches
@@ -209,7 +207,7 @@ columns = index.get("Columns", [])
 
 You need to decide whether to traverse directly or build an index first. The wrong choice can hurt performance.
 
-**Use direct traversal when:**
+Use direct traversal when:
 - ✅ Single search on a dataset
 - ✅ Small datasets (less than 100 objects)
 - ✅ One-time operation
@@ -230,7 +228,7 @@ def find_specific_wall(root, wall_name):
 wall = find_specific_wall(root, "W-101")
 ```
 
-**Use indexes when:**
+Use indexes when:
 - ✅ Multiple searches on the same dataset
 - ✅ Large datasets (1000+ objects)
 - ✅ Repeated lookups by the same property
@@ -261,8 +259,7 @@ def analyze_by_category(root):
     }
 ```
 
-**Performance example:**
-
+Performance example:
 ```python lines icon="python" expandable
 import time
 
@@ -295,8 +292,7 @@ print(f"Speedup: {direct_time / indexed_time:.1f}x faster")
 
 Some objects in Speckle are "detached" - stored separately and referenced by ID. You see properties like `@displayValue` instead of the actual object.
 
-**Understand when and why detachment happens:**
-
+Understand when and why detachment happens:
 ```python lines icon="python"
 from specklepy.objects import Base
 
@@ -320,8 +316,7 @@ if is_detached(obj, "displayValue"):
 
 **Why detachment happens:** (1) **Performance** - Large objects (big meshes) are stored separately, (2) **Deduplication** - Same object can be referenced multiple times, (3) **Lazy loading** - Objects loaded only when needed.
 
-**How it's resolved:**
-
+How it's resolved:
 ```python lines icon="python"
 from specklepy.api import operations
 from specklepy.transports.server import ServerTransport
@@ -339,8 +334,7 @@ if hasattr(obj, "displayValue"):
     print(f"Vertices: {len(mesh.vertices)}")
 ```
 
-**Checking for detached properties:**
-
+Checking for detached properties:
 ```python lines icon="python" expandable
 def find_detached_properties(obj):
     """Find all detached properties on an object."""
@@ -424,8 +418,7 @@ print(f"Structural: {structural}")
 print(f"Comments: {comments}")
 ```
 
-**Understanding Revit parameter structure:**
-
+Understanding Revit parameter structure:
 ```python lines icon="python"
 # Revit parameters are nested like this:
 obj.properties = {
@@ -446,8 +439,7 @@ obj.properties = {
 }
 ```
 
-**Extracting all parameters:**
-
+Extracting all parameters:
 ```python lines icon="python" expandable
 def get_all_parameters(obj):
     """Extract all parameters as flat dictionary."""
@@ -487,8 +479,7 @@ for name, data in params.items():
     print(f"{name}: {value} {units or ''}")
 ```
 
-**Building a parameter index using GraphTraversal:**
-
+Building a parameter index using GraphTraversal:
 ```python lines icon="python" expandable
 from specklepy.objects.graph_traversal.traversal import GraphTraversal
 
@@ -690,15 +681,15 @@ print(df[df["structural"] == True].groupby("category").size())
 
 ## Learn More
 
-**Core Concepts:**
+Core Concepts:
 - [Data Traversal](/developers/sdks/python/concepts/data-traversal) - Traversal fundamentals
 - [Objects & Base Class](/developers/sdks/python/concepts/objects) - Deep dive into object system
 
-**Guides:**
+Guides:
 - [BIM Data Patterns](/developers/sdks/python/guides/bim-data-patterns) - Advanced BIM patterns
 - [Intermediate: Finding and Extracting Data](/developers/sdks/python/guides/how-to-find-and-extract-data) - Traversal and filtering
 
-**API Reference:**
+API Reference:
 - [Operations](/developers/sdks/python/api-reference/operations) - Send/receive operations
 - [Transports](/developers/sdks/python/api-reference/transports) - Data transport layer
 

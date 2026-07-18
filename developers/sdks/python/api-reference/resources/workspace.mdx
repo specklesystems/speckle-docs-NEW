@@ -4,8 +4,7 @@ description: 'API reference for workspace operations in SpecklePy'
 ---
 
 <Warning>
-**Hosted Server Feature**
-
+Hosted Server Feature:
 The `WorkspaceResource` is only available on workspace-enabled Speckle deployments, primarily the hosted server at **app.speckle.systems**.
 
 **Self-hosted/open-source server deployments do not include workspace features.** Attempting to use workspace methods on non-workspace servers will raise an error.
@@ -37,20 +36,17 @@ Get a single workspace by ID.
 client.workspace.get(workspace_id: str) -> Workspace
 ```
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="workspace_id" type="str" required>
   The ID of the workspace to retrieve
 </ResponseField>
 
-**Returns:**
-
+Returns:
 <ResponseField name="workspace" type="Workspace">
   The workspace object
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python
 workspace = client.workspace.get("workspace_abc123")
 
@@ -79,8 +75,7 @@ client.workspace.get_projects(
 ) -> ResourceCollection[Project]
 ```
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="workspace_id" type="str" required>
   The ID of the workspace
 </ResponseField>
@@ -97,14 +92,12 @@ client.workspace.get_projects(
   Filter criteria
 </ResponseField>
 
-**Returns:**
-
+Returns:
 <ResponseField name="projects" type="ResourceCollection[Project]">
   Collection with `items`, `totalCount`, and `cursor`
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python
 projects = client.workspace.get_projects("workspace_id", limit=50)
 
@@ -119,8 +112,7 @@ if projects.cursor:
     next_page = client.workspace.get_projects("workspace_id", cursor=projects.cursor)
 ```
 
-**Filter Example:**
-
+Filter Example:
 ```python
 from specklepy.core.api.inputs.project_inputs import WorkspaceProjectsFilter
 
@@ -147,8 +139,7 @@ client.workspace.get_projects_with_permissions(
 ) -> ResourceCollection[ProjectWithPermissions]
 ```
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="workspace_id" type="str" required>
   The ID of the workspace
 </ResponseField>
@@ -165,14 +156,12 @@ client.workspace.get_projects_with_permissions(
   Filter criteria
 </ResponseField>
 
-**Returns:**
-
+Returns:
 <ResponseField name="projects" type="ResourceCollection[ProjectWithPermissions]">
   Collection of projects with permission details
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python
 projects = client.workspace.get_projects_with_permissions("workspace_id")
 
@@ -189,8 +178,7 @@ for project in projects.items:
         print("  ✓ Can publish versions")
 ```
 
-**ProjectWithPermissions Additional Properties:**
-
+ProjectWithPermissions Additional Properties:
 - `permissions` (ProjectPermissions) - Detailed permission checks
   - `canCreateModel` - Model creation permission
   - `canDelete` - Project deletion permission
@@ -266,8 +254,7 @@ WorkspaceProjectsFilter(
 
 Used with [`get_projects()`](#get_projects) and [`get_projects_with_permissions()`](#get_projects_with_permissions).
 
-**Fields:**
-
+Fields:
 - `search` (str, optional) - Filter by project name
 - `with_project_role_only` (bool, optional) - Only return projects where user has explicit project role
 

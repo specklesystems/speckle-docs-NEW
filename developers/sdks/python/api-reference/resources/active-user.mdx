@@ -32,14 +32,12 @@ client.active_user.get() -> Optional[User]
 
 **Parameters:** None
 
-**Returns:**
-
+Returns:
 <ResponseField name="user" type="User | None">
   Your user profile, or `None` if not authenticated. See [User](#user)
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python lines icon="python"
 user = client.active_user.get()
 
@@ -63,20 +61,17 @@ Update your user profile.
 client.active_user.update(input: UserUpdateInput) -> User
 ```
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="input" type="UserUpdateInput" required>
   Profile update parameters. See [UserUpdateInput](#userupdateinput)
 </ResponseField>
 
-**Returns:**
-
+Returns:
 <ResponseField name="user" type="User">
   The updated user profile. See [User](#user)
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python lines icon="python"
 from specklepy.core.api.inputs.user_inputs import UserUpdateInput
 
@@ -89,8 +84,7 @@ updated_user = client.active_user.update(UserUpdateInput(
 print(f"Updated profile: {updated_user.name}")
 ```
 
-**UserUpdateInput Fields:**
-
+UserUpdateInput Fields:
 - `name` (str, optional) - New display name
 - `bio` (str, optional) - New biography
 - `company` (str, optional) - New company name
@@ -106,8 +100,7 @@ print(f"Updated profile: {updated_user.name}")
 Get all projects you have access to.
 
 <Note>
-**When to use this method:**
-
+When to use this method:
 - **Non-workspace servers** (self-hosted/open-source): Use this method to list all projects you have access to.
 - **Workspace-enabled servers** (e.g., app.speckle.systems): Use this method with filters to list personal projects, or use `client.workspace.get_projects(workspace_id)` to list projects within a specific workspace.
 
@@ -126,8 +119,7 @@ client.active_user.get_projects(
 ) -> ResourceCollection[Project]
 ```
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="limit" type="int" default="25">
   Maximum number of projects to return
 </ResponseField>
@@ -140,14 +132,12 @@ client.active_user.get_projects(
   Filter criteria. See [UserProjectsFilter](#userprojectsfilter)
 </ResponseField>
 
-**Returns:**
-
+Returns:
 <ResponseField name="projects" type="ResourceCollection[Project]">
   Collection of projects
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python lines icon="python"
 # Get all your projects
 projects = client.active_user.get_projects(limit=50)
@@ -161,8 +151,7 @@ if projects.cursor:
     next_page = client.active_user.get_projects(cursor=projects.cursor)
 ```
 
-**With Filtering:**
-
+With Filtering:
 ```python lines icon="python"
 See [UserProjectsFilter](#userprojectsfilter) for filtering options.
 ```
@@ -180,8 +169,7 @@ client.active_user.get_projects_with_permissions(
 ) -> ResourceCollection[ProjectWithPermissions]
 ```
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="limit" type="int" default="25">
   Maximum number of projects to return
 </ResponseField>
@@ -194,14 +182,12 @@ client.active_user.get_projects_with_permissions(
   Filter criteria. See [UserProjectsFilter](#userprojectsfilter)
 </ResponseField>
 
-**Returns:**
-
+Returns:
 <ResponseField name="projects" type="ResourceCollection[ProjectWithPermissions]">
   Projects with permissions
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python lines icon="python"
 projects = client.active_user.get_projects_with_permissions(limit=10)
 
@@ -236,14 +222,12 @@ client.active_user.get_project_invites() -> List[PendingStreamCollaborator]
 
 **Parameters:** None
 
-**Returns:**
-
+Returns:
 <ResponseField name="invites" type="List[PendingStreamCollaborator]">
   List of pending invitations
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python lines icon="python"
 invites = client.active_user.get_project_invites()
 
@@ -273,15 +257,13 @@ client.active_user.can_create_personal_projects() -> PermissionCheckResult
 
 **Parameters:** None
 
-**Returns:**
-
+Returns:
 <ResponseField name="permission" type="PermissionCheckResult">
   Permission check result. See
   [PermissionCheckResult](/developers/sdks/python/api-reference/resources/project#permissioncheckresult)
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python lines icon="python"
 permission = client.active_user.can_create_personal_projects()
 
@@ -310,8 +292,7 @@ client.active_user.get_workspaces(
 ) -> ResourceCollection[Workspace]
 ```
 
-**Parameters:**
-
+Parameters:
 <ResponseField name="limit" type="int" default="25">
   Maximum number of workspaces to return
 </ResponseField>
@@ -324,14 +305,12 @@ client.active_user.get_workspaces(
   Filter criteria. See [UserWorkspacesFilter](#userworkspacesfilter)
 </ResponseField>
 
-**Returns:**
-
+Returns:
 <ResponseField name="workspaces" type="ResourceCollection[Workspace]">
   Collection of workspaces
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python lines icon="python"
 workspaces = client.active_user.get_workspaces()
 
@@ -362,14 +341,12 @@ client.active_user.get_active_workspace() -> Optional[LimitedWorkspace]
 
 **Parameters:** None
 
-**Returns:**
-
+Returns:
 <ResponseField name="workspace" type="LimitedWorkspace | None">
   Active workspace, or `None` if none selected
 </ResponseField>
 
-**Example:**
-
+Example:
 ```python lines icon="python"
 active_workspace = client.active_user.get_active_workspace()
 
@@ -478,8 +455,7 @@ UserUpdateInput(
 
 Used with [`update()`](#update).
 
-**Fields:**
-
+Fields:
 - `avatar` (str, optional) - Avatar image URL
 - `bio` (str, optional) - User biography
 - `company` (str, optional) - Company name
@@ -501,8 +477,7 @@ UserProjectsFilter(
 
 Used with [`get_projects()`](#get_projects) and [`get_projects_with_permissions()`](#get_projects_with_permissions).
 
-**Fields:**
-
+Fields:
 - `search` (str, optional) - Search by project name or description
 - `only_with_roles` (List[str], optional) - Filter by user roles
 - `workspace_id` (str, optional) - Filter to specific workspace
@@ -519,8 +494,7 @@ UserWorkspacesFilter(
 
 Used with [`get_workspaces()`](#get_workspaces).
 
-**Fields:**
-
+Fields:
 - `search` (str, optional) - Search by workspace name
 
 ## Related Resources
