@@ -71,18 +71,10 @@ Connector pages are naturally more detailed because they must cover multiple hos
 
 Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as **four parallel jobs**:
 
-- **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only; still report-only until lint debt PRs land)
+- **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only; **blocking**)
 - **Mintlify validate** — `pnpm valid` (full site; **blocking**)
 - **Broken links** — `pnpm check-links` (anchors + redirects + Snippet links; full site; **blocking**)
 - **Accessibility** — `pnpm check:a11y` (`mint a11y`; full site; report-only)
-
-After merging this Phase 2a change, require the blocking jobs on `main`:
-
-```bash
-bash scripts/enable-required-pr-checks.sh
-```
-
-(Needs `gh auth login` with repo admin.) Or set branch protection manually to require status checks **Mintlify validate** and **Broken links**.
 
 After merging Phase 2b, require the blocking jobs on `main`:
 
@@ -91,6 +83,7 @@ bash scripts/enable-required-pr-checks.sh
 ```
 
 (Needs `gh auth login` with repo admin.) Or set branch protection manually to require status checks **Mintlify validate**, **Broken links**, and **Format and lint**.
+
 Scheduled / manual ([`.github/workflows/docs-scheduled-checks.yml`](.github/workflows/docs-scheduled-checks.yml)):
 
 - **External links** — `pnpm check-links:external` (flaky; not on PRs)
@@ -102,9 +95,9 @@ After `pnpm install`, Husky installs a **pre-commit** hook that runs [lint-stage
 
 - **Prettier** `--write` — blocking (must format cleanly)
 - **markdownlint** — blocking on staged markdown (same rules as CI changed-file lint)
-- **markdownlint** — report-only until format-lint is required in CI (prints findings, does not block the commit)
 
 Does **not** run validate, links, or a11y. Skip once: `git commit --no-verify`.
+
 Locally (defaults match CI — **changed files** for format/lint):
 
 ```bash
