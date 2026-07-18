@@ -7,6 +7,7 @@ description: "Extract room data from Revit models using SpecklePy."
 In this workflow, we will demonstrate how to extract room data from Revit models using SpecklePy SDK to a Pandas DataFrame.
 
 ## Prerequisites
+
 Before you begin, ensure you have the following:
 - A Revit model with room data.
 - Send your model to Speckle using the Speckle Revit Connector. (Learn how [here](https://docs.speckle.systems/connectors/revit/revit))
@@ -14,6 +15,7 @@ Before you begin, ensure you have the following:
 - Pandas library for data manipulation.
 
 ## Step 1: Install SpecklePy SDK and Pandas
+
 You can install the required libraries using pip:
 
 ```bash 
@@ -21,6 +23,7 @@ pip install specklepy pandas
 ```
 
 ## Step 2: Connect to Speckle
+
 First, import the required libraries and authenticate with Speckle.
 
 ```python
@@ -45,7 +48,9 @@ if not SPECKLE_TOKEN:
 client = SpeckleClient(host=SPECKLE_SERVER_URL)# here add your custom server URL 
 client.authenticate_with_token(SPECKLE_TOKEN)
 ```
+
 ## Step 3: Retrieve the full object graph
+
 Next, we will retrieve the full object graph of the Revit model that contains the room data. To do this, we need the project ID and version ID of the model we sent to Speckle. You can find these IDs in the URL of your project and version in the Speckle web interface. Learn more about the core concepts [here](https://docs.speckle.systems/core/concepts/).
 
 ```python
@@ -92,6 +97,7 @@ all_objects = list(flatten_base(received_base))
 ```
 
 ## Step 5: Create helper functions to filter objects by category and extract nested values
+
 In this step, we will define helper functions to filter objects by category and to extract nested values from the properties of the objects. These functions will be used in the next step to extract the desired data from the room objects.
 
 ```python
@@ -168,7 +174,9 @@ def extract_object_data(objects, field_paths, include_defaults=True):
         results.append(row)
     return results
 ```
+
 ## Step 6: Filter room objects and extract desired data into a DataFrame
+
 In this step, we will define the field paths for the desired parameters and extract the data for the room objects into a Pandas DataFrame. You can use the Speckle 3D Viewer to inspect the structure of the properties and adjust the paths as needed.
 
 ```python
@@ -194,13 +202,14 @@ df_rooms = pd.DataFrame(data)
 df_rooms.head()
 ```
 
-## Results should look like this:
-| id                                   | Number | Name               | Occupant        | Floor Finish          | Level         | Area       | Volume        | Perimeter   | Unbounded Height |
-|-------------------------------------|--------|------------------|----------------|---------------------|---------------|-----------|---------------|------------|-----------------|
-| ab37495bf07f97 6aae3c55e3cc2617f9  | S1     | Stair             | None           | Concrete            | L1 - Block 35 | 184.598958 | 15891.467781  | 60.833333  | 87.666667       |
-| 00b6189ecb67a54f09e47cda717295a3   | 101    | Café              | Restaurant     | Polished Concrete/LVT | L1 - Block 35 | 642.967568 | 13276.052784 | 196.655657 | 24.250000       |
-| 42ba7c725016f8ef7458065b7824fbc2  | 102    | Café Kitchen      | Restaurant     | Polished Concrete/LVT | L1 - Block 35 | 433.370768 | 4730.964220  | 137.312500 | 10.916667       |
-| 77aacf2216a7c55cdc72ef5f118f3113  | 103    | Outdoor Covered Dining | Restaurant | Polished Concrete/LVT | L1 - Block 35 | 674.576823 | 14316.140687 | 114.583333 | 22.750000       |
-| f71f1d3a62b5457de25061e025a8f2c9  | 104    | Pocket Park       | Outdoor Public | Varies see Plan      | L1 - Block 35 | 1775.819324 | 39490.443882 | 225.443711 | 22.750000       |
-| c825211befa4530a133cf44fd21084cc  | S3     | Stair             | None           | Concrete            | L2            | 180.062500 | 15500.451922 | 59.750000  | 87.708333       |
+## Results should look like this
+
+| id                                | Number | Name                   | Occupant       | Floor Finish          | Level         | Area        | Volume       | Perimeter  | Unbounded Height |
+| --------------------------------- | ------ | ---------------------- | -------------- | --------------------- | ------------- | ----------- | ------------ | ---------- | ---------------- |
+| ab37495bf07f97 6aae3c55e3cc2617f9 | S1     | Stair                  | None           | Concrete              | L1 - Block 35 | 184.598958  | 15891.467781 | 60.833333  | 87.666667        |
+| 00b6189ecb67a54f09e47cda717295a3  | 101    | Café                   | Restaurant     | Polished Concrete/LVT | L1 - Block 35 | 642.967568  | 13276.052784 | 196.655657 | 24.250000        |
+| 42ba7c725016f8ef7458065b7824fbc2  | 102    | Café Kitchen           | Restaurant     | Polished Concrete/LVT | L1 - Block 35 | 433.370768  | 4730.964220  | 137.312500 | 10.916667        |
+| 77aacf2216a7c55cdc72ef5f118f3113  | 103    | Outdoor Covered Dining | Restaurant     | Polished Concrete/LVT | L1 - Block 35 | 674.576823  | 14316.140687 | 114.583333 | 22.750000        |
+| f71f1d3a62b5457de25061e025a8f2c9  | 104    | Pocket Park            | Outdoor Public | Varies see Plan       | L1 - Block 35 | 1775.819324 | 39490.443882 | 225.443711 | 22.750000        |
+| c825211befa4530a133cf44fd21084cc  | S3     | Stair                  | None           | Concrete              | L2            | 180.062500  | 15500.451922 | 59.750000  | 87.708333        |
 
