@@ -24,12 +24,14 @@ Work from the **docs package root** (`speckle-docs-NEW`). Do not edit sibling wo
 Phase 1 jobs are report-only (`continue-on-error`) but still must be fixed for Phase 2. Prefer changed-file scripts for format/lint (full-repo debt is large).
 
 ```bash
-pnpm check:format-lint:changed   # Prettier + markdownlint on PR diff
+pnpm check                       # CI-equivalent (changed format/lint + validate + links + a11y)
+pnpm check:format-lint           # Prettier + markdownlint on PR diff only
 pnpm check:validate              # mint validate (full site)
 pnpm check:links                 # anchors + redirects + snippets (full site)
 pnpm check:a11y                  # mint a11y (full site)
-pnpm check:changed               # all four above
 ```
+
+Do **not** use `pnpm lint:md:all` / `pnpm check:all` for PR readiness — full-repo markdownlint has a large backlog. CI and `pnpm check` only lint **changed** files.
 
 Scheduled only (not PR): `pnpm check-links:external`. Optional `mint score` needs repo var `DOCS_SITE_URL`.
 
@@ -65,6 +67,10 @@ Prettier may indent a closing tag (`</Note>`, `</Tip>`, and similar) when it fol
 
 **Fix:** put a short normal paragraph (or other non-list prose) after the list, then the closing tag at column 0. Re-run Prettier and `pnpm valid`. Do not leave an indented close tag as the last child after bullets.
 
+### Deep-link anchors Mintlify actually indexes
+
+`mint broken-links --check-anchors` indexes empty fragment targets like `<div id="my-anchor" />` or `<a id="my-anchor"></a>`. It often **misses** the same id on elements that wrap visible text (`<a id="x">label</a>`, `<span id="x">…</span>`, `<h3 id="x">…</h3>`). Prefer empty `<div id="…" />` so links stay green and `mint a11y` does not flag empty `<a>` text.
+
 ### Broken links in `.universal-ai-config`
 
 UAC templates are not docs pages. Keep them out of the link checker via `.mintignore`:
@@ -85,7 +91,7 @@ Inside UAC markdown, do **not** use Markdown links to sibling instruction files.
 
 - CI format/lint = **changed files only** (`scripts/format-check-changed.sh`, `scripts/lint-md-changed.sh`)
 - Do not try to Prettier/markdownlint the whole repo unless the user asks (hundreds of findings)
-- **Pre-commit:** Husky + `lint-staged` (`lint-staged.config.mjs`) runs Prettier write + markdownlint on **staged** files. Same scope as Format and lint CI. Not validate/links. After cloning, `pnpm install` runs `prepare` → `husky`.
+- **Pre-commit:** Husky + `lint-staged` — Prettier write is **blocking**; markdownlint on staged files is **report-only** (`scripts/lint-md-staged.sh`, Phase 1) so large stages are not blocked by backlog MD036/MD001. Not validate/links/a11y. After clone: `pnpm install` → `prepare` → `husky`.
 
 ### markdownlint on API / MDX pages
 
