@@ -75,7 +75,18 @@ Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/doc
 - **Mintlify validate** — `pnpm valid` (full site)
 - **Broken links** — `pnpm check-links` (full site; separate so link debt does not muddy style feedback)
 
-Locally:
+#### Pre-commit (format / lint)
+
+After `pnpm install`, Husky installs a **pre-commit** hook that runs [lint-staged](https://github.com/lint-staged/lint-staged) on staged files only:
+
+- Prettier `--write` on staged `md` / `mdx` / JS/TS / JSON / YAML
+- `markdownlint-cli2` on staged `md` / `mdx` (skips UAC, notebooks, generated AI config paths)
+
+This matches the CI **Format and lint** job scope. It does **not** run `pnpm valid` or `pnpm check-links` (run those before push / in CI).
+
+Skip once when needed: `git commit --no-verify` (avoid for docs PRs you want CI-green).
+
+Locally (full checks):
 
 ```bash
 pnpm check:format-lint:changed   # matches Format and lint job
