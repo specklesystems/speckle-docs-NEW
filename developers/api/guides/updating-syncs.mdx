@@ -28,7 +28,8 @@ Authorization: Bearer YOUR_TOKEN
 ```
 
 <Info>
-This flow is suitable for citizen developers. It uses standard PAT scopes and does not require server admin permissions.
+  This flow is suitable for citizen developers. It uses standard PAT scopes and does not require
+  server admin permissions.
 </Info>
 
 ## Before you start: IDs and quick test
@@ -167,7 +168,8 @@ Typical context payload shape for ACC and ProjectWise syncs:
 - `null` to clear view scoping
 
 <Note>
-  `context` is a JSON object. Keys are integration-specific conventions, not strongly typed GraphQL fields. Common keys in ACC and ProjectWise flows include `referencePoint` and `viewName`.
+  `context` is a JSON object. Keys are integration-specific conventions, not strongly typed GraphQL
+  fields. Common keys in ACC and ProjectWise flows include `referencePoint` and `viewName`.
 </Note>
 
 **Response example:**
@@ -223,23 +225,32 @@ For batch operations:
     - Sync ids: get `items[].id` from Step 1 `project.syncs`. Use [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries) if you are scripting in Python.
 
     For other SDKs, see [specklesharp (C#/.NET)](/developers/sdks/dotnet/introduction) and [speckle.js](/developers/sdks/typescript/introduction) and use whichever GraphQL or HTTP helpers those packages expose.
+
   </Accordion>
 
-  <Accordion title="Is there a bulk update mutation for many syncs?">
-    No. Use `project.syncs` with pagination (`cursor`, `limit`), filter the rows you need on the client, then call `syncMutations.update` once per sync. Set `triggerNow` only where you want an immediate run.
-  </Accordion>
+<Accordion title="Is there a bulk update mutation for many syncs?">
+  No. Use `project.syncs` with pagination (`cursor`, `limit`), filter the rows you need on the
+  client, then call `syncMutations.update` once per sync. Set `triggerNow` only where you want an
+  immediate run.
+</Accordion>
 
-  <Accordion title="Why does immediate run fail after my update?">
-    If `triggerNow` is true and the sync is paused (`active: false`), the server rejects the immediate run. Call `syncMutations.setActive` with `active: true` first, then update again with `triggerNow: true`, or omit `triggerNow` until you are ready to run.
-  </Accordion>
+<Accordion title="Why does immediate run fail after my update?">
+  If `triggerNow` is true and the sync is paused (`active: false`), the server rejects the immediate
+  run. Call `syncMutations.setActive` with `active: true` first, then update again with `triggerNow:
+  true`, or omit `triggerNow` until you are ready to run.
+</Accordion>
 
-  <Accordion title="What is the difference between syncMutations and accSyncItemMutations?">
-    New integrations use `syncMutations` for create, update, delete, pause, and legacy migration. Older `accSyncItemMutations` fields are deprecated in favour of `syncMutations`. Prefer `syncMutations.update` for changing sync context going forward.
-  </Accordion>
+<Accordion title="What is the difference between syncMutations and accSyncItemMutations?">
+  New integrations use `syncMutations` for create, update, delete, pause, and legacy migration.
+  Older `accSyncItemMutations` fields are deprecated in favour of `syncMutations`. Prefer
+  `syncMutations.update` for changing sync context going forward.
+</Accordion>
 
-  <Accordion title="What if my ACC sync errors about migration?">
-    Older ACC syncs may still exist only in legacy storage until migrated. Run `syncMutations.migrateLegacy` with the sync id and project id, then run `syncMutations.update` again. The web app may expose a migrate action for the same step.
-  </Accordion>
+<Accordion title="What if my ACC sync errors about migration?">
+  Older ACC syncs may still exist only in legacy storage until migrated. Run
+  `syncMutations.migrateLegacy` with the sync id and project id, then run `syncMutations.update`
+  again. The web app may expose a migrate action for the same step.
+</Accordion>
 
   <Accordion title="Can I automate sync updates with SpecklePy?">
     Yes. SpecklePy does not yet expose dedicated sync mutation helpers, but you can run same GraphQL operations from Python. Authenticate with `authenticate_with_token`, then call [`execute_query`](/developers/sdks/python/api-reference/client#custom-graphql-queries) or send direct POST requests to `{host}/graphql` with `requests`/`httpx`.
