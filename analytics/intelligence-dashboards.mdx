@@ -15,7 +15,7 @@ share insights with your team—all without leaving Speckle.
 <Note>
   If you blend model data with other sources, join the external data source blending
   study on the [User testing opportunities
-  page](/get-involved/user-testing#external-data-source-blending).
+  page](/get-involved/user-testing).
 </Note>
 
 <Info>
@@ -250,7 +250,7 @@ depend on your workspace plan.
 | Group        | Focus                                                                                                             | Widget list                                                                                                                                                           |
 | ------------ | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Viewer       | Display and compare 3D models (single or swipe/slider Dual viewer).                                               | Model viewer, Dual viewer                                                                                                                                             |
-| Presentation | Layout and content: sections, text, images, maps, embeds, AI renders.                                             | Section, Text / Markdown, Image, Map, 3D Context, Embed, Render Genie                                         |
+| Presentation | Layout and content: sections, text, images, maps, embeds, AI renders.                                             | Section, Text / Markdown, Image, Map, Context (beta), Embed, Render Genie                                     |
 | Basics       | General analysis: counts, breakdowns by property, pivot/element tables, spot-check validation (Property checker). | Element count, Element table, Model Structure, Pivot table, Property Checker, Distinct values count, Total property value, Total value by property, Count by property |
 | Revit        | Analysis for Revit: levels, categories, types, families, materials, area, embodied carbon, quantities over time.  | Levels, Categories, Types, Families, Area by name, Area by level, Embodied Carbon, Material quantities over time, Material stats, Material map                        |
 | Tekla        | Analysis for Tekla structural data: profiles, phases, weight.                                                     | Profiles, Phases, Weight by profile, Weight by material                                                                                                               |
@@ -273,8 +273,8 @@ Use this table to pick a widget for what you want to do.
 | Goal / task                                                           | Widget list                                | Notes                                                                                                                                                                                                                                      |
 | --------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Count how many elements (e.g. walls, doors) in the model              | Element count 🔄                           | No extra widget needed to slice: click a value in another chart to add a page filter; count updates.                                                                                                                                       |
-| Sum or average a numeric (e.g. area, length) across model             | Total property value 🔄                    | Shows both total and average. Property must be numeric; pick in widget.                                                                                                                                                                    |
-| See counts or totals by Category, Type, or Family                     | Count by property, Total value by property | Count by property = counts per group; Total value by property = sum or average per group. Revit: use Categories, Types, or Families.                                                                                                       |
+| Aggregate a numeric (e.g. area, length) across the model              | Total property value 🔄                     | In **Settings**, choose **Aggregation**: Sum (default), Average, Min, Max, or Median. With Sum, a secondary average also appears. Property must be numeric.                                                                                |
+| See counts or totals by Category, Type, or Family                     | Count by property, Total value by property | Count by property = counts per group; Total value by property = Sum, Average, Min, Max, or Median per group (**Settings** → **Aggregation**). Revit: use Categories, Types, or Families.                                                   |
 | Cross-tab by two or more properties (e.g. area by level and category) | Pivot table                                | Filter or limit categories first; large cross-tabs can be hard to read.                                                                                                                                                                    |
 | See the model as a tree (layers, blocks, discipline)                  | Model structure                            | Structure depends on source (e.g. Revit discipline, CAD layers). Expand/collapse; click to add page filter if enabled.                                                                                                                     |
 | Count unique values for a property                                    | Distinct values count                      | Use this to quickly measure cardinality (for example, unique types, systems, or names).                                                                                                                                                    |
@@ -283,6 +283,41 @@ Use this table to pick a widget for what you want to do.
 | Show site location or model on a map                                    | Map, Context (beta)                        | **Map** — dashboard site location and location pins; no Speckle geometry on the map. **Context** — beta 3D-on-map view at the same site location (not the same as [context models](#context-models)). See [Show your model on a map with Context (beta)](/analytics/dashboards/common-workflows#show-your-model-on-a-map-with-context-beta). |
 
 <sup>🔄 = supports **Compare mode** (multiple data sources).</sup>
+
+#### Aggregation and numeric display
+
+**Total property value** and **Total value by property** calculate with the method you pick in
+widget **Settings** → **Aggregation**:
+
+| Method      | Result                                |
+| ----------- | ------------------------------------- |
+| **Sum**     | Total across the set (default).       |
+| **Average** | Mean of the values.                   |
+| **Min**     | Smallest value.                       |
+| **Max**     | Largest value.                        |
+| **Median**  | Middle value when values are ordered. |
+
+When Aggregation is **Sum**, **Total property value** also shows a secondary average under the
+primary number.
+
+Several numeric widgets also have display controls in **Settings**:
+
+- **Rounding** — Always available. Options: 2 decimals (default), 1 decimal, 0 decimals, Auto,
+  Locale, or Off.
+- **Display unit** — Appears when the selected property (or ratio operand) has area units.
+  Choose Source, m², ha, ft², or mm². Aggregation stays in source units; the widget converts for
+  display, then rounds. **Auto** rounding may switch large areas to hectares (for example
+  12,500 m² → 1.25 ha).
+
+These controls apply to **Total property value**, **Total value by property**, **Ratio value**,
+**Ratio value by property**, and **Numeric range**. On **Numeric range**, labels use the display
+settings; filtering and viewer colouring still use source units.
+
+<Tip>
+  Widget **Display unit** only changes how numbers appear. To convert units for calculated
+  fields, filters, or colour-by, create a [Unit conversion](/analytics/dashboards/calculated-fields#unit-conversion)
+  calculated field instead.
+</Tip>
 
 #### How to connect a widget to a model
 
