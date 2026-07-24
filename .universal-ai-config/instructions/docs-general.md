@@ -14,6 +14,9 @@ alwaysApply: true
 - User intent over system architecture.
 - Progressive disclosure: simple first, depth later.
 - Document what exists today.
+- When UI labels, operators, plan gates, or enums look stale, verify against the
+  product (FE3 / shared packages) before rewriting. For multi-page parity audits,
+  use the **docs-product-capability-sweep** skill—not memory of older product names.
 
 ## Quality Bar
 

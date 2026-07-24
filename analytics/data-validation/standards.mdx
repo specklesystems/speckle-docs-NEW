@@ -43,22 +43,33 @@ one mandate per rule, per-rule preview, duplicate shared filters.
 
 ## Import formats
 
-**IDS:** IFC-aligned facets import into standard rules, then open in the same editor for
-preview and adjustment. Some advanced applicability/property mappings may need manual fixes before
-use in checks.
+Imports land under **Project standards** with no extra publish step. Always rerun preview on
+a representative revision after import, then tune predicates if needed—see
+[Predicates and matching](/analytics/data-validation/checks#predicates-and-matching).
 
-**COBie:** Worksheet fields map into rules and are saved under project standards after import.
-Unusual columns or macro-heavy sheets can lose fidelity, so verify property paths, severities, and
-messages before spawning checks.
+### IDS
 
-**Speckle:** JSON/tab exports from dashboards, Automate, or related tooling import directly as
-standards entries. Rows with widget-specific semantics may still need rewrite into explicit
-`WHERE` / `CHECK` logic.
+IFC-aligned facets import into standard rules, then open in the same editor for preview and
+adjustment. Most facets map to **Exists**, **Equals**, **In list**, or **Between**. IDS
+`xs:pattern` values often land as **Contains** rather than full regex—verify naming rules
+after import. Advanced applicability or property mappings may need manual fixes before you
+spawn checks.
 
-New rows appear instantly in **Project standards**—no extra publish step.
+### COBie
 
-Regardless of vendor, rerun preview on a representative revision to catch importer blind
-spots.
+Worksheet fields map into rules under project standards after import. Typical outcomes are
+sheet-scoped **Exists** checks and pick-list **In list** assertions. Optional fields often
+arrive as **`info`** severity so they do not drive the overall score. Unusual columns or
+macro-heavy sheets can lose fidelity—verify property paths, severities, and messages before
+spawning checks.
+
+### Speckle
+
+JSON, TSV, or CSV exports from dashboards and related tooling import as standards entries.
+Supported dashboards predicates map into Data Validation operators; unsupported negation
+conditions (for example not exists, not in list, does not contain) are skipped. Dashboard
+**warning** severity is coerced to **`info`**. Rows with widget-specific semantics may still
+need rewrite into explicit `WHERE` / `CHECK` logic.
 
 ## Standards to checks flow
 

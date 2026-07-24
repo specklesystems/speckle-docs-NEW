@@ -7,8 +7,9 @@ description: 'Author and run Validation Checks with WHERE/CHECK logic in Data Va
 <Warning>
   Current limitation:
 
-In v0, after creation you can rename a check only; scope, rule list, and predicates stay
-frozen. For different behaviour, create a new check.
+After you save a check, you can edit its name and description, or delete it. Tracked
+models, rules, predicates, and trigger mode stay frozen. For different behaviour, create a
+new check.
 
 </Warning>
 
@@ -20,13 +21,12 @@ Use this page for **Validation Check** authoring and execution.
 </Info>
 
 <Note>
-  v0 release behavior (available today):
-  checks can be defined and run against all models in a project. Editing an existing
-  check is currently limited to its name; scope and rules are not yet editable after
-  creation.
+  Checks can be defined and run against models in a project (plan caps apply). Editing an
+  existing check is limited to name and description until model scope, rules, and trigger
+  mode become editable.
 
-This will evolve. We would value feedback on the expected **versioning behavior** for
-checks (for example: mutable checks vs immutable versions/forks).
+Feedback welcome on expected **versioning behavior** for checks (for example: mutable
+checks vs immutable versions or forks).
 
 </Note>
 
@@ -85,16 +85,16 @@ First visit to results can lag when many rules, models, or deep history enqueue 
 
 Each rule is filters plus one assertion.
 
-| Component       | Description                                                                 |
-| --------------- | --------------------------------------------------------------------------- |
-| `WHERE`         | Filter scope of objects evaluated by the rule                               |
-| `AND`           | Optional additional filters within the same scope                           |
-| `CHECK`         | Final validation assertion                                                  |
-| Property path   | Target property (`category`, `baseline.length`, `parameters.Width.value`)   |
-| Predicate       | Comparison operator (**Equals**, **Exists**, **Matches pattern**, and more) |
-| Value           | Reference value for the predicate                                           |
-| Report severity | `ERROR` or `INFO`                                                           |
-| Message         | Human-facing explanation for failed outcomes                                |
+| Component       | Description                                                                   |
+| --------------- | ----------------------------------------------------------------------------- |
+| `WHERE`         | Filter scope of objects evaluated by the rule                                 |
+| `AND`           | Optional additional filters within the same scope                             |
+| `CHECK`         | Final validation assertion                                                    |
+| Property path   | Target property (`category`, `baseline.length`, `parameters.Width.value`)     |
+| Predicate       | Comparison operator (see [Predicates and matching](#predicates-and-matching)) |
+| Value           | Reference value for the predicate                                             |
+| Report severity | `error` or `info` (`info` does not drive the overall check score)             |
+| Message         | Human-facing explanation for failed outcomes                                  |
 
 ## Default scope
 
@@ -106,7 +106,8 @@ objects match it. Narrow with category/type/parameters—dropping `DataObject` w
 
 ## Thresholds and status
 
-Rates map through thresholds:
+Rates map through thresholds. You set a global pass (and optional warn) threshold when saving,
+and you can override thresholds per rule in authoring.
 
 | Setting           | Effect                                                      |
 | ----------------- | ----------------------------------------------------------- |
@@ -117,15 +118,75 @@ Rates map through thresholds:
 Statuses: **`PASS`** (≥ pass), **`WARN`** (between thresholds when warn is set), **`FAIL`**
 (under thresholds), **`PENDING`** (evaluation not finished).
 
+Only **`error`** severity rules contribute to the overall check score. **`info`** rules still
+evaluate and appear in results, but they do not change the aggregate pass rate.
+
+Interpret outcomes on [Viewing Results](/analytics/data-validation/viewing-results).
+
 ## Predicates and matching
 
-Type-aware predicates:
+The operator dropdown lists every authorable predicate. The UI does not grey operators by
+property type—pick a value shape that matches the property you are testing (text, number, or
+boolean). Booleans compare as Equals with `true` or `false`.
 
-- Text: **Exists**, **Equals**, **Contains**, **Matches pattern**
-- Number: **Is greater than**, **Is less than**, **Is between**
-- Boolean: **Is true**, **Is false**
+### Operator catalog
 
-**Matches pattern** accepts wildcard or regex-like syntax per field help.
+| Operator        | Typical value                      | Behaviour                                                           |
+| --------------- | ---------------------------------- | ------------------------------------------------------------------- |
+| Equals          | text, number, or boolean           | Exact equality on the property value                                |
+| Equals property | another property path              | Path-to-path equality                                               |
+| Equals template | template with `{{token}}` bindings | Build expected text from other paths; exact or regex mode           |
+| Not equals      | text, number, or boolean           | Value must differ                                                   |
+| Greater than    | number                             | Strict `>`                                                          |
+| At least        | number                             | `≥` (tolerance can widen the lower bound)                           |
+| Less than       | number                             | Strict `<`                                                          |
+| At most         | number                             | `≤` (tolerance can widen the upper bound)                           |
+| In list         | one or more text or number values  | Value must be one of the listed items                               |
+| Between         | min and max numbers                | Inclusive range (`≥ min` and `≤ max`)                               |
+| Contains        | text substring                     | Substring match (wildcards in the needle are literal, not patterns) |
+| Matches         | wildcard or regex pattern          | Wildcard by default; toggle `.*` for regex (see below)              |
+| Exists          | _(none)_                           | Property path is present on the object                              |
+
+### Matching details
+
+**Matches (wildcard):** `*` and `%` match any character run; `?` matches one character.
+Matching is case-sensitive.
+
+**Matches (regex):** turn on the `.*` toggle to use a regular expression. You can enter a
+plain pattern, or a `/pattern/i` literal for case-insensitive matching. Lookahead,
+lookbehind, and backreferences are not supported.
+
+**Equals template:** bind `{{token}}` placeholders to other property paths. Use exact mode
+to require the concatenated value, or regex mode (same `.*` toggle) when the template is a
+pattern.
+
+**Contains** is substring search only. Prefer **Matches** when you need wildcards or regex.
+
+### Numeric tolerance
+
+Optional per-condition **Tolerance** sets decimal places `N` (ε = 10^-N). It applies to
+numeric **Equals**, **Equals property**, **At least**, **At most**, and **Between**. It
+does not apply to **Greater than**, **Less than**, **Not equals**, list/text operators, or
+**Exists**.
+
+### Property paths
+
+Pick paths from the path picker after a preview model loads so value suggestions come from
+real data. Common shapes:
+
+- `category`
+- `name`
+- `baseline.length`
+- `parameters.Width.value`
+
+### Short examples
+
+- Fire rating present: `WHERE` category Equals `Walls`, `CHECK` fire-rating path **Exists**
+  (or **Equals** a required rating string).
+- Width band: `CHECK` `parameters.Width.value` **Between** `100` and `300`, with tolerance if
+  units are noisy.
+- Naming convention: `CHECK` `name` **Matches** `W-*` (or **Contains** a fixed prefix).
+- Consistency: `CHECK` one path **Equals property** against another path on the same object.
 
 ## Best practices
 
@@ -142,15 +203,15 @@ Run preview before save so you catch false positives before history is recorded.
     Yes—pick models and triggers after choosing the standard as the base.
   </Accordion>
   <Accordion title="How do I know a check is too strict?">
-    Noise usually means tighten `WHERE`, tune predicates, or downgrade severity.
+    Noise usually means tighten `WHERE`, tune predicates, or downgrade severity to `info`.
   </Accordion>
   <Accordion title="What happens to check results when a tracked model is deleted?">
     Existing results stay in history because they store the evaluated model/version ids from run
     time. The deleted model no longer appears in live scope, so future runs exclude it.
   </Accordion>
   <Accordion title="Can rules inside one check be reordered?">
-    Rule order follows how rules were authored and saved. Reordering is not supported in v0, so
-    duplicate/delete is the fallback when order matters for review.
+    Rule order follows how rules were authored and saved. Reordering is not supported yet, so
+    duplicate or recreate is the fallback when order matters for review.
   </Accordion>
   <Accordion title="What is the difference between preview and saving a check?">
     Preview runs against the current session model/version and is not persisted after you leave.
@@ -158,8 +219,7 @@ Run preview before save so you catch false positives before history is recorded.
   </Accordion>
   <Accordion title="How do I recover when a version update spikes unexpected failures?">
     First confirm the result used the model/version you expected, then inspect failing rules for
-    missing or changed properties in the new version. If needed, duplicate the check for debug
-    narrowing, export BCF for issue handoff, then create a replacement check once root cause is
-    clear.
+    missing or changed properties in the new version. If needed, create a narrower replacement check
+    for debug, export BCF for issue handoff, then keep the replacement once root cause is clear.
   </Accordion>
 </AccordionGroup>
