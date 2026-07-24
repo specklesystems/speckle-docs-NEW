@@ -528,6 +528,25 @@ runtime dump.
     [Things to watch out for](#things-to-watch-out-for) and
     [Dashboard constants](#dashboard-constants).
   </Accordion>
+  <Accordion title="My arithmetic percentage looks far too large">
+    The most common cause is a formula with a per-object denominator summed across many
+    elements. For example `(90000 / Area) * 100` with aggregation **Sum** adds up one
+    ratio per element — with 27 elements each returning ~18,000, the total is ~486,000.
+
+    Try one of these:
+
+    - Switch aggregation to **Average** if every element should carry the same ratio.
+    - Replace the property binding with a **Dashboard constant** aggregate so the
+      denominator is one shared number, not a per-element value.
+    - Use the literal denominator directly if it is a known fixed number:
+      `(90000 / 277795) * 100` gives a constant result that aggregates correctly.
+
+    Open **Explain this value** (`?` on the widget) and look at the field stage tag:
+    **Current view** means the value is re-stamped per object; **Constant** means it is a
+    single dashboard-level number. See
+    [Arithmetic with a per-object denominator](#arithmetic-with-a-per-object-denominator).
+
+  </Accordion>
   <Accordion title="Can I use one model's total with another model's total?">
     Yes, with **Dashboard constants**. Create a constant for each model’s total, then
     divide them in **Ratio Value** or in Arithmetic that only references those
