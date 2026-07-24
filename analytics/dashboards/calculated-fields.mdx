@@ -5,11 +5,22 @@ description: 'Add your own values to dashboard charts and filters without changi
 tag: Beta
 ---
 
-<Warning>
+<Note>
   Calculated fields are in **Beta**. They only exist inside Intelligence dashboards. Speckle does
   not save them back into your model. Treat results as something to check carefully — some widgets
   do not yet handle every calculated field the same way. Prefer them for exploration and drafts
   until you have validated the numbers for your workflow.
+</Note>
+
+<Warning>
+  **Calculations that run across many elements are easy to misread.** Most calculated fields run
+  **once per element**. Charts and totals that **Sum** those results can multiply a ratio or an
+  already-totalled value by the element count — so a “percentage” can look like hundreds of
+  thousands, and a total can look impossibly large. Before you trust a number: ask whether each step
+  is one dashboard-level figure (**Dashboard constant**) or a value stamped on every object; prefer
+  constants (or literals) for shared denominators; and use [Things to watch out
+  for](#things-to-watch-out-for) and [Debugging and validating
+  values](#debugging-and-validating-values) when something looks off.
 </Warning>
 
 Sometimes the value you need is not already on the model — for example area in a
@@ -28,7 +39,9 @@ In this section:
 - [Use the field in your dashboard](#use-the-field-in-your-dashboard)
 - [Build one field on top of another](#build-one-field-on-top-of-another)
 - [Things to watch out for](#things-to-watch-out-for)
+- [Arithmetic with a per-object denominator](#arithmetic-with-a-per-object-denominator)
 - [Ratio filter targeting](#ratio-filter-targeting)
+- [Debugging and validating values](#debugging-and-validating-values)
 
 ## Create a calculated field
 
@@ -102,10 +115,26 @@ areas, or check whether one number is larger than another.
 You write a short formula with letters such as `a` and `b`, then tell Speckle which
 model property each letter means. If a value is missing, the result is blank.
 
+<Warning>
+  **Arithmetic works element by element.** If your formula divides a fixed number by a per-object
+  property — for example `(90000 / Area) * 100` — each element gets its own result. Summing those
+  per-element ratios gives `value × element count`, not a meaningful percentage.
+</Warning>
+
+To get one ratio for the whole dataset:
+
+- Bind the denominator to a **Dashboard constant** aggregate — constants are not stamped
+  per object, so the ratio stays correct under any aggregation.
+- Use the literal value directly: `(90000 / 277795) * 100` — every element gets the same
+  constant result, and **Average** aggregation returns the correct figure.
+- Change the widget aggregation to **Average** when every element genuinely shares the
+  same ratio.
+
 <Tip>
   Arithmetic can also bind [dashboard constants](#dashboard-constants) (scalars) so formulas stay
   stable when people filter the dashboard. A **Dashboard constant** Aggregate can source from a
-  per-object calculated field when you need a masked or conditional total as a scalar.
+  per-object calculated field when you need a masked or conditional total as a scalar. See the
+  warning above if your formula divides a fixed number by a per-object property.
 </Tip>
 
 ### Aggregate
@@ -269,6 +298,36 @@ Safer patterns today:
   object, so they do not get multiplied by element count. See
   [Dashboard constants](#dashboard-constants).
 
+On **Ratio Value** or **Total property value**, use
+[Explain this value](#explain-this-value) to see whether a side is tagged **Fixed**,
+**Current view**, or **Constant**, and what each stage contributed before the final
+number.
+
+### Arithmetic with a per-object denominator
+
+A formula like `(fixedNumber / Area) * 100` looks like a percentage, and Arithmetic
+will happily evaluate it per element. Each floor element produces something like
+`(90000 / 500) * 100 = 18,000` — one result per element, not one ratio for the set.
+
+When you drop that field into a metric widget set to **Sum**, the widget adds up every
+element's individual ratio. With 27 floor elements the sum is roughly
+`18,000 × 27 = 486,000` — not 32%.
+
+**Use instead:**
+
+- A **Dashboard constant** aggregate for the denominator, then reference it in
+  Arithmetic — constants produce one number for the dashboard and are not stamped per
+  object.
+- The literal value if the denominator is known and fixed:
+  `(90000 / 277795) * 100` evaluates to the same constant on every element, so
+  **Average** gives the correct answer.
+- **Average** aggregation (not Sum) when the ratio is truly the same on every element.
+
+If a metric total looks far too large, open **Explain this value** (`?` on the widget)
+and check whether the field stage is tagged **Current view** rather than **Constant**.
+A **Current view** tag on what you expected to be a fixed denominator means the value
+is stamped per object and will accumulate with Sum.
+
 ### Ratio filter targeting
 
 **Ratio Value** and **Ratio Value by Property** let you choose which side of the fraction
@@ -289,6 +348,12 @@ operands stay filter-immune; targeting only affects property-based sides.
 In **Single property** mode, Part vs Total targeting is what creates the two
 populations. Setting both sides on or both sides off collapses that meaning — easy to
 misread as bad data.
+
+On **Ratio Value**, [Explain this value](#explain-this-value) shows filter chips per
+side (**Applied — narrowing**, **Ignored**, **Off**, and related states), before/after
+element counts where narrowing happens, and a note when active dashboard slices target
+only one side of the ratio. **Ratio Value by Property** has the same **Apply filter to**
+controls but does not yet offer Explain.
 
 **Total property value** has special handling for Aggregate fields so it does not sum
 the same total once per element. Do not assume every other widget does the same yet for
@@ -329,11 +394,94 @@ Calculated fields are analysis-only. They do not appear as editable parameters i
 Until the Beta settles, spot-check important dashboards: compare a calculated total to
 **Total property value** on the same property, or to a known figure from the model.
 If a ratio or total looks impossibly large or tiny, look for an Aggregate field used
-where a per-element value was expected.
+where a per-element value was expected. For a guided walkthrough of the built-in
+checks, see [Debugging and validating values](#debugging-and-validating-values).
+
+## Debugging and validating values
+
+When a calculated number looks wrong, work from the quickest check to the most detailed.
+Only some widgets expose a full explanation today.
+
+### Live preview in the calculated field editor
+
+While you create or edit a field (left sidebar → **Calculated Fields** → open the
+field), most expression types show a **live preview** against loaded model data:
+
+- Input values and the resulting value for one sample object
+- A **dice** control to pick another random sample when more than one object qualifies
+- A short reason when preview cannot run (for example missing property mapping, no
+  loaded data, or a dashboard constant that has not been computed yet)
+
+For **Range groups**, the editor also shows a **Distribution** chart of the source
+property across loaded objects, so you can see whether your bands cover the values you
+expect.
+
+The editor also blocks save when required options are missing or invalid (highlighted
+controls). Fix those before trusting any widget that uses the field.
+
+### Explain this value
+
+On **Ratio Value** and **Total property value**, in **edit** mode, open the **?**
+(**Explain this value**) action on the widget card. The dialog shows how the live
+number was produced from the widget’s current filters and dashboard slices — not an
+unfiltered dashboard-wide sample.
+
+<Frame caption="Explain this value on a Ratio Value widget — Part and Total as coloured branches, each with property source and Constant aggregate, then the combined ratio.">
+  <img
+    src="/images/analytics/dashboards-explain-this-value.png"
+    alt="Explain this value dialog showing a ratio of two dashboard constants built from Area, with teal and orange branches joining at Ratio equals 1.276"
+  />
+</Frame>
+
+You get:
+
+- A banner when dashboard slices are active (titles and selected values)
+- A stage flow for sources, calculated fields, aggregates, filters/slices, and the
+  final combine step
+- Tags for value sources (**Fixed**, **Current view**, **Constant**) and for how
+  filters apply on each side
+- Narrowing counts once where filters actually reduce the element set
+  (`total → matched`)
+- Status notes when something is empty, null-only, divide-by-zero, missing a field
+  reference, or using an **inferred scope** (self-division that silently drops
+  elements without a declared filter)
+- An insight note when active slices affect only one side of a ratio
+- Optional **plain text summary** (list icon) you can copy
+
+Click a clickable stage to jump to the calculated-field editor or the widget filter
+UI for that step.
+
+**Ratio Value by Property** does not have this action yet. Use filter targeting in the
+sidebar and the live preview on the field instead.
+
+### Filters, slices, and scenarios
+
+Wrong numbers are often filter state, not bad maths:
+
+- On ratio widgets, check **Apply filter to** and **Apply global filter to** (see
+  [Ratio filter targeting](#ratio-filter-targeting)).
+- On **Total property value**, **Apply global filters** turns page-level slices on or
+  off for that widget.
+- Active slices appear in the filter bar. [Scenarios](/analytics/dashboards/sharing#scenarios)
+  restore named filter and colour-by snapshots; they do not change calculated-field
+  definitions, but they do change which elements feed widgets that respect those
+  filters.
+
+If a **Ratio Value** settles on no usable result, the card can show **Invalid** (for
+example divide by zero) — open Explain to see which stage failed.
 
 ## FAQ
 
 <AccordionGroup>
+  <Accordion title="Something looks wrong — how do I debug it?">
+    Start in the calculated field editor: check the live sample preview (and the
+    **Distribution** chart for Range groups). Then check filter targeting, the filter
+    bar, and any active [scenario](/analytics/dashboards/sharing#scenarios). On **Ratio
+    Value** or **Total property value**, open **Explain this value** (**?**) for the
+    stage flow, narrowing counts, and filter chips. Spot-check against **Total property
+    value** or a known model figure. Full walkthrough:
+    [Debugging and validating values](#debugging-and-validating-values).
+  </Accordion>
   <Accordion title="Will this change my model in Speckle or in my design tool?">
     No. Calculated fields only exist in the dashboard. They are not published back to
     the model.
@@ -360,6 +508,25 @@ where a per-element value was expected.
     sides are dashboard-level totals — see
     [Things to watch out for](#things-to-watch-out-for) and
     [Dashboard constants](#dashboard-constants).
+  </Accordion>
+  <Accordion title="My arithmetic percentage looks far too large">
+    The most common cause is a formula with a per-object denominator summed across many
+    elements. For example `(90000 / Area) * 100` with aggregation **Sum** adds up one
+    ratio per element — with 27 elements each returning ~18,000, the total is ~486,000.
+
+    Try one of these:
+
+    - Switch aggregation to **Average** if every element should carry the same ratio.
+    - Replace the property binding with a **Dashboard constant** aggregate so the
+      denominator is one shared number, not a per-element value.
+    - Use the literal denominator directly if it is a known fixed number:
+      `(90000 / 277795) * 100` gives a constant result that aggregates correctly.
+
+    Open **Explain this value** (`?` on the widget) and look at the field stage tag:
+    **Current view** means the value is re-stamped per object; **Constant** means it is a
+    single dashboard-level number. See
+    [Arithmetic with a per-object denominator](#arithmetic-with-a-per-object-denominator).
+
   </Accordion>
   <Accordion title="Can I use one model's total with another model's total?">
     Yes, with **Dashboard constants**. Create a constant for each model’s total, then
