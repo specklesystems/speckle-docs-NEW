@@ -304,6 +304,31 @@ On **Ratio Value** or **Total property value**, use
 **Current view**, or **Constant**, and what each stage contributed before the final
 number.
 
+### Arithmetic with a per-object denominator
+
+A formula like `(fixedNumber / Area) * 100` looks like a percentage, and Arithmetic
+will happily evaluate it per element. Each floor element produces something like
+`(90000 / 500) * 100 = 18,000` — one result per element, not one ratio for the set.
+
+When you drop that field into a metric widget set to **Sum**, the widget adds up every
+element's individual ratio. With 27 floor elements the sum is roughly
+`18,000 × 27 = 486,000` — not 32%.
+
+**Use instead:**
+
+- A **Dashboard constant** aggregate for the denominator, then reference it in
+  Arithmetic — constants produce one number for the dashboard and are not stamped per
+  object.
+- The literal value if the denominator is known and fixed:
+  `(90000 / 277795) * 100` evaluates to the same constant on every element, so
+  **Average** gives the correct answer.
+- **Average** aggregation (not Sum) when the ratio is truly the same on every element.
+
+If a metric total looks far too large, open **Explain this value** (`?` on the widget)
+and check whether the field stage is tagged **Current view** rather than **Constant**.
+A **Current view** tag on what you expected to be a fixed denominator means the value
+is stamped per object and will accumulate with Sum.
+
 ### Ratio filter targeting
 
 **Ratio Value** and **Ratio Value by Property** let you choose which side of the fraction
