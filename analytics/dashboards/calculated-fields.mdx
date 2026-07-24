@@ -329,11 +329,112 @@ Calculated fields are analysis-only. They do not appear as editable parameters i
 Until the Beta settles, spot-check important dashboards: compare a calculated total to
 **Total property value** on the same property, or to a known figure from the model.
 If a ratio or total looks impossibly large or tiny, look for an Aggregate field used
-where a per-element value was expected.
+where a per-element value was expected. For a guided walkthrough of the built-in
+checks, see [Debugging and validating values](#debugging-and-validating-values).
+
+## Debugging and validating values
+
+When a calculated number looks wrong, work from the quickest check to the most detailed.
+Only some widgets expose a full explanation today.
+
+### Live preview in the calculated field editor
+
+While you create or edit a field (left sidebar → **Calculated Fields** → open the
+field), most expression types show a **live preview** against loaded model data:
+
+- Input values and the resulting value for one sample object
+- A **dice** control to pick another random sample when more than one object qualifies
+- A short reason when preview cannot run (for example missing property mapping, no
+  loaded data, or a dashboard constant that has not been computed yet)
+
+For **Range groups**, the editor also shows a **Distribution** chart of the source
+property across loaded objects, so you can see whether your bands cover the values you
+expect.
+
+The editor also blocks save when required options are missing or invalid (highlighted
+controls). Fix those before trusting any widget that uses the field.
+
+### Explain this value
+
+On **Ratio Value** and **Total property value**, in **edit** mode, open the **?**
+(**Explain this value**) action on the widget card. The dialog shows how the live
+number was produced from the widget’s current filters and dashboard slices — not an
+unfiltered dashboard-wide sample.
+
+<Frame caption="Explain this value on a Ratio Value widget — Part and Total as coloured branches, each with property source and Constant aggregate, then the combined ratio.">
+  <img
+    src="/images/analytics/dashboards-explain-this-value.png"
+    alt="Explain this value dialog showing a ratio of two dashboard constants built from Area, with teal and orange branches joining at Ratio equals 1.276"
+  />
+</Frame>
+
+You get:
+
+- A banner when dashboard slices are active (titles and selected values)
+- A stage flow for sources, calculated fields, aggregates, filters/slices, and the
+  final combine step
+- Tags for value sources (**Fixed**, **Current view**, **Constant**) and for how
+  filters apply on each side
+- Narrowing counts once where filters actually reduce the element set
+  (`total → matched`)
+- Status notes when something is empty, null-only, divide-by-zero, missing a field
+  reference, or using an **inferred scope** (self-division that silently drops
+  elements without a declared filter)
+- An insight note when active slices affect only one side of a ratio
+- Optional **plain text summary** (list icon) you can copy
+
+Click a clickable stage to jump to the calculated-field editor or the widget filter
+UI for that step.
+
+**Ratio Value by Property** does not have this action yet. Use filter targeting in the
+sidebar and the live preview on the field instead.
+
+### Filters, slices, and scenarios
+
+Wrong numbers are often filter state, not bad maths:
+
+- On ratio widgets, check **Apply filter to** and **Apply global filter to** (see
+  [Ratio filter targeting](#ratio-filter-targeting)).
+- On **Total property value**, **Apply global filters** turns page-level slices on or
+  off for that widget.
+- Active slices appear in the filter bar. [Scenarios](/analytics/dashboards/sharing#scenarios)
+  restore named filter and colour-by snapshots; they do not change calculated-field
+  definitions, but they do change which elements feed widgets that respect those
+  filters.
+
+If a **Ratio Value** settles on no usable result, the card can show **Invalid** (for
+example divide by zero) — open Explain to see which stage failed.
+
+### Developer console tools
+
+These are available from the browser developer console on an open dashboard. They are
+not first-class UI features:
+
+| Call                                                                 | What it tells you                                                                                     |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `window.__dashboardController.listCalculatedFields()`                | Active calculated fields and ids                                                                      |
+| `window.__dashboardController.sampleCalculatedField('<fieldId>')`    | Sample objects with inputs, results, and null/error counts for that field                             |
+| `window.__dashboardController.validateFilterRules('<widget title>')` | How many objects pass each widget filter rule                                                         |
+| `window.__dashboardController.validateWidgetStates()`                | Structural widget problems (no data source, stale loading, empty chart series) — not calc correctness |
+| `window.__dashboardController.getWidgetValues()`                     | Current displayed totals for **Total property value** widgets                                         |
+| `window.__dashboardInspector.getState()`                             | Read-only runtime snapshot (widgets, slices, calculated fields, data sources)                         |
+
+Use these after the UI checks above when you need object-level samples or a full
+runtime dump.
 
 ## FAQ
 
 <AccordionGroup>
+  <Accordion title="Something looks wrong — how do I debug it?">
+    Start in the calculated field editor: check the live sample preview (and the
+    **Distribution** chart for Range groups). Then check filter targeting, the filter
+    bar, and any active [scenario](/analytics/dashboards/sharing#scenarios). On **Ratio
+    Value** or **Total property value**, open **Explain this value** (**?**) for the
+    stage flow, narrowing counts, and filter chips. Spot-check against **Total property
+    value** or a known model figure. For object-level samples or a runtime dump, use the
+    [developer console tools](#developer-console-tools). Full walkthrough:
+    [Debugging and validating values](#debugging-and-validating-values).
+  </Accordion>
   <Accordion title="Will this change my model in Speckle or in my design tool?">
     No. Calculated fields only exist in the dashboard. They are not published back to
     the model.
