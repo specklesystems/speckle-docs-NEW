@@ -116,10 +116,26 @@ areas, or check whether one number is larger than another.
 You write a short formula with letters such as `a` and `b`, then tell Speckle which
 model property each letter means. If a value is missing, the result is blank.
 
+<Warning>
+  **Arithmetic works element by element.** If your formula divides a fixed number by a per-object
+  property — for example `(90000 / Area) * 100` — each element gets its own result. Summing those
+  per-element ratios gives `value × element count`, not a meaningful percentage.
+</Warning>
+
+To get one ratio for the whole dataset:
+
+- Bind the denominator to a **Dashboard constant** aggregate — constants are not stamped
+  per object, so the ratio stays correct under any aggregation.
+- Use the literal value directly: `(90000 / 277795) * 100` — every element gets the same
+  constant result, and **Average** aggregation returns the correct figure.
+- Change the widget aggregation to **Average** when every element genuinely shares the
+  same ratio.
+
 <Tip>
   Arithmetic can also bind [dashboard constants](#dashboard-constants) (scalars) so formulas stay
   stable when people filter the dashboard. A **Dashboard constant** Aggregate can source from a
-  per-object calculated field when you need a masked or conditional total as a scalar.
+  per-object calculated field when you need a masked or conditional total as a scalar. See the
+  warning above if your formula divides a fixed number by a per-object property.
 </Tip>
 
 ### Aggregate
