@@ -117,15 +117,75 @@ Rates map through thresholds:
 Statuses: **`PASS`** (≥ pass), **`WARN`** (between thresholds when warn is set), **`FAIL`**
 (under thresholds), **`PENDING`** (evaluation not finished).
 
+Only **`error`** severity rules contribute to the overall check score. **`info`** rules still
+evaluate and appear in results, but they do not change the aggregate pass rate.
+
+Interpret outcomes on [Viewing Results](/analytics/data-validation/viewing-results).
+
 ## Predicates and matching
 
-Type-aware predicates:
+The operator dropdown lists every authorable predicate. The UI does not grey operators by
+property type—pick a value shape that matches the property you are testing (text, number, or
+boolean). Booleans compare as Equals with `true` or `false`.
 
-- Text: **Exists**, **Equals**, **Contains**, **Matches pattern**
-- Number: **Is greater than**, **Is less than**, **Is between**
-- Boolean: **Is true**, **Is false**
+### Operator catalog
 
-**Matches pattern** accepts wildcard or regex-like syntax per field help.
+| Operator        | Typical value                      | Behaviour                                                           |
+| --------------- | ---------------------------------- | ------------------------------------------------------------------- |
+| Equals          | text, number, or boolean           | Exact equality on the property value                                |
+| Equals property | another property path              | Path-to-path equality                                               |
+| Equals template | template with `{{token}}` bindings | Build expected text from other paths; exact or regex mode           |
+| Not equals      | text, number, or boolean           | Value must differ                                                   |
+| Greater than    | number                             | Strict `>`                                                          |
+| At least        | number                             | `≥` (tolerance can widen the lower bound)                           |
+| Less than       | number                             | Strict `<`                                                          |
+| At most         | number                             | `≤` (tolerance can widen the upper bound)                           |
+| In list         | one or more text or number values  | Value must be one of the listed items                               |
+| Between         | min and max numbers                | Inclusive range (`≥ min` and `≤ max`)                               |
+| Contains        | text substring                     | Substring match (wildcards in the needle are literal, not patterns) |
+| Matches         | wildcard or regex pattern          | Wildcard by default; toggle `.*` for regex (see below)              |
+| Exists          | _(none)_                           | Property path is present on the object                              |
+
+### Matching details
+
+**Matches (wildcard):** `*` and `%` match any character run; `?` matches one character.
+Matching is case-sensitive.
+
+**Matches (regex):** turn on the `.*` toggle to use a regular expression. You can enter a
+plain pattern, or a `/pattern/i` literal for case-insensitive matching. Lookahead,
+lookbehind, and backreferences are not supported.
+
+**Equals template:** bind `{{token}}` placeholders to other property paths. Use exact mode
+to require the concatenated value, or regex mode (same `.*` toggle) when the template is a
+pattern.
+
+**Contains** is substring search only. Prefer **Matches** when you need wildcards or regex.
+
+### Numeric tolerance
+
+Optional per-condition **Tolerance** sets decimal places `N` (ε = 10^-N). It applies to
+numeric **Equals**, **Equals property**, **At least**, **At most**, and **Between**. It
+does not apply to **Greater than**, **Less than**, **Not equals**, list/text operators, or
+**Exists**.
+
+### Property paths
+
+Pick paths from the path picker after a preview model loads so value suggestions come from
+real data. Common shapes:
+
+- `category`
+- `name`
+- `baseline.length`
+- `parameters.Width.value`
+
+### Short examples
+
+- Fire rating present: `WHERE` category Equals `Walls`, `CHECK` fire-rating path **Exists**
+  (or **Equals** a required rating string).
+- Width band: `CHECK` `parameters.Width.value` **Between** `100` and `300`, with tolerance if
+  units are noisy.
+- Naming convention: `CHECK` `name` **Matches** `W-*` (or **Contains** a fixed prefix).
+- Consistency: `CHECK` one path **Equals property** against another path on the same object.
 
 ## Best practices
 
