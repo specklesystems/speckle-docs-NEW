@@ -125,6 +125,51 @@ jobs:
             echo 'External URLs stay on the scheduled workflow.'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  structure:
+    name: Structure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Redirect integrity
+        run: node scripts/check-redirects.mjs
+
+      - name: Orphan pages
+        if: always()
+        run: node scripts/check-orphans.mjs
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '## Structure'
+            echo ''
+            echo '### Redirect integrity'
+            echo ''
+            echo 'Catches what `--check-redirects` does not: a redirect *source*'
+            echo 'that shadows a live page. Redirects win over pages, so a stray'
+            echo 'wildcard silently makes real docs unreachable.'
+            echo ''
+            echo 'Also checks unknown keys, duplicates, self-redirects, chains,'
+            echo 'and destinations that resolve to nothing.'
+            echo ''
+            echo '### Orphan pages'
+            echo ''
+            echo 'Pages that exist but are not reachable from navigation.'
+            echo 'Deliberately unlisted pages belong in'
+            echo '`scripts/orphan-allowlist.txt` with a reason.'
+            echo ''
+            echo 'No install step — plain Node, runs in seconds.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   accessibility:
     name: Accessibility
     runs-on: ubuntu-latest
