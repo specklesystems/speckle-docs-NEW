@@ -1,0 +1,276 @@
+---
+title: 'Keep connectors current across your estate'
+description: 'How to keep connectors current across a managed estate, the minimum update cadence we recommend, and what an estate loses by falling behind.'
+sidebarTitle: Connector Updates
+---
+
+<Warning>
+  **This guide is for IT administrators and workspace admins managing connectors across an
+  organization.** If you are a regular user, see [Installing Connectors](/connectors/installation) —
+  your connector prompts you when an update is available.
+</Warning>
+
+The hosted Speckle platform is continuously deployed — the server updates most days. Connectors release roughly monthly and are built and tested against it. Keeping them current is routine maintenance rather than a series of upgrade decisions.
+
+Backwards compatibility is maintained and API deprecations are announced in advance, so an older connector does not stop working overnight. But the further your estate sits from the current release, the more you depend on those commitments rather than on a tested pairing — and occasionally a platform change does require a connector from the same period.
+
+For installation mechanics, see the [IT Setup Guide](/workspaces/it-setup) and [Manual Connector Installation](/connectors/manual-installation/introduction).
+
+## Our recommendation
+
+<Card title="Stay on the current release" icon="arrow-up-right-dots">
+  The current release is the supported position, and the one the rest of this documentation
+  describes. Treat connector updates as routine maintenance, not as a project.
+</Card>
+
+Three rules make that workable in a managed estate:
+
+1. **Let updates flow by default.** Approve connector releases as a standing item rather than assessing each one. Most releases are fixes and host application support, and they reach you sooner and in smaller pieces this way.
+2. **Hold one version at a time across the estate.** Roll forward together. Per-team drift is what makes support slow and upgrades risky.
+3. **Reserve real validation for the rare structural change.** Most releases do not need a fresh test cycle. The baselines below mark the handful that changed how data is published or configured — those are worth a pilot.
+
+<Warning>
+  If your change process cannot approve releases as they ship, **quarterly is the minimum cadence we
+  recommend**. Beyond a quarter, you accumulate capability your workspace plan covers but your
+  connectors cannot deliver, and each upgrade becomes a larger single change instead of a routine
+  one.
+</Warning>
+
+<Tip>
+  If you need a trigger to get current, there is one now. Autodesk is migrating Revit 2025 and 2026
+  to the .NET 10 runtime, which many organizations are already validating add-ins against. See
+  [Runtime alignment](#runtime-alignment).
+</Tip>
+
+## Requested changes arrive with the connector
+
+Much of what Speckle ships is a response to what users report. Where that change is server-side — the web app, viewer, dashboards — it reaches your teams automatically. Where it is in the connector, it reaches them only when you deploy a new connector version.
+
+That creates a gap which is easy to miss from an IT perspective. Someone in your organization reports a problem or asks for a capability, the change is released and announced, and the person who raised it never receives it. From where they sit, the request went unanswered.
+
+The gap is widest for the requests that matter most. Broad features get noticed eventually through release notes or colleagues. But a change made in response to **specific reported nuance** — how a particular element type is extracted, which properties are carried through, how a host application behaves in one team's workflow — is often only visible to the person who described the problem in the first place. If they are running an older connector, nobody confirms the fix landed, and the original limitation persists inside your organization as settled fact.
+
+<Tip>
+  When someone in your organization raises a request or a bug report and it is released, treat that
+  as an update trigger rather than waiting for your next scheduled window. Tell the person who
+  raised it which release contains the change, so they can confirm it resolves their case.
+</Tip>
+
+## Connector baselines
+
+These are the releases that changed something structural. They are cumulative — landing on one gives you everything in the baselines above it — so they describe how far behind an estate is, rather than a menu to choose from. Aim for the current release; use the intermediate rungs only to understand what a constrained estate is missing.
+
+| Baseline                        | Version | Everything above, plus                                                                                                                                                                                                 |
+| ------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Current generation**          | Any v3  | Publishing into workspace projects, on the current data model. Legacy connectors cannot do this at all. See [Migrate from legacy connectors](/migration/connectors-v2-to-v3).                                          |
+| **Tracked publishing**          | 3.15    | Publishes registered as jobs on the server: visible publish status and better support diagnostics.                                                                                                                     |
+| **Model write-back**            | 3.17    | The [Parameter Updater](/beta/parameter-updater) round trip — review and edit model data in Speckle, then apply it back to the model via Issues.                                                                       |
+| **Managed deployment baseline** | 3.20    | Central configuration of connector settings, the current publish pipeline, consistent object properties across host applications, and the .NET 10 runtime. Analytics and validation workflows degrade below this rung. |
+| **Autodesk 2027 line**          | 3.22    | Support for Revit, AutoCAD and Navisworks 2027, and write-back extended across more host applications.                                                                                                                 |
+| **Current release**             | 2026.x  | Continued host application support, accumulated fixes, and the most recent capability. **The supported position.**                                                                                                     |
+
+<Tip>
+  When you do move, move to the current release rather than an intermediate rung. The validation
+  effort is the same either way, and you arrive further forward.
+</Tip>
+
+<Warning>
+  Analytics features depend on the **managed deployment baseline**. [Intelligence
+  dashboards](/analytics/intelligence-dashboards), [Data
+  Validation](/analytics/data-validation/overview) and Power BI rely on consistent object properties
+  that older connectors do not publish. A workspace can be fully licensed for these and still return
+  thin results if the connectors feeding it are older.
+</Warning>
+
+### Runtime alignment
+
+The managed deployment baseline is also where Speckle connectors moved to the .NET 10 runtime. That matters less for what Speckle does than for when you schedule the work.
+
+Microsoft ends support for .NET 8 in November 2026, and Autodesk is migrating Revit 2025 and 2026 to .NET 10 to follow the long-term support line. Revit 2027 ships on .NET 10 already. Most add-ins continue to work across that migration, but add-ins with native code or third-party dependencies may need recompilation.
+
+If your organization is already planning add-in validation for the Revit .NET 10 migration, bring your connector baseline into the same cycle. You test once rather than twice, and you finish on a connector built against the runtime your host applications are moving to.
+
+<Note>
+  This is a scheduling argument, not a compatibility warning. Speckle connectors below the managed
+  deployment baseline are not expected to stop working because of the Revit runtime migration. The
+  point is that the validation effort overlaps, so doing both together is cheaper than doing them
+  separately.
+</Note>
+
+### Constraints that override the recommendation
+
+Two situations set your baseline for you.
+
+- **Legacy (v2) connectors.** Moving off these is a migration to a different data model, not a version update. Check your workflow inventory first — some connectors are legacy-only. See [Migrate from legacy connectors](/migration/connectors-v2-to-v3).
+- **Revit 2022.** Support for that host ended with the 2027 connectors, so those users cannot move past 3.21. The Revit upgrade is the blocking dependency, not the connector.
+
+## Host application support
+
+| Host application                   | Supported                                                                                                |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Revit 2023, 2024, 2025, 2026       | Current release                                                                                          |
+| Revit, AutoCAD and Navisworks 2027 | Autodesk 2027 line onward                                                                                |
+| Revit 2022                         | Up to 3.21 only — support ended                                                                          |
+| Rhino 7 and 8                      | Current release. Rhino 8 below 8.9 may show a framework compatibility error or a blank connector window. |
+
+<Note>
+  Rhino and Grasshopper ship in a single installer, so updating one updates both. Connectors are
+  Windows only.
+</Note>
+
+## Reading version numbers
+
+From June 2026, all Speckle products — connectors, server, SDKs and viewer — use calendar versioning in the format `Year.Month.Patch`. `2026.6.0` is the first release published in June 2026; later releases that month increment the patch number.
+
+<Card title="Same year and month means full compatibility" icon="circle-check">
+  Any Speckle products sharing a Year and Month are fully compatible with each other. This is the
+  quickest way to check whether your connectors, server and SDK tooling are aligned.
+</Card>
+
+Before this change, products released around the same time carried unrelated numbers — server `3.0.40`, Python SDK `3.2.8`, connectors `3.24.1` — with nothing to indicate they belonged together. Calendar versioning makes that legible at a glance. See [Moving Speckle to calendar based versioning](https://speckle.community/t/moving-speckle-to-calendar-based-versioning/22507).
+
+<Warning>
+  A calendar version such as `2026.6.0` is **newer** than `3.24.1`, not older. If you maintain
+  pinned version ranges, allowlists, or automated version comparisons, update them for the change in
+  scheme.
+</Warning>
+
+<Note>
+  The change affects numbering only. Release cadence, backwards compatibility commitments, and the
+  way API deprecations are announced are unchanged.
+</Note>
+
+## Move to a new baseline
+
+Connectors support both single-user and all-user installation, so the deployment model should not be what sets your update pace.
+
+| Route                                                              | Scope                    | Use when                                                                                                           |
+| ------------------------------------------------------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `.exe` installer                                                   | Single user              | Self-service installation by the user. No administrator rights required.                                           |
+| [Manual ZIP install](/connectors/manual-installation/introduction) | Single user or all users | Managed deployment. Install for all users by targeting `%ProgramData%` or `%ProgramFiles%` instead of `%AppData%`. |
+
+Configuration follows the same pattern: settings can be written to `HKEY_CURRENT_USER` or `HKEY_LOCAL_MACHINE`, or supplied as environment variables. See [Connector Configuration](/connectors/connector-configuration).
+
+<Warning>
+  Running the `.exe` installer as an administrator does **not** produce an all-user installation. It
+  installs the connector into the administrator's profile, where the intended user cannot reach it.
+  For a machine-wide deployment, use the manual ZIP route.
+</Warning>
+
+<Note>
+  Because a single-user update needs no elevation, it can be delivered in user context through your
+  endpoint management tooling or a logon script — useful for pilot groups, where you can scope to a
+  handful of users without a separate package or image change.
+</Note>
+
+<Steps>
+  <Step title="Pick the baseline you will commit to">
+    Start from the current release and work down only if a constraint forces it. You should end with
+    a single target version for the whole estate.
+  </Step>
+  <Step title="Pilot with one team">
+    Deploy to a small group covering your main workflows. Publish and load a representative model in
+    each host application, including a large or federated one.
+  </Step>
+  <Step title="Verify published data">
+    Open the published models in the web app and confirm geometry and properties appear as expected.
+    Use the **Report** button in the connector to check for skipped objects.
+  </Step>
+  <Step title="Deploy and record the baseline">
+    Roll out the validated version and record it, so your next update decision starts from a known
+    position.
+  </Step>
+</Steps>
+
+<Tip>
+  Crossing the managed deployment baseline changes how data is serialised and uploaded. Include
+  large and federated models in that pilot rather than a simple test file.
+</Tip>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do we have to update every release?">
+    Ideally yes — approve them as a standing item and let them flow. If that is not possible,
+    consolidate into a quarterly update rather than assessing each release individually.
+  </Accordion>
+  <Accordion title="How far behind is too far?">
+    More than a quarter. At that point you are missing capability your workspace plan already
+    covers, and a future upgrade becomes a larger single change rather than a routine one.
+  </Accordion>
+  <Accordion title="We reported an issue, were told it was fixed, but our users still see it.">
+    Check the connector version first. Fixes to connector behaviour only reach users who have
+    updated, so a fix released last month is not present in a connector deployed last year. Compare
+    the release the fix shipped in against the version your estate is running before reopening the
+    report.
+  </Accordion>
+  <Accordion title="Which changes reach our users without a connector update?">
+    Anything server-side — the web app, 3D viewer, dashboards and workspace administration — updates
+    automatically. Anything that affects how data is extracted from or written back to a host
+    application ships in the connector and requires an update.
+  </Accordion>
+  <Accordion title="How do we check our connectors are compatible with the server?">
+    Compare the year and month in the version numbers. Speckle products sharing a `Year.Month` are
+    fully compatible. Older connectors are still supported under our backwards compatibility
+    commitments, but matching year and month is the position we test against.
+  </Accordion>
+  <Accordion title="Can we adopt just the one feature we need?">
+    No — and you do not need to work out which release added it. Baselines are cumulative, so
+    landing on a version gives you everything up to it. Choose the highest rung your change process
+    can support.
+  </Accordion>
+  <Accordion title="Our users run other add-ins in Revit. Does that affect which version we choose?">
+    It can. Conflicts between Speckle and third-party add-ins are addressed as they are reported, so
+    the current release is the safest position for estates running a rich add-in set. If you hit a
+    conflict, report it in the [Community Forum](https://speckle.community/c/help) with your host
+    application version, connector version, and log file — fixes are usually released quickly.
+  </Accordion>
+  <Accordion title="Can we prevent connectors from prompting users to update?">
+    Yes. Set `SPECKLE_IS_UPDATE_NOTIFICATION_DISABLED` as a registry value or environment variable —
+    see [Connector Configuration](/connectors/connector-configuration). Use this when users are not
+    permitted to run installers themselves.
+  </Accordion>
+  <Accordion title="Can we deploy and configure connectors centrally?">
+    Yes, from the managed deployment baseline onward. Use the ZIP-based [manual
+    installation](/connectors/manual-installation/introduction) route where executable installers
+    are restricted, and pre-configure global settings such as the default server URL via registry
+    values — see [Connector Configuration](/connectors/connector-configuration).
+  </Accordion>
+  <Accordion title="Can connectors be installed for all users?">
+    Yes, via the [manual ZIP route](/connectors/manual-installation/introduction) — target
+    `%ProgramData%` or `%ProgramFiles%` instead of `%AppData%`. Note that running the `.exe`
+    installer as an administrator does not achieve this; it installs into the administrator's
+    profile instead.
+  </Accordion>
+  <Accordion title="Do connector updates need administrator rights?">
+    Not for a single-user install, which is why pilot rollouts can be delivered in user context
+    without a machine-level package. An all-user install needs the usual rights for writing to
+    `%ProgramData%` or `%ProgramFiles%`.
+  </Accordion>
+  <Accordion title="How do we know what our users are running?">
+    Users can see their connector version in the connector UI. For a fleet-wide view, use your
+    software inventory or endpoint management tooling — Speckle does not currently report connector
+    versions in use across a workspace.
+  </Accordion>
+  <Accordion title="What happens to data published from older connectors?">
+    It remains valid and viewable. Your baseline affects what users can do going forward, not what
+    already exists. The exception is legacy (v2) data, which uses a different data model — see
+    [Migrate from legacy connectors](/migration/connectors-v2-to-v3).
+  </Accordion>
+  <Accordion title="How do we roll back if an update causes problems?">
+    Connectors uninstall like any other Windows application, and previous versions remain available
+    from [releases.speckle.systems](https://releases.speckle.systems/). Report the problem in the
+    [Community Forum](https://speckle.community/c/help) or to
+    [support@speckle.systems](mailto:support@speckle.systems) with your host application version,
+    connector version, and log file.
+  </Accordion>
+</AccordionGroup>
+
+## Related documentation
+
+- [IT Setup Guide](/workspaces/it-setup) — firewall requirements, SSO, cloud integrations
+- [Connector Configuration](/connectors/connector-configuration) — registry values for update notifications, default server URL, self-hosted Desktop UI
+- [Security](/workspaces/it-security) — architecture and governance controls
+- [Manual Connector Installation](/connectors/manual-installation/introduction)
+- [Migrate from legacy connectors](/migration/connectors-v2-to-v3)
+- [Connector release notes](https://github.com/specklesystems/speckle-sharp-connectors/releases) — what shipped in each version
