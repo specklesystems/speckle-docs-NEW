@@ -1,8 +1,13 @@
 # Docs PR checks: Format and lint (changed files), Mintlify validate, Broken
-# links, and Accessibility are blocking.
+# links, Missing assets, Structure, and Accessibility are blocking.
+#
+# Broken links and Missing assets are deliberately separate: `mint broken-links`
+# checks page links, while Missing assets checks local image and download files,
+# which it does not cover.
 #
 # Branch protection: require "Mintlify validate", "Broken links",
-# "Format and lint", and "Accessibility" (see scripts/enable-required-pr-checks.sh).
+# "Format and lint", "Missing assets", "Structure", and "Accessibility"
+# (see scripts/enable-required-pr-checks.sh).
 
 name: Docs PR checks
 
@@ -123,6 +128,94 @@ jobs:
             echo 'Anchors + docs.json redirects + links inside Snippet components.'
             echo 'Blocking. Require this check in branch protection for `main`.'
             echo 'External URLs stay on the scheduled workflow.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  missing-assets:
+    name: Missing assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check local assets
+        run: node scripts/check-assets.mjs
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '## Missing assets'
+            echo ''
+            echo 'Images and downloads referenced by a page must exist in the repo.'
+            echo ''
+            echo 'Separate from Broken links: `mint broken-links` checks page'
+            echo 'links, not local asset files. A stale asset reference can still'
+            echo 'render in production from a CDN copy left by an earlier build,'
+            echo 'so it never shows as a broken image on the live site.'
+            echo ''
+            echo 'No install step — plain Node, runs in seconds.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  structure:
+    name: Structure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Redirect integrity
+        run: node scripts/check-redirects.mjs
+
+      - name: Orphan pages
+        if: always()
+        run: node scripts/check-orphans.mjs
+
+      - name: Image framing
+        if: always()
+        run: node scripts/check-frames.mjs
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '## Structure'
+            echo ''
+            echo '### Redirect integrity'
+            echo ''
+            echo 'Catches what `--check-redirects` does not: a redirect *source*'
+            echo 'that shadows a live page. Redirects win over pages, so a stray'
+            echo 'wildcard silently makes real docs unreachable.'
+            echo ''
+            echo 'Also checks unknown keys, duplicates, self-redirects, chains,'
+            echo 'and destinations that resolve to nothing.'
+            echo ''
+            echo '### Orphan pages'
+            echo ''
+            echo 'Pages that exist but are not reachable from navigation.'
+            echo 'Deliberately unlisted pages belong in'
+            echo '`scripts/orphan-allowlist.txt` with a reason.'
+            echo ''
+            echo '### Image framing'
+            echo ''
+            echo 'Screenshots, diagrams, and videos belong inside a `<Frame>`.'
+            echo 'Exemptions go in `scripts/frame-allowlist.txt`.'
+            echo '`legacy/` is skipped as frozen historical content.'
+            echo ''
+            echo 'No install step — plain Node, runs in seconds.'
           } >> "$GITHUB_STEP_SUMMARY"
 
   accessibility:
