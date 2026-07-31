@@ -146,6 +146,10 @@ jobs:
         if: always()
         run: node scripts/check-orphans.mjs
 
+      - name: Local assets
+        if: always()
+        run: node scripts/check-assets.mjs
+
       - name: Job summary
         if: always()
         run: |
@@ -166,6 +170,13 @@ jobs:
             echo 'Pages that exist but are not reachable from navigation.'
             echo 'Deliberately unlisted pages belong in'
             echo '`scripts/orphan-allowlist.txt` with a reason.'
+            echo ''
+            echo '### Local assets'
+            echo ''
+            echo 'Images and downloads referenced by a page must exist in the'
+            echo 'repo. A stale reference can still render in production from a'
+            echo 'CDN copy left by an earlier build, so this will not show up'
+            echo 'as a broken image on the live site.'
             echo ''
             echo 'No install step — plain Node, runs in seconds.'
           } >> "$GITHUB_STEP_SUMMARY"
