@@ -171,6 +171,72 @@ Click the option name in the header bar to return to the grid.
   </Accordion>
 </AccordionGroup>
 
+## Under the hood
+
+<AccordionGroup>
+  <Accordion title="What does 'Mark as Design Option' actually do?">
+    Nothing exotic — it writes a property. The menu item sets a boolean at the dotted path
+    `DesignOption.isDesignOption` on the Data Object, which lands on the wire as:
+
+    ```json
+    "properties": {
+      "DesignOption": { "isDesignOption": true },
+      "cost": { "material": 42000 }
+    }
+    ```
+
+    The marker is excluded from the metrics, so it never appears as a chart axis.
+
+    See [`SpeckleDataObjectPassthrough.cs#L208-L213`](https://github.com/specklesystems/speckle-sharp-connectors/blob/dd065202c03a1bade2c720cce1943172389397a6/Connectors/Rhino/Speckle.Connectors.GrasshopperShared/Components/Objects/SpeckleDataObjectPassthrough.cs#L208-L213) (pinned at `dd06520`).
+
+  </Accordion>
+
+  <Accordion title="Can I produce design options from Python or another connector?">
+    Not officially — but nothing about the marker is Grasshopper-specific, and the only thing
+    stopping you is a source-application check on the widget.
+
+    Build the Data Objects with the marker in their properties, then set the version's
+    source application so the widget accepts the model:
+
+    ```python
+    from specklepy.objects.data import DataObject
+    from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+
+    element = DataObject(
+        name="Option A",
+        properties={
+            "DesignOption": {"isDesignOption": True},
+            "cost": {"material": 42000},
+        },
+        displayValue=[geometry],
+    )
+
+    version_input = CreateVersionInput(
+        project_id=project.id,
+        model_id=model_id,
+        object_id=object_id,
+        message="Design study",
+    )
+    version_input.source_application = "grasshopper"
+    ```
+
+    Two things to watch that the Grasshopper component handles for you:
+
+    - The widget isolates the marked object itself, not its children. All geometry for a variant
+      must sit on that object's `displayValue`.
+    - Every marked object needs the same numeric property keys, or the odd ones out are dropped
+      from the chart.
+
+    <Warning>
+      This is unsupported and misreports how the version was produced. It works, but treat it as a
+      hack rather than an integration: the source-application check may be relaxed or replaced, and
+      this workaround will not be preserved deliberately. If you are relying on it, say so on the
+      [forum](https://speckle.community) — a real use case is what would justify supporting design
+      options outside Grasshopper properly.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
 ## See also
 
 - [Grasshopper connector](/connectors/grasshopper/grasshopper)
