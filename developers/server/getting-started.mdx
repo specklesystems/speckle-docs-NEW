@@ -87,6 +87,10 @@ services:
       POSTGRES_USER: 'speckle'
       POSTGRES_PASSWORD: 'speckle'
       POSTGRES_DB: 'speckle'
+      # File-import jobs are queued in this database; must match the ifc-import-service below
+      FILEIMPORT_QUEUE_POSTGRES_URL: 'postgresql://speckle:speckle@postgres/speckle'
+      # Required on public Speckle Server releases so IFC jobs are queued for ifc-import-service
+      FF_NEXT_GEN_FILE_IMPORTER_ENABLED: 'true'
       REDIS_URL: 'redis://redis'
       S3_ENDPOINT: 'http://minio:9000'
       S3_PUBLIC_ENDPOINT: 'http://127.0.0.1:9000'
@@ -119,14 +123,13 @@ services:
     environment:
       PG_CONNECTION_STRING: 'postgres://speckle:speckle@postgres/speckle'
 
-  fileimport-service:
-    image: speckle/speckle-fileimport-service:latest
+  ifc-import-service:
+    image: speckle/speckle-ifc-import-service:latest
     restart: always
     depends_on:
       - speckle-server
     environment:
-      SPECKLE_SERVER_URL: 'http://speckle-server:3000'
-      PG_CONNECTION_STRING: 'postgres://speckle:speckle@postgres/speckle'
+      FILEIMPORT_QUEUE_POSTGRES_URL: 'postgresql://speckle:speckle@postgres/speckle'
 ```
 
 </Step>
