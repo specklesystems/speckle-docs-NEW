@@ -27,10 +27,10 @@ Authorization: Bearer YOUR_TOKEN
 ```
 
 <Note>
-  This presigned-URL workflow is the default on current Speckle servers — no feature flag needs to
-  be enabled, on [app.speckle.systems](https://app.speckle.systems) or self-hosted. The one
-  exception is self-hosted instances running with the legacy `FF_LEGACY_FILE_IMPORTS_ENABLED` flag
-  enabled — see the FAQ at the bottom of this page.
+  On [app.speckle.systems](https://app.speckle.systems), this presigned-URL workflow is the default
+  — no feature flag is required. On self-hosted public Speckle Server releases, set
+  `FF_NEXT_GEN_FILE_IMPORTER_ENABLED=true` so the server queues jobs for `ifc-import-service`. Leave
+  `FF_LEGACY_FILE_IMPORTS_ENABLED` off unless you need the legacy REST path — see the FAQ below.
 </Note>
 
 ## Overview
@@ -329,23 +329,30 @@ In case of an error, the error response would look like:
 
 <AccordionGroup>
   <Accordion title="File formats supported">
-    For [app.speckle.systems](https://app.speckle.systems): IFC, DWG, DXF, OBJ, STL, 3DM, and others depending on server version.
+    For [app.speckle.systems](https://app.speckle.systems): IFC, RVT, NWC, NWD, DWG, DXF, OBJ, STL,
+    3DM, and others — see [Supported Formats](/connectors/overview#supported-formats).
 
-    For self-hosted servers, IFC only.
+    Open-source self-hosted servers support IFC only. Extended formats are also available on Speckle
+    Enterprise Server — see [Supporting additional file types in Direct
+    Uploads](/developers/server/deployment/enterprise-license#optional-supporting-additional-file-types-in-direct-uploads).
 
   </Accordion>
 
 <Accordion title="Why are different formats supported in self-hosted vs cloud?">
-  Self-hosted servers use open-source code dependencies, which limits the file formats that can be
-  supported. Formats like DWG, DXF, and 3DM require proprietary libraries that are not available in
-  open-source distributions, so they are only available on
-  [app.speckle.systems](https://app.speckle.systems).
+  Self-hosted open-source servers use open-source dependencies, which limits supported formats.
+  Formats such as RVT, NWC, NWD, DWG, DXF, and 3DM need proprietary libraries, so they are available
+  on [app.speckle.systems](https://app.speckle.systems) and on Speckle Enterprise Server — not in
+  the public open-source distribution.
 </Accordion>
 
   <Accordion title="Where did the StartFileImport mutation go?">
-    The `StartFileImport` mutation has been deprecated and replaced with `StartFileIngestion`. The new mutation provides more granular status updates, and allows subscribing to real-time updates. The Ingestion queries are common across all ingestion processes, whether initiated by the file import service or by other Speckle integrations.
+    The `startFileImport` mutation has been deprecated and replaced with
+    `fileUploadMutations.startFileIngestion`. The new mutation provides more granular status updates
+    and allows real-time subscription updates. Ingestion queries are shared across file import and
+    other Speckle integrations.
 
-    Please update your code to use `StartFileIngestion` and the new Ingestion status queries.
+    Update your code to use `fileUploadMutations.startFileIngestion` and the ingestion status
+    queries in this guide.
 
   </Accordion>
 
@@ -371,6 +378,13 @@ In case of an error, the error response would look like:
   </Accordion>
 
   <Accordion title="Can I automate file uploads with SpecklePy?">
-    SpecklePy centres on sending and receiving Speckle objects rather than this presigned-upload pipeline. You can still implement this guide in Python by combining GraphQL (`generateUploadUrl`, model creation if needed, `startFileIngestion`, ingestion status query) with HTTP `PUT` of file bytes to the presigned URL via `requests` or `httpx`. For GraphQL steps, use `SpeckleClient.execute_query()` as in [Custom GraphQL Queries](/developers/sdks/python/api-reference/client#custom-graphql-queries), or POST the same JSON payloads your tool would send to `{host}/graphql`.
+    SpecklePy centres on sending and receiving Speckle objects rather than this
+    presigned-upload pipeline. You can still implement this guide in Python by combining GraphQL
+    (`fileUploadMutations.generateUploadUrl`, model creation if needed,
+    `fileUploadMutations.startFileIngestion`, ingestion status query) with HTTP `PUT` of file bytes
+    to the presigned URL via `requests` or `httpx`. For GraphQL steps, use
+    `SpeckleClient.execute_query()` as in [Custom GraphQL
+    Queries](/developers/sdks/python/api-reference/client#custom-graphql-queries), or POST the same
+    JSON payloads your tool would send to `{host}/graphql`.
   </Accordion>
 </AccordionGroup>
