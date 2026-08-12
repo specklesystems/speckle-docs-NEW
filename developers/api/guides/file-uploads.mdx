@@ -27,10 +27,10 @@ Authorization: Bearer YOUR_TOKEN
 ```
 
 <Note>
-  This guide requires a Speckle server with the new file importer feature flag enabled. This is
-  available by default on [app.speckle.systems](https://app.speckle.systems). For self-hosted
-  instances, please ensure the `FF_NEXT_GEN_FILE_IMPORTER_ENABLED` and
-  `FF_LARGE_FILE_IMPORTS_ENABLED` feature flags are enabled.
+  This presigned-URL workflow is the default on current Speckle servers — no feature flag needs to
+  be enabled, on [app.speckle.systems](https://app.speckle.systems) or self-hosted. The one
+  exception is self-hosted instances running with the legacy `FF_LEGACY_FILE_IMPORTS_ENABLED` flag
+  enabled — see the FAQ at the bottom of this page.
 </Note>
 
 ## Overview
@@ -361,12 +361,12 @@ In case of an error, the error response would look like:
   <Accordion title="Should I ever use the old REST upload?">
     For [app.speckle.systems](https://app.speckle.systems), no. The old REST upload is gone.
 
-    For self-hosted instances, the old REST upload may still be necessary if:
-    - Your server does not have a publicly available S3 service configured
-    - The feature flag `FF_LARGE_FILE_IMPORTS_ENABLED` is not enabled
+    For self-hosted instances, the old REST upload is only relevant if:
+    - Your server runs with the `FF_LEGACY_FILE_IMPORTS_ENABLED` feature flag enabled (it is off by default), which proxies uploads through the server instead of sending them straight to blob storage
+    - Your blob storage is not reachable by clients, so presigned URLs cannot work
 
     In these cases, you may need to use the legacy REST endpoints (`/api/file/...`).
-    However, we recommend configuring S3 storage and enabling the feature flag to use the modern file upload workflow described above.
+    However, we recommend leaving `FF_LEGACY_FILE_IMPORTS_ENABLED` off and making your S3-compatible storage reachable by clients, so the modern workflow described above works.
 
   </Accordion>
 

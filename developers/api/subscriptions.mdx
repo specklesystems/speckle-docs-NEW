@@ -27,7 +27,8 @@ The complete list of available subscriptions is documented in Apollo Studio:
 Common subscription types include:
 
 - **Project Events**: `projectUpdated`, `projectModelsUpdated`, `projectVersionsUpdated`, `projectCommentsUpdated`, `projectIssuesUpdated`
-- **Version Events**: `projectVersionsUpdated`, `projectPendingVersionsUpdated`
+- **Version Events**: `projectVersionsUpdated`
+- **File Upload / Ingestion Events**: `projectModelIngestionUpdated` (see the [example below](#tracking-file-upload-and-model-ingestion-progress)), `projectPendingVersionsUpdated` (legacy)
 - **Automation Events**: `projectAutomationsUpdated`, `projectTriggeredAutomationsStatusUpdated`
 - **Workspace & User Events**: `workspaceUpdated`, `userProjectsUpdated`
 
@@ -83,6 +84,59 @@ subscription {
 ```
 
 Some subscriptions, like `userProjectsUpdated`, don't require parameters and will send updates for all projects the authenticated user has access to.
+
+### Tracking file upload and model ingestion progress
+
+`projectModelIngestionUpdated` fires whenever a model ingestion — for example a file upload started with the `startFileIngestion` mutation from the [file upload guide](/developers/api/guides/file-uploads) — is created or changes status. The `ingestionReference` input takes exactly one of `modelId` (all ingestions targeting a model) or `ingestionId` (a single ingestion):
+
+```graphql
+subscription OnModelIngestionUpdated {
+  projectModelIngestionUpdated(
+    input: { projectId: "your-project-id", ingestionReference: { modelId: "your-model-id" } }
+  ) {
+    type
+    modelIngestion {
+      id
+      modelId
+      statusData {
+        ... on ModelIngestionQueuedStatus {
+          status
+          progressMessage
+        }
+        ... on ModelIngestionProcessingStatus {
+          status
+          progressMessage
+          progress
+        }
+        ... on ModelIngestionSuccessStatus {
+          status
+          versionId
+        }
+        ... on ModelIngestionFailedStatus {
+          status
+          errorReason
+        }
+        ... on ModelIngestionCancelledStatus {
+          status
+          cancellationMessage
+        }
+        ... on ModelIngestionInvalidStatus {
+          status
+          validationMessage
+        }
+      }
+    }
+  }
+}
+```
+
+The `type` field tells you what happened to the ingestion (`created`, `updated`, `cancellationRequested`, or `deleted`), and `statusData` is a union — use inline fragments as above to read the status-specific fields.
+
+<Note>
+  The `projectPendingVersionsUpdated` subscription still works, but it reports file uploads through
+  the legacy pending-version surface. Use `projectModelIngestionUpdated` for new integrations — it
+  covers all ingestion types and carries granular status and progress data.
+</Note>
 
 ### Connection Management
 
