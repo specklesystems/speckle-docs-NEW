@@ -1,139 +1,193 @@
 ---
-title: Compare Open Source, Hosted, and Enterprise Speckle
-sidebarTitle: Open Source vs Hosted
-description: Shared core platform versus managed layer, why UIs differ, licensing and operations at a glance, and responsibility boundaries—not a feature checklist.
+title: Choosing a Speckle Deployment
+sidebarTitle: Choosing a Deployment
+description: Choose between Speckle Cloud, Speckle Enterprise Server, and the open-source server based on requirements and operational responsibility.
 ---
 
-This page explains **where responsibility boundaries sit** among **self-hosted open source**, **Speckle-hosted** (Team and Enterprise), and **Enterprise on your own infrastructure**. It is not a complete inventory of every capability. It complements [Hosting Your Own Speckle Server](/developers/server/introduction).
+**Speckle Cloud is the standard deployment and the right starting point for most organisations.**
+Speckle operates the platform, delivers upgrades and product improvements, and owns the operational
+work needed to keep the service running.
 
-## How To Read This Comparison
+Choose another deployment only when you have a specific regulatory, contractual, security,
+territorial, or infrastructure requirement that Speckle Cloud cannot satisfy, or when operating
+Speckle infrastructure is itself an intentional goal.
 
-The meaningful distinction is not “features missing vs present” on the same checklist. It is:
+## Which Deployment Should I Choose?
 
-- **Core Platform vs. Managed Platform** — the stable open-source server versus the full product experience Speckle operates or licenses.
-- **Distributed Code vs. Operated Services** — code you run and integrate yourself versus services Speckle runs at scale (often on Speckle infrastructure).
-- **Extensibility vs. Responsibility** — both paths are API-first; who owns ingestion, integration glue, execution environments, uptime, and support differs.
+Use this decision path:
 
-**Feature parity is not the goal.** Hosted offerings lead on product surface area and operated services. Open source provides the **stable, distributable foundation** the ecosystem and hosted product build on.
+1. **Can your organisation use Speckle Cloud?** If no specific requirement prevents it, use
+   Speckle Cloud.
+2. **Can Speckle Enterprise Server satisfy the requirement?** If you must deploy in infrastructure
+   your organisation controls, evaluate the commercially licensed Enterprise deployment and its
+   supported components.
+3. **Do you deliberately want to operate the open-source core yourself?** Choose the public
+   open-source server when owning the infrastructure and operations is part of your intended model.
 
-## Shared Core Across Deployments
+Data residency may be one requirement in this decision, but it is not automatically a reason to
+self-host. Speckle Cloud provides [data residency controls](/workspaces/data-residency) on the
+Enterprise plan. Establish the regulatory, contractual, security, territorial, or infrastructure
+constraint first, then choose the deployment that satisfies it.
 
-All Speckle deployments build on the same **core platform**:
+## Speckle Cloud Is the Default
 
-- **Projects, models, and versioning**
-- **GraphQL and REST APIs** and the **data transport** connectors use
-- The **web application** and **3D viewer**
+Speckle Cloud is the deployment Speckle operates directly and is delivered through hosted workspace
+plans. Speckle is responsible for:
 
-The difference is **how that core is extended and who operates** what sits on top of it—not a different “kind” of geometry or version graph.
+- Provisioning and operating the infrastructure
+- Deploying platform upgrades, fixes, and product improvements
+- Monitoring and scaling the service
+- Backups, recovery, availability, and incident response for the operated environment
+- Running the managed services and supporting infrastructure included with your plan
 
-## Managed Layer and Why the UI Differs
+Your organisation can use and extend Speckle without also taking responsibility for running the
+server, databases, object storage, background processing, and deployment tooling. Speckle Cloud
+remains extensible through [GraphQL](/developers/api/graphql), [REST](/developers/api/rest), and
+[webhooks](/developers/api/webhooks), so choosing an operated platform does not prevent you from
+building applications, dashboards, and integrations on top of it.
 
-**Speckle-hosted** (Team and Enterprise on Speckle Cloud) is the fully realized product: the core plus a **workspace** model and **managed services**—for example ingestion pipelines, integrations with external platforms (such as CDEs), and execution environments such as [Automate](/developers/automate/introduction) (where included in your plan).
+Because Speckle operates this environment, it is also where Speckle can most directly observe,
+diagnose, maintain, and improve the product. Support and uptime commitments still depend on your
+plan and contract; this operational advantage does not create an additional SLA.
 
-The **open-source server** is the **distributed form of the core**. It provides that foundation **without** the managed service layer that sits above it in the cloud.
+## When Speckle Enterprise Server Is Appropriate
 
-In practice, **differences you see in the UI and feature surface** reflect that managed layer and workspace experience, not a separate “lightweight viewer-only” product. You are comparing **core-only self-host** against **core plus operated platform**.
+Some organisations have requirements that prevent normal use of Speckle Cloud. Examples can
+include regulatory or contractual constraints, mandated security architecture, territorial or data
+residency requirements, infrastructure ownership, or organisational deployment policy.
 
-## Beyond OSS Is Not the Same as Cloud-Only
+These requirements are reasons to evaluate an alternative, not automatic reasons to operate the
+public open-source server. Where a supported customer-infrastructure deployment meets the
+requirement, **Speckle Enterprise Server** provides commercially licensed Enterprise software for
+deployment on your infrastructure. See [Enterprise License](/developers/server/deployment/enterprise-license)
+for the current prerequisites, deployable components, and configuration.
 
-Capabilities that are **not part of the public open-source distribution** (often because they rely on proprietary code or Speckle-operated infrastructure) are still delivered in more than one commercial shape:
+With Speckle Enterprise Server, your organisation operates the infrastructure and data plane.
+Speckle provides the licensed software and support described by your commercial agreement. The
+resulting responsibility boundary depends on that agreement and the deployment guide. Some
+capabilities can retain external or Speckle-operated dependencies even when Enterprise software is
+deployed in customer infrastructure; do not assume that every managed service is included or moves
+into your environment.
 
-- **Speckle-hosted** Team or Enterprise — Speckle runs the stack and the managed services.
-- **Enterprise licensed and self-hosted** — many organization, compliance, and integration features are available **on your infrastructure** under a commercial license. See [Enterprise License](/developers/server/deployment/enterprise-license).
+## When Open-Source Self-Hosting Is Appropriate
 
-Some managed capabilities **always** run on Speckle-operated infrastructure. For example, **[Automate](/developers/automate/introduction) does not run on a customer’s own servers**; self-hosted servers can still integrate using **webhooks and external compute**. See the [Automate FAQ](/developers/automate/faq).
+Speckle is open source, and the core platform remains available to run, study, extend, and
+contribute to. The ability to self-host is important for:
 
-**Speckle Cloud is extensible** through [GraphQL](/developers/api/graphql), [REST](/developers/api/rest), and [webhooks](/developers/api/webhooks). Many teams use hosted Speckle as a **system of record** and build custom applications, dashboards, and integrations on top.
+- Development and experimentation
+- Contributing to Speckle
+- Building on and extending the open Speckle platform
+- Specialised deployments
+- Organisations that explicitly want to own and operate Speckle infrastructure
 
-**Open source self-hosting** gives you the same API building blocks, but **you** implement and operate execution, orchestration, and integration pipelines (or bridge to external automation). **Equivalent workflows are possible**; what changes is what Speckle provides and runs for you versus what your team builds and runs.
+Public open-source self-hosting is an intentional operating model, not simply “Speckle for free.”
+There is no Speckle licensing fee for the public server, but the organisation running it owns the
+infrastructure cost and operational work.
 
-Typical patterns:
+## Shared Open-Source Foundation
 
-- **APIs and SDKs** for ETL and data transformation
-- **Webhooks** for event-driven workflows
-- **Embedding or driving the viewer** in downstream applications
+All Speckle deployments build on the same open-source core platform:
 
-## Licensing and Cost (Overview)
+- Projects, models, and versioning
+- GraphQL and REST APIs and the data transport used by connectors
+- The web application and 3D viewer
 
-**Open-source self-hosting** has **no Speckle licensing fee** for the public server. Your costs are infrastructure and your own operational time.
+Commercial offerings add operated or licensed layers to this core; they do not change the
+underlying model and version graph into a different product. The open-source server is the
+distributed form of the core, while Speckle Cloud combines that core with a workspace model and
+managed services.
 
-**Speckle-hosted** plans are **subscriptions at the workspace level**. Limits and commercial terms depend on plan—for example capacity for users, projects, and stored model versions on Team, and usage-aligned models on Enterprise. For how plans treat usage and limits, see [Billing](/workspaces/billing). **Pricing** and quotes are published on [speckle.systems/pricing](https://speckle.systems/pricing/).
+**Feature parity is not the goal.** Hosted and Enterprise offerings can have product capabilities
+and operated services beyond the public distribution. The open-source server remains the stable,
+distributable foundation on which the ecosystem and hosted product build.
 
-In practice, **cost and capacity** on hosted plans scale most with **model versions, data churn, and how often you sync and automate** (together with model size and concurrency)—not primarily “per API call” for building custom apps.
+## Operational Responsibility and Support
 
-Bottlenecks:
+Running a production Speckle server means owning its operating lifecycle. For an open-source
+self-hosted deployment, your organisation is responsible for:
 
-- **Hosted:** governed by workspace plan limits and fair-use expectations described with your plan.
-- **Self-hosted:** governed entirely by **your** infrastructure—especially database performance, object storage, and throughput for background processing.
+- Infrastructure provisioning and deployment
+- Upgrades and migrations
+- Monitoring, scaling, and availability
+- Backups and recovery
+- Security patching
+- Database and object storage operation
+- Background processing and throughput
+- Incident response and deployment-specific diagnosis
 
-**Enterprise self-host** adds **commercial licensing** for Enterprise software and registry access; it is not the same economics as public OSS alone. See [Enterprise License](/developers/server/deployment/enterprise-license).
+Documentation, GitHub issues, and the community remain valuable sources of help for open-source
+users. However, a self-hosted environment also introduces infrastructure, configuration, and
+version variables outside Speckle's control. Speckle Cloud gives Speckle the greatest ability to
+maintain, observe, diagnose, and support the complete environment because Speckle operates it.
 
-## Support and Operations (Overview)
+For Speckle Enterprise Server, operational responsibilities remain with the organisation running
+the infrastructure, while commercial support and any commitments are defined by contract. This page
+does not add to those commitments.
 
-The **Speckle-hosted** product is **continuously deployed and operated** by Speckle: scaling, monitoring, and incident response for the cloud service. **Support and uptime commitments** depend on **plan and contract** (for example Speckle-hosted Enterprise).
+## Managed Services and Product Surface
 
-With **open-source self-host**, **deployment, scaling, upgrades, backup, and recovery are yours**. Updates ship in the open-source release process; **operational support** is documentation and the community unless you have a separate agreement.
+Differences in the interface and product surface reflect the managed layer and workspace experience,
+not a separate lightweight or viewer-only core. Speckle Cloud includes Speckle-operated services
+where offered by the selected plan, such as hosted ingestion and processing, integrations, and
+execution environments.
 
-For Enterprise **on your infrastructure**, operations split: **you** run the clusters and data plane; **commercial terms** cover the Enterprise software and how Speckle supports you. Details belong in your license and deployment guide—not generalized here.
+The public open-source distribution does not include this managed service layer. You can use its
+APIs, SDKs, and webhooks to build equivalent workflows, but your organisation implements and
+operates the execution, orchestration, and integration infrastructure.
 
-## Open Source Foundation and Enterprise Scale
+Capabilities beyond the public distribution are not necessarily Cloud-only. Some are available for
+Speckle Enterprise Server under a commercial license. For example, Automate is not part of the
+public open-source server; an Enterprise agreement that includes Automate can provide access to the
+separate [Enterprise Automate deployment](/developers/server/deployment/enterprise-license-automate),
+which requires additional customer-operated infrastructure. Other components can have external
+dependencies or different deployment boundaries. Check the current Enterprise deployment guides
+and your agreement rather than assuming that every managed capability has the same boundary.
 
-Speckle started as an open source project because the AEC industry needs open, interoperable infrastructure that no single vendor can lock down.
+## Licensing and Cost
 
-The core platform is and remains open source. You keep control over your data and how you deploy and extend Speckle. Commercial offerings add operated or licensed layers; they do not redefine the core as “the incomplete version.”
+Speckle Cloud plans are subscriptions at the workspace level. Limits and commercial terms depend on
+the plan; see [Billing](/workspaces/billing) and
+[speckle.systems/pricing](https://speckle.systems/pricing/).
 
-## Growing Needs Beyond the Core
+Speckle Enterprise Server requires a commercial license for the Enterprise software and package
+registry access. Entitlements and support are defined by the commercial agreement.
 
-Larger or more regulated deployments often need managed CDE integrations, organization-scoped administration, compliance evidence, analytics, and workflow automation at a level that requires **ongoing operational investment**, not only code.
+The public open-source server has no Speckle licensing fee. Its total cost still includes the
+infrastructure and engineering time required to deploy, upgrade, monitor, secure, scale, back up,
+recover, and support the environment.
 
-Paid Team and Enterprise offerings fund that investment—reliability, security posture, support, and product development—while the open-source core stays available to self-host and build on.
+## Comparison by Responsibility Boundary
+
+This comparison describes ownership rather than attempting to list every feature.
+
+| Boundary                                                     | Speckle Cloud                                     | Speckle Enterprise Server                                                                                                   | Open-source self-hosted                                                                      |
+| ------------------------------------------------------------ | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Appropriate use**                                          | Standard deployment for most organisations        | Concrete requirements prevent normal use of Speckle Cloud and a supported customer-infrastructure deployment satisfies them | Operating and extending the open-source core is an intentional requirement                   |
+| **Infrastructure**                                           | Operated by Speckle                               | Operated by your organisation                                                                                               | Operated by your organisation                                                                |
+| **Deployment, upgrades, and migrations**                     | Handled by Speckle                                | Your organisation deploys and upgrades the licensed software                                                                | Your organisation deploys and upgrades the public distribution                               |
+| **Monitoring, scaling, availability, and incident response** | Handled by Speckle for the Cloud environment      | Your organisation operates the environment; commercial terms define Speckle support                                         | Your organisation owns the environment; documentation and community support are available    |
+| **Backups and recovery**                                     | Handled by Speckle for the Cloud environment      | Your organisation                                                                                                           | Your organisation                                                                            |
+| **Managed services**                                         | Available where included in your plan             | Deployable components and dependencies vary by license and deployment guide                                                 | Not included; you build or integrate and operate additional services                         |
+| **Product cadence**                                          | Improvements and fixes are delivered continuously | Your organisation coordinates supported versions and upgrades                                                               | Your organisation chooses when to adopt open-source releases and perform upgrades            |
+| **Infrastructure control**                                   | Speckle controls the service infrastructure       | Your organisation controls its deployment infrastructure                                                                    | Your organisation controls its deployment infrastructure and can modify the open-source code |
+| **Licensing**                                                | Workspace subscription                            | Commercial Enterprise license                                                                                               | No Speckle license fee for the public server; infrastructure and operations remain your cost |
 
 ## Our Approach
 
-The core stays open so you keep flexibility, including self-hosting. Speckle-hosted and Enterprise offerings add **managed or licensed platform** pieces on top: operated services, integration paths, and contractual support where that matches how your organization works.
+Speckle's core stays open so people and organisations can inspect it, build on it, contribute to it,
+and run it themselves. We intend to preserve that choice.
 
-That model lets Speckle:
+For most organisations, the recommended choice is Speckle Cloud because using Speckle should not
+require becoming the operator of Speckle server infrastructure. Enterprise Server provides a
+supported path where concrete requirements make customer-controlled infrastructure necessary.
+Open-source self-hosting remains a legitimate choice when owning that infrastructure and operating
+responsibility is itself the objective.
 
-- Keep investing in the open-source core that benefits everyone
-- Ship enterprise and hosted capabilities where organizations need them
-- Offer support and SLAs where projects are mission-critical on Speckle-hosted deployments
-- Fund development without giving up the openness of the platform
-
-You can:
-
-- **Stay on open source** and self-host if that matches your responsibility model.
-- **Use a Speckle-hosted Team plan** when you want Speckle to operate the platform and deliver analytics-oriented product surface area.
-- **Use Speckle-hosted Enterprise** when you need advanced capabilities, automation, support, and governance aligned with an organization-wide strategy.
-- **License Enterprise and self-host** when data and control must stay in your environment but you still want Enterprise scope—knowing some capabilities (such as Automate execution) still use Speckle-operated infrastructure.
-
-## Comparison by Boundary
-
-The table groups differences by **where the boundary runs**, not by ticking individual features. Rows summarize **what each side is responsible for**.
-
-| Boundary Area        | Open Source (Self-Hosted)                                                                                                                                                                                                     | Speckle Cloud / Enterprise (Hosted or Enterprise-Licensed)                                                                                                                                                                                                               |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Core Platform**    | You deploy the core: projects, models, versions, **GraphQL and REST APIs**, and the **3D viewer**. This is the stable, open-source foundation.                                                                                | Built on the same core, delivered as (or paired with) Speckle’s **managed product**: operated stack, product cadence, and services that extend beyond what the OSS distribution alone provides.                                                                          |
-| **Managed Services** | **You** operate or substitute your own: workflow automation, analytics and validation stacks, and ingestion and scaling patterns. Integrate via APIs and your toolchain.                                                      | **Speckle-operated** layers where offered—for example **Intelligence**, **hosted ingestion and processing**, and **Automate** (hosted-only execution)—evolve on product roadmaps separately from an OSS-only deployment.                                                 |
-| **Integrations**     | **Connectors** work with your server. Managed CDE and cloud integrations that Speckle operates for hosted customers are not bundled into the OSS distribution; you can still build comparable flows with APIs and your stack. | **Managed integrations** and first-party CDE paths where Speckle ships and operates them, plus the connector ecosystem, for teams that want Speckle to own that integration and operations path.                                                                         |
-| **Operations**       | **You** own hosting, scaling, monitoring, backups, upgrades, and uptime. Support from **community** channels. Compliance and org admin models are yours to implement.                                                         | **Speckle** operates infrastructure and reliability for **Speckle-hosted** customers; **dedicated support** and SLAs per **Speckle-hosted Enterprise** agreements. **Enterprise self-host:** you operate infra; commercial license and support terms apply per contract. |
-
-<Note>
-  **Enterprise licensing (self-host):** Capabilities that are not part of the **public open-source**
-  server may still be available **on your infrastructure** under a **Speckle Enterprise Server**
-  license. What you are entitled to deploy is set out in your commercial agreement. In this docs
-  section, start with [Hosting Your Own Speckle Server](/developers/server/introduction),
-  [Deployment Options](/developers/server/deployment-options), and [Enterprise
-  License](/developers/server/deployment/enterprise-license).
-</Note>
-
-## Operating Your Own Open Source Server
-
-Self-hosting means you carry the operational responsibility summarized in the **Operations** row. For concrete deployment paths, see [Overview](/developers/server/introduction) and [Deployment Options](/developers/server/deployment-options).
-
-## Related
+## Related Documentation
 
 - [Hosting Your Own Speckle Server](/developers/server/introduction)
-- [Deployment Options](/developers/server/deployment-options)
+- [Self-Hosted Deployment Options](/developers/server/deployment-options)
 - [Enterprise License](/developers/server/deployment/enterprise-license)
+- [Enterprise Automate Deployment](/developers/server/deployment/enterprise-license-automate)
 - [Billing](/workspaces/billing)
-- [Automate FAQ](/developers/automate/faq)
+- [Data Residency](/workspaces/data-residency)
