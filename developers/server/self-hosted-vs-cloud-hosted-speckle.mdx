@@ -50,6 +50,14 @@ In Speckle Cloud, Speckle can take responsibility for:
 - Deploying fixes and continuous product improvements
 - Diagnosing support cases against a known, current environment
 
+Speckle Cloud also includes the parts of the product Speckle operates rather than distributes.
+Depending on your plan, these can include automatic translation of supported files without running
+the source application, Speckle-operated project and data-platform integrations,
+[Workspaces](/workspaces/introduction) as the organisational model, [Speckle
+Intelligence](/analytics/intelligence-dashboards), and Automate execution. [Managed Services and
+Product Surface](#managed-services-and-product-surface) describes each of these boundaries and how
+they differ in a customer-operated deployment.
+
 Your organisation can use and extend Speckle without also taking responsibility for running the
 server, databases, object storage, background processing, and deployment tooling. Speckle Cloud
 remains extensible through [GraphQL](/developers/api/graphql), [REST](/developers/api/rest), and
@@ -157,35 +165,33 @@ operates the execution, orchestration, and integration infrastructure.
 
 ### Workspaces and Speckle Intelligence
 
-[Workspaces](/workspaces/introduction) are part of the hosted and licensed product layer, not the
-public open-source server. They provide the organisational model in which Speckle Cloud manages
-projects, members, settings, plan controls, and workspace-level product capabilities. A licensed
-Speckle Enterprise Server deployment can also enable Workspaces; deploying the public server alone
-does not provide them.
+[Workspaces](/workspaces/introduction) provide the organisational model in which Speckle Cloud
+manages projects, members, settings, plan controls, and workspace-level product capabilities. They
+belong to the hosted and licensed product layer: a licensed Speckle Enterprise Server deployment can
+also enable Workspaces, while deploying the public open-source server alone does not provide them.
 
-[Speckle Intelligence](/analytics/intelligence-dashboards) is also outside the public open-source
-distribution. It is available on Speckle Cloud according to the workspace plan. An Enterprise
-agreement that includes Intelligence can provide access to the separate [Enterprise Intelligence
-deployment](/developers/server/deployment/enterprise-license-intelligence), which requires
-additional customer-operated infrastructure and documented dependencies.
+[Speckle Intelligence](/analytics/intelligence-dashboards) is available on Speckle Cloud according
+to the workspace plan, with no additional infrastructure for your organisation to operate. An
+Enterprise agreement that includes Intelligence can provide access to the separate [Enterprise
+Intelligence deployment](/developers/server/deployment/enterprise-license-intelligence), which
+requires additional customer-operated infrastructure and documented dependencies. Intelligence is
+outside the public open-source distribution.
 
 ### Managed Cloud and Data-Platform Integrations
 
-Speckle-operated integrations are also outside the public open-source distribution. These include,
-where offered, project integrations such as [Autodesk Forma Data Management
+Speckle operates project integrations such as [Autodesk Forma Data Management
 (ACC)](/connectors/cloud-integrations/acc) and [Bentley
 ProjectWise](/connectors/cloud-integrations/projectwise), and data-platform integrations such as
 [Databricks](/connectors/cloud-integrations/databricks),
-[Snowflake](/connectors/cloud-integrations/snowflake), and Microsoft Fabric.
+[Snowflake](/connectors/cloud-integrations/snowflake), and Microsoft Fabric. Availability in Speckle
+Cloud or a licensed Enterprise deployment depends on the plan, agreement, and supported deployment
+boundary.
 
-The open-source server provides the APIs and webhooks needed to build integrations, but it does not
-include these Speckle-operated integration services. Availability in Speckle Cloud or a licensed
-Enterprise deployment depends on the plan, agreement, and supported deployment boundary.
+These are Speckle-operated services rather than parts of the public open-source distribution. The
+open-source server provides the APIs and webhooks needed to build integrations, but your
+organisation implements and operates them.
 
 ### Automatic File Translation
-
-The public open-source server includes the file-ingestion workflow and an IFC importer. It does not
-include Speckle's extended automatic file translators.
 
 On Speckle Cloud, supported files can be submitted by drag and drop or through the
 [programmatic file-upload workflow](/developers/api/guides/file-uploads), then parsed and translated
@@ -193,6 +199,9 @@ into a Speckle model without running the source application. The extended format
 applications and formats such as Revit, Rhino, Civil 3D, Plant 3D, DWG, Tekla, SolidWorks, and
 others, depending on the source file and currently supported format list. See [Direct
 Uploads](/connectors/direct-uploads/introduction) for the current formats and limitations.
+
+The public open-source server includes the file-ingestion workflow and an IFC importer. It does not
+include Speckle's extended automatic file translators.
 
 Extended file translation can also be available with Speckle Enterprise Server, but it requires
 licensed components and supporting infrastructure. It is not included by deploying the public
@@ -232,22 +241,22 @@ Speckle can no longer exercise automatically on your behalf.
 
 This comparison describes ownership rather than attempting to list every feature.
 
-| Boundary                                                     | Speckle Cloud                                                               | Speckle Enterprise Server                                                                                                         | Open-source self-hosted                                                                      |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Appropriate use**                                          | You want Speckle to operate and support a known, current environment        | You need the Enterprise product and support relationship, but a concrete requirement calls for customer-controlled infrastructure | Operating and extending the open-source core creates value for your organisation             |
-| **Infrastructure**                                           | Operated by Speckle                                                         | Operated by your organisation                                                                                                     | Operated by your organisation                                                                |
-| **Deployment, upgrades, and migrations**                     | Handled by Speckle                                                          | Your organisation deploys and upgrades the licensed software                                                                      | Your organisation deploys and upgrades the public distribution                               |
-| **Monitoring, scaling, availability, and incident response** | Handled by Speckle for the Cloud environment                                | Your organisation operates the environment; commercial terms define Speckle support                                               | Your organisation owns the environment; documentation and community support are available    |
-| **Backups and recovery**                                     | Handled by Speckle for the Cloud environment                                | Your organisation                                                                                                                 | Your organisation                                                                            |
-| **Managed services**                                         | Available where included in your plan                                       | Deployable components and dependencies vary by license and deployment guide                                                       | Not included; you build or integrate and operate additional services                         |
-| **Workspaces**                                               | Included as the organisational product model                                | Available with the Enterprise license                                                                                             | Not included                                                                                 |
-| **Speckle Intelligence**                                     | Available according to your plan                                            | Requires the applicable license, deployment, and supporting infrastructure                                                        | Not included                                                                                 |
-| **Automate execution**                                       | Custom-code Docker runtime and execution engine where included in your plan | Requires an Enterprise license that includes Automate and additional infrastructure                                               | Not included; use webhooks with external compute that you operate                            |
-| **Managed integrations**                                     | Speckle-operated project and data-platform integrations where offered       | Availability and deployment boundary vary by license and integration                                                              | Not included; APIs and webhooks are available for you to build and operate integrations      |
-| **Automatic file translation**                               | IFC and the supported extended format set                                   | Extended formats require the applicable license and supporting infrastructure                                                     | IFC only                                                                                     |
-| **Product cadence**                                          | Improvements and fixes are delivered continuously                           | Your organisation coordinates supported versions and upgrades                                                                     | Your organisation chooses when to adopt open-source releases and perform upgrades            |
-| **Infrastructure control**                                   | Speckle controls the service infrastructure                                 | Your organisation controls its deployment infrastructure                                                                          | Your organisation controls its deployment infrastructure and can modify the open-source code |
-| **Licensing**                                                | Workspace subscription                                                      | Commercial Enterprise license                                                                                                     | No Speckle license fee for the public server; infrastructure and operations remain your cost |
+| Boundary                                                     | Speckle Cloud                                                                                           | Speckle Enterprise Server                                                                                                         | Open-source self-hosted                                                                      |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Appropriate use**                                          | You want Speckle to operate and support a known, current environment                                    | You need the Enterprise product and support relationship, but a concrete requirement calls for customer-controlled infrastructure | Operating and extending the open-source core creates value for your organisation             |
+| **Infrastructure**                                           | Speckle operates the server, databases, object storage, and background processing                       | Operated by your organisation                                                                                                     | Operated by your organisation                                                                |
+| **Deployment, upgrades, and migrations**                     | Speckle deploys, upgrades, and migrates the environment; there is no upgrade for you to schedule        | Your organisation deploys and upgrades the licensed software                                                                      | Your organisation deploys and upgrades the public distribution                               |
+| **Monitoring, scaling, availability, and incident response** | Speckle monitors, scales, and responds to incidents in the Cloud environment                            | Your organisation operates the environment; commercial terms define Speckle support                                               | Your organisation owns the environment; documentation and community support are available    |
+| **Backups and recovery**                                     | Speckle operates backups and recovery for the Cloud environment                                         | Your organisation                                                                                                                 | Your organisation                                                                            |
+| **Managed services**                                         | Speckle operates ingestion, processing, integration, and execution services where included in your plan | Deployable components and dependencies vary by license and deployment guide                                                       | Not included; you build or integrate and operate additional services                         |
+| **Workspaces**                                               | Included as the organisational model for projects, members, settings, and plan controls                 | Available with the Enterprise license                                                                                             | Not included                                                                                 |
+| **Speckle Intelligence**                                     | Available according to your plan, with no additional infrastructure to operate                          | Requires the applicable license, deployment, and supporting infrastructure                                                        | Not included                                                                                 |
+| **Automate execution**                                       | Custom-code Docker runtime and execution engine where included in your plan                             | Requires an Enterprise license that includes Automate and additional infrastructure                                               | Not included; use webhooks with external compute that you operate                            |
+| **Managed integrations**                                     | Speckle operates the project and data-platform integrations where offered                               | Availability and deployment boundary vary by license and integration                                                              | Not included; APIs and webhooks are available for you to build and operate integrations      |
+| **Automatic file translation**                               | IFC and the supported extended format set, without running the source application                       | Extended formats require the applicable license and supporting infrastructure                                                     | IFC only                                                                                     |
+| **Product cadence**                                          | Improvements and fixes are delivered continuously, with no customer upgrade cycle                       | Your organisation coordinates supported versions and upgrades                                                                     | Your organisation chooses when to adopt open-source releases and perform upgrades            |
+| **Infrastructure control**                                   | Speckle controls the service infrastructure                                                             | Your organisation controls its deployment infrastructure                                                                          | Your organisation controls its deployment infrastructure and can modify the open-source code |
+| **Licensing**                                                | Workspace subscription covering the operated environment                                                | Commercial Enterprise license                                                                                                     | No Speckle license fee for the public server; infrastructure and operations remain your cost |
 
 ## Our Approach
 
