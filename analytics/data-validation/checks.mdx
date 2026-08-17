@@ -156,9 +156,15 @@ Matching is case-sensitive.
 plain pattern, or a `/pattern/i` literal for case-insensitive matching. Lookahead,
 lookbehind, and backreferences are not supported.
 
+Regex mode requires a **full-string match**. The pattern must account for the entire value, not
+only the prefix you are asserting. `^(Wall|Door)` matches only the exact strings "Wall" and
+"Door". Use `^(Wall|Door).*` to match values that start with those prefixes, or use wildcard
+mode (`Wall*`) instead. See [Regex mode](/analytics/dashboards/filters#regex-mode) for more
+pattern examples.
+
 **Equals template:** bind `{{token}}` placeholders to other property paths. Use exact mode
-to require the concatenated value, or regex mode (same `.*` toggle) when the template is a
-pattern.
+to require the concatenated value, or regex mode (same `.*` toggle and the same full-string
+match) when the template is a pattern.
 
 **Contains** is substring search only. Prefer **Matches** when you need wildcards or regex.
 
@@ -185,7 +191,8 @@ real data. Common shapes:
   (or **Equals** a required rating string).
 - Width band: `CHECK` `parameters.Width.value` **Between** `100` and `300`, with tolerance if
   units are noisy.
-- Naming convention: `CHECK` `name` **Matches** `W-*` (or **Contains** a fixed prefix).
+- Naming convention: `CHECK` `name` **Matches** `W-*`. In regex mode use `^W-.*` so characters
+  after the prefix still match.
 - Consistency: `CHECK` one path **Equals property** against another path on the same object.
 
 ## Best practices
