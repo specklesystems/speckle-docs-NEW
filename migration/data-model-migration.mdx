@@ -40,7 +40,12 @@ The one area to watch is data that reaches Speckle without going through a conne
   relying on it needs to be migrated off before then.
 </Warning>
 
-Everyone else — desktop connector users, SDK/API consumers, Automate functions, custom analytics, and ETL — can carry on as normal.
+Everyone else — desktop connector users, SDK/API consumers, custom analytics, and ETL — can carry on as normal.
+
+Speckle Automate functions are worth calling out specifically, since what a function needs to do depends on which connector produced the version it's processing, not on the function's own code:
+
+- **Version published by an old connector:** your function keeps working exactly as it does today. Nothing to change.
+- **Version published by a connector that only writes the new bundle format:** your function's SDK dependency needs a version bump before it can read that version. No code change required — just an updated SDK build.
 
 ## Self-hosted servers
 
@@ -73,6 +78,11 @@ If you maintain internal tooling that reads Speckle data more directly than the 
     that data directly (a script, a custom Power BI query, an API integration), ask us to switch
     your workspace into compatibility mode before **1 November 2026**.
   </Step>
+  <Step title="Bump your Automate function's SDK, if needed">
+    If a function processes a version published by a connector that only writes the new bundle
+    format, bump its SDK dependency. No code change needed — versions from old connectors need
+    nothing done at all.
+  </Step>
   <Step title="Pin your self-hosted stack, if applicable">
     If you self-host, pin your current connector-and-server combination rather than updating
     further, and keep any of your own downstream users on that same combination. See [Self-hosted
@@ -90,6 +100,12 @@ If you maintain internal tooling that reads Speckle data more directly than the 
   <Accordion title="What happens to data that's already published?">
     It remains valid and readable. The migration affects how new data is handled going forward, not
     what already exists in your projects.
+  </Accordion>
+  <Accordion title="Does this affect my Speckle Automate functions?">
+    It depends on which connector published the version your function is processing, not on your
+    function's own code. A version from an old connector works with your function exactly as it does
+    today. A version from a connector that only writes the new bundle format needs your function's
+    SDK dependency bumped — no code change, just an updated SDK build.
   </Accordion>
   <Accordion title="What if my integration doesn't fit either 'standard SDK' or 'ACC sync/drag-and-drop'?">
     If you maintain a production integration that reads Speckle data more directly than the standard
