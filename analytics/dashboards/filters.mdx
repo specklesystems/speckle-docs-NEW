@@ -186,15 +186,21 @@ Examples:
 
 #### Regex mode
 
-Wrap your pattern in forward slashes to use full regular expression matching:
+Wrap your pattern in forward slashes to use regular expression matching:
 
 - `/pattern/` — treats the content between slashes as a regular expression
 
+Regex mode requires a **full-string match**. The pattern is tested against the entire value, not as
+a prefix or substring search. A start-anchored pattern such as `^(Wall|Door)` matches only the
+exact strings "Wall" and "Door". To match values that start with those prefixes, add a trailing
+`.*`.
+
 Examples:
 
-- `/^D\d{3}$/` — matches "D001", "D123" (exactly D followed by three digits)
-- `/^(Wall|Door)/` — matches values starting with "Wall" or "Door"
-- `/\d{4}-\d{2}-\d{2}/` — matches date format "YYYY-MM-DD"
+- `/^D\d{3}$/` — matches "D001" and "D123" (exactly D followed by three digits)
+- `/^(Wall|Door).*/` — matches values that start with "Wall" or "Door", including "Wall_01" and
+  "Door-a"
+- `/^\d{4}-\d{2}-\d{2}$/` — matches a value that is exactly a date in YYYY-MM-DD format
 
 Matching is **case-insensitive** in both modes. Use pattern matching when you need to match a family of values (e.g. all doors, all elements on a level) without listing each one.
 
@@ -202,6 +208,11 @@ Matching is **case-insensitive** in both modes. Use pattern matching when you ne
   To use regex mode, the pattern value must start and end with `/`. Without the slashes, the value
   is treated as a wildcard pattern with `%` and `_` placeholders.
 </Note>
+
+<Warning>
+  In Regex mode, `/^(Wall|Door)/` without a trailing `.*` fails values such as "Wall_01". Use
+  `/^(Wall|Door).*/` for prefix matching, or wildcard mode (`Wall%`).
+</Warning>
 
 ## Quick reference by property type
 
