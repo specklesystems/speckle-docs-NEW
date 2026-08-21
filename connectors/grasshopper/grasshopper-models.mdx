@@ -96,12 +96,25 @@ Inputs:
 Outputs:
 
 1. The **Collection** output contains your loaded model.
+2. The **Properties** output contains any model-wide properties saved with the version, such as project information. Empty when the version has none.
 
 Additional Settings:
 `Right-click` the node for additional settings:
 
 - Set your node to **load automatically** whenever there is a new version of your Speckle model. Make sure your input Speckle Model node does not have a specific version set in order to activate this setting.
 - **View your model online** in your web browser.
+
+<Note>
+  Loading a version published before Speckle 2026.9.0 works, but object grouping and collection
+  paths may differ from versions published since. The Load node tells you on the canvas when this
+  happens.
+</Note>
+
+<Note>
+  If your Load node is named **Load (legacy)**, it was placed by an older version of the connector.
+  It keeps working, but new features land on the current Load node. See [Older Load and Publish
+  nodes](/connectors/grasshopper/grasshopper-models#older-load-and-publish-nodes).
+</Note>
 
 ## Publishing Models
 
@@ -116,7 +129,8 @@ Inputs:
 1. Add a **Speckle Model** input of the Speckle Model you want to publish a new version to.
 2. Add a **Collection** input containing the Collection of objects you want to publish.
 3. Add an optional **Version Message** input to describe the version of the model you are about to publish.
-4. Click the **Publish** button to publish your model.
+4. Add an optional **Properties** input of model-wide properties to save with the version, such as project information. These apply to the model as a whole, not to individual objects.
+5. Click the **Publish** button to publish your model.
 
 Outputs:
 
@@ -127,3 +141,16 @@ Additional Settings:
 
 - Set your node to **publish automatically** whenever there is a new solve of the Collection you are publishing.
 - **View your model online** in your web browser.
+
+## Older Load and Publish nodes
+
+Nodes named **Load (legacy)** and **Publish (legacy)** were placed by an earlier version of the connector. They are hidden from the ribbon, so you cannot add new ones, but any node already on a canvas keeps working and your existing scripts do not need changing.
+
+They show a remark on the canvas reminding you to move to the current nodes, which support Speckle 2026.9.0 onwards. Swap them when convenient.
+
+The **Publish (legacy)** node publishes versions that older connectors can still read, which is why it is still here. Versions from the current Publish node need an upgraded connector, so check your collaborators before switching.
+
+<Note>
+  A version published by the current Publish node cannot be read by a **Load (legacy)** node in the
+  same script. If you publish and reload in one definition, use the current nodes for both.
+</Note>

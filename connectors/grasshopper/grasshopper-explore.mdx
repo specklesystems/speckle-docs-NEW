@@ -1,0 +1,64 @@
+---
+title: 'Explore'
+description: 'Find out what a Speckle Object is connected to in Grasshopper.'
+---
+
+When you load a model you get the objects themselves - geometry, properties, materials. The model also knows how those objects relate to each other: which level a wall sits on, which room it is in, which block definition an instance uses, what it is hosted on.
+
+The **Explore** node surfaces those connections. Plug in any Speckle Object and it works out which relationships exist for that object, then creates an output for each one.
+
+<Note>
+  Explore supports versions published with Speckle 2026.9.0 onwards, loaded with the current [Load
+  node](/connectors/grasshopper/grasshopper-models#loading-models). Versions published before then
+  do not record these connections, so there is nothing for Explore to show.
+</Note>
+
+## Using Explore
+
+Inputs:
+
+1. Add a **Speckle Object** input of the object you want to explore. This can be a Speckle Geometry, a Speckle Data Object, a Block Instance, or a Collection.
+
+Outputs:
+
+1. An output is created for each relationship the model records for that object. The set of outputs changes with what you plug in, so a Revit object and a Rhino object produce different ones.
+
+## What you can expect to find
+
+The outputs depend on the source application, because different applications record different things. Some examples:
+
+- a wall gives you its level, the rooms it bounds, its type properties, and its sub-elements
+- a block instance gives you its definition, and the other placements using that same definition
+- a whole model Collection gives you every level and its elevation
+- a structural member from ETABS gives you its analysis results
+
+<Info>
+  Explore does not repeat what the object already carries. Material, colour and Collection path are
+  already set on the object when it loads, so they are not shown again here.
+</Info>
+
+## Working with analysis results
+
+Structural results come out as several outputs of the same length, one per column of the results: result type, load case, component, station, step, and value. Each row lines up across all of them.
+
+That means you can use the normal list tools to group them - **Sift Pattern** or **Member Index** on the load case output, for example, to pull out just the results for one case.
+
+Outputs only appear for the columns your model actually uses, so a result type without a station will not show a station output.
+
+## Objects Explore cannot read
+
+Some objects have no connections to show:
+
+- objects from a version published before Speckle 2026.9.0 - by far the most common reason, as older versions do not record connections
+- objects loaded with a **Load (legacy)** node
+- objects from inside a block definition, rather than a placed instance
+- objects that were never loaded from Speckle
+
+In these cases Explore shows a remark on the canvas explaining why, and produces no outputs.
+
+Republishing the model with the current [Publish node](/connectors/grasshopper/grasshopper-models#publishing-models) creates a version Explore can read.
+
+<Note>
+  If Explore reports that nothing is cached for a model that loaded correctly earlier, reload the
+  model. Explore reads a local copy that your machine may have cleared.
+</Note>
