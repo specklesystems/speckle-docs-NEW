@@ -1,0 +1,111 @@
+---
+title: 'Upgrading your scripts'
+description: 'Move an existing Grasshopper script to the current Load and Publish nodes.'
+sidebarTitle: 'Upgrading scripts'
+---
+
+Speckle 2026.9.0 introduced new Load and Publish nodes. Your existing scripts keep working exactly as they did, so there is nothing you have to do today.
+
+This page covers what changed, and what to check when you are ready to move a script across.
+
+<Note>
+  Nothing is removed from your canvas and no wires break. The nodes you already have are renamed and
+  hidden from the ribbon, not deleted.
+</Note>
+
+## What changed
+
+The Load and Publish nodes were split in two rather than changed in place, so an existing script cannot shift under you.
+
+| Node on your canvas                  | What it does now                                                  |
+| ------------------------------------ | ----------------------------------------------------------------- |
+| `Load` / `Publish`                   | The current nodes. Support Speckle 2026.9.0 onwards.              |
+| `Load (legacy)` / `Publish (legacy)` | Your existing nodes, renamed. Still work, hidden from the ribbon. |
+
+The same applies to `(Sync) Load` and `(Sync) Publish`.
+
+## Do I need to upgrade?
+
+| If you...                                                            | Then...                                                           |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| have scripts that work and you are not changing them                 | Nothing to do. Leave them alone.                                  |
+| are building a new script                                            | You already have the current nodes; the ribbon only offers those. |
+| want the [Explore node](/connectors/grasshopper/grasshopper-explore) | Upgrade the script's Load node.                                   |
+| load a version published by an upgraded teammate                     | Upgrade the script's Load node.                                   |
+
+## Upgrade a script
+
+<Steps>
+  <Step title="Add the current Load node">
+    Place a `Load` node from the ribbon and move your Speckle Model wire onto it. Its `Collection`
+    output goes where the old one went.
+  </Step>
+  <Step title="Reconnect anything downstream">
+    Check the nodes reading that Collection still resolve. Object grouping differs, so list lengths
+    and tree branches can shift - see [What the output looks like](#what-the-output-looks-like).
+  </Step>
+  <Step title="Delete the old node">
+    Remove the `Load (legacy)` node once nothing is wired to it.
+  </Step>
+  <Step title="Repeat for Publish, if your script publishes">
+    Read [Before you switch Publish](#before-you-switch-publish) first - this one affects your
+    collaborators, not just you.
+  </Step>
+</Steps>
+
+## What the output looks like
+
+The current Load node reflects how models are stored now, so some outputs differ.
+
+| Output       | `Load (legacy)`                    | `Load`                         |
+| ------------ | ---------------------------------- | ------------------------------ |
+| `Collection` | Objects grouped into Data Objects  | Geometry as individual objects |
+| `Properties` | Model-wide properties              | Model-wide properties          |
+| `Proxies`    | Materials, colours, levels, groups | Not available - see below      |
+
+Nothing is lost. Materials and colours arrive on each object rather than in a side list, and levels, rooms, hosts and definitions are reachable through the [Explore node](/connectors/grasshopper/grasshopper-explore).
+
+<Warning>
+  Because geometry is no longer grouped into Data Objects, a wall that arrived as one item may now
+  arrive as several. Check any downstream logic that relies on list length or item index.
+</Warning>
+
+## Before you switch Publish
+
+Versions from the current `Publish` node need an upgraded connector to read. Versions from `Publish (legacy)` can still be read by older connectors, which is why it is still available.
+
+If people consume your model in another application, confirm they have upgraded before you switch. If you are not sure, leave Publish on the legacy node and upgrade Load only - the two are independent.
+
+## Do not mix generations in one script
+
+If your script publishes and then reloads in the same definition, use the current nodes for both. A version created by the current `Publish` node cannot be read by a `Load (legacy)` node.
+
+## Messages you might see
+
+| Message                                                              | What it means                                                             |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| This Load component is deprecated                                    | You are on a legacy node. Nothing is wrong; upgrade when convenient.      |
+| This version was published before Speckle 2026.9.0                   | An older version loaded fine. Grouping and collection paths may differ.   |
+| This version needs the current Load component                        | A legacy node hit a version it cannot fully read. Upgrade the node.       |
+| Versions published by this component can be read by older connectors | A reminder from `Publish (legacy)`. Check collaborators before switching. |
+
+## Frequently asked
+
+<AccordionGroup>
+  <Accordion title="Will my saved scripts break?">
+    No. Nodes are matched by identity, not by name, so renaming them has no effect on your files. No
+    node turns into a placeholder and no wire is dropped.
+  </Accordion>
+  <Accordion title="Why can't I find Load in the ribbon anymore?">
+    You can - it is the same place it always was. The node named `Load (legacy)` is the hidden one,
+    and the `Load` in the ribbon is the current node.
+  </Accordion>
+  <Accordion title="Can I copy a legacy node from an old script?">
+    Yes, copy and paste still works. It is worth replacing it with the current node instead, so the
+    script does not carry the older behaviour forward.
+  </Accordion>
+  <Accordion title="Do I have to upgrade Load and Publish together?">
+    No. They are independent. Upgrading Load only is a good first step, since it affects nobody but
+    you.
+  </Accordion>
+</AccordionGroup>
