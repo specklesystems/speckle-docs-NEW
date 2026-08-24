@@ -1,11 +1,19 @@
 ---
-title: Deployment Options
-description: This page provides a comprehensive overview of all available deployment methods for the Speckle server, helping you choose the right approach for your specific needs and requirements.
+title: Self-Hosted Deployment Options
+description: Compare currently documented self-hosting methods after deciding to operate a Speckle server.
 ---
 
 ## Overview
 
-Speckle server can be deployed using several different methods, each suited for different use cases, team sizes, and technical requirements. The choice of deployment method depends on factors such as:
+This page compares methods for deploying a Speckle server on infrastructure your organisation
+operates. It does not compare self-hosting with Speckle Cloud.
+
+If you have not established that operating Speckle infrastructure creates value for your
+organisation or is required by a concrete constraint, start with [Choosing a Speckle
+Deployment](/developers/server/self-hosted-vs-cloud-hosted-speckle). Speckle Cloud remains the
+recommended deployment for most organisations.
+
+After choosing to self-host, select a deployment method based on factors such as:
 
 - **Team size** and expected user load
 - **Technical expertise** available
@@ -17,22 +25,25 @@ Speckle server can be deployed using several different methods, each suited for 
 ## Deployment Methods
 
 <Note>
-  **Need Help Choosing?** If you're unsure which deployment method is right for you, start with
-  Docker Compose for most use cases. It provides the best balance of simplicity, functionality, and
-  cost-effectiveness.
+  Deployment support can change between Speckle releases. Confirm that a method is documented for
+  the version you intend to run before designing your infrastructure around it. Docker Compose is a
+  currently documented public OSS path for development, evaluation, and testing. Speckle does not
+  recommend Docker Compose for production deployments. Customer-operated production deployments,
+  including Speckle Enterprise Server, use Kubernetes. Enterprise deployments follow the
+  prerequisites in the [Enterprise License guide](/developers/server/deployment/enterprise-license).
 </Note>
 
-### Docker Compose (Recommended for most users)
+### Docker Compose (Current Public OSS Path)
 
-**Best For:** Small to medium teams, organizations starting with Speckle, cost-conscious deployments
+**Best For:** Development, evaluation, testing, and experimentation with versions of the public OSS
+distribution that document Docker Compose
 
 Key Benefits:
 
 - **Simple Setup**: Single command deployment with minimal configuration
-- **Cost Effective**: Runs on any Linux server with Docker support
+- **Accessible Infrastructure**: Runs on a Linux server with Docker support
 - **Full Control**: Complete control over infrastructure and configuration
-- **Easy Maintenance**: Simple update and backup procedures
-- **Production Ready**: Includes SSL, monitoring, and backup capabilities
+- **Direct Operations**: Updates, backups, and recovery can use the operator's existing server tooling
 
 Technical Requirements:
 
@@ -43,11 +54,9 @@ Technical Requirements:
 
 Use Cases:
 
-- Teams of 5-50 users
-- Organizations wanting full control over their data
-- Cost-sensitive deployments
-- Proof of concept and testing environments
-- Educational institutions and research organizations
+- Local development and contribution environments
+- Evaluation and testing
+- Short-lived experiments with the public OSS distribution
 
 Limitations:
 
@@ -55,18 +64,20 @@ Limitations:
 - Manual scaling required
 - Limited to single geographic location
 - Requires manual maintenance and updates
+- Not recommended for production deployments
 
-### Kubernetes (Enterprise & Production)
+### Kubernetes (Multi-Node and Enterprise Deployments)
 
-**Best For:** Large organizations, enterprise deployments, high-availability requirements
+**Best For:** Customer-operated deployments that require multi-node infrastructure, orchestration,
+or the licensed Speckle Enterprise Server product
 
 Key Benefits:
 
 - **High Availability**: Multi-node deployment with automatic failover
 - **Auto Scaling**: Automatic scaling based on load and resource usage
-- **Global Deployment**: Multi-region and multi-cloud deployments
+- **Placement Flexibility**: Use clusters in the regions or cloud infrastructure you operate
 - **Advanced Orchestration**: Rolling updates, health checks, and auto-recovery
-- **Enterprise Features**: Load balancing, ingress management, and monitoring
+- **Infrastructure Controls**: Load balancing, ingress management, and monitoring
 
 Technical Requirements:
 
@@ -78,11 +89,10 @@ Technical Requirements:
 
 Use Cases:
 
-- Enterprise organizations with 50+ users
-- High-availability production environments
-- Multi-region deployments
-- Organizations with existing Kubernetes infrastructure
-- Applications requiring advanced orchestration
+- Public OSS deployments with high-availability or advanced orchestration requirements
+- Organisations with existing Kubernetes infrastructure
+- Licensed Speckle Enterprise Server deployments
+- Multi-region deployments where supported by the selected product and configuration
 
 Limitations:
 
@@ -93,56 +103,47 @@ Limitations:
 
 ## Comparison Matrix
 
-| Feature                | Docker Compose | Kubernetes |
-| ---------------------- | -------------- | ---------- |
-| **Setup Complexity**   | Low            | High       |
-| **Maintenance Effort** | Low            | High       |
-| **Cost**               | $              | $$$        |
-| **Scalability**        | Manual         | Automatic  |
-| **High Availability**  | No             | Yes        |
-| **Production Ready**   | Yes            | Yes        |
-| **Customization**      | Medium         | High       |
-| **Learning Curve**     | Low            | High       |
-| **Infrastructure**     | Single Server  | Cluster    |
-| **Best For Teams**     | 5-50 users     | 50+ users  |
+| Boundary               | Docker Compose                              | Kubernetes                                       |
+| ---------------------- | ------------------------------------------- | ------------------------------------------------ |
+| **Setup complexity**   | Lower                                       | Higher                                           |
+| **Maintenance effort** | Lower, but operator-owned                   | Higher and operator-owned                        |
+| **Cost profile**       | Single-server infrastructure and operations | Cluster infrastructure and specialist operations |
+| **Scaling**            | Manual                                      | Orchestrated                                     |
+| **High availability**  | No built-in high availability               | Multi-node patterns available                    |
+| **Recommended scope**  | Development, evaluation, and testing        | Customer-operated production deployments         |
+| **Operator expertise** | Linux and Docker                            | Kubernetes                                       |
+| **Typical topology**   | Single server                               | Multi-node                                       |
 
 ## Decision Guide
 
-### I want to get started quickly with minimal setup
+This guide applies after self-hosting has been chosen intentionally. If operating Speckle
+infrastructure does not create value for your organisation, use Speckle Cloud.
 
-Choose: Docker Compose:
+### I need a public OSS development, evaluation, or test environment
+
+Use: The Docker Compose path documented for your version:
 
 - Simple one-command deployment
 - Minimal configuration required
 - Works on any Linux server
 - Includes all necessary components
 
-### I'm deploying for my organization and need reliability
-
-Choose: Docker Compose:
-
-- Production-ready with SSL and monitoring
-- Cost-effective for most organizations
-- Easy to maintain and update
-- Good for teams up to 50 users
-
-### I need enterprise-grade deployment with high availability
+### I chose public OSS for a production environment
 
 Choose: Kubernetes:
 
 - Multi-node deployment with automatic failover
 - Auto-scaling capabilities
 - Advanced monitoring and orchestration
-- Suitable for large organizations
+- Suitable when your operations team is prepared to run Kubernetes
 
-### I need global deployment across multiple regions
+### I need the Enterprise product in customer-controlled infrastructure
 
-Choose: Kubernetes:
+Evaluate: Speckle Enterprise Server:
 
-- Multi-region deployment capabilities
-- Load balancing across geographic locations
-- Advanced networking and routing
-- Enterprise-grade infrastructure
+- Confirm that the licensed product and support boundary meet your requirements
+- Follow the [Enterprise License guide](/developers/server/deployment/enterprise-license)
+- Plan for the required Kubernetes infrastructure and customer-operated data plane
 
 ## Getting Help
 

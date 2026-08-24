@@ -1,7 +1,15 @@
 ---
-title: Getting Started
-description: Quick start guide to deploy a Speckle server using Docker Compose. Learn the minimal steps to get a server running, including prerequisites, Docker Compose setup, and initial configuration for local or production use.
+title: Docker Compose Quickstart
+sidebarTitle: Getting Started
+description: Run the public Speckle server with Docker Compose for development, evaluation, and testing.
 ---
+
+<Warning>
+  This Docker Compose path is for development, evaluation, and testing. Speckle does not recommend
+  Docker Compose for production deployments. For a customer-operated production environment, use
+  [Kubernetes](/developers/server/deployment/kubernetes-with-helm). Speckle Enterprise Server also
+  requires Kubernetes.
+</Warning>
 
 ## Prerequisites
 
@@ -87,6 +95,10 @@ services:
       POSTGRES_USER: 'speckle'
       POSTGRES_PASSWORD: 'speckle'
       POSTGRES_DB: 'speckle'
+      # File-import jobs are queued in this database; must match the ifc-import-service below
+      FILEIMPORT_QUEUE_POSTGRES_URL: 'postgresql://speckle:speckle@postgres/speckle'
+      # Required on public Speckle Server releases so IFC jobs are queued for ifc-import-service
+      FF_NEXT_GEN_FILE_IMPORTER_ENABLED: 'true'
       REDIS_URL: 'redis://redis'
       S3_ENDPOINT: 'http://minio:9000'
       S3_PUBLIC_ENDPOINT: 'http://127.0.0.1:9000'
@@ -119,14 +131,13 @@ services:
     environment:
       PG_CONNECTION_STRING: 'postgres://speckle:speckle@postgres/speckle'
 
-  fileimport-service:
-    image: speckle/speckle-fileimport-service:latest
+  ifc-import-service:
+    image: speckle/speckle-ifc-import-service:latest
     restart: always
     depends_on:
       - speckle-server
     environment:
-      SPECKLE_SERVER_URL: 'http://speckle-server:3000'
-      PG_CONNECTION_STRING: 'postgres://speckle:speckle@postgres/speckle'
+      FILEIMPORT_QUEUE_POSTGRES_URL: 'postgresql://speckle:speckle@postgres/speckle'
 ```
 
 </Step>
@@ -150,8 +161,8 @@ Once running, access your Speckle server at:
 
 1. **Create your first user** by visiting the frontend URL
 2. **Configure your server** - a full example is [part of the server repo](https://github.com/specklesystems/speckle-server/blob/main/docker-compose-speckle.yml)
-3. **Set up SSL certificates** for production use
-4. **Configure backups** and monitoring
+3. **Use non-default credentials and secrets** before sharing the environment with other testers
+4. **Review logs and resource use** while evaluating your expected workload
 
 ## Getting Help
 
@@ -159,6 +170,7 @@ Once running, access your Speckle server at:
 - **Professional Support**: [https://speckle.systems/pricing/](https://speckle.systems/pricing/)
 
 <Note>
-  **Important**: This basic setup is not recommended for production use. For production deployments,
-  see the complete [Docker Compose Quickstart](/developers/server/getting-started) guide.
+  Do not promote this Docker Compose environment into production. Use the [Kubernetes deployment
+  guide](/developers/server/deployment/kubernetes-with-helm) to design a customer-operated
+  production environment.
 </Note>
