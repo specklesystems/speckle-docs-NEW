@@ -1,0 +1,121 @@
+---
+title: "Speckle's data model is changing: what developers need to know"
+sidebarTitle: Data model migration
+description: 'What changes for SDK, API, and Automate consumers, and what to do about it'
+noindex: true
+---
+
+<Warning>
+  **This page is for developers building on Speckle** — SDK consumers, GraphQL/REST API users,
+  Speckle Automate developers, notebook users, and anyone reading or writing Speckle object data
+  directly. If you only use Speckle through desktop connectors or the web app, see [Data model
+  migration for workspaces](/workspaces/data-model-migration) instead.
+</Warning>
+
+## What's changing
+
+Speckle is introducing a new underlying data model that significantly improves scalability, storage efficiency, and performance. It replaces today's tree-and-Proxy object graph with two things working together: a columnar property store for fast querying and aggregation, and an explicit relational layer describing how elements relate to one another — containment, connectivity, systems, materials — richer than today's Proxies.
+
+This is a foundational change, not a cosmetic one. It's what lets Speckle handle dramatically larger models, and the relational layer specifically is what lets newer features — including Speckle Intelligence — answer questions about how things connect and contain each other, not just look up properties on individual objects.
+
+## What isn't changing
+
+Your desktop and web workflows aren't going anywhere. Publish and view through supported connectors exactly as you do today — just faster, once your project has migrated.
+
+## Why this change
+
+- **Scale.** The current object graph becomes slow and memory-intensive as models grow larger. The new format is built to hold much larger models without that penalty.
+- **Performance.** Faster extraction, loading, and querying — for you and for anything built on top of the data.
+- **A real analytical model.** Speckle's data becomes something you can query and aggregate directly, rather than something you have to walk and reconstruct object by object.
+- **AI support.** Speckle Intelligence queries both properties and relations directly, which is what lets it answer topology questions — what's connected to what, what's contained in what — rather than just looking up a single object's properties.
+
+## Who's affected
+
+For almost everyone, nothing breaks. Existing connectors, SDKs, and integrations — including Power BI — continue to work with your published data exactly as they do today. Nothing forces the move, and there's nothing to do.
+
+The one area to watch is data that reaches Speckle without going through a connector: **ACC sync** and **drag-and-drop file uploads**. That data auto-migrates to the new format by default. If something downstream — a custom integration, a script, an API consumer — expects the old format and breaks as a result, you can ask us to switch your workspace to **compatibility mode**, which keeps writing in the old format while you update.
+
+<Warning>
+  Compatibility mode is a bridge, not a fix. It's available until **1 November 2026** — anything
+  relying on it needs to be migrated off before then.
+</Warning>
+
+Everyone else — desktop connector users, SDK/API consumers, custom analytics, and ETL — can carry on as normal.
+
+Speckle Automate functions are worth calling out specifically, since what a function needs to do depends on which connector produced the version it's processing, not on the function's own code:
+
+- **Version published by an old connector:** your function keeps working exactly as it does today. Nothing to change.
+- **Version published by a connector that only writes the new bundle format:** your function's SDK dependency needs a version bump before it can read that version. No code change required — just an updated SDK build.
+
+## Self-hosted servers
+
+Running your own Speckle server? It keeps doing exactly what it does today. There's no requirement to upgrade immediately — existing workflows keep working against the current generation of self-hosted servers.
+
+If you're running Speckle's open-source core, you already own your connector distribution — that's the standard for a healthy self-hosted stack, not something Speckle auto-updates for you. If your current connector and server versions work together, pin both, and keep any of your own downstream users on that same combination.
+
+<Note>
+  There's no fixed date yet for this data model reaching the open-source core specifically —
+  consistent with Speckle's general policy of releasing new major versions to open source once
+  they're proven stable, rather than on a fixed date.
+</Note>
+
+## Migration guidance
+
+Old connectors, old SDKs, and your existing published data aren't on a deprecation clock — they continue working exactly as they do now. ACC sync and drag-and-drop uploads auto-migrate to the new format after the migration; if that breaks something downstream, ask us to switch your workspace into compatibility mode to keep writing the old format while you update.
+
+If you maintain internal tooling that reads Speckle data more directly than the standard SDK/API surface — something that assumes the shape of the old object model rather than going through supported accessors — and it breaks against the new format, pin your server and connector to **v2026.8**: the last version before this migration converts data to the new model. That buys you time to update the tool without anything breaking in the meantime.
+
+## What you should do
+
+<Steps>
+  <Step title="Update your connectors">
+    Update from **1 September 2026**, no later than **1 November 2026**, when compatibility mode for
+    ACC sync and drag-and-drop goes away. Old connectors keep working either way — updating just
+    means getting there without the bumps, and getting the performance gains sooner.
+  </Step>
+  <Step title="Check whether ACC sync or drag-and-drop affects you">
+    If your workflow depends on ACC sync or drag-and-drop uploads, and something downstream consumes
+    that data directly (a script, a custom Power BI query, an API integration), ask us to switch
+    your workspace into compatibility mode before **1 November 2026**.
+  </Step>
+  <Step title="Bump your Automate function's SDK, if needed">
+    If a function processes a version published by a connector that only writes the new bundle
+    format, bump its SDK dependency. No code change needed — versions from old connectors need
+    nothing done at all.
+  </Step>
+  <Step title="Pin your self-hosted stack, if applicable">
+    If you self-host, pin your current connector-and-server combination rather than updating
+    further, and keep any of your own downstream users on that same combination. See [Self-hosted
+    servers](#self-hosted-servers) above.
+  </Step>
+</Steps>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do I need to change anything if I only use standard connectors, SDKs, or APIs?">
+    No. Existing connectors, SDKs, and integrations — including Power BI — continue working with
+    your published data exactly as they do today. This migration doesn't put them on a clock.
+  </Accordion>
+  <Accordion title="What happens to data that's already published?">
+    It remains valid and readable. The migration affects how new data is handled going forward, not
+    what already exists in your projects.
+  </Accordion>
+  <Accordion title="Does this affect my Speckle Automate functions?">
+    It depends on which connector published the version your function is processing, not on your
+    function's own code. A version from an old connector works with your function exactly as it does
+    today. A version from a connector that only writes the new bundle format needs your function's
+    SDK dependency bumped — no code change, just an updated SDK build.
+  </Accordion>
+  <Accordion title="What if my integration doesn't fit either 'standard SDK' or 'ACC sync/drag-and-drop'?">
+    If you maintain a production integration that reads Speckle data more directly than the standard
+    SDK/API surface, pin to **v2026.8** in the meantime — see [Migration
+    guidance](#migration-guidance) — and reach out via
+    [speckle.community/help](https://speckle.community/help) or your Customer Success Advisor so we
+    can walk through your specific setup.
+  </Accordion>
+</AccordionGroup>
+
+## Questions
+
+Still unclear? Chat with us in-app, post in [speckle.community/help](https://speckle.community/help), or reach out to your Customer Success Advisor.
