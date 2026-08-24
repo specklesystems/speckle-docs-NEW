@@ -16,7 +16,10 @@ It flips eight Helm chart defaults on, starts a background data migration
 that must fully drain before you upgrade to 2026.8, and removes frontend-2.
 Read the [license requirement](#before-you-upgrade-the-license-requirement)
 before running the upgrade: a default upgrade without a license fails at
-startup.
+startup. Also check the
+[infrastructure requirements](#infrastructure-requirements): from this
+release, clients upload and download model data through pre-signed URLs, so
+your object storage must be reachable from outside the cluster.
 
 ## Shipped versions
 
@@ -75,18 +78,59 @@ featureFlags:
 The following values default to enabled in the 2026.7 `speckle-server`
 chart. Deployments that already set them explicitly are unaffected.
 
-| Value                                      | What it enables                                                              |
-| ------------------------------------------ | ---------------------------------------------------------------------------- |
-| `featureFlags.workspacesModuleEnabled`     | Workspaces (requires a license, see above)                                   |
-| `featureFlags.gatekeeperModuleEnabled`     | Gatekeeper, the billing and licensing module (requires a license, see above) |
-| `featureFlags.savedViewsEnabled`           | Saved views                                                                  |
-| `featureFlags.issuesModuleEnabled`         | Issues                                                                       |
-| `featureFlags.multipleEmailsModuleEnabled` | Multiple email addresses per account                                         |
-| `featureFlags.retryErroredPreviewsEnabled` | Periodic retry of errored previews                                           |
-| `featureFlags.dataModuleEnabled`           | The data module, including the objects migration below                       |
-| `ifc_import_service.enabled`               | The IFC import worker deployment                                             |
+| Value                                      | What it enables                                                  |
+| ------------------------------------------ | ---------------------------------------------------------------- |
+| `featureFlags.workspacesModuleEnabled`     | Workspaces (requires a license, see above)                       |
+| `featureFlags.gatekeeperModuleEnabled`     | Gatekeeper, the licensing module (requires a license, see above) |
+| `featureFlags.savedViewsEnabled`           | Saved views                                                      |
+| `featureFlags.issuesModuleEnabled`         | Issues                                                           |
+| `featureFlags.multipleEmailsModuleEnabled` | Multiple email addresses per account                             |
+| `featureFlags.retryErroredPreviewsEnabled` | Periodic retry of errored previews                               |
+| `featureFlags.dataModuleEnabled`           | The data module, including the objects migration below           |
+| `ifc_import_service.enabled`               | The IFC import worker deployment                                 |
 
 `featureFlags.dashboardsModuleEnabled` stays off by default.
+
+## Infrastructure requirements
+
+Each release page lists the infrastructure a deployment must provide for
+that release to function. For 2026.7 there is one requirement.
+
+### Object storage must be reachable by clients
+
+2026.7's data module moves packfile traffic out of the server and onto
+pre-signed URLs, in both directions:
+
+- **Publish**: the server hands publishing clients (connectors, the import
+  workers, SDK scripts) a pre-signed `PUT` URL, and the client uploads the
+  packfile directly to object storage.
+- **View**: the artifact endpoints return pre-signed `GET` URLs per file,
+  and the viewer running in the user's browser fetches the packfiles
+  directly from object storage.
+
+Both mean the object storage endpoint embedded in those URLs must be
+addressable by your users' machines and browsers, not just from inside the
+cluster. Check the following:
+
+1. **Endpoint reachability.** Pre-signed URLs are generated against
+   `s3.publicEndpoint` when set, otherwise `s3.endpoint`. If your storage
+   is reached through a private or in-cluster address (for example
+   in-cluster MinIO), set `s3.publicEndpoint` to an HTTPS URL your clients
+   can reach, and keep `s3.endpoint` on the private address for
+   server-side traffic. Browsers must also trust the certificate on that
+   public endpoint.
+2. **Bucket CORS (S3-compatible storage only).** Browsers call the
+   pre-signed URLs cross-origin, so the bucket must allow `GET`, `PUT`,
+   and `POST` from your users' origins, allow all request headers, and
+   expose at least the `ETag`, `Content-Encoding`, and `Content-Length`
+   response headers. `ETag` is required: the upload flow reports it back
+   to the server to complete a publish. Azure Blob Storage needs no manual
+   setup; the server configures the service's CORS rules at startup.
+
+To verify, publish a model from a connector and open it in the viewer from
+a machine outside your network. If the publish stalls after the file is
+prepared, or the viewer shows an empty scene while the browser console
+logs blocked or failing storage requests, revisit the two points above.
 
 ## The objects migration runs by default
 
