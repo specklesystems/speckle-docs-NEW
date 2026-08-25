@@ -11,7 +11,7 @@ export default defineConfig({
    * Local templates win name conflicts; don't add local copies of shared
    * skills.
    */
-  additionalTemplateDirs: ['../atlas/uac'],
+  additionalTemplateDirs: ['../atlas/uac', '../.universal-ai-config'],
   variables: {
     projectName: 'speckle-docs',
     /**
