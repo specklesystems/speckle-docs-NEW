@@ -2,7 +2,8 @@
 /**
  * Orphan page check.
  *
- * Finds pages that exist as files but appear nowhere in navigation.json.
+ * Finds pages that exist as files but appear nowhere in navigation.json
+ * (including nested `$ref` files, resolved relative to the file that contains them).
  * Some orphans are deliberate — pages published so they can be shared as a
  * direct link without cluttering the sidebar. Those belong in the allowlist
  * (scripts/orphan-allowlist.txt), which requires a reason next to each entry.
@@ -40,19 +41,30 @@ function walk(dir, out = []) {
 }
 
 /** Every page path referenced anywhere in the navigation tree. */
-function navPages(node, found = new Set()) {
+function navPages(node, found = new Set(), baseDir = root) {
   if (Array.isArray(node)) {
-    for (const item of node) navPages(item, found)
-  } else if (node && typeof node === 'object') {
-    for (const [key, value] of Object.entries(node)) {
-      if (key === 'pages') {
-        for (const page of value) {
-          if (typeof page === 'string') found.add(page)
-          else navPages(page, found)
-        }
-      } else if (value && typeof value === 'object') {
-        navPages(value, found)
+    for (const item of node) navPages(item, found, baseDir)
+    return found
+  }
+  if (!node || typeof node !== 'object') return found
+
+  if (typeof node.$ref === 'string') {
+    const refPath = path.resolve(baseDir, node.$ref)
+    if (!fs.existsSync(refPath)) {
+      throw new Error(`navigation $ref not found: ${node.$ref} (resolved ${refPath})`)
+    }
+    const refNode = JSON.parse(fs.readFileSync(refPath, 'utf8'))
+    return navPages(refNode, found, path.dirname(refPath))
+  }
+
+  for (const [key, value] of Object.entries(node)) {
+    if (key === 'pages') {
+      for (const page of value) {
+        if (typeof page === 'string') found.add(page)
+        else navPages(page, found, baseDir)
       }
+    } else if (value && typeof value === 'object') {
+      navPages(value, found, baseDir)
     }
   }
   return found

@@ -28,6 +28,14 @@ This project uses **universal-ai-config** for canonical doc rules. Generated ins
 - **Tutorials**: keep tutorials separate; if a flow needs more than 3–5 steps, link out.
 - **Cross-link and naming**: cross-link related pages; name sections by user intent.
 
+## Speckle Next (`next/`)
+
+- **Hard rule:** Speckle Next is an internal codename for **v2026.9**, one of several. Never write "Speckle Next" (or other internal codenames) in reader-facing docs, nav labels, titles, or banners. The `next/` directory is an internal path only. **v2026.9** is the temporary public label. It is fine if that string leaks as pages ship. Do not hide it, do not add a "placeholder" disclaimer for readers, and do not invent a marketing name. When product supplies a public name, replace v2026.9 everywhere it appears.
+- v2026.9 is a Mintlify **version** (`navigation.versions` in `navigation.json` / `navigation.next.json`), not a top-level dropdown. Do not add a v2026.9 item next to User Guides / Developers / IT Administrators.
+- Every page under `next/` sets `noindex: true`, `contextual.options: []`, and the preview banner (`snippets/next-preview-banner.mdx`).
+- `next/` is additive and sparse. Do not clone or port a main-docs page into `next/` as a starting point.
+- A missing `next/` page is expected. Do not backfill "for completeness." Gap analysis is a later explicit pass.
+
 ## Downloadable assets
 
 Mintlify serves only a limited set of file types from the deployed docs site (for example images, `.json`, `.yaml`, `.css`, `.js`, and fonts). It does **not** serve direct downloads for notebooks (`.ipynb`), archives, PDFs on standard plans, and many other asset types.
