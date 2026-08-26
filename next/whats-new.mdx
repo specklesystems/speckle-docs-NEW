@@ -1,0 +1,75 @@
+---
+title: Compare Current and v2026.9
+sidebarTitle: Comparison
+description: Side-by-side Current versus v2026.9 changes from shipped migration docs. Rows without a shipped source are omitted.
+noindex: true
+contextual:
+  options: []
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<NextPreviewBanner />
+
+Use this table to see what already differs between Current and v2026.9. Every row traces to the
+shipped [workspace data model migration](/workspaces/data-model-migration) or
+[developer data model migration](/developers/migration/data-model-migration) pages. For the current
+product, switch to **Current** in the version selector, or open those migration pages directly.
+
+A missing row is expected. This page does not guess at connector hosts, workspace UI, analytics, or
+viewer changes that do not yet have a shipped source.
+
+## What's different
+
+| Area                        | Current                                                    | v2026.9                                                                                                                                              | Read more                                                                               |
+| --------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Data model                  | Tree-and-Proxy object graph                                | Columnar property store plus an explicit relational layer for containment, connectivity, systems, and materials                                      | [Developer migration](/developers/migration/data-model-migration)                       |
+| Publish, load, and view     | Desktop and web connector workflows                        | Same workflows. After a project migrates, those flows are faster                                                                                     | [Workspace migration](/workspaces/data-model-migration)                                 |
+| Existing published data     | Readable in the current format                             | Remains valid and readable. The change applies to new data going forward                                                                             | [Developer migration](/developers/migration/data-model-migration#faq)                   |
+| ACC sync and drag-and-drop  | Written in the current format                              | Auto-migrates to the new format. If a downstream tool still needs the old format, ask Speckle to enable compatibility mode until **1 November 2026** | [Workspace migration](/workspaces/data-model-migration#who-should-pay-closer-attention) |
+| Connector updates           | Current connectors keep working                            | Update from **1 September 2026**, and no later than **1 November 2026**                                                                              | [Workspace migration](/workspaces/data-model-migration#what-you-should-do-now)          |
+| Speckle Intelligence        | Looks up properties on individual objects                  | Queries properties and relations, including what connects to what and what contains what                                                             | [Developer migration](/developers/migration/data-model-migration)                       |
+| Speckle Automate            | Functions keep working on versions from current connectors | A version from a connector that writes only the new bundle format needs an SDK dependency bump. No function code change                              | [Developer migration](/developers/migration/data-model-migration#whos-affected)         |
+| Direct object-model tooling | Integrations that assume the old object shape              | Pin the server and connectors to **v2026.8** while you update those tools                                                                            | [Developer migration](/developers/migration/data-model-migration#migration-guidance)    |
+| Self-hosted servers         | Current server and connector combination                   | No immediate upgrade. Pin the combination that works. There is no fixed date for this data model on the open-source core                             | [Developer migration](/developers/migration/data-model-migration#self-hosted-servers)   |
+
+These summaries are not a substitute for the migration pages. Follow the linked page for steps,
+dates, and exceptions.
+
+## What this table does not cover
+
+The following topics are out of this table until a shipped source confirms a difference:
+
+- Host-specific connector breaking changes, including Grasshopper, Revit, and Power BI
+- Workspace, project, model, and version UI deltas
+- Data Validation, Data Conditioning, and Dashboards
+- 3D Viewer and Viewer developer APIs
+- Roles and permissions UI
+- TS/JS SDK
+
+Until a v2026.9 page exists for a topic, use the Current docs.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Why isn't my connector in the table?">
+    This table only lists diffs that are already in the shipped migration pages. Standard
+    connectors, SDKs, and integrations — including Power BI — continue to work with published data
+    as they do today, according to those pages. Host-specific breaking changes will appear in
+    connector docs when a confirmed source exists.
+  </Accordion>
+  <Accordion title="What happens if a topic has no v2026.9 page?">
+    Use the Current documentation. A missing preview page means this version of the docs has not
+    recorded a difference yet, not that the feature disappeared.
+  </Accordion>
+  <Accordion title="Do I need compatibility mode if I only publish from desktop connectors?">
+    No. Compatibility mode is the temporary bridge for ACC sync and drag-and-drop uploads when
+    something downstream still expects the old format. It ends on **1 November 2026**. See [Who
+    should pay closer attention](/workspaces/data-model-migration#who-should-pay-closer-attention).
+  </Accordion>
+  <Accordion title="What if I self-host and my stack already works?">
+    Keep the current server and connector combination pinned. There is no requirement to upgrade
+    immediately, and there is no fixed date for this data model on the open-source core. See
+    [Self-hosted servers](/developers/migration/data-model-migration#self-hosted-servers).
+  </Accordion>
+</AccordionGroup>
