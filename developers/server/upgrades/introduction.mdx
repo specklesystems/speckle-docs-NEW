@@ -1,0 +1,63 @@
+---
+title: 'Self-hosted upgrade guide'
+description: 'The upgrade path for self-hosted Speckle Enterprise deployments: which release lines exist, the order they must be applied in, and where each release documents its operator actions.'
+sidebarTitle: 'Upgrade guide'
+tag: 'Enterprise'
+noindex: true
+---
+
+<Note>
+  This page is unlisted: it does not appear in the docs navigation, search, or the sitemap. Bookmark
+  it, along with the per-release pages linked below.
+</Note>
+
+<Note>
+  This guide applies to Speckle Enterprise Server. For license setup, see [License
+  Key](/developers/server/deployment/enterprise-license#license-key) in the Enterprise deployment
+  guide.
+</Note>
+
+When you run Speckle on your own infrastructure, some releases change what
+your deployment needs from you: new chart defaults, background data
+migrations, removed components. This guide is the standing entry point for
+those changes. Each release with operator-visible changes gets its own page
+here, published when the release ships.
+
+## Upgrade order
+
+Starting with 2026.7, upgrades between release lines must be applied **in
+order**. Each release includes work that the next release depends on:
+
+1. **2026.6 or earlier → 2026.7.** Upgrading to 2026.7 is a hard
+   requirement before anything later. 2026.7 turns on the
+   objects-to-DuckDB data migration by default, and that migration must
+   complete before you move on. See the
+   [2026.7 upgrade page](/developers/server/upgrades/2026-7).
+2. **2026.7 → 2026.8.** 2026.8 introduces the bundle migration, which
+   builds on the packfiles produced in 2026.7. Running it to completion is
+   **mandatory**, not optional. The software does not block a skip;
+   skipping it breaks the next release.
+3. **2026.8 → 2026.9.** 2026.9 database migrations are irreversible:
+   there is no downgrade path from 2026.9 back to 2026.8. Enter it only
+   after the 2026.8 migration has completed.
+
+<Warning>
+  Do not skip a release, and do not upgrade to 2026.9 until the 2026.8 migration has finished.
+  Skipped migrations do not delete data. On 2026.9, those versions render blank in the viewer and
+  fail previews until the missing migration completes.
+</Warning>
+
+<Note>Recovery is forward-only. Complete the skipped migration. Do not downgrade.</Note>
+
+## Release pages
+
+| Release | Operator highlights                                                                                                                            | Page                                                      |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| 2026.7  | Eight chart defaults enable (license required for two of them), the objects-to-DuckDB migration runs by default, previous web frontend removed | [Upgrading to 2026.7](/developers/server/upgrades/2026-7) |
+| 2026.8  | Bundle migration, mandatory                                                                                                                    | Published with the 2026.8 release                         |
+| 2026.9  | Irreversible database migrations                                                                                                               | Published with the 2026.9 release                         |
+
+<Tip>
+  Before any upgrade, take a database backup. The [server maintenance
+  guide](/developers/server/deployment/backup-upgrade-restore) covers backup and restore procedures.
+</Tip>

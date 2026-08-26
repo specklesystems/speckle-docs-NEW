@@ -1,0 +1,308 @@
+---
+title: 'Upgrading to 2026.7'
+description: 'Operator guide for upgrading a self-hosted Speckle Enterprise deployment to the 2026.7 release line: new chart defaults, the license requirement, and monitoring the objects migration.'
+sidebarTitle: '2026.7'
+tag: 'Enterprise'
+noindex: true
+---
+
+<Note>
+  This page is unlisted: it does not appear in the docs navigation, search, or the sitemap. It is
+  part of the [self-hosted upgrade guide](/developers/server/upgrades/introduction). Bookmark both.
+</Note>
+
+<Note>
+  This upgrade applies to Speckle Enterprise Server. For license setup, see [License
+  Key](/developers/server/deployment/enterprise-license#license-key) in the Enterprise deployment
+  guide.
+</Note>
+
+You cannot upgrade to 2026.8 until this release's objects migration has
+finished. A default upgrade without a Speckle Enterprise license fails at
+startup.
+
+2026.7 is the first release in the
+[upgrade order](/developers/server/upgrades/introduction). It enables eight
+Helm chart defaults, starts a background data migration, and removes the
+previous web frontend from the chart. Read the
+[license requirement](#before-you-upgrade-the-license-requirement) before
+you upgrade. Also check the
+[infrastructure requirements](#infrastructure-requirements): from this
+release, clients upload and download model data through pre-signed URLs, so
+your object storage must be reachable from outside the cluster.
+
+## Shipped versions
+
+The 2026.7 compatibility line consists of:
+
+| Component                         | Version               | Notes                                                                                                              |
+| --------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| speckle-server                    | **2026.7.1**          | 2026.7.0 published no artifacts (its release pipeline failed before publishing); 2026.7.1 is the version to deploy |
+| speckle-automate                  | 2026.7.0              | Execution engine release                                                                                           |
+| speckle-intelligence (dashboards) | 2026.7.0              | First versioned release of the dashboards app and Helm chart                                                       |
+| speckle-oda file importers        | 2026.7.0 and 2026.7.1 | 2026.7.1 is a republish of the Automate function releases                                                          |
+
+## Before you upgrade: the license requirement
+
+Eight chart defaults enable in 2026.7 (full list in the next section). Two
+of them, **workspaces** and **gatekeeper**, require a valid Speckle
+Enterprise license at startup:
+
+- With `featureFlags.gatekeeperModuleEnabled: true` (the new default), every
+  server pod mounts a `LICENSE_TOKEN` environment variable from the
+  `license_token` key of your main server secret (or from
+  `server.licenseTokenSecret` if you override it). If that key does not
+  exist, pods fail with `CreateContainerConfigError` and never start.
+- If the key exists but the token is invalid, module initialization throws
+  and the server exits during startup.
+
+Pick one of these before upgrading:
+
+**Option A: wire in your license.** Add your license token under the
+`license_token` key of the main server secret, or point the chart at
+wherever you keep it:
+
+```yaml
+server:
+  licenseTokenSecret:
+    secretName: '' # defaults to the main server secret (secretName)
+    secretKey: '' # defaults to license_token
+```
+
+**Option B: keep the modules off.** If you do not have a license, disable
+both modules explicitly in your values file:
+
+```yaml
+featureFlags:
+  workspacesModuleEnabled: false
+  gatekeeperModuleEnabled: false
+```
+
+<Warning>
+  Upgrading to 2026.7 with unmodified default values and no license fails at startup. This is not a
+  degraded mode; the server does not come up. Contact Speckle support if you need a license.
+</Warning>
+
+## Chart defaults that enable
+
+The following values default to enabled in the 2026.7 `speckle-server`
+chart. Deployments that already set them explicitly are unaffected.
+
+| Value                                      | What it enables                                                  |
+| ------------------------------------------ | ---------------------------------------------------------------- |
+| `featureFlags.workspacesModuleEnabled`     | Workspaces (requires a license, see above)                       |
+| `featureFlags.gatekeeperModuleEnabled`     | Gatekeeper, the licensing module (requires a license, see above) |
+| `featureFlags.savedViewsEnabled`           | Saved views                                                      |
+| `featureFlags.issuesModuleEnabled`         | Issues                                                           |
+| `featureFlags.multipleEmailsModuleEnabled` | Multiple email addresses per account                             |
+| `featureFlags.retryErroredPreviewsEnabled` | Periodic retry of errored previews                               |
+| `featureFlags.dataModuleEnabled`           | The data module, including the objects migration below           |
+| `ifc_import_service.enabled`               | The IFC import worker deployment                                 |
+
+`featureFlags.dashboardsModuleEnabled` stays off by default.
+
+## Infrastructure requirements
+
+Each release page lists the infrastructure a deployment must provide for
+that release to function. For 2026.7 there is one requirement.
+
+### Object storage must be reachable by clients
+
+2026.7's data module moves packfile traffic out of the server and onto
+pre-signed URLs, in both directions:
+
+- **Publish**: the server hands publishing clients (connectors, the import
+  workers, SDK scripts) a pre-signed `PUT` URL, and the client uploads the
+  packfile directly to object storage.
+- **View**: the artifact endpoints return pre-signed `GET` URLs per file,
+  and the viewer running in the user's browser fetches the packfiles
+  directly from object storage.
+
+Both mean the object storage endpoint embedded in those URLs must be
+addressable by your users' machines and browsers, not just from inside the
+cluster. Check the following:
+
+1. **Endpoint reachability.** Pre-signed URLs are generated against
+   `s3.publicEndpoint` when set, otherwise `s3.endpoint`. If your storage
+   is reached through a private or in-cluster address (for example
+   in-cluster MinIO), set `s3.publicEndpoint` to an HTTPS URL your clients
+   can reach, and keep `s3.endpoint` on the private address for
+   server-side traffic. Browsers must also trust the certificate on that
+   public endpoint.
+2. **Bucket CORS (S3-compatible storage only).** Browsers call the
+   pre-signed URLs cross-origin. The bucket must allow `GET`, `PUT`, and
+   `POST` from your users' origins, and allow all request headers.
+
+   Expose at least the `ETag`, `Content-Encoding`, and `Content-Length`
+   response headers. `ETag` is required: the upload flow reports it back
+   to the server to complete a publish. Azure Blob Storage needs no manual
+   setup; the server configures the service's CORS rules at startup.
+
+To verify, publish a model from a connector and open it in the viewer from
+a machine outside your network. If the publish stalls after the file is
+prepared, or the viewer shows an empty scene while the browser console
+logs blocked or failing storage requests, revisit the two points above.
+
+## Finish the objects migration
+
+With `featureFlags.dataModuleEnabled: true`, the server backfills every existing
+version from per-object rows in the Postgres `objects` table into
+DuckDB-based packfiles in your blob storage. New versions are packed as
+they are created; the backfill converts your history.
+
+The backfill is additive: it writes packfiles and index rows and stamps
+each version as migrated. It does not delete or modify rows in the
+`objects` table.
+
+<Warning>
+  The migration must complete before you upgrade to 2026.8. The 2026.8 bundle migration builds on
+  the packfiles this backfill produces. Use the monitoring queries below to confirm completion.
+</Warning>
+
+### Load profile
+
+- The backfill runs inside your existing server pods. Every server pod
+  participates by default; set `IS_OBJECT_PROCESSOR=false` on a deployment
+  to opt specific pods out (for example a pod pool dedicated to GraphQL
+  traffic).
+- A scheduler scans for unmigrated versions once per minute and enqueues up
+  to 35 of them when the queue is quiet, so the backfill runs as a steady
+  trickle rather than a burst.
+- Until the backfill completes, expect sustained read load on Postgres
+  (the `objects` table), extra CPU and memory use on server pods, temporary
+  files on pod-local disk, and write traffic to blob storage.
+- Failed versions are retried up to 3 times; the last error is recorded per
+  version.
+
+<Tip>
+  Each pod processes one migration job at a time by default (`DATA_PROCESSING_CONCURRENCY`, default
+  `1`). A single job can hold multiple gigabytes of memory for large models, and concurrency
+  multiplies that peak. Raise it only if your pods have memory headroom; memory exhaustion is the
+  main way this worker gets OOMKilled.
+</Tip>
+
+### Monitoring the migration
+
+<Warning>
+  There is no Prometheus metric for this migration. The only monitoring surface is SQL against the
+  server's Postgres database.
+</Warning>
+
+Versions still waiting to be migrated (a version is migrated once its
+`commits.objectKey` is set):
+
+```sql
+SELECT count(*) AS remaining
+FROM commits
+WHERE "objectKey" IS NULL;
+```
+
+Overall progress:
+
+```sql
+SELECT
+  count(*) FILTER (WHERE "objectKey" IS NOT NULL) AS migrated,
+  count(*) AS total
+FROM commits;
+```
+
+Versions that have exhausted their retries, grouped by error:
+
+```sql
+SELECT vm.error, count(*) AS versions
+FROM versions_migration vm
+WHERE vm.migrated = false
+  AND vm.retries >= 3
+GROUP BY vm.error
+ORDER BY versions DESC;
+```
+
+The migration is complete when `remaining` is `0` and the failure query
+returns no rows. If versions keep exhausting their retries, contact Speckle
+support with the output of the failure query.
+
+<Note>
+  Multi-regional deployments: run these queries against each regional database. The scheduler
+  processes all registered regions.
+</Note>
+
+## IFC import is enabled by default
+
+With `ifc_import_service.enabled: true` (the new default), the chart
+deploys the IFC import worker and drag-and-drop IFC uploads work with no
+further configuration. The worker uses the main server database for job
+delivery by default; no dedicated queue database is required.
+
+To opt out, set `ifc_import_service.enabled: false`. This is also the lever
+if you do not want the worker's resource footprint (it requests 100m CPU
+and 512Mi memory, with limits of 1 CPU and 2Gi).
+
+### Breaking change: dedicated file-import queue database wiring
+
+This affects a narrow set of deployments. Before 2026.7, the chart
+implicitly referenced a `fileimport_queue_postgres_url` secret key for the
+import queue. That implicit wiring is removed chart-wide.
+
+You are affected if either:
+
+- you configured `ifc_import_service.db.connectionString` with only a
+  `secretName` and no `secretKey`, or
+- you relied on the implicit `fileimport_queue_postgres_url` key to point
+  the import queue at a dedicated database.
+
+If so, set the key explicitly:
+
+```yaml
+ifc_import_service:
+  db:
+    connectionString:
+      secretName: your-secret-name
+      secretKey: fileimport_queue_postgres_url
+```
+
+<Warning>
+  Without the explicit `secretKey`, the import queue silently repoints to the main server database.
+  Nothing errors; imports keep working, but against the main database instead of your dedicated one.
+</Warning>
+
+<Note>
+  `featureFlags.nextGenFileImporterEnabled` no longer plays any part in this wiring; the value is
+  inert. Dedicated queue-database wiring is driven purely by
+  `ifc_import_service.db.connectionString`.
+</Note>
+
+## Previous web frontend removed
+
+The 2026.7 chart no longer contains frontend-2: its deployment, values, and
+image publishing are all gone. frontend-3 is the only web frontend. If your
+values file still carries a `frontend_2` block, it is now ignored; remove
+it during this upgrade.
+
+## Object upload rate limits
+
+The default rate limits for `POST /objects/:streamId` are raised so large
+imports no longer hit `429` responses:
+
+| Limit                                                      | Old default | New default |
+| ---------------------------------------------------------- | ----------- | ----------- |
+| `RATELIMIT_POST_OBJECTS_STREAMID` (per second)             | 6           | 30          |
+| `RATELIMIT_BURST_POST_OBJECTS_STREAMID` (burst per minute) | 400         | 3000        |
+
+Explicitly set environment variable values still take precedence over the
+new defaults.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="How long will the migration take?">
+    It depends on version count and model size. The scheduler enqueues at most 35 versions per
+    minute and each pod works one job at a time by default, so large histories take days rather than
+    hours. Track the `remaining` count with the monitoring query above.
+  </Accordion>
+  <Accordion title="I upgraded without a license and my pods will not start. What now?">
+    That is the expected failure mode: `CreateContainerConfigError` on the missing `license_token`
+    key, or a startup throw on an invalid token. Either wire in a valid license or set
+    `featureFlags.workspacesModuleEnabled: false` and `featureFlags.gatekeeperModuleEnabled: false`,
+    then upgrade again.
+  </Accordion>
+</AccordionGroup>
