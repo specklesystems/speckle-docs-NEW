@@ -1,0 +1,141 @@
+---
+title: Object model in v2026.9
+sidebarTitle: Overview
+description: Columnar property store and relational layer versus today's tree-and-Proxy model.
+noindex: true
+contextual:
+  options: []
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<NextPreviewBanner />
+
+If you write scripts, notebooks, or small automations against Speckle object data, v2026.9 changes
+the shape of that data. Today's [Data Schema](/developers/data-schema/overview) is a directed tree of
+Collections and DataObjects, with [Proxies](/developers/data-schema/proxy-schema) at the Root
+Collection for shared resources. v2026.9 replaces that tree-and-Proxy graph with two things working
+together: a **columnar property store** for querying and aggregation, and an **explicit relational
+layer** for how elements relate.
+
+This page is the conceptual model for that change. Dates, compatibility mode, Automate SDK bumps,
+and who must act are on
+[Data model migration for developers](/developers/migration/data-model-migration). For a compact
+Current versus v2026.9 table, see [Compare Current and v2026.9](/next/whats-new).
+
+<Note>
+  Standard connectors, SDKs, and APIs keep working with published data. This page matters if your
+  script assumes the nested object graph or unpacks Proxies itself, rather than going through
+  supported accessors. See [Data model migration for
+  developers](/developers/migration/data-model-migration).
+</Note>
+
+## What's different
+
+| Concern                  | Today                                                                                          | In v2026.9                                                                                                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Object graph             | Directed tree: Root Collection → Collections → DataObjects                                     | Flat objects plus typed relations. Hierarchy is not nested `elements`                                                           |
+| Properties               | Nested fields on `Base` / DataObject                                                           | Columnar property store: one value per object and property path, built for filter and aggregate                                 |
+| Shared resources         | Proxies at the root (`objects[]` of `applicationId`s) for materials, levels, groups, instances | Relational layer: typed edges such as `ON_LEVEL`, `HAS_MATERIAL`, `IN_SYSTEM`                                                   |
+| Topology                 | Reconstruct from Proxies and nested `elements`                                                 | Containment, connectivity, systems, and materials are first-class relations. Speckle Intelligence queries this layer            |
+| Script that walks a tree | Receive, traverse `Collection.elements`, resolve Proxy `objects`                               | Identify objects, read properties from the columnar store, follow named relations. Do not unpack Proxies to rebuild those links |
+
+Project → Model → Version remains the address of a published snapshot. That addressing system is
+unchanged. What lives at a version is what changed.
+
+## Columnar property store
+
+Today, a wall's parameters live on the DataObject (and on nested geometry in `displayValue`). To
+total area or filter by type, a script walks the tree and reads nested fields.
+
+In v2026.9, object identity stays stable (`applicationId` from the source application). Attributes
+are stored as rows in a columnar property store: each row is one object, one property path, and one
+value. That layout is what makes filter, group, and aggregate cheap on large models, instead of
+walking a reconstructed graph.
+
+<Tip>
+  Treat property paths as the public names of attributes (for example a category or type name), not
+  the JSON shape of a received `Base` object. Nested dictionaries on the object graph are the
+  Current model.
+</Tip>
+
+This page does not document a query API or SQL surface. Use supported SDK accessors for the data you
+already read. If a tool assumes the old object-graph shape and breaks, follow
+[Migration guidance](/developers/migration/data-model-migration#migration-guidance).
+
+## Relational layer
+
+Proxies solved overlapping membership without duplicating geometry: a wall could sit on a level, use
+a material, and belong to a group by appearing in each Proxy's `objects` list. The collection tree
+was still the only hierarchy a traversal walked.
+
+v2026.9 puts those links beside the property store as **typed relations**. Containment, connectivity,
+systems, and materials are richer than today's Proxies: they include host-to-child containment, MEP
+and spatial connectivity, and system membership, not only shared resources at the root.
+
+The named relation types, and how they compare to Proxies, are on
+[Relations in v2026.9](/next/developers/object-model/relations).
+
+Speckle Intelligence uses both halves. It looks up properties on objects, and it follows relations
+for questions such as what connects to what and what contains what. That behaviour is in the
+[comparison table](/next/whats-new).
+
+## What a script should assume
+
+<Steps>
+  <Step title="Keep using the version address">
+    Resolve project, model, and version the same way you do today. The snapshot you point at is
+    still a version. The outcome is a published model you can read.
+  </Step>
+  <Step title="Identify objects, then properties">
+    Key objects by source identity (`applicationId`). Read attributes from the columnar property
+    store by property path. The outcome is values you can filter or aggregate without walking nested
+    `Base` fields.
+  </Step>
+  <Step title="Follow typed relations for topology">
+    Use named relations for level, material, containment, connectivity, and systems. The outcome is
+    membership and connectivity without unpacking a Proxy's `objects` array. See [Relations in
+    v2026.9](/next/developers/object-model/relations).
+  </Step>
+</Steps>
+
+<Warning>
+  If you maintain tooling that reads Speckle data more directly than the standard SDK or API
+  surface, and it breaks against the new format, pin to **v2026.8** while you update. Compatibility
+  mode for ACC sync and drag-and-drop uploads ends **1 November 2026**. Details: [Data model
+  migration for developers](/developers/migration/data-model-migration).
+</Warning>
+
+## What is not on this page
+
+Connector-specific dumps, SDK before-and-after samples, and a SQL or local query API are separate
+work. Until those pages exist, use the Current [Data Schema](/developers/data-schema/overview) for
+today's graph, and the [developer migration page](/developers/migration/data-model-migration) for
+who is affected in v2026.9.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Does the Current Data Schema still describe my data?">
+    Yes, for versions published in today's tree-and-Proxy format. Use [Data Schema
+    overview](/developers/data-schema/overview), [Concepts](/developers/data-schema/concepts), and
+    [Proxy schema](/developers/data-schema/proxy-schema) for that graph. Use this page for v2026.9
+    bundle data.
+  </Accordion>
+  <Accordion title="Do I need to change a script that only uses the standard SDK receive path?">
+    No. Existing connectors, SDKs, and integrations continue to work with published data. Watch
+    Automate functions that process versions from a connector that only writes the new bundle
+    format: bump the SDK dependency. See [Who's
+    affected](/developers/migration/data-model-migration#whos-affected).
+  </Accordion>
+  <Accordion title="What happens if my script walks Collection.elements and unpacks Proxies?">
+    That reconstruction matches the Current model. On v2026.9 data, containment and shared resources
+    live on the relational layer, and properties live in the columnar store. A missing nested
+    `elements` tree or Proxy `objects` list is expected. Update the script to identify objects, read
+    property paths, and follow named relations — or pin to v2026.8 until you can.
+  </Accordion>
+  <Accordion title="Where do I learn the relation type names?">
+    See [Relations in v2026.9](/next/developers/object-model/relations). That page maps today's
+    Proxies to typed edges such as `ON_LEVEL`, `SUBELEMENT`, `CONNECTS_TO`, and `IN_SYSTEM`.
+  </Accordion>
+</AccordionGroup>
