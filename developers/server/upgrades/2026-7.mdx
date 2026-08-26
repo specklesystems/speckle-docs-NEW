@@ -11,12 +11,22 @@ noindex: true
   part of the [self-hosted upgrade guide](/developers/server/upgrades/introduction). Bookmark both.
 </Note>
 
-2026.7 is the first rung of the [upgrade ladder](/developers/server/upgrades/introduction).
-It flips eight Helm chart defaults on, starts a background data migration
-that must fully drain before you upgrade to 2026.8, and removes frontend-2.
-Read the [license requirement](#before-you-upgrade-the-license-requirement)
-before running the upgrade: a default upgrade without a license fails at
-startup. Also check the
+<Note>
+  This upgrade applies to Speckle Enterprise Server. For license setup, see [License
+  Key](/developers/server/deployment/enterprise-license#license-key) in the Enterprise deployment
+  guide.
+</Note>
+
+You cannot upgrade to 2026.8 until this release's objects migration has
+finished. A default upgrade without a Speckle Enterprise license fails at
+startup.
+
+2026.7 is the first release in the
+[upgrade order](/developers/server/upgrades/introduction). It enables eight
+Helm chart defaults, starts a background data migration, and removes the
+previous web frontend from the chart. Read the
+[license requirement](#before-you-upgrade-the-license-requirement) before
+you upgrade. Also check the
 [infrastructure requirements](#infrastructure-requirements): from this
 release, clients upload and download model data through pre-signed URLs, so
 your object storage must be reachable from outside the cluster.
@@ -34,7 +44,7 @@ The 2026.7 compatibility line consists of:
 
 ## Before you upgrade: the license requirement
 
-Eight chart defaults flip on in 2026.7 (full list in the next section). Two
+Eight chart defaults enable in 2026.7 (full list in the next section). Two
 of them, **workspaces** and **gatekeeper**, require a valid Speckle
 Enterprise license at startup:
 
@@ -70,10 +80,10 @@ featureFlags:
 
 <Warning>
   Upgrading to 2026.7 with unmodified default values and no license fails at startup. This is not a
-  degraded mode; the server does not come up. Contact Speckle if you need a license.
+  degraded mode; the server does not come up. Contact Speckle support if you need a license.
 </Warning>
 
-## Chart defaults that flip on
+## Chart defaults that enable
 
 The following values default to enabled in the 2026.7 `speckle-server`
 chart. Deployments that already set them explicitly are unaffected.
@@ -120,9 +130,10 @@ cluster. Check the following:
    server-side traffic. Browsers must also trust the certificate on that
    public endpoint.
 2. **Bucket CORS (S3-compatible storage only).** Browsers call the
-   pre-signed URLs cross-origin, so the bucket must allow `GET`, `PUT`,
-   and `POST` from your users' origins, allow all request headers, and
-   expose at least the `ETag`, `Content-Encoding`, and `Content-Length`
+   pre-signed URLs cross-origin. The bucket must allow `GET`, `PUT`, and
+   `POST` from your users' origins, and allow all request headers.
+
+   Expose at least the `ETag`, `Content-Encoding`, and `Content-Length`
    response headers. `ETag` is required: the upload flow reports it back
    to the server to complete a publish. Azure Blob Storage needs no manual
    setup; the server configures the service's CORS rules at startup.
@@ -132,10 +143,9 @@ a machine outside your network. If the publish stalls after the file is
 prepared, or the viewer shows an empty scene while the browser console
 logs blocked or failing storage requests, revisit the two points above.
 
-## The objects migration runs by default
+## Finish the objects migration
 
-This is the operational centerpiece of 2026.7. With
-`featureFlags.dataModuleEnabled: true`, the server backfills every existing
+With `featureFlags.dataModuleEnabled: true`, the server backfills every existing
 version from per-object rows in the Postgres `objects` table into
 DuckDB-based packfiles in your blob storage. New versions are packed as
 they are created; the backfill converts your history.
@@ -145,7 +155,7 @@ each version as migrated. It does not delete or modify rows in the
 `objects` table.
 
 <Warning>
-  The migration must fully drain before you upgrade to 2026.8. The 2026.8 bundle migration builds on
+  The migration must complete before you upgrade to 2026.8. The 2026.8 bundle migration builds on
   the packfiles this backfill produces. Use the monitoring queries below to confirm completion.
 </Warning>
 
@@ -156,20 +166,20 @@ each version as migrated. It does not delete or modify rows in the
   to opt specific pods out (for example a pod pool dedicated to GraphQL
   traffic).
 - A scheduler scans for unmigrated versions once per minute and enqueues up
-  to 35 of them when the queue is quiet. It backs off automatically while
-  more than 4 jobs are in flight, so the backfill trickles rather than
-  bursts.
-- Each pod processes one migration job at a time by default
-  (`DATA_PROCESSING_CONCURRENCY`, default `1`). A single job can hold
-  multiple gigabytes of memory for large models, and concurrency multiplies
-  that peak. Raise it only if your pods have memory headroom; memory
-  exhaustion is the main way this worker gets OOMKilled.
-- Expect, until the backfill drains: sustained read load on Postgres (the
-  `objects` table), extra CPU and memory use on server pods, temporary
-  DuckDB and NDJSON files on pod-local disk, and write traffic to blob
-  storage.
+  to 35 of them when the queue is quiet, so the backfill runs as a steady
+  trickle rather than a burst.
+- Until the backfill completes, expect sustained read load on Postgres
+  (the `objects` table), extra CPU and memory use on server pods, temporary
+  files on pod-local disk, and write traffic to blob storage.
 - Failed versions are retried up to 3 times; the last error is recorded per
   version.
+
+<Tip>
+  Each pod processes one migration job at a time by default (`DATA_PROCESSING_CONCURRENCY`, default
+  `1`). A single job can hold multiple gigabytes of memory for large models, and concurrency
+  multiplies that peak. Raise it only if your pods have memory headroom; memory exhaustion is the
+  main way this worker gets OOMKilled.
+</Tip>
 
 ### Monitoring the migration
 
@@ -216,7 +226,7 @@ support with the output of the failure query.
   processes all registered regions.
 </Note>
 
-## IFC importing works out of the box
+## IFC import is enabled by default
 
 With `ifc_import_service.enabled: true` (the new default), the chart
 deploys the IFC import worker and drag-and-drop IFC uploads work with no
@@ -261,14 +271,14 @@ ifc_import_service:
   `ifc_import_service.db.connectionString`.
 </Note>
 
-## frontend-2 is removed
+## Previous web frontend removed
 
 The 2026.7 chart no longer contains frontend-2: its deployment, values, and
 image publishing are all gone. frontend-3 is the only web frontend. If your
 values file still carries a `frontend_2` block, it is now ignored; remove
 it during this upgrade.
 
-## Object-upload rate limits relaxed
+## Object upload rate limits
 
 The default rate limits for `POST /objects/:streamId` are raised so large
 imports no longer hit `429` responses:
@@ -284,18 +294,10 @@ new defaults.
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Can I skip 2026.7 and go straight to 2026.8?">
-    No. Upgrades walk the [ladder](/developers/server/upgrades/introduction) in order, and the
-    objects migration that 2026.7 runs must drain before 2026.8's bundle migration can complete.
-  </Accordion>
-  <Accordion title="Does the objects migration change or delete my existing data?">
-    No. It writes packfiles to blob storage and index rows to Postgres, and stamps each version as
-    migrated. Rows in the `objects` table are left untouched.
-  </Accordion>
   <Accordion title="How long will the migration take?">
     It depends on version count and model size. The scheduler enqueues at most 35 versions per
-    minute and each pod works one job at a time by default, so large histories drain over days
-    rather than hours. Track the `remaining` count with the monitoring query above.
+    minute and each pod works one job at a time by default, so large histories take days rather than
+    hours. Track the `remaining` count with the monitoring query above.
   </Accordion>
   <Accordion title="I upgraded without a license and my pods will not start. What now?">
     That is the expected failure mode: `CreateContainerConfigError` on the missing `license_token`
