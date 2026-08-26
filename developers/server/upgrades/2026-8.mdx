@@ -1,0 +1,401 @@
+---
+title: 'Upgrading to 2026.8'
+description: 'Operator guide for upgrading a self-hosted Speckle Enterprise deployment to the 2026.8 release line: the mandatory bundle migration, what it needs from your infrastructure, and how to monitor it to completion.'
+sidebarTitle: '2026.8'
+tag: 'Enterprise'
+noindex: true
+---
+
+<Note>
+  This page is unlisted: it does not appear in the docs navigation, search, or the sitemap. It is
+  part of the [self-hosted upgrade guide](/developers/server/upgrades/introduction). Bookmark both.
+</Note>
+
+<Note>
+  This upgrade applies to Speckle Enterprise Server. For license setup, see [License
+  Key](/developers/server/deployment/enterprise-license#license-key) in the Enterprise deployment
+  guide.
+</Note>
+
+2026.8 is the second step in the
+[upgrade order](/developers/server/upgrades/introduction). It changes no
+chart defaults. It ships one new component, the **bundle migration**, which
+converts every model version from the packfile format into the bundle
+format in place. Enabling it is a **mandatory** part of this upgrade: the
+software does not stop you from skipping it, but 2026.9 requires it to have
+finished, and 2026.9 has no downgrade path.
+
+You must be on 2026.7 with its objects migration finished before you start.
+
+## Shipped versions
+
+The 2026.8 compatibility line consists of:
+
+| Component                         | Version               | Notes                                                                                      |
+| --------------------------------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| speckle-server                    | **2026.8.0**          | Includes the bundle migration service image, `speckle-bundle-migration-service`            |
+| speckle-automate                  | 2026.8.0              | Execution engine release; no functional change from 2026.7.0                               |
+| speckle-intelligence (dashboards) | 2026.8.0              | Dashboards app and Helm chart                                                              |
+| speckle-oda file importers        | 2026.7.1              | Unchanged from the 2026.7 line                                                             |
+| specklepy                         | 2026.8.1              | Python SDK; 2026.8.0 is content-identical to 2026.6.0, 2026.8.1 adds one compatibility fix |
+| Speckle.Sdk (.NET)                | 2026.8.0              | Content-identical to 2026.6.0                                                              |
+| Connectors                        | see the releases page | Blender ships 2026.8.0; the other connectors keep their current versions                   |
+
+The 2026.8 chart is otherwise the 2026.7 chart: the same defaults, the same
+values. A deployment that upgrades without enabling the migration runs
+exactly as before. That is the trap this page exists to prevent.
+
+## Before you upgrade
+
+<Steps>
+  <Step title="Confirm the 2026.7 objects migration has finished">
+    Run the [2026.7 monitoring queries](/developers/server/upgrades/2026-7#monitoring-the-migration)
+    against every regional database. `remaining` must be `0`. The bundle migration only sees
+    versions that already have a packfile; anything the 2026.7 backfill has not reached is invisible
+    to it and stays unmigrated.
+  </Step>
+  <Step title="Confirm your object storage is reachable by clients">
+    The [2026.7 infrastructure
+    requirement](/developers/server/upgrades/2026-7#infrastructure-requirements) is now load-bearing
+    for a background process, not just for users: the migration workers download packfiles and
+    upload bundles through pre-signed URLs against `s3.publicEndpoint` (or `s3.endpoint`), with the
+    bucket CORS rules exposing `ETag`. If a connector can publish and the viewer can load from
+    outside your network, this is satisfied.
+  </Step>
+  <Step title="Take a database backup">
+    The migration is additive and in place (it never deletes packfiles or rows), but every upgrade
+    starts from a backup. See the [server maintenance
+    guide](/developers/server/deployment/backup-upgrade-restore).
+  </Step>
+  <Step title="Plan the worker capacity">
+    Decide where the migration workers run and how many (see [Infrastructure
+    requirements](#infrastructure-requirements) below). The workers are separate deployments with
+    their own resource footprint; they do not run inside the server pods.
+  </Step>
+</Steps>
+
+## Infrastructure requirements
+
+Each release page lists the infrastructure a deployment must provide for
+that release to function. 2026.8 has three, all about the migration
+workers.
+
+### Worker capacity
+
+The migration runs in two worker deployments the chart creates for you,
+`speckle-bundle-migration-standard` and `speckle-bundle-migration-large`,
+in the same namespace as the server. They are the only new workload in
+2026.8.
+
+- Each pod processes **one version at a time**. Throughput is the replica
+  count, nothing else.
+- The **standard** lane handles versions whose packfile is up to 1 GiB.
+  Defaults per pod: requests 0.5 CPU / 2Gi, limits 2 CPU / 4Gi, a 10Gi
+  scratch volume (`emptyDir`), a 1 hour timeout per version.
+- The **large** lane handles packfiles over 1 GiB and every retry.
+  Defaults per pod: requests 1 CPU / 8Gi, limits 4 CPU / 16Gi, a 100Gi
+  scratch volume, a 4 hour timeout per version. Keep it small; one or two
+  pods is normal.
+- The scratch volume is an `emptyDir` on the node's disk. Nodes running the
+  large lane need that much free local disk per pod, and fast local disk
+  (NVMe class) makes a real difference to the large lane.
+- The pods run at `priorityClassName: low-priority`, which exists on
+  standard Speckle clusters. On a shared node pool they are the first to
+  be evicted under pressure, which is intended.
+
+We recommend a dedicated node pool for the workers, labelled and tainted so
+nothing else lands on it, and pinning the lanes to it through
+`bundle_migration.<lane>.affinity` and `.tolerations` (example below). As a
+reference point, Speckle's hosted service runs 16 standard + 6 large pods
+on six 4 vCPU / 32Gi storage-optimized nodes for a deployment of latest's
+size. Size yours by your version count and the memory limits above; a
+shared pool works if you accept the workers competing with live traffic.
+
+### Network paths from the workers
+
+The workers hold no database connection. They need exactly two things
+reachable:
+
+1. **Redis**, the same instance the server uses (`redis.connectionString`;
+   the chart wires it automatically). The job queue lives there.
+2. **The server's public URL** (`CANONICAL_URL`). Every job calls the
+   server's migration API the way an external client would, over the
+   public origin, not an in-cluster service name. If your cluster cannot
+   reach its own public hostname (hairpin NAT, split DNS), fix that before
+   enabling the migration.
+
+Object storage is reached through the pre-signed URLs the server issues,
+which is why the 2026.7 requirement above must hold.
+
+### Nothing else
+
+No new database, no new queue, no new bucket, no new namespace, no
+additional RBAC. The bookkeeping table (`bundle_migrations`) and its index
+are created by the server's normal schema migrations at startup, in every
+regional database. The migration image is public on GitHub Container
+Registry; if you mirror images into a private registry, add
+`speckle-bundle-migration-service` at the same tag as the server.
+
+## Enable the bundle migration
+
+This is the mandatory step. Three values and one secret key:
+
+<Steps>
+  <Step title="Add the token signing secret">
+    Add a key named `bundle_migration_token_secret` to your main server secret (the one
+    `secretName` points at), with a unique random value. The server signs a short-lived token for
+    every migration job with it. Rotating the value later invalidates in-flight jobs, which then
+    retry.
+
+    ```bash
+    openssl rand -hex 32
+    ```
+
+    To keep the key in a different Secret, set `server.bundleMigrationTokenSecret.secretName` and
+    `.secretKey` instead.
+
+  </Step>
+  <Step title="Turn on the server side">
+    `featureFlags.bundleMigrationEnabled: true` enables the migration API, the scheduler that selects
+    versions once a minute, and the job push. It is off by default.
+  </Step>
+  <Step title="Deploy the workers">
+    `bundle_migration.enabled: true` creates the two lane deployments. Set replicas for your
+    capacity, and pin the lanes to your node pool. Upgrade the release; the backfill starts within a
+    minute of the server coming up.
+  </Step>
+</Steps>
+
+A complete values excerpt, with the lanes pinned to a pool labelled
+`purpose=bundle-migration` and tainted `bundle-migration=true:NoSchedule`:
+
+```yaml
+featureFlags:
+  bundleMigrationEnabled: true
+
+bundle_migration:
+  enabled: true
+  standard:
+    replicas: 8
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: purpose
+                  operator: In
+                  values: ['bundle-migration']
+    tolerations:
+      - key: bundle-migration
+        operator: Exists
+        effect: NoSchedule
+  large:
+    replicas: 1
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: purpose
+                  operator: In
+                  values: ['bundle-migration']
+    tolerations:
+      - key: bundle-migration
+        operator: Exists
+        effect: NoSchedule
+```
+
+<Warning>
+  The chart defaults leave both values off. Upgrading to 2026.8 without setting them succeeds and
+  changes nothing, and your deployment is then not ready for 2026.9. Treat these values as part of
+  the upgrade, not as an optional feature.
+</Warning>
+
+<Note>
+  Leave the migration enabled after it completes, through the 2026.9 upgrade, until Speckle tells
+  you otherwise. New versions published in the packfile format by older clients keep being migrated
+  as they arrive.
+</Note>
+
+## What the migration does
+
+For every version that has a packfile and no bundle yet, a worker:
+
+1. downloads the packfile and produces the bundle files,
+2. builds the viewer data file from the bundle,
+3. uploads everything through pre-signed URLs, and
+4. asks the server to verify every uploaded file exists and stamp the
+   version.
+
+Until the stamp lands, the version is served from its packfile exactly as
+before; users see no change while the migration runs. The packfile is not
+deleted afterwards. The same version id is kept throughout.
+
+### Load profile
+
+- The scheduler keeps up to 500 standard and 50 large jobs queued in Redis
+  and tops the queue up once a minute, so the workers are never idle while
+  there is work.
+- Expect sustained read traffic on object storage (packfile downloads),
+  write traffic (bundle uploads), and steady CPU and memory on the worker
+  nodes for the duration. The server pods only run the scheduler and the
+  API; their load is small.
+- Failed attempts retry up to three times, always escalating to the large
+  lane, so a version that ran out of memory or time on a standard pod gets
+  one attempt on large hardware before it is parked.
+
+## Monitoring the migration
+
+<Warning>
+  There is no Prometheus metric and no dashboard for this migration. The only monitoring surface is
+  SQL against the `bundle_migrations` table in the server's Postgres database. Multi-regional
+  deployments: run every query against each regional database.
+</Warning>
+
+Versions not yet attempted:
+
+```sql
+SELECT count(*) AS remaining
+FROM commits c
+LEFT JOIN bundle_migrations bm ON bm."versionId" = c.id
+WHERE c."artifactFiles" IS NULL
+  AND c."objectKey" LIKE '%.duckdb'
+  AND bm."versionId" IS NULL;
+```
+
+Progress by state:
+
+```sql
+SELECT state, count(*)
+FROM bundle_migrations
+GROUP BY state
+ORDER BY count(*) DESC;
+```
+
+Failures by cause:
+
+```sql
+SELECT "errorCode", count(*)
+FROM bundle_migrations
+WHERE state = 'FAILED'
+GROUP BY "errorCode"
+ORDER BY count(*) DESC;
+```
+
+Versions that will not be retried (parked):
+
+```sql
+SELECT "versionId", retries, "errorCode", "harnessVersion", "updatedAt"
+FROM bundle_migrations
+WHERE state = 'FAILED'
+  AND ("errorCode" NOT IN ('TIMEOUT', 'OOM_KILLED', 'UNKNOWN', 'HARNESS_FAILED')
+       OR retries >= 3)
+ORDER BY "updatedAt" DESC;
+```
+
+Jobs whose worker died without reporting back (re-claimed automatically
+while retries remain):
+
+```sql
+SELECT "versionId", retries, "harnessVersion", "updatedAt"
+FROM bundle_migrations
+WHERE state = 'IN_PROGRESS'
+  AND "updatedAt" < now() - interval '6 hours'
+ORDER BY "updatedAt";
+```
+
+The migration is **complete** when `remaining` is `0`, the state query shows
+no `IN_PROGRESS` rows older than six hours, and you have reviewed the parked
+list. Parked versions are the migration's dead-letter queue: they stay
+readable in the packfile format on 2026.8, and they are the versions that
+render blank on 2026.9. Contact Speckle support with the output of the
+failures-by-cause query if the parked list is more than a handful.
+
+### Error codes
+
+| Code                       | Meaning                                                                                      | Retried |
+| -------------------------- | -------------------------------------------------------------------------------------------- | ------- |
+| `TIMEOUT`                  | The lane's time budget ran out                                                               | yes     |
+| `OOM_KILLED`               | The pod exceeded its memory limit                                                            | yes     |
+| `HARNESS_FAILED`           | The conversion process exited with an unclassified error                                     | yes     |
+| `UNKNOWN`                  | The worker could not classify the failure                                                    | yes     |
+| `UNSUPPORTED_SOURCE_SHAPE` | The version uses an object shape the converter does not handle (typically very old versions) | no      |
+| `CORRUPT_PACKFILE`         | The packfile could not be read                                                               | no      |
+| `OVERSIZED_OBJECT`         | A single object exceeds what the converter can process                                       | no      |
+| `DEGENERATE_OUTPUT`        | The conversion produced an empty or invalid bundle                                           | no      |
+| `DAT_BUILD_FAILED`         | The viewer data file could not be built from the bundle                                      | no      |
+
+### Retrying parked versions
+
+There is no reset button by design. To retry chosen versions (for example
+after Speckle ships a fix for a specific error code), delete their
+bookkeeping rows; the scheduler re-selects them on its next run:
+
+```sql
+DELETE FROM bundle_migrations WHERE "versionId" = ANY('{<version ids>}');
+```
+
+## Operating the migration
+
+- **Pause**: set `featureFlags.bundleMigrationEnabled: false`. Queued jobs
+  drain within one lane timeout and the workers go idle. Set it back to
+  `true` to resume; nothing is lost.
+- **Throttle**: change the replica counts. Scaling to zero stops all work
+  immediately (in-flight versions are re-claimed later as dead claims).
+- **Emergency stop**: scale to zero, or rotate `bundle_migration_token_secret`
+  to invalidate every queued job at once.
+- **Tuning** (server environment variables, optional):
+  `BUNDLE_MIGRATION_MAX_RETRIES` (default 3),
+  `BUNDLE_MIGRATION_LARGE_LANE_THRESHOLD_BYTES` (default 1 GiB),
+  `BUNDLE_MIGRATION_STALE_CLAIM_TIMEOUT_MS` (default 6 hours),
+  `BUNDLE_MIGRATION_TOKEN_LIFESPAN_MS` (default 3 days). On the worker
+  side, `bundle_migration.additionalEnvVars` can set `DATGEN_MEM` to cap the
+  memory the viewer-file build uses; by default it is sized from the pod's
+  memory limit.
+
+## Looking ahead: 2026.9 is a one-way door
+
+The next release moves the viewer, previews, and the data query features to
+the bundle format only, and its database migrations cannot be reversed.
+Before you upgrade to 2026.9:
+
+- the `remaining` query above returns `0` in every region, and
+- you have reviewed the parked list.
+
+If you upgrade with versions unmigrated, nothing is deleted, but those
+versions render blank in the viewer, their previews fail, and they return
+no query data until the migration reaches them. Recovery is forward-only:
+keep the migration enabled and let it finish. Do not attempt to downgrade.
+
+<Tip>
+  If old models appear blank after an upgrade, check the `bundle_migrations` table first, not your
+  backups. A blank model on 2026.9 is an unmigrated version, and the data is still there.
+</Tip>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="How long will the migration take?">
+    Roughly your version count divided by your worker throughput. A standard pod handles a typical
+    version in well under a minute; large versions take longer and go to the large lane. Track the
+    `remaining` count. Doubling the standard replicas doubles the pace as long as object storage
+    keeps up.
+  </Accordion>
+  <Accordion title="Can I skip the migration and enable it later?">
+    You can upgrade to 2026.8 without it and enable it any time before 2026.9. You cannot upgrade to
+    2026.9 safely until it has finished. The later you start, the longer 2026.9 waits.
+  </Accordion>
+  <Accordion title="Does the migration change anything users see?">
+    No. A version is served from its packfile until its bundle is complete and verified, then from
+    the bundle. Same version ids, same URLs, same model.
+  </Accordion>
+  <Accordion title="A version is parked with UNSUPPORTED_SOURCE_SHAPE. Is my data corrupt?">
+    No. It is a version written by a very old client in a shape the converter does not process. The
+    version stays readable on 2026.8. Report the count to Speckle support; these are handled by
+    later converter updates, after which you delete the bookkeeping rows to retry.
+  </Accordion>
+  <Accordion title="Do I need the migration workers after it completes?">
+    Keep them running, scaled down, through the 2026.9 upgrade. Older clients may still publish
+    packfile-format versions, and the workers convert those as they arrive.
+  </Accordion>
+</AccordionGroup>
