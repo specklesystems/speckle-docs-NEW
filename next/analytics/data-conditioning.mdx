@@ -1,0 +1,101 @@
+---
+title: Update parameters from the model viewer
+sidebarTitle: Parameter Updater
+description: In v2026.9 you batch-edit parameters in the Elements panel, then apply them in the connector via Issues.
+noindex: true
+contextual:
+  options: []
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<NextPreviewBanner />
+
+In v2026.9 you review and batch-edit model parameters from the **Elements** panel
+in the model viewer, then apply those changes back in Revit, Rhino, or Civil3D.
+Each batch is still logged as an Issue.
+
+This page covers only what changed. For the Current dashboard-widget path,
+editable types, connector apply steps, and known limitations, see
+[Parameter Updater](/beta/parameter-updater).
+
+<Note>
+  Parameter updates in v2026.9 run against models in the new data format. If a model has not moved
+  yet, follow [Speckle's data model is changing](/workspaces/data-model-migration).
+</Note>
+
+## What changed
+
+In Current, Parameter Updater is a **Data Conditioning** widget that you add to a
+dashboard. In v2026.9 that widget is not the path: you work on the models already
+open in the viewer.
+
+- **Where you edit:** the **Elements** panel in the model viewer, not a dashboard
+  widget.
+- **How you start:** open **Elements**, then choose **Update parameters**. You do
+  not drag a widget from Data Conditioning.
+- **Which models you can edit:** models loaded in the viewer, not widget data
+  sources you pick separately.
+- **New attributes:** open **Columns** and use **New attribute name…** while
+  update mode is on. There is no **+** button on the column headers.
+- **What submit creates:** an Issue that stores the parameter changes. It does
+  not attach a 3D screenshot or viewer state the way the Current widget does.
+
+Apply in the connector is unchanged: open the Issue on the model card and use
+**Apply changes**. Connector version, host support, and the limits in
+[Parameter Updater](/beta/parameter-updater) still apply.
+
+## Update parameters in v2026.9
+
+<Steps>
+  <Step title="Open the model in the viewer">
+    Open the project and model in the Speckle web app so the 3D view loads. You should see the model
+    and the viewer panels, including **Elements** in the bottom dock.
+  </Step>
+  <Step title="Open the Elements panel">
+    If **Elements** is not showing, open it from the viewer panel switcher, or press Shift+T. You
+    should see a table of elements for the models in the scene.
+  </Step>
+  <Step title="Turn on Update parameters">
+    In the Elements toolbar, choose **Update parameters** (pencil). Columns under `properties`
+    become editable, headers show a pencil or lock, and you can group rows. Turning the mode off
+    does not discard staged edits.
+  </Step>
+  <Step title="Edit parameters">
+    Scope the table to **All elements**, the current selection, or one loaded model. Edit cells, or
+    with grouping on use **Set all…** and **Set selected…**. Cells that the object does not carry
+    show **Missing parameter** and are skipped. To add a parameter that does not exist yet, open
+    **Columns**, type a name in **New attribute name…**, and add it.
+  </Step>
+  <Step title="Submit change requests">
+    When you have unsaved edits, the footer shows the count with **Discard** and **Submit change
+    requests**. Fill in the title and optional Issue fields, then submit. Speckle creates an Issue
+    that stores the parameter changes. You should see a success confirmation, and the staged edits
+    clear.
+  </Step>
+</Steps>
+
+<Note>
+  After you submit, apply the Issue in the connector the same way as today. See the apply step on
+  [Parameter Updater](/beta/parameter-updater).
+</Note>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Where did the Parameter Updater dashboard widget go?">
+    In v2026.9 you edit from **Elements** in the model viewer, not from a Data Conditioning widget.
+    The Current widget path is documented on [Parameter Updater](/beta/parameter-updater).
+  </Accordion>
+  <Accordion title="Why is Update parameters missing?">
+    Open a model that is already in the new data format, then open **Elements**. **Update
+    parameters** is hidden when the panel is very narrow; widen the dock until the pencil control
+    appears. See [Speckle's data model is changing](/workspaces/data-model-migration) if the model
+    has not moved yet.
+  </Accordion>
+  <Accordion title="Does apply in Revit, Rhino, or Civil3D still work?">
+    Yes. Submit still creates an Issue, and you still apply it from the connector Issues panel. Host
+    support, connector version, and apply-time limits are unchanged. See [Parameter
+    Updater](/beta/parameter-updater).
+  </Accordion>
+</AccordionGroup>
