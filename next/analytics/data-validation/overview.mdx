@@ -1,0 +1,83 @@
+---
+title: Data Validation in v2026.9
+sidebarTitle: Data Validation
+description: What changes for Data Validation after models move to the v2026.9 data format.
+noindex: true
+contextual:
+  options: []
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<NextPreviewBanner />
+
+Use this page when your project is on the v2026.9 data format. Authoring, saving, standards, and
+result review still work as in the current product. For those flows, see
+[Data Validation](/analytics/data-validation/overview).
+
+This page covers only the differences that change how a check scopes objects and reads properties.
+
+## What stays the same
+
+Checks, standards, `WHERE` / `CHECK` authoring, thresholds, plan caps, BCF export, and result
+history follow the current guides:
+
+- [Checks](/analytics/data-validation/checks)
+- [Standards](/analytics/data-validation/standards)
+- [Viewing Results](/analytics/data-validation/viewing-results)
+
+## Default object scope
+
+In the current product, a new check starts with a global filter of `speckle_type` **Contains**
+`DataObject`. That filter excluded proxy and geometry noise from the previous data format.
+
+In v2026.9, a new check starts with an **empty** global scope. The version already contains
+user-facing objects only, so that filter is not needed. Do not add `speckle_type` **Contains**
+`DataObject` to match the current [Default scope](/analytics/data-validation/checks#default-scope)
+guidance.
+
+<Warning>
+  If a check still filters `speckle_type` **Contains** `DataObject`, it matches no objects on a
+  v2026.9 version. Preview shows empty counts and an empty object table. Remove that filter before
+  you trust the result.
+</Warning>
+
+Unsaved drafts that still carry the old default are cleared when you reopen the editor. Saved
+checks keep their stored rules. After save, you can edit name and description only, so create a
+**new** check without that filter if an existing check returns empty results on a v2026.9 version.
+
+## Property paths
+
+Always pick property paths from the path picker after a preview model loads. Paths in the current
+[Checks](/analytics/data-validation/checks#property-paths) examples, such as
+`parameters.Width.value` and `baseline.length`, come from the previous data format and may not
+exist on a v2026.9 version.
+
+Typical Revit parameters now sit under `properties.Parameters` (for example type Width under
+`properties.Parameters.Type Parameters.Dimensions.Width`). Use the picker for the paths that
+exist on your model.
+
+## Versions you can run against
+
+Data Validation preview and saved-check runs need a version in the v2026.9 data format. If preview
+does not load, publish a new version after the project has moved to v2026.9. See
+[Speckle's data model is changing](/workspaces/data-model-migration).
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Why does my existing check show 0 objects after the project moves to v2026.9?">
+    The check likely still uses `speckle_type` **Contains** `DataObject`. That value does not appear
+    on v2026.9 versions, so the filter matches nothing. Create a new check without that filter, run
+    preview, then save. See [Default object scope](#default-object-scope).
+  </Accordion>
+  <Accordion title="Should I still drop DataObject to widen scope?">
+    No. In v2026.9 the object set is already the user-facing elements. An empty global scope is the
+    correct starting point. Narrow with category, type, or parameter filters in `WHERE` when you
+    need a tighter rule.
+  </Accordion>
+  <Accordion title="Do I rewrite every property path in every check?">
+    Only when a path no longer exists on the new version. Load preview, pick the replacement from
+    the path picker, and save a new check. Saved checks cannot change rules in place.
+  </Accordion>
+</AccordionGroup>
