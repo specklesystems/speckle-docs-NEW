@@ -4,7 +4,7 @@ description: 'Working with Speckle Objects in Grasshopper.'
 ---
 
 In Speckle, **Objects are selectable elements** inside your Speckle Model.
-Speckle Objects can be geometry, blocks, annotation, or Speckle Data Objects, and can contain additional attributes like color, material, and application-specific properties.
+A Speckle Object can be geometry, a block, annotation, or an element with its own name and properties, and can carry attributes like color and material.
 
 <Info>
   Passthrough nodes set **static** attributes on geometry. When you need **per-element computed
@@ -29,6 +29,7 @@ Since Speckle Geometry is nearly identical to native Grasshopper and Rhino geome
 Use the **Speckle Geometry** passthrough node for more advanced control of your geometry, including adding, modifying, or inspecting attributes.
 
 <Frame>
+  {/* TODO: re-shoot - the Speckle Geometry node no longer has Name or Properties inputs */}
   <img src="/images/connectors/grasshopper/node_geometry.jpg" alt="Node geometry" />
 </Frame>
 
@@ -36,20 +37,23 @@ Inputs:
 
 1. Add a **Speckle Geometry** input if you want to inspect or modify an existing Speckle Geometry, or are [casting a Model object](/connectors/grasshopper/grasshopper-objects#baking-and-casting-speckle-geometry) to assign all attributes during creation.
 2. Add a **Geometry** input to create a new Speckle Geometry or modify the geometry of (1).
-3. Add an optional **Name** input to set or change the name of the geometry.
-4. Add an optional **Properties** input to set or change the properties of the geometry.
-5. Add an optional **Color** input to set or change the color of the geometry. Colors will show in Shaded mode when viewing your model in the web browser.
-6. Add an optional **Material** input to set or change the material of the geometry. Materials will show in the default Rendered mode when viewing your model in the web browser.
+3. Add an optional **Color** input to set or change the color of the geometry. Colors will show in Shaded mode when viewing your model in the web browser.
+4. Add an optional **Material** input to set or change the material of the geometry. Materials will show in the default Rendered mode when viewing your model in the web browser.
 
 Outputs:
 
 1. The **Speckle Geometry** output contains the resulting Speckle Geometry object.
 2. The **Geometry** output contains the geometry of (1).
-3. The **Name** output contains the name of (1).
-4. The **Properties** output contains the properties of (1).
-5. The **Color** output contains the color of (1).
-6. The **Material** output contains the material of (1).
-7. The **Path** output contains the full path of the Collection that (1) belongs to.
+3. The **Color** output contains the color of (1).
+4. The **Material** output contains the material of (1).
+5. The **Path** output contains the full path of the Collection that (1) belongs to.
+
+<Note>
+  To set a **name** or **properties**, wire your geometry into a [Speckle
+  Object](/connectors/grasshopper/grasshopper-objects#speckle-objects). They belong to the object,
+  not to its geometry - see [Where Name and Properties
+  went](/connectors/grasshopper/grasshopper-upgrading#where-name-and-properties-went).
+</Note>
 
 ### Baking and Casting Speckle Geometry
 
@@ -157,70 +161,67 @@ Casting Blocks:
 
 - (Rhino 8+) **Rhino model block instances**. Casting preserves name, color, material, user strings, and GUID.
 
-## Data Objects
+## Speckle Objects
 
 <Note>
-  In Rhino and Grasshopper, a **Speckle Data Object** corresponds to a **group of geometries** with
-  additional meaningful properties. Data Objects are often used to represent BIM elements like
-  walls, beams, and columns.
+  In Rhino and Grasshopper, a **Speckle Object** is **one name and one set of properties, with one
+  or more geometries**. Speckle Objects represent elements like walls, beams, and columns.
 </Note>
 
-Speckle Data Objects are primarily used for data-based and computational workflows that often involve more complex objects from BIM, structural, and civil applications. You'll find Speckle Data Objects in models from Revit, Navisworks, IFC, Archicad, Civil 3D, Tekla Structures, and ETABS.
+A wall is one thing, even though it may be drawn with three meshes. The Speckle Object is what holds it together: the name and the properties belong to the wall, and the meshes are its geometry. That is why summing a property across your model counts each wall once, however many meshes it happens to have.
 
-<Warning>
-  The **Speckle Data Object** node is deprecated and no longer appears in the ribbon. You do not
-  need it to publish grouped geometry with properties: add [Speckle
-  Geometry](/connectors/grasshopper/grasshopper-objects#geometry) straight to a
-  [Collection](/connectors/grasshopper/grasshopper-collections) instead, with the properties you
-  want on it.
-</Warning>
+You'll find Speckle Objects in models from Revit, Navisworks, IFC, Archicad, Civil 3D, Tekla Structures, and ETABS - and you can create your own for data-based and computational workflows.
 
-Data Objects you load from other applications are unaffected. You can inspect them, read their properties, bake them, and publish them onward as normal.
+<Note>
+  This node was previously called **Speckle Object**. It is the same node with the same ports; only
+  the name changed.
+</Note>
 
-### Inspecting or Modifying Speckle Data Objects
+### Creating, Inspecting, or Modifying Speckle Objects
 
-Any Speckle Data Object node already on a canvas keeps working. Since Speckle Data Objects can contain multiple geometries, use it to inspect or change their attributes.
+Use the **Speckle Object** node to build one from geometry, or to inspect and change an existing one.
 
 <Frame>
+  {/* TODO: re-shoot - this node is now called Speckle Object */}
   <img src="/images/connectors/grasshopper/node_dataobject.jpg" alt="Node dataobject" />
 </Frame>
 
 Inputs:
 
-1. Add a **Speckle Data Object** input only if you want to inspect or modify an existing Speckle Data Object, or are [casting a Model object](/connectors/grasshopper/grasshopper-objects#baking-and-casting-speckle-data-objects) to assign all attributes during creation.
-2. Add a **Geometries** input list of Speckle Geometry to set or change the geometries of the Data Object.
-3. Add an optional **Name** input to set or change the name of the geometry.
-4. Add an optional **Properties** input to set or change the properties of the geometry.
+1. Add a **Speckle Object** input only if you want to inspect or modify an existing Speckle Object, or are [casting a Model object](/connectors/grasshopper/grasshopper-objects#baking-and-casting-speckle-objects) to assign all attributes during creation.
+2. Add a **Geometries** input list of Speckle Geometry to set or change the geometries of the object. Block Instances are not accepted - a Block Instance is already its own object.
+3. Add an optional **Name** input to set or change the name of the object.
+4. Add an optional **Properties** input to set or change the properties of the object.
 
 Outputs:
 
-1. The **Speckle Data Object** output contains the resulting Speckle Data Object.
+1. The **Speckle Object** output contains the resulting Speckle Object.
 2. The **Geometries** output contains the geometries used by (1).
 3. The **Name** output contains the name of (1).
 4. The **Properties** output contains the properties of (1).
 5. The **Path** output contains the full path of the Collection that (1) belongs to.
 
-### Baking and Casting Speckle Data Objects
+### Baking and Casting Speckle Objects
 
-The **Speckle Data Object param** enables baking and casting to other native Grasshopper types. Baking and casting can be done from both the param node or the output param on another component.
+The **Speckle Object param** enables baking and casting to other native Grasshopper types. Baking and casting can be done from both the param node or the output param on another component.
 
-Baking Data Objects:
-On any Speckle Data Object param, `right-click > select Bake` to bake the Data Object into the current Rhino doc, with:
+Baking Speckle Objects:
+On any Speckle Object param, `right-click > select Bake` to bake the Speckle Object into the current Rhino doc, with:
 
 - full path (parent Collections will be baked as parent layers)
 - geometries as a group
 - name (if any)
 - properties as user strings (if any)
 
-Casting Data Objects:
-Speckle Data Objects can be piped into or from any of the following params, allowing you to use them interchangeably:
+Casting Speckle Objects:
+Speckle Objects can be piped into or from any of the following params, allowing you to use them interchangeably:
 
-- **Grasshopper geometry** (including hatches, blocks, and text). Casting to geometry only works if the Data Object has a single piece of geometry.
-- (Rhino 8+) **Rhino model objects**. Casting preserves name, color, material, user strings, and GUID. Casting to model objects only works if the Data Object has a single piece of geometry.
+- **Grasshopper geometry** (including hatches, blocks, and text). Casting to geometry only works if the Speckle Object has a single piece of geometry.
+- (Rhino 8+) **Rhino model objects**. Casting preserves name, color, material, user strings, and GUID. Casting to model objects only works if the Speckle Object has a single piece of geometry.
 
 ## Filtering Objects by their attributes
 
-You can filter a list of Speckle Geometry, Block Instances, or Data Objects by their attributes using the Filter Objects node.
+You can filter a list of Speckle Geometry, Block Instances, or Speckle Objects by their attributes using the Filter Objects node.
 
 <Frame>
   <img src="/images/connectors/grasshopper/node_filterobjects.jpg" alt="Node filterobjects" />

@@ -24,6 +24,14 @@ The Load and Publish nodes were split in two rather than changed in place, so an
 
 The same applies to `(Sync) Load` and `(Sync) Publish`.
 
+Two object nodes changed at the same time:
+
+| Node on your canvas         | What it does now                                                       |
+| --------------------------- | ---------------------------------------------------------------------- |
+| `Speckle Data Object`       | Renamed **Speckle Object**. Same node, same ports, back in the ribbon. |
+| `Speckle Geometry (legacy)` | Your existing Speckle Geometry node, renamed. Still works, hidden.     |
+| `Speckle Geometry`          | New. Geometry, colour and material - no Name or Properties. See below. |
+
 ## Do I need to upgrade?
 
 | If you...                                                            | Then...                                                           |
@@ -41,8 +49,9 @@ The same applies to `(Sync) Load` and `(Sync) Publish`.
     output goes where the old one went.
   </Step>
   <Step title="Reconnect anything downstream">
-    Check the nodes reading that Collection still resolve. Object grouping differs, so list lengths
-    and tree branches can shift - see [What the output looks like](#what-the-output-looks-like).
+    Check the nodes reading that Collection still resolve. Objects come through as **Speckle
+    Objects** rather than Data Objects - the same shape under a new name - so most wires carry
+    straight over. See [What the output looks like](#what-the-output-looks-like).
   </Step>
   <Step title="Delete the old node">
     Remove the `Load (legacy)` node once nothing is wired to it.
@@ -57,18 +66,33 @@ The same applies to `(Sync) Load` and `(Sync) Publish`.
 
 The current Load node reflects how models are stored now, so some outputs differ.
 
-| Output       | `Load (legacy)`                    | `Load`                         |
-| ------------ | ---------------------------------- | ------------------------------ |
-| `Collection` | Objects grouped into Data Objects  | Geometry as individual objects |
-| `Properties` | Model-wide properties              | Model-wide properties          |
-| `Proxies`    | Materials, colours, levels, groups | Not available - see below      |
+| Output       | `Load (legacy)`                    | `Load`                       |
+| ------------ | ---------------------------------- | ---------------------------- |
+| `Collection` | Data Objects and geometry          | Speckle Objects and geometry |
+| `Properties` | Model-wide properties              | Model-wide properties        |
+| `Proxies`    | Materials, colours, levels, groups | Not available - see below    |
 
-Nothing is lost. Materials and colours arrive on each object rather than in a side list, and levels, rooms, hosts and definitions are reachable through the [Explore node](/connectors/grasshopper/grasshopper-explore).
+A **Speckle Object** is what a Data Object was: one name, one set of properties, and one or more geometries. An element that arrived as one item still arrives as one item, so a wall with three meshes does not become three walls.
 
-<Warning>
-  Because geometry is no longer grouped into Data Objects, a wall that arrived as one item may now
-  arrive as several. Check any downstream logic that relies on list length or item index.
-</Warning>
+Nothing else is lost either. Materials and colours arrive on each object rather than in a side list, and levels, rooms, hosts and definitions are reachable through the [Explore node](/connectors/grasshopper/grasshopper-explore).
+
+<Note>
+  You may see slightly more objects than before. Elements that carry only properties and no geometry
+  - Revit rooms, levels and areas - now come through where they were previously skipped.
+</Note>
+
+## Where Name and Properties went
+
+The new `Speckle Geometry` node has no Name or Properties inputs. They belong to the **Speckle Object** that contains the geometry, not to the geometry itself.
+
+This is why: a wall is one thing with one name and one set of properties, and three meshes. If each mesh carried its own copy, summing a volume across your model would count that wall three times. Putting them on the object means one wall, one volume, however many meshes it happens to have.
+
+To set a name or properties, wire your geometry into a `Speckle Object` and set them there.
+
+<Note>
+  Your existing scripts still work. The `Speckle Geometry (legacy)` node keeps its Name and
+  Properties inputs, and geometry that already carries them keeps carrying them.
+</Note>
 
 ## Before you switch Publish
 
@@ -88,6 +112,8 @@ If your script publishes and then reloads in the same definition, use the curren
 | This version was published before Speckle 2026.9.0                   | An older version loaded fine. Grouping and collection paths may differ.   |
 | This version needs the current Load component                        | A legacy node hit a version it cannot fully read. Upgrade the node.       |
 | Versions published by this component can be read by older connectors | A reminder from `Publish (legacy)`. Check collaborators before switching. |
+| The name or properties on the incoming geometry were replaced        | The Speckle Object's name and properties win. Set them on the object.     |
+| Replacing the geometry dropped its properties                        | Swapping a shape does not carry properties across. Use a Speckle Object.  |
 
 ## Frequently asked
 
@@ -107,5 +133,14 @@ If your script publishes and then reloads in the same definition, use the curren
   <Accordion title="Do I have to upgrade Load and Publish together?">
     No. They are independent. Upgrading Load only is a good first step, since it affects nobody but
     you.
+  </Accordion>
+  <Accordion title="What happened to the Speckle Data Object node?">
+    It is now called **Speckle Object** and is back in the ribbon. Same node, same ports, same
+    behaviour - it just no longer shows a deprecation message on every solve.
+  </Accordion>
+  <Accordion title="Why does my Speckle Geometry node have fewer inputs?">
+    It does not. The node in your script is `Speckle Geometry (legacy)` and keeps all of its inputs.
+    The `Speckle Geometry` in the ribbon is a new node without Name and Properties - see [Where Name
+    and Properties went](#where-name-and-properties-went).
   </Accordion>
 </AccordionGroup>
