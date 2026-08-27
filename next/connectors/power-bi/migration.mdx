@@ -1,0 +1,255 @@
+---
+title: Move a Power BI report to 2026.9
+sidebarTitle: Power BI migration
+description: Pin a broken report, rebuild queries with Get Tables, and replace the 3D visual.
+noindex: true
+contextual:
+  options: []
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<NextPreviewBanner />
+
+This page is for reports that still use `Speckle.GetByUrl` and the old 3D visual. For the 2026.9
+load path, see [How to use Speckle for Power BI](/connectors/power-bi/power-bi).
+
+There is no automatic conversion. `GetByUrl` returns one flat table. `GetTables` returns a
+navigation table with related tables. Changing the function name in the Advanced Editor is not
+enough. Downstream steps still expect the old flat table and will fail.
+
+<Warning>
+  Importing the new `.pbiviz` replaces the old visual in place. The two visuals share the same GUID.
+  Import the new visual only as part of a planned report migration.
+</Warning>
+
+## Is my report affected?
+
+Your report is at risk if all three statements are true:
+
+- It uses `Speckle.GetByUrl`.
+- It points to a model URL instead of a specific version.
+- The model will be published with a 4.0 authoring connector.
+
+Version 4.0 authoring connectors publish artifact-only versions. The legacy Power BI path reads
+JSON, so the report's next refresh fails with `JsonRepresentationUnavailable`.
+
+Reports pinned to a pre-4.0 version keep working. Existing queries also keep working against
+versions that still contain JSON.
+
+## Before a 4.0 publish
+
+Choose one of these approaches before the first 4.0 publish:
+
+1. **Pin the report.** Change its model URL to a version URL:
+   `.../models/MODEL_ID@VERSION_ID`. This keeps the report working but freezes it on that version.
+2. **Migrate the report.** Rebuild its queries with `Speckle.GetTables` and replace the 3D visual.
+3. **Coordinate both upgrades.** Migrate the report when the team upgrades its authoring
+   connectors.
+
+Pinning is a temporary recovery option. Migration is required if the report must continue
+following new versions.
+
+A bundle-consuming report that must follow new versions should pin only as a stopgap, then rebuild
+with `Speckle.GetTables`, relate on `Object Key`, and replace the visual.
+
+## Restore a broken report
+
+If the report already fails, pin it to the last version published before 4.0.
+
+{/* IMAGE_PLACEHOLDER: Power Query Advanced Editor — GetByUrl URL changed to models/MODEL_ID@VERSION_ID. */}
+
+<Steps>
+  <Step title="Open the GetByUrl query">
+    Open Power Query and select the query that calls `Speckle.GetByUrl`. You should see the model
+    URL in the formula.
+  </Step>
+  <Step title="Pin the URL to a version">
+    Change the model URL to `.../models/MODEL_ID@VERSION_ID` for the last version that still
+    contains JSON. You should be able to refresh against that version again.
+  </Step>
+</Steps>
+
+<Note>
+  After you pin the URL, the report no longer follows new publishes. Migrate it when the report must
+  pick up new versions.
+</Note>
+
+## Build the new queries
+
+Use **Speckle - Get Tables** with the existing model URL. Load Objects, invoke Properties and
+Relations for the columns the report needs, and relate those tables to Objects on `Object Key`.
+
+{/* IMAGE_PLACEHOLDER: Model view — one-to-one relationship from Properties and Relations to Objects on Object Key. */}
+
+<Steps>
+  <Step title="Open Speckle - Get Tables">
+    Select **Get Data**, then **Speckle - Get Tables**. Enter the existing model URL. You should see
+    the Navigator for that URL.
+  </Step>
+  <Step title="Load Objects">
+    Load the Objects table. You should see one row per object, with `Object Key`, `Application ID`,
+    and `Model Info`.
+  </Step>
+  <Step title="Invoke Properties and Relations">
+    Invoke Properties and select only the property columns used by the report. If the report uses
+    graph-backed fields such as levels or rooms, invoke Relations and select those fields. Relate
+    each invoked result to Objects one-to-one using `Object Key`.
+  </Step>
+</Steps>
+
+<Tip>
+  The Properties function uses the shortest unique suffix for column names by default. Set **Use
+  full paths** to `true` when you need full dotted paths. Type values use the `Type_` prefix. Some
+  legacy columns, including `Speckle Type` and the nested `data` record, have no direct equivalent
+  in the Simplified layout. Use **All tables** when the report needs type data or custom property
+  and graph relationships.
+</Tip>
+
+## Reconnect charts, measures, and slicers
+
+Update every report element that references the old table. Check column names carefully.
+Shortened property paths, numeric collision suffixes, and the new `Type_` prefix may change table
+references and calculations.
+
+The report pages remain, but their data model changes. Migration effort depends mainly on how many
+visuals and measures reference the old table.
+
+## Replace the 3D visual
+
+The old visual cannot decode the new Model Info value. The new visual shows a banner asking for
+connector 4.x data when it is bound to a `GetByUrl` query.
+
+{/* IMAGE_PLACEHOLDER: Import a visual from a file — choosing the new Speckle 3D Visual.pbiviz with same-GUID replace warning. */}
+
+<Steps>
+  <Step title="Import the new visual">
+    Import the new `.pbiviz` from `Documents/Power BI Desktop/Custom Visuals`. Because it uses the
+    same GUID as the old visual, Power BI replaces the old visual in place.
+  </Step>
+  <Step title="Reconnect the field wells">
+    Bind `Objects[Model Info]` to Model Info, `Objects[Object Key]` to Object Keys, existing tooltip
+    fields to Object Data, and the previous category field to Color By. Recreate any color rules
+    from the old visual on the new Edit page.
+  </Step>
+</Steps>
+
+<Warning>
+  The 3D visual has no AppSource auto-update channel. Existing reports keep their embedded visual
+  until someone imports a new `.pbiviz`. Importing that file replaces the old visual in place and
+  breaks its existing bindings. Do not import it into a report you are not ready to migrate.
+</Warning>
+
+## Remove the old queries
+
+Delete the `GetByUrl` queries after no visual, measure, or relationship references them.
+
+## Data-path compatibility
+
+The two paths do not fall back to each other. Each error tells you which connector path can read
+the version.
+
+| Version contains                   | `Speckle.GetByUrl`                        | `Speckle.GetTables`                                      |
+| ---------------------------------- | ----------------------------------------- | -------------------------------------------------------- |
+| JSON and artifacts                 | Returns the legacy flat table             | Returns the new tables                                   |
+| JSON only, published before 4.0    | Returns the legacy flat table             | Fails and directs the user to `GetByUrl` or republishing |
+| Artifacts only, published with 4.0 | Fails and directs the user to `GetTables` | Returns the new tables                                   |
+
+## Report scenarios
+
+| Scenario                                                                     | Outcome                                                           | Action                                                     |
+| ---------------------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------- |
+| Old report and old visual reading a pre-4.0 version                          | Refreshes as before                                               | No action required                                         |
+| Old report pinned to a pre-4.0 version URL                                   | Keeps refreshing against that version                             | No action required unless the report needs newer data      |
+| Old report follows a model URL, then the team publishes with a 4.0 connector | Fails on refresh with `JsonRepresentationUnavailable`             | Pin it to the last pre-4.0 version or migrate it           |
+| Old visual receives data from `GetTables`                                    | Cannot decode the new Model Info value                            | Replace the visual during migration                        |
+| New visual receives data from `GetByUrl`                                     | Shows a banner asking for connector 4.x data                      | Rebuild the query with `GetTables`                         |
+| New report reads a pre-4.0 version                                           | `GetTables` fails                                                 | Use `GetByUrl` or republish the model with a 4.0 connector |
+| New `.pbiviz` is imported into an existing report                            | Replaces the old visual in place and breaks its existing bindings | Import only during a planned migration                     |
+
+The connector installs machine-wide. After it is updated, every report on that machine runs
+through the new binary. The binary retains the 3.x contract of `Speckle.GetByUrl`, so existing
+queries continue to evaluate when their target version contains JSON.
+
+## Functions added in 4.0
+
+| Function                                                                        | Where it appears                               | Behavior                                                                                              |
+| ------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `Speckle.GetTables(url, options)`                                               | The **Speckle - Get Tables** entry in Get Data | Returns the navigation table for the new data model                                                   |
+| `Properties(paths?, useFullPaths?)`                                             | A Navigator entry bound to each loaded model   | Returns `Object Key` plus the selected property columns                                               |
+| `Relations(relationNames?)`                                                     | A Navigator entry bound to each loaded model   | Returns `Object Key` plus selected outgoing relation columns                                          |
+| `Speckle.AddProperties(source, propertyPaths, objects?, useFullPaths?)`         | M code only                                    | Adds selected properties to Objects. An optional Objects table can filter rows and keep extra columns |
+| `Speckle.AddAllProperties(source, objects?, useFullPaths?)`                     | M code only                                    | Adds every property path to Objects. Intended for property-light models                               |
+| `Speckle.AddRelations(objects, relations, relationTypes, nodes, relationNames)` | M code only                                    | Adds selected outgoing, one-hop relations to an Objects table                                         |
+
+`Properties` and `Relations` are bound to the loaded model. They are not global M functions.
+
+`useFullPaths` is a logical value. `false` uses the shortest unique suffix and `true` uses the
+full dotted path. The connector adds numeric suffixes when names still collide at full depth.
+
+`Speckle.AddProperties` and `Speckle.AddAllProperties` take the navigation table returned by
+`Speckle.GetTables` as `source`. Their optional Objects override can filter the result and
+preserve extra columns.
+
+## Legacy compatibility functions
+
+Existing M functions remain available, but legacy helpers only work with legacy query shapes.
+"Still works" means that a function continues to work with the legacy query shape it was designed
+for. It does not mean that the function accepts the new tables returned by `GetTables`.
+
+| Function                                     | Behavior in 4.0                                                                                   |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `Speckle.GetByUrl(url, expandProperties)`    | Keeps its 3.x contract and reads JSON versions only. It is no longer the published Get Data entry |
+| `Speckle.GetStructuredData(url)`             | Returns the legacy flat objects table from JSON                                                   |
+| `Speckle.SendToServer(url)`                  | Downloads the version's raw JSON object tree                                                      |
+| `Speckle.Objects.Collections`                | Shapes legacy `GetByUrl` output                                                                   |
+| `Speckle.Objects.CompositeStructure`         | Shapes legacy `GetByUrl` output                                                                   |
+| `Speckle.Objects.MaterialQuantities`         | Shapes legacy `GetByUrl` output                                                                   |
+| `Speckle.Objects.Properties`                 | Shapes legacy `GetByUrl` output                                                                   |
+| `Speckle.Models.Federate`                    | Operates on legacy `GetByUrl` shapes                                                              |
+| `Speckle.Models.MaterialQuantities`          | Operates on legacy `GetByUrl` shapes                                                              |
+| `Speckle.Revit.Parameters.ToNameValueRecord` | Operates on legacy `GetByUrl` shapes                                                              |
+| `Speckle.Utils.ExpandRecord`                 | Operates on legacy `GetByUrl` shapes                                                              |
+| `Speckle.Projects.Issues(url, getReplies)`   | Remains independent of both object data paths and works with old and new reports                  |
+| `Speckle.GetVersion()`                       | Returns the connector version string, unchanged                                                   |
+
+These functions still evaluate and remain visible in Power Query. Their descriptions identify
+them as 3.x compatibility functions and point users to the new path.
+
+## Current limitations
+
+- Section box, view modes, edges, and ghosting are unavailable in the new visual. Their
+  non-functional controls have been removed.
+- Filtered-out objects are hidden. There is no ghosting toggle.
+- Named scene views are unavailable. The five canonical camera views remain available.
+- The visual requires WebGPU. There is no fallback. The visual shows an error when WebGPU is
+  missing.
+- Exact minimum versions for Speckle Server, Power BI Desktop, and WebView2 are not confirmed.
+
+The server must serve 4.0 artifact bundles and advertise a geometry stream. The exact minimum
+server version is not confirmed. The Power BI client must run in a WebGPU-capable environment.
+The visual uses the existing OAuth flow and receives a limited-scope token for each load. The
+account's main token does not enter the report.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="What happens if I only rename GetByUrl to GetTables in the Advanced Editor?">
+    The downstream query steps still expect the old flat table and will fail. Rebuild the query from
+    **Speckle - Get Tables**, load Objects, and invoke Properties and Relations.
+  </Accordion>
+  <Accordion title="Can I keep following new versions without migrating?">
+    No. Pinning to `.../models/MODEL_ID@VERSION_ID` is a recovery option. If the report must follow
+    new publishes after a 4.0 authoring connector is in use, rebuild it with `Speckle.GetTables` and
+    replace the visual.
+  </Accordion>
+  <Accordion title="What happens if I import the new visual before I migrate the queries?">
+    The new `.pbiviz` replaces the old visual in place because they share the same GUID. Existing
+    bindings break. Import it only during a planned migration, then reconnect Model Info, Object
+    Keys, Object Data, and Color By.
+  </Accordion>
+  <Accordion title="Why does GetTables fail on a version published before 4.0?">
+    `GetTables` reads artifact bundles. JSON-only versions published before 4.0 need
+    `Speckle.GetByUrl`, or the model must be republished with a 4.0 connector.
+  </Accordion>
+</AccordionGroup>
