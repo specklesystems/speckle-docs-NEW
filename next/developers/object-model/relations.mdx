@@ -1,0 +1,149 @@
+---
+title: Relations in v2026.9
+sidebarTitle: Relations
+description: Typed containment, connectivity, systems, and materials — richer than today's Proxies.
+noindex: true
+contextual:
+  options: []
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<NextPreviewBanner />
+
+In the Current [Data Schema](/developers/data-schema/overview), overlapping membership is a
+[Proxy](/developers/data-schema/proxy-schema) at the Root Collection: a material, level, group, or
+definition lists `applicationId`s in `objects`. Hierarchy is a tree you walk through
+`Collection.elements`.
+
+v2026.9 replaces that reconstruction with an **explicit relational layer**: typed, directed edges
+between objects (and, where needed, structural nodes such as a level, material, or grouping
+container). For the two-store picture, see [Object model in v2026.9](/next/developers/object-model/overview).
+Dates and who must act are on
+[Data model migration for developers](/developers/migration/data-model-migration).
+
+## Why relations exist
+
+Proxies let one object participate in several organizations without copying geometry. They do not
+encode connectivity, hosting, or room occupancy as a graph a consumer can query. v2026.9 keeps the
+"no duplication" rule and makes those links first-class, which is what lets Speckle Intelligence
+answer topology questions instead of only looking up properties on each object.
+
+Rooms and MEP spaces that carry geometry are **objects** in this layer, not grouping nodes. A
+furniture item's room membership is a relation to that room object (`IN_ROOM`), not a Proxy list on
+a container.
+
+## Relation types you will see
+
+Names below are the live vocabulary of the relational layer (the same names the v2026.9 viewer
+inspector uses). A connector emits only the types that exist in the source model. Omit a row from
+your script's assumptions unless that host actually publishes it.
+
+### Containment and grouping
+
+These replace nested `elements` walks and most organisational Proxies.
+
+| Relation        | From → to                            | Replaces in the Current model                                      | When you use it                                                                                         |
+| --------------- | ------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `SUBELEMENT`    | object → object                      | Nested DataObject `elements` (curtain wall → panels, stair → runs) | Host-to-child ownership the property store cannot encode                                                |
+| `IN_COLLECTION` | object → grouping container          | Collection tree / layer membership                                 | Authored layer, category, or collection membership                                                      |
+| `IN_MODEL`      | object → grouping container          | Source-file / federation grouping                                  | Which source model an object came from                                                                  |
+| `IN_GROUP`      | object → grouping container          | Group Proxy                                                        | Authored groups (for example Rhino or AutoCAD). Distinct from layer                                     |
+| `IN_ROOM`       | object → room object                 | Not a first-class Proxy graph                                      | Spatial occupancy (furniture, door, window → room)                                                      |
+| `IN_ASSEMBLY`   | member object → assembly object      | Host-specific nesting                                              | Fabrication membership (for example Tekla). Distinct from `SUBELEMENT`                                  |
+| `ON_LEVEL`      | object → level                       | Level Proxy                                                        | Level membership                                                                                        |
+| `IN_SYSTEM`     | object → system or network container | System / network grouping                                          | MEP system membership. Derived networks use the same relation; the container subtype distinguishes them |
+
+Grouping containers nest among themselves (a collection tree). That nesting is structural. It is not
+an object-to-object `elements` walk.
+
+### Connectivity
+
+These are new as a queryable graph. Today's schema does not give you a Proxy equivalent.
+
+| Relation      | From → to       | Meaning                                                                                         |
+| ------------- | --------------- | ----------------------------------------------------------------------------------------------- |
+| `CONNECTS_TO` | object → object | Directed connectivity. Scope distinguishes MEP flow, opening/room adjacency, and unscoped links |
+| `HOSTED_ON`   | object → object | Hosted element → host (door or window → wall). Different from `SUBELEMENT` ownership            |
+| `BOUNDS`      | object → object | Bounding wall → room. Room footprint, not occupancy                                             |
+
+`CONNECTS_TO` is directed in the store. Neighborhood queries used by the product treat it as a
+one-hop connection in either direction.
+
+### Materials and appearance
+
+| Relation              | From → to           | Replaces in the Current model                         |
+| --------------------- | ------------------- | ----------------------------------------------------- |
+| `HAS_MATERIAL`        | geometry → material | RenderMaterial Proxy bound to display meshes          |
+| `HAS_COLOR`           | geometry → color    | Display color, kept distinct from material            |
+| `OBJECT_HAS_MATERIAL` | object → material   | Placement / instance paint when the object carries it |
+| `OBJECT_HAS_COLOR`    | object → color      | Object-plane color override                           |
+
+Material and color are separate on purpose. An object can carry both. Geometry-level material is
+the intrinsic appearance; object-plane color is presentational and can override geometry color.
+
+### Instancing
+
+Today's Definition and Instance Proxies become structural nodes plus relations.
+
+| Relation           | From → to                    | Replaces in the Current model            |
+| ------------------ | ---------------------------- | ---------------------------------------- |
+| `DEFINES`          | definition → geometry        | Definition Proxy holding shared geometry |
+| `DISPLAY_INSTANCE` | object → instance placement  | Instance that renders with a transform   |
+| `DEFINES_INSTANCE` | definition → nested instance | Nested instancing inside a definition    |
+
+<Note>
+  `DISPLAY_INSTANCE` is the render placement. Do not treat every object-to-instance association as a
+  render root. Definition members that must stay linked without drawing at the origin use a separate
+  association (`PLACES`) on producers that emit it.
+</Note>
+
+## What a script should do instead of unpacking Proxies
+
+<Steps>
+  <Step title="Resolve the version">
+    Use the same project, model, and version address you use today. The outcome is the snapshot you
+    intend to read.
+  </Step>
+  <Step title="Identify objects by applicationId">
+    Key source elements by `applicationId`, not by their position in a nested `elements` tree. The
+    outcome is a stable object set across versions.
+  </Step>
+  <Step title="Read the columnar property store">
+    Take attributes from property paths on those objects. See [Columnar property
+    store](/next/developers/object-model/overview#columnar-property-store). The outcome is values
+    you can filter without walking nested `Base` fields.
+  </Step>
+  <Step title="Follow named relations">
+    For membership, hosting, or connectivity, use relation names such as `ON_LEVEL`, `SUBELEMENT`,
+    `CONNECTS_TO`, and `IN_SYSTEM`. The outcome is topology without unpacking a Proxy `objects`
+    array. That join is already the relation.
+  </Step>
+</Steps>
+
+This page does not document SQL, a local query API, or copy-paste SDK calls. Those surfaces are
+separate. Until they ship in these docs, use supported SDK accessors and the
+[developer migration page](/developers/migration/data-model-migration) for breakage and pinning.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Why don't I see IN_NETWORK or IN_SPACE on new data?">
+    Those names are retired. MEP network membership is `IN_SYSTEM` on a container whose subtype is
+    Network. Element-to-space membership is not emitted as a relation; spaces that carry geometry
+    are objects with properties. Older bundles may still show retired names in a viewer inspector.
+  </Accordion>
+  <Accordion title="Is HOSTED_ON the same as SUBELEMENT?">
+    No. `HOSTED_ON` is placement on a host (a door on a wall). `SUBELEMENT` is ownership (a curtain
+    wall owns its panels). A door is hosted on a wall; it is not a component of the wall.
+  </Accordion>
+  <Accordion title="What happens if my connector never emitted a given relation?">
+    The edge is absent. Scripts should treat a missing relation type as "not in this model," not as
+    a failed receive. Only hosts that have that concept in the source will emit it.
+  </Accordion>
+  <Accordion title="Can I keep walking Collection.elements for hierarchy?">
+    That walk is the Current tree. On v2026.9 data, use `IN_COLLECTION`, `IN_MODEL`, `ON_LEVEL`, and
+    `SUBELEMENT` instead of assuming a nested `elements` graph. See [Object model in
+    v2026.9](/next/developers/object-model/overview).
+  </Accordion>
+</AccordionGroup>
