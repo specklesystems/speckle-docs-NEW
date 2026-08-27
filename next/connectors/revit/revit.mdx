@@ -72,11 +72,51 @@ sender baked the transform, Revit inverts it automatically.
 For the receive-setting steps in today's connector, see
 [How to use Speckle for Revit](/connectors/revit/revit).
 
-## Scripts and older models
+Re-publish once from a 2026.9 connector to unlock the picker and datum switching for an existing
+model.
 
-The 2026.9 connector stores placement on the bundle as `modelPlacement`, not as root
-`referencePointTransform`. v3 models still load. Re-publish from a 2026.9 connector to unlock the
-placement picker. See [Migrate Revit model placement](/next/connectors/revit/migration).
+## Placement record
+
+Scripts and SDK consumers read `modelPlacement.*` from `eav.model`, not `referencePointTransform` on
+the root object. Apply the placement yourself unless the sender turned **Apply Transform** on.
+
+- `modelPlacement.transform` — Internal Origin to the datum selected on publish. The value is 16
+  row-major doubles. Translation is in `modelPlacement.units`.
+- `modelPlacement.default` — which datum that is (`internalOrigin`, `projectBasePoint`,
+  `surveyPoint`, `sharedCoordinates`).
+- `modelPlacement.options.*` — the transform for every available datum, so a consumer can switch.
+- `modelPlacement.appliedToGeometry` — `false` by default. `true` only if the sender turned **Apply
+  Transform** on. If it is `true`, invert the transform before you place the model.
+- `referencePoints.*`, `projectLocation.trueNorthAngle` — raw base-point positions, True North, and
+  site location.
+
+The viewer applies `modelPlacement.transform` at load time. The placement picker swaps in any of the
+`options.*` transforms.
+
+### Source (default)
+
+- 2026.9, Apply Transform off: nothing applied. Geometry is already in internal coordinates.
+- 2026.9, Apply Transform on: sender's transform inverted automatically.
+- v3 / migrated model: sender's root transform inverted, as before.
+
+### Named receive datums
+
+For **Internal Origin**, **Project Base Point**, **Survey Point**, or **Shared Coordinates**:
+
+- 2026.9, Apply Transform off: your chosen datum transform applied.
+- 2026.9, Apply Transform on: sender's transform inverted, then your datum applied.
+- v3 / migrated model: as before.
+
+For the numbered consumer steps and the re-publish path, see [Migrate Revit model
+placement](/next/connectors/revit/migration).
+
+## View
+
+{/* IMAGE_PLACEHOLDER: Viewer placement picker — published datum marked (published); Internal Origin, Project Base Point, Survey Point origin, Shared Coordinates listed. */}
+
+After you publish, the web viewer lands the model using that placement. A **placement picker** lets
+you inspect the same model from any other datum without republishing. The datum you published with
+is marked **(published)**.
 
 ## FAQ
 
