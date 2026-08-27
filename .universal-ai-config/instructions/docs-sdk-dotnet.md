@@ -1,11 +1,11 @@
 ---
 description: Speckle.Sdk (.NET) docs — scripts-first audience, bootstrap boilerplate, connector content secondary
-globs: ["developers/sdks/dotnet/**"]
+globs: ["developers/sdks/dotnet/**", "next/developers/sdks/dotnet/**"]
 ---
 
 # Speckle.Sdk (.NET) Documentation
 
-Applies when creating or editing pages under `developers/sdks/dotnet/`.
+Applies when creating or editing pages under `developers/sdks/dotnet/` or `next/developers/sdks/dotnet/`.
 
 ## Audience (scripts first)
 
@@ -76,7 +76,8 @@ Before completing an edit:
 2. Connector-only sections warned before code?
 3. Script path linked where bootstrap or `GetRequiredService` appears?
 4. C# fences use Mintlify metadata — ` ```csharp Example lines icon="/images/developers/sdks/csharp.svg" ` (title before `lines`; never ` ```csharp lines ...` alone); add `expandable` on Complete Example blocks?
-5. `pnpm valid` and `pnpm check-links` run from `speckle-docs-NEW` after substantive changes?
+5. Version comparison tabs follow **docs-versioned-snippets** (same setup; only the changed call differs)?
+6. `pnpm valid` and `pnpm check-links` run from `speckle-docs-NEW` after substantive changes?
 
 ## Code fences
 

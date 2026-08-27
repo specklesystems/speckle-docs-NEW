@@ -81,7 +81,7 @@ Generate the doc pages following these rules:
 
 ### Structure
 
-- Follow the authoring rules in the project's instruction files (docs-authoring, docs-steps, docs-faqs, docs-asides, docs-titles-nav-seo)
+- Follow the authoring rules in the project's instruction files (docs-authoring, docs-steps, docs-faqs, docs-asides, docs-versioned-snippets, docs-titles-nav-seo)
 - Use Mintlify components: Steps/Step, AccordionGroup/Accordion, Tip, Note, Warning, Frame, Tabs/Tab
 - Match the tone and depth of existing pages in the target section
 

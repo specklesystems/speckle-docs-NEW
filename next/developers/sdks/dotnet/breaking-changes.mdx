@@ -1,7 +1,7 @@
 ---
 title: Assess .NET SDK breaking changes
 sidebarTitle: .NET SDK
-description: Before-and-after Speckle.Sdk examples so you can judge v2026.9 migration impact.
+description: Before-and-after Speckle.Sdk examples so you can judge 2026.9 migration impact.
 noindex: true
 contextual:
   options: []
@@ -11,28 +11,34 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 <NextPreviewBanner />
 
-Use this page to judge what a Speckle.Sdk script must change for v2026.9. It is not a replacement
+Use this page to judge what a Speckle.Sdk script must change for 2026.9. It is not a replacement
 for the [scripts and notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks)
 guide, and it is not a full API reference.
 
-Prior to 2026.9, the path is still **PAT → bootstrap → `Receive2` → `Flatten`**. In v2026.9 that
+Prior to 2026.9, the path is still **PAT → bootstrap → `Receive2` → `Flatten`**. In 2026.9 that
 receive is obsolete. The new path is **`Receive3`**, which returns a disposable `Model` with columnar
 properties and typed relations. Dates, compatibility mode, and who must act are on
 [Data model migration for developers](/developers/migration/data-model-migration). The object-model
-change itself is on [Object model in v2026.9](/next/developers/object-model/overview).
+change itself is on [Object model in 2026.9](/next/developers/object-model/overview).
+
+<Warning>
+  Versions published by a 2026.9 connector need a Speckle.Sdk **2026.9** build. An older SDK 404s on
+  that data. Versions from older connectors keep working on the SDK you have today. See [Who's
+  affected](/developers/migration/data-model-migration#whos-affected).
+</Warning>
 
 <Note>
-  Standard `Receive2` scripts keep working against versions that still have a legacy object graph.
-  Bundle-only versions need a Speckle.Sdk **2026.9** build. Prefer `Receive3` for new scripts.
+  Prefer `Receive3` for new scripts. `Receive2` stays callable on legacy object-graph versions.
 </Note>
 
 ## What changes for a script
 
-| Concern                 | Prior to 2026.9                            | In v2026.9                                                                                          |
+| Concern                 | Prior to 2026.9                            | In 2026.9                                                                                           |
 | ----------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
 | Packages                | `Speckle.Sdk` plus `Speckle.Objects`       | One `Speckle.Sdk` package. `Speckle.Objects` is a type-forwarding shell you can delete              |
 | Load a version          | `Receive2` with `version.referencedObject` | `Receive3` with a model URL or project, model, and version ids. Returns `Speckle.Sdk.Bundles.Model` |
 | Filter and count        | `Flatten()` then `DataObject.properties`   | `model.Objects`, `ObjectsWith`, and `GetString` / `GetDouble`                                       |
+| Nested property walk    | `properties["x"]` then `["y"]`             | Dotted path (`GetString("x.y")`) or `PropertyView.Under`                                            |
 | Level, material, groups | Unpack proxy `objects` lists               | Accessors on `ModelObject` (`Level`, `Material`, `Collection`)                                      |
 | Publish from a script   | `Send2` then `Version.Create`              | `Send3` with a `BundleBuilder`. The version is visible only after ingestion completes               |
 | Transports              | `Send` / `Receive` with `ITransport`       | Frozen legacy surface. A bundle reference through transport `Receive` throws                        |
@@ -59,7 +65,7 @@ register your own `Base` types. Geometry types now live in `Speckle.Sdk`.
 
 ## Load a model
 
-Prior to 2026.9, you resolve `referencedObject` and call `Receive2`. In v2026.9, `Receive2` is marked
+Prior to 2026.9, you resolve `referencedObject` and call `Receive2`. In 2026.9, `Receive2` is marked
 `[Obsolete]`. `Receive3` takes the same account and ids and returns a disposable `Model`. Wrap that
 `Model` in `using`: it owns the downloaded bundle files on disk until you dispose it.
 
@@ -78,8 +84,8 @@ The snippets below assume `account`, `client`, `projectId`, `modelId`, and `late
     ```
 
   </Tab>
-  <Tab title="v2026.9 (Receive3)">
-    ```csharp v2026.9 lines icon="/images/developers/sdks/csharp.svg"
+  <Tab title="2026.9 (Receive3)">
+    ```csharp 2026.9 lines icon="/images/developers/sdks/csharp.svg"
     using var model = await SpeckleBootstrap.Operations.Receive3(
         account,
         projectId,
@@ -98,7 +104,7 @@ The snippets below assume `account`, `client`, `projectId`, `modelId`, and `late
 
 ## Count and filter objects
 
-Prior to 2026.9, you walk a `Base` tree. In v2026.9, objects are a flat list. Properties are path-keyed
+Prior to 2026.9, you walk a `Base` tree. In 2026.9, objects are a flat list. Properties are path-keyed
 (`"category"`, `"Constraints.Base Offset"`). Relations are accessors, not Proxy lists.
 
 <Tabs>
@@ -118,8 +124,8 @@ Prior to 2026.9, you walk a `Base` tree. In v2026.9, objects are a flat list. Pr
     ```
 
   </Tab>
-  <Tab title="v2026.9">
-    ```csharp v2026.9 lines icon="/images/developers/sdks/csharp.svg"
+  <Tab title="2026.9">
+    ```csharp 2026.9 lines icon="/images/developers/sdks/csharp.svg"
     var counts = model.Objects.GroupBy(o => o.GetString("category") ?? o.Name ?? "Unknown");
 
     var byLevel = model.Objects.GroupBy(o => o.Level?.Name ?? "Unknown");
@@ -133,11 +139,60 @@ Prior to 2026.9, you walk a `Base` tree. In v2026.9, objects are a flat list. Pr
 Look up one object with `model.ObjectByApplicationId(id)`. `applicationId` is the only identity a
 bundle object has. Do not treat `Base.id` as a content hash on bundle-only versions.
 
+## Replace property walks
+
+Prior to 2026.9, nested parameters are dictionaries you walk: `obj.properties["x"]` then `["y"]`. In
+2026.9 those paths are flat. `PropertyView` is the type that replaces that walk.
+
+### PropertyView
+
+`PropertyView` (`Speckle.Sdk.Pipelines.Receive.Artifacts`) is a read-only view over one object's
+property rows. Keys are dotted paths (`"Constraints.Base Offset"`), not nested dictionaries. It does
+not allocate until you enumerate it. `ModelObject.Properties` is this view; cast to `PropertyView`
+when you need the helpers below.
+
+- **`GetString` / `GetDouble` / `GetBool`:** typed lookup. Null if the path is missing or the value
+  is another type.
+- **`Under("Constraints")`:** the subtree under that prefix, with the prefix stripped. No allocation.
+- **Indexer / `TryGetValue`:** untyped lookup, same paths as `GetString`.
+- **`ToNested()`:** the old nested-dictionary tree. Allocates. Use only when a caller still requires
+  that shape.
+
+`ModelObject.GetString`, `GetDouble`, and `GetBool` do the same typed lookup with instance, then
+type, then root-scalar precedence. Prefer those for a single path. Use `PropertyView.Under` when you
+need a group.
+
+<Tabs>
+  <Tab title="Prior to 2026.9">
+    ```csharp Prior to 2026.9 lines icon="/images/developers/sdks/csharp.svg"
+    var wall = root.Flatten().OfType<DataObject>().First();
+    var groups = wall.properties.GetValueOrDefault("parameters") as Dictionary<string, object?>;
+    var x = groups?.GetValueOrDefault("x") as Dictionary<string, object?>;
+    var y = x?.GetValueOrDefault("y");
+    ```
+
+  </Tab>
+  <Tab title="2026.9">
+    ```csharp 2026.9 lines icon="/images/developers/sdks/csharp.svg"
+    var wall = model.Objects.First();
+    var y = wall.GetString("parameters.x.y");
+    var offset = wall.GetDouble("Constraints.Base Offset");
+
+    var constraints = ((PropertyView)wall.Properties).Under("Constraints");
+    foreach (var kv in constraints)
+    {
+        Console.WriteLine($"{kv.Key}: {kv.Value}");
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
 ## Replace Proxy walks
 
 Prior to 2026.9, grouping by level or material means indexing `applicationId`s and resolving proxy `objects`
-lists. In v2026.9 those links are typed relations. See
-[Relations in v2026.9](/next/developers/object-model/relations) for the names.
+lists. In 2026.9 those links are typed relations. See
+[Relations in 2026.9](/next/developers/object-model/relations) for the names.
 
 <Tabs>
   <Tab title="Prior to 2026.9">
@@ -148,8 +203,8 @@ lists. In v2026.9 those links are typed relations. See
     ```
 
   </Tab>
-  <Tab title="v2026.9">
-    ```csharp v2026.9 lines icon="/images/developers/sdks/csharp.svg"
+  <Tab title="2026.9">
+    ```csharp 2026.9 lines icon="/images/developers/sdks/csharp.svg"
     var byLevel = model.Objects.GroupBy(o => o.Level?.Name ?? "Unknown");
     var hosted = model.Objects.Where(o => o.Host is not null);
     ```
@@ -157,7 +212,7 @@ lists. In v2026.9 those links are typed relations. See
   </Tab>
 </Tabs>
 
-A missing nested `elements` tree or Proxy `objects` list on v2026.9 data is expected. Do not unpack
+A missing nested `elements` tree or Proxy `objects` list on 2026.9 data is expected. Do not unpack
 Proxies to rebuild containment.
 
 ## What Receive2 still does
@@ -185,7 +240,7 @@ reference.
 ## Publish from a script
 
 Most analysis scripts only receive. If you currently call `Send2` then `Version.Create`, the
-v2026.9 replacement is `Send3` with a `BundleBuilder`. `Send2` stays accepted and starts emitting
+2026.9 replacement is `Send3` with a `BundleBuilder`. `Send2` stays accepted and starts emitting
 deprecation warnings. There is no removal date.
 
 `Send3` returns a reserved version id immediately. Queries, the version URL, and
@@ -196,9 +251,9 @@ project's model ingestions, if you need to follow up in the same process.
 
 <AccordionGroup>
   <Accordion title="Do I have to rewrite a Receive2 script on day one?">
-    Upgrade Speckle.Sdk first so bundle-only versions do not 404. Existing object-graph versions
-    keep working on `Receive2`. Rewrite to `Receive3` when you need relations, columnar property
-    lookups, or models that are too large to materialize as a `Base` tree.
+    Upgrade Speckle.Sdk first so versions from a 2026.9 connector do not 404. Versions from older
+    connectors keep working on `Receive2`. Rewrite to `Receive3` when you need relations, columnar
+    property lookups, or models that are too large to materialize as a `Base` tree.
   </Accordion>
   <Accordion title="Why does Receive3 return Model instead of Base?">
     `Model` is the bundle itself: objects, path-keyed properties, and relation accessors, with

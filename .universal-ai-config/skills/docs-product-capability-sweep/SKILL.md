@@ -80,7 +80,7 @@ single-section fixes can proceed after stating intent.
 | Templates / import | Import fidelity, spawn/reuse flows | Operator catalog (link out) |
 | Results / review | Surfaces, drill, export, PENDING | How to author rules |
 
-Authoring rules: follow `docs-authoring`, `docs-steps`, `docs-faqs`, `docs-asides`.
+Authoring rules: follow `docs-authoring`, `docs-steps`, `docs-faqs`, `docs-asides`, `docs-versioned-snippets`.
 Honest limitations. Progressive disclosure. Cross-link instead of copying.
 
 ## 5. Verify
