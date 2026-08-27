@@ -31,7 +31,27 @@ script upgrade, see [Upgrade Grasshopper scripts](/next/connectors/grasshopper/u
   on the **Speckle Object** that contains the geometry. Geometry nodes already on your canvas keep
   those inputs and are renamed **Speckle Geometry (legacy)**.
 
-## Explore
+Existing scripts keep working on the renamed nodes. You only need the current Load node if you want
+Explore, or if you are loading a version a teammate published with the current Publish node.
+
+## Publish
+
+Versions from the current **Publish** node need an upgraded connector to read. **Publish (legacy)**
+can still be read by older connectors. Confirm collaborators have upgraded before you switch. The
+two nodes are independent of Load.
+
+## Load
+
+The current Load node can return more objects than before, including property-only elements such as
+Revit rooms, levels, and areas. Materials and colours arrive on each object. The **Proxies** output
+is not on the current Load node. Model-wide properties such as project information arrive on a
+**Properties** output. The current Publish node has a matching optional **Properties** input.
+
+{/* IMAGE_PLACEHOLDER: Speckle Object node — Name and Properties ports; current Speckle Geometry node with colour and material only. */}
+
+Name and properties live on the **Speckle Object**, not on geometry. A wall is one thing with one
+name and one set of properties, even when it has three meshes. To set a name or properties, wire
+geometry into a **Speckle Object**.
 
 {/* IMAGE_PLACEHOLDER: Explore node — Speckle Object input; dynamic outputs such as level, rooms, host, and definition. */}
 
@@ -48,15 +68,23 @@ already set on the object when it loads.
 <Note>
   Explore supports versions published with 2026.9 onwards, loaded with the current Load node.
   Versions published before then do not record these connections, so there is nothing for Explore to
-  show. Objects loaded with **Load (legacy)** also produce no Explore outputs.
+  show. Objects loaded with **Load (legacy)** also produce no Explore outputs. If Explore reports
+  that nothing is cached for a model that loaded correctly earlier, reload the model.
 </Note>
 
-## Extra objects on Load
+## FAQ
 
-The current Load node can return more objects than before, including property-only elements such as
-Revit rooms, levels, and areas. Materials and colours arrive on each object. The **Proxies** output
-is not on the current Load node. Model-wide properties such as project information arrive on a
-**Properties** output. The current Publish node has a matching optional **Properties** input.
-
-Versions from the current **Publish** node need an upgraded connector to read. **Publish (legacy)**
-can still be read by older connectors.
+<AccordionGroup>
+  <Accordion title="Will my saved scripts break?">
+    No. Nodes are matched by identity, not by name, so renaming them has no effect on your files. No
+    node turns into a placeholder and no wire is dropped.
+  </Accordion>
+  <Accordion title="Why does Explore produce no outputs?">
+    The usual cause is a version published before 2026.9, or a **Load (legacy)** node. Republish
+    with the current Publish node, then load with the current Load node.
+  </Accordion>
+  <Accordion title="Why does my Speckle Geometry node have fewer inputs?">
+    It does not. The node in your script is **Speckle Geometry (legacy)** and keeps all of its
+    inputs. The **Speckle Geometry** in the ribbon is a new node without Name and Properties.
+  </Accordion>
+</AccordionGroup>
