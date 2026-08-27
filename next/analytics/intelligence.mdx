@@ -1,7 +1,7 @@
 ---
 title: Ask questions about your models with Speckle Intelligence
 sidebarTitle: Speckle Intelligence
-description: Open Chat in v2026.9 to ask about your models, including how parts connect and contain each other.
+description: Ask project-scale questions in Chat, or ask about the model in front of you from the 3D viewer sparkle.
 noindex: true
 contextual:
   options: []
@@ -11,9 +11,12 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 <NextPreviewBanner />
 
-Speckle Intelligence is the assistant in the Speckle web app. You ask about a project in plain
-language. It reads the models you have published and replies with answers, charts, and — in the 3D
-viewer — changes to what you are looking at.
+Speckle Intelligence is the assistant in the Speckle web app. You ask in plain language. It reads
+the models you have published and replies with answers, charts, and — in the 3D viewer — changes to
+what you are looking at.
+
+Use **Chat** on the project page for project-scale questions. Use the sparkle in the main 3D viewer
+when you are looking at models and want to ask about those loaded models.
 
 There is no Current equivalent for this Chat surface. For how Speckle works today, see
 [Compare Current and v2026.9](/next/whats-new) and
@@ -26,23 +29,64 @@ There is no Current equivalent for this Chat surface. For how Speckle works toda
   license — Intelligence](/developers/server/deployment/enterprise-license#optional-intelligence).
 </Note>
 
-## Open Chat
+## How it works
 
-The live product entry point is **Chat**, not the **Intelligence** item in the project or workspace
-sidebar. That **Intelligence** label currently opens dashboards.
+Speckle Intelligence does not upload a Revit, Rhino, Tekla, or other host file to an AI so the AI
+can rebuild the model in memory. You publish to Speckle as you do today. The assistant then runs
+read-only queries against the Speckle data already stored for those published versions.
+
+That small payload is deliberate. Speckle does not send the whole model into the AI as a giant
+blob of text, because that would spend your AI credit — and Speckle's — on tokens the assistant
+does not need. It asks for the facts it needs, keeps those results compact, and writes the reply
+from them. The goal is to answer from your data without burning budget on a full-model dump.
+
+Those queries can cover:
+
+- Object properties on published models
+- How parts relate to each other (containment, connectivity, levels, systems, materials) when
+  the version is in the new data format
+- Where a model was published from (the source application on the version, and types in the
+  published data)
+- How the project has been updated (who published which version, and what changed between
+  versions)
+- Files in the workspace library, and registered tables such as CSV or XLSX uploads and
+  warehouse connections (Snowflake, Databricks, Microsoft Fabric), when those exist
+
+The assistant can still be wrong if it skips a query or misreads a result. If the data is not
+there, it is instructed to say so rather than invent structure from a host file.
+
+The new data format is what adds the relationship graph. Versions that only have today's
+property data can still be asked about object properties. Questions about what connects to
+what, or what contains what, need the new format. See [Speckle's data model is
+changing](/workspaces/data-model-migration).
+
+This page does not cover how Speckle handles AI providers or data security.
+
+## Where to ask
+
+On day one of v2026.9, Speckle Intelligence has two entry points. They are not the same job.
+
+- **Chat** on the project page is for project-scale questions: the project as a whole, not only the
+  model you have open.
+- The sparkle at the top right of the main 3D viewer is for questions about the models loaded in
+  that viewer.
+
+The **Intelligence** item in the project or workspace sidebar currently opens dashboards, not Chat.
+
+### Ask about the project
 
 <Steps>
   <Step title="Open a project">
-    Open the project whose models you want to ask about. You should see the project sidebar with
-    **Browse** and **Chat** at the top when Chat is available for the workspace.
+    Open the project you want to ask about. You should see **Browse** and **Chat** at the top of the
+    project sidebar when Chat is available for the workspace.
   </Step>
   <Step title="Choose Chat">
     Select **Chat**. The page title is **Chat**. The empty state reads **Ask about** your project
     name, with the prompt to ask in plain language.
   </Step>
-  <Step title="Ask a question">
-    Type a question, or pick a suggested starter if one is shown. You can attach a published model
-    from the composer when the question needs a specific version.
+  <Step title="Ask a project-scale question">
+    Type a question about the project, or pick a suggested starter if one is shown. You can attach a
+    published model from the composer when the question needs a specific version.
   </Step>
   <Step title="Read the reply">
     Wait for the reply. You should see a conversation in the Chat history, titled from your
@@ -50,51 +94,76 @@ sidebar. That **Intelligence** label currently opens dashboards.
   </Step>
 </Steps>
 
-<Tip>
-  In the 3D viewer, open Chat from the sparkles control at the right of the navbar. That control is
-  labelled **Open AI chat**. The empty state reads **Chat with your model**, and the composer
-  placeholder is **Ask about this model…**
-</Tip>
+### Ask about the model in the viewer
+
+<Steps>
+  <Step title="Open a model in the viewer">
+    Open the model in the main 3D viewer. You should see the sparkle control at the top right of the
+    viewer window when Chat is available.
+  </Step>
+  <Step title="Select the sparkle">
+    Select the sparkle. Chat opens beside the model. The empty state reads **Chat with your model**.
+    The description is **Ask about the models loaded in the viewer, or attach their data to query
+    it.** The composer placeholder is **Ask about this model…**
+  </Step>
+  <Step title="Ask about this model">
+    Type a question about the models in front of you, or pick a suggested starter. The reply can
+    change what you see in the viewer as well as answering in the conversation.
+  </Step>
+</Steps>
 
 <Note>
-  If **Chat** is missing, your workspace may not include Speckle Intelligence, a workspace admin may
-  have turned **AI features** off in workspace settings, or you may need to choose **Enable AI for
-  this workspace** when the **Enable AI** dialog appears.
+  If **Chat** or the viewer sparkle is missing, your workspace may not include Speckle Intelligence,
+  a workspace admin may have turned **AI features** off in workspace settings, or you may need to
+  choose **Enable AI for this workspace** when the **Enable AI** dialog appears.
 </Note>
 
 ## What changes in v2026.9
 
 Today, Speckle Intelligence looks at properties on each object. After a project moves to the new
-data format, it can also see how parts of a model relate to each other: what connects to what, and
-what contains what.
+data format, it can also query how parts of a model relate to each other — what connects to what,
+and what contains what — because that structure is in the Speckle data layer.
 
 That is the same change summarised on [Compare Current and v2026.9](/next/whats-new). Follow
 [Speckle's data model is changing](/workspaces/data-model-migration) for dates and what to do next.
-Do not expect answers about what connects or contains what from models that still use today's format.
 
 ## What you can ask
 
-Ask in the same language you would use with a colleague who has the model open.
+Ask in the same language you would use with a colleague.
 
-In the 3D viewer, starters can include **What's in this model?**, **Give me a tour**, **What
-changed recently?**, and **Color it by category**. If you have an object selected, you may also see
-**What is this?**
+In **Chat**, ask at project scale: the project as a whole, not only one open model. Chat can also
+build a **Report** from a conversation. Saved reports appear under **Reports** in the project
+sidebar when Chat is enabled.
+
+In the **3D viewer**, ask about the model in front of you. Starters can include **What's in this
+model?**, **Give me a tour**, **What changed recently?**, and **Color it by category**. If you have
+an object selected, you may also see **What is this?**
 
 After the project is on the new data format, you can also ask what contains an object, what it
 connects to, or what sits on a level. Those questions need the relational layer in the new format.
 
-Chat can also build a **Report** from a conversation. Saved reports appear under **Reports** in the
-project sidebar when Chat is enabled. Data Validation has its own assistant in the check editor;
-that flow stays on the Data Validation guides.
+Data Validation has its own assistant in the check editor; that flow stays on the Data Validation
+guides.
 
 ## FAQ
 
 <AccordionGroup>
+  <Accordion title="When should I use Chat instead of the viewer sparkle?">
+    Use **Chat** for project-scale questions. Use the sparkle when a model is open in the 3D viewer
+    and you want to ask about the models loaded there.
+  </Accordion>
   <Accordion title="Why does Intelligence in the sidebar open dashboards?">
     In the product today, **Intelligence** in the workspace and project sidebars opens dashboards.
-    Speckle Intelligence Chat is a separate surface: **Chat** on the project, or **Open AI chat** in
-    the 3D viewer. Dashboards are documented on [Intelligence
-    Dashboards](/analytics/intelligence-dashboards).
+    Speckle Intelligence Chat is a separate surface: **Chat** on the project page for project-scale
+    questions, or the sparkle at the top right of the main 3D viewer for the model in front of you.
+    Dashboards are documented on [Intelligence Dashboards](/analytics/intelligence-dashboards).
+  </Accordion>
+  <Accordion title="Does Intelligence upload my Revit or Rhino model to an AI?">
+    No. You publish to Speckle as you do today, from Revit, Rhino, Tekla, or another supported host.
+    Intelligence queries that Speckle data. It does not send the host file, or the whole model as a
+    giant blob of text, to an AI so the AI can rebuild the model from scratch. Keeping what the AI
+    sees compact is deliberate: it protects your workspace AI credit, and Speckle's cost, instead of
+    spending tokens on a full-model dump.
   </Accordion>
   <Accordion title="What happens if my project has not moved to the new data format?">
     Chat still answers questions about object properties. Questions about what connects to what, or
