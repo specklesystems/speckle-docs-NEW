@@ -12,11 +12,11 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 <NextPreviewBanner />
 
 Use this page to judge what a Speckle.Sdk script must change for v2026.9. It is not a replacement
-for the Current [scripts and notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks)
+for the [scripts and notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks)
 guide, and it is not a full API reference.
 
-The Current path is still **PAT → bootstrap → `Receive2` → `Flatten`**. In v2026.9 that receive is
-obsolete. The new path is **`Receive3`**, which returns a disposable `Model` with columnar
+Prior to 2026.9, the path is still **PAT → bootstrap → `Receive2` → `Flatten`**. In v2026.9 that
+receive is obsolete. The new path is **`Receive3`**, which returns a disposable `Model` with columnar
 properties and typed relations. Dates, compatibility mode, and who must act are on
 [Data model migration for developers](/developers/migration/data-model-migration). The object-model
 change itself is on [Object model in v2026.9](/next/developers/object-model/overview).
@@ -28,7 +28,7 @@ change itself is on [Object model in v2026.9](/next/developers/object-model/over
 
 ## What changes for a script
 
-| Concern                 | Today                                      | In v2026.9                                                                                          |
+| Concern                 | Prior to 2026.9                            | In v2026.9                                                                                          |
 | ----------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
 | Packages                | `Speckle.Sdk` plus `Speckle.Objects`       | One `Speckle.Sdk` package. `Speckle.Objects` is a type-forwarding shell you can delete              |
 | Load a version          | `Receive2` with `version.referencedObject` | `Receive3` with a model URL or project, model, and version ids. Returns `Speckle.Sdk.Bundles.Model` |
@@ -59,7 +59,7 @@ register your own `Base` types. Geometry types now live in `Speckle.Sdk`.
 
 ## Load a model
 
-Today you resolve `referencedObject` and call `Receive2`. In v2026.9, `Receive2` is marked
+Prior to 2026.9, you resolve `referencedObject` and call `Receive2`. In v2026.9, `Receive2` is marked
 `[Obsolete]`. `Receive3` takes the same account and ids and returns a disposable `Model`. Wrap that
 `Model` in `using`: it owns the downloaded bundle files on disk until you dispose it.
 
@@ -67,8 +67,8 @@ Auth, bootstrap, and version lookup stay on [scripts and notebooks](/developers/
 The snippets below assume `account`, `client`, `projectId`, `modelId`, and `latest` are already in scope.
 
 <Tabs>
-  <Tab title="Today (Receive2)">
-    ```csharp Today lines icon="/images/developers/sdks/csharp.svg"
+  <Tab title="Prior to 2026.9 (Receive2)">
+    ```csharp Prior to 2026.9 lines icon="/images/developers/sdks/csharp.svg"
     var root = await SpeckleBootstrap.Operations.Receive2(
         client.ServerUrl,
         projectId,
@@ -98,12 +98,12 @@ The snippets below assume `account`, `client`, `projectId`, `modelId`, and `late
 
 ## Count and filter objects
 
-Today you walk a `Base` tree. In v2026.9, objects are a flat list. Properties are path-keyed
+Prior to 2026.9, you walk a `Base` tree. In v2026.9, objects are a flat list. Properties are path-keyed
 (`"category"`, `"Constraints.Base Offset"`). Relations are accessors, not Proxy lists.
 
 <Tabs>
-  <Tab title="Today">
-    ```csharp Today lines icon="/images/developers/sdks/csharp.svg"
+  <Tab title="Prior to 2026.9">
+    ```csharp Prior to 2026.9 lines icon="/images/developers/sdks/csharp.svg"
     var counts = root.Flatten()
         .OfType<DataObject>()
         .GroupBy(d => d.properties.GetValueOrDefault("category") as string ?? "Unknown");
@@ -135,13 +135,13 @@ bundle object has. Do not treat `Base.id` as a content hash on bundle-only versi
 
 ## Replace Proxy walks
 
-Today, grouping by level or material means indexing `applicationId`s and resolving proxy `objects`
+Prior to 2026.9, grouping by level or material means indexing `applicationId`s and resolving proxy `objects`
 lists. In v2026.9 those links are typed relations. See
 [Relations in v2026.9](/next/developers/object-model/relations) for the names.
 
 <Tabs>
-  <Tab title="Today">
-    ```csharp Today lines icon="/images/developers/sdks/csharp.svg"
+  <Tab title="Prior to 2026.9">
+    ```csharp Prior to 2026.9 lines icon="/images/developers/sdks/csharp.svg"
     var byAppId = root.Flatten()
         .Where(o => o.applicationId is not null)
         .ToDictionary(o => o.applicationId!);
