@@ -11,87 +11,31 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 <NextPreviewBanner />
 
-This page covers the 2026.9 **reference-point / model placement** break for Revit. For install,
-publish, and load in today's connector, see [How to use Speckle for Revit](/connectors/revit/revit).
-For Apply Transform and the placement picker, see [Use Revit reference points in
-2026.9](/next/connectors/revit/revit).
+This page is the mechanical path onto 2026.9 model placement. For Apply Transform, the placement
+picker, and the placement record, see [Use Revit reference points in
+2026.9](/next/connectors/revit/revit). For install, sign-in, publish, and load in today's connector,
+see [How to use Speckle for Revit](/connectors/revit/revit).
 
-## What is breaking
+## When to switch
 
-Prior to 2026.9, the Revit connector rewrote every vertex so the chosen datum became the origin. The
-transform lived as a single matrix on the root object. The kind of datum (project base versus
-survey) was not recorded.
+Existing v3 models keep working. Re-publish from a 2026.9 connector if you need the viewer placement
+picker and named datums. Scripts and SDK consumers that read `referencePointTransform` on the root
+object must switch to `modelPlacement.*`.
 
-In 2026.9, geometry is written once, in Revit internal coordinates. The bundle carries a **model
-placement** record on `eav.model`.
+## Before and after
 
-<Warning>
-  Scripts and SDK consumers that read `referencePointTransform` on the root object must read
-  `modelPlacement.*` from `eav.model` instead.
-</Warning>
-
-## What a bundle consumer must do
-
-Assume the model is already in scope. Apply the placement yourself; do not expect baked geometry
-unless the sender turned **Apply Transform** on.
-
-1. Read `modelPlacement.*` from `eav.model`.
-2. Apply `modelPlacement.transform`. The value is 16 row-major doubles. Translation is expressed in
-   `modelPlacement.units`.
-3. If `modelPlacement.appliedToGeometry` is `true`, invert that transform before you place the
-   model. Un-baking is unconditional: do it regardless of the receive datum, so a model never lands
-   displaced because of a sender's **Apply Transform** choice.
-4. Then apply the receive datum you want, if it is not **Source**.
-
-AutoCAD and Civil 3D follow the same contract and place the model using the same record.
-
-The placement record holds:
-
-- `modelPlacement.transform` — Internal Origin to the datum selected on publish.
-- `modelPlacement.default` — which datum that is (`internalOrigin`, `projectBasePoint`,
-  `surveyPoint`, `sharedCoordinates`).
-- `modelPlacement.options.*` — the transform for every available datum, so a consumer can switch.
-- `modelPlacement.appliedToGeometry` — `false` by default (geometry untouched). `true` only if the
-  sender turned **Apply Transform** on.
-- `modelPlacement.units` — units the transform translation is expressed in.
-- `referencePoints.*`, `projectLocation.trueNorthAngle` — raw base-point positions, True North, and
-  site location.
-
-The viewer applies `modelPlacement.transform` at load time, and the placement picker swaps in any of
-the `options.*` transforms. Revit receive with **Source** applies nothing when geometry is already
-internal, or composes your local receive setting on top.
-
-### Source (default)
-
-- 2026.9, Apply Transform off: nothing applied. Geometry is already in internal coordinates.
-- 2026.9, Apply Transform on: sender's transform inverted automatically.
-- v3 / migrated model: sender's root transform inverted, as before.
-
-### Named receive datums
-
-For **Internal Origin**, **Project Base Point**, **Survey Point**, or **Shared Coordinates**:
-
-- 2026.9, Apply Transform off: your chosen datum transform applied.
-- 2026.9, Apply Transform on: sender's transform inverted, then your datum applied.
-- v3 / migrated model: as before.
-
-## Compatibility
-
-Existing v3 models keep working. When a 2026.9 consumer reads a v3 model, the old root transform is
-migrated into a placement record. The datum kind cannot be recovered (v3 never recorded it), so those
-models show as a plain transform rather than a named datum.
+| Before                                           | After                                        |
+| ------------------------------------------------ | -------------------------------------------- |
+| Geometry rewritten so the chosen datum is origin | Geometry stays in Revit internal coordinates |
+| Root `referencePointTransform`                   | Bundle `modelPlacement.*` on `eav.model`     |
+| Datum kind not recorded                          | Named datum plus `options.*` for every datum |
+| One publish per consumer datum                   | One publish; consumers pick the datum        |
 
 v3 connectors that read 2026.9 models get the old root-object transform rebuilt from the placement
-record, so a legacy Revit connector can still undo it.
+record. When a 2026.9 consumer reads a v3 model, the old root transform is migrated into a placement
+record, but the datum kind cannot be recovered.
 
-A linked model's placement in the host document is never written as the model's reference point.
-
-## Re-publish once
-
-Re-publish from a 2026.9 connector to unlock the viewer placement picker and datum switching for
-that model. Keep **Apply Transform** off unless a downstream tool that does not understand model
-placements needs the geometry pre-positioned. The UI steps are on
-[Use Revit reference points in 2026.9](/next/connectors/revit/revit).
+## How to switch
 
 {/* IMAGE_PLACEHOLDER: Revit connector model card — new version after a 2026.9 publish with Apply Transform off. */}
 
