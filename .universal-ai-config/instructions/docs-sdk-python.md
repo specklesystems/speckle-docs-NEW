@@ -1,11 +1,11 @@
 ---
 description: specklepy docs — scripts-first audience; connector patterns secondary
-globs: ["developers/sdks/python/**"]
+globs: ["developers/sdks/python/**", "next/developers/sdks/python/**"]
 ---
 
 # specklepy Documentation
 
-Applies when creating or editing pages under `developers/sdks/python/`.
+Applies when creating or editing pages under `developers/sdks/python/` or `next/developers/sdks/python/`.
 
 ## Audience (scripts first)
 
@@ -19,6 +19,7 @@ Full persona rules: see **Developer Docs Audience Hierarchy** in `docs-persona-a
 
 - Lead with `SpeckleClient`, `operations.send` / `operations.receive`, and PAT or `get_default_account()`.
 - Keep examples copy-pasteable in one script or notebook cell.
+- Version comparison tabs follow **docs-versioned-snippets** (same setup; only the changed call differs).
 - Put advanced topics (custom transports at scale, connector-specific object graphs, proxy unpacking) in guides — not the first screen.
 
 ## Parity with .NET docs
