@@ -1,7 +1,7 @@
 ---
 title: Data Validation in v2026.9
 sidebarTitle: Data Validation
-description: What changes for Data Validation after models move to the v2026.9 data format.
+description: What changes for Data Validation after models move to the v2026.9 data format, including checks against related objects.
 noindex: true
 contextual:
   options: []
@@ -15,16 +15,20 @@ Use this page when your project is on the v2026.9 data format. Authoring, saving
 result review still work as in the current product. For those flows, see
 [Data Validation](/analytics/data-validation/overview).
 
-This page covers only the differences that change how a check scopes objects and reads properties.
+This page covers only the differences that change how a check scopes objects, reads properties,
+and compares an object to something it is related to.
 
 ## What stays the same
 
-Checks, standards, `WHERE` / `CHECK` authoring, thresholds, plan caps, BCF export, and result
-history follow the current guides:
+Checks, standards, thresholds, plan caps, BCF export, and result history follow the current
+guides:
 
 - [Checks](/analytics/data-validation/checks)
 - [Standards](/analytics/data-validation/standards)
 - [Viewing Results](/analytics/data-validation/viewing-results)
+
+Authoring still uses a scope and a check. In v2026.9 the editor shows those as short sentences.
+A rule can also include a related object.
 
 ## Default object scope
 
@@ -46,6 +50,51 @@ parameter filters in `WHERE` when you need a tighter rule.
 
 Unsaved drafts that still carry the old default are cleared when you reopen the editor. Saved
 checks keep their stored rules. After save, you can edit name and description only.
+
+## Checks against related objects
+
+In the current product, a rule looks at properties on one object. In v2026.9 you can also check
+that object against something it is related to, because those relationships are in the published
+version.
+
+Use **Add related object** on the rule. Pick a relationship such as **Host element**, **Room**,
+or **Connected element**. Then choose a property on that related object from the path picker.
+
+Examples you can author:
+
+- A door's fire rating must match the wall that hosts it
+- If the host wall is fire-rated, the door must be rated. Unrated walls are not applicable, not a
+  fail
+- Every door must be hosted on a wall
+- Every wall that bounds a room carries a rating, or at least one of them does
+- Doors can be checked against a room reached through the host wall (one related object chained
+  from another)
+
+**Add condition** adds a scope filter above the check. It does not turn the existing check into a
+filter.
+
+Rules display as short sentences, for example **category is Doors**. Select a sentence to edit
+it.
+
+<Note>
+  **Add related object** is disabled when the preview version has no relationship data. Publish a
+  new version with a current connector after the project uses the v2026.9 data format.
+  Related-object rules then show that there is no data, rather than failing the whole run.
+</Note>
+
+## Compare ratings that use different words
+
+Fire ratings and similar codes often use more than one wording, such as `60 MIN` and `1 HR`. On
+a comparison between two properties, open the mapping control and add a mapping so those labels
+count as the same value. You can also require that one side is at least as strict as the other,
+for example a `2 HR` wall demands a door rating of `90 MIN` or higher.
+
+## Match a property wherever it sits
+
+A Fire Rating parameter is not always on the same path. Click the path-matching control so the
+condition uses the end of the path, for example every property whose path ends with **Fire
+Rating**. Every matching value must pass. That covers instance and type placements without a
+separate rule for each path.
 
 ## Property paths
 
@@ -76,6 +125,17 @@ does not load, publish a new version after the project has moved to v2026.9. See
     No. That step is for the current product. In v2026.9 the object set is already the user-facing
     elements. An empty global scope is the correct starting point. Narrow with category, type, or
     parameter filters in `WHERE` when you need a tighter rule.
+  </Accordion>
+  <Accordion title="Why is Add related object disabled?">
+    The preview version has no relationship data. Publish a new version with a current connector
+    after the project uses the v2026.9 data format. See [Checks against related
+    objects](#checks-against-related-objects).
+  </Accordion>
+  <Accordion title="How do I check a door against the wall that hosts it?">
+    On the door rule, select **Add related object**, choose **Host element**, then compare the
+    door's fire rating to the host's fire rating. Map labels if one side uses minutes and the other
+    uses hours. See [Compare ratings that use different
+    words](#compare-ratings-that-use-different-words).
   </Accordion>
   <Accordion title="Do I rewrite every property path in every check?">
     Only when a path no longer exists on the new version. Load preview, pick the replacement from
