@@ -63,66 +63,28 @@ Today you resolve `referencedObject` and call `Receive2`. In v2026.9, `Receive2`
 `[Obsolete]`. `Receive3` takes the same account and ids and returns a disposable `Model`. Wrap that
 `Model` in `using`: it owns the downloaded bundle files on disk until you dispose it.
 
-Both samples start from the same PAT and ids. Paste the [scripts and notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks)
-bootstrap once, then the only change is the receive call.
+Auth, bootstrap, and version lookup stay on [scripts and notebooks](/developers/sdks/dotnet/getting-started/scripts-and-notebooks).
+The snippets below assume `account`, `client`, `projectId`, `modelId`, and `latest` are already in scope.
 
 <Tabs>
   <Tab title="Today (Receive2)">
     ```csharp Today lines icon="/images/developers/sdks/csharp.svg"
-    var token = Environment.GetEnvironmentVariable("SPECKLE_TOKEN")
-        ?? throw new InvalidOperationException("Set SPECKLE_TOKEN");
-    var projectId = Environment.GetEnvironmentVariable("SPECKLE_PROJECT_ID")
-        ?? throw new InvalidOperationException("Set SPECKLE_PROJECT_ID");
-    var modelId = Environment.GetEnvironmentVariable("SPECKLE_MODEL_ID")
-        ?? throw new InvalidOperationException("Set SPECKLE_MODEL_ID");
-
-    var account = await SpeckleBootstrap.AccountFactory.CreateAccount(
-        new Uri(Environment.GetEnvironmentVariable("SPECKLE_SERVER") ?? "https://app.speckle.systems"),
-        token
-    );
-    using var client = SpeckleBootstrap.ClientFactory.Create(account);
-
-    var versions = await client.Version.GetVersions(modelId, projectId, limit: 1);
-    var latest = versions.items.First()
-        ?? throw new InvalidOperationException("No versions on this model");
-
     var root = await SpeckleBootstrap.Operations.Receive2(
         client.ServerUrl,
         projectId,
         latest.referencedObject!,
-        account.token,
-        onProgressAction: null,
-        cancellationToken: default
+        account.token
     );
     ```
 
   </Tab>
   <Tab title="v2026.9 (Receive3)">
     ```csharp v2026.9 lines icon="/images/developers/sdks/csharp.svg"
-    var token = Environment.GetEnvironmentVariable("SPECKLE_TOKEN")
-        ?? throw new InvalidOperationException("Set SPECKLE_TOKEN");
-    var projectId = Environment.GetEnvironmentVariable("SPECKLE_PROJECT_ID")
-        ?? throw new InvalidOperationException("Set SPECKLE_PROJECT_ID");
-    var modelId = Environment.GetEnvironmentVariable("SPECKLE_MODEL_ID")
-        ?? throw new InvalidOperationException("Set SPECKLE_MODEL_ID");
-
-    var account = await SpeckleBootstrap.AccountFactory.CreateAccount(
-        new Uri(Environment.GetEnvironmentVariable("SPECKLE_SERVER") ?? "https://app.speckle.systems"),
-        token
-    );
-    using var client = SpeckleBootstrap.ClientFactory.Create(account);
-
-    var versions = await client.Version.GetVersions(modelId, projectId, limit: 1);
-    var latest = versions.items.First()
-        ?? throw new InvalidOperationException("No versions on this model");
-
     using var model = await SpeckleBootstrap.Operations.Receive3(
         account,
         projectId,
         modelId,
-        latest.id,
-        options: null,
-        cancellationToken: default
+        latest.id
     );
     ```
 
