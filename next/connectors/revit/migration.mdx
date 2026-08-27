@@ -49,12 +49,28 @@ record, but the datum kind cannot be recovered.
   </Step>
 </Steps>
 
+Keep **Apply Transform** off unless a downstream tool that does not understand model placements
+needs the geometry pre-positioned.
+
+### Scripts and SDK consumers
+
+Assume the model is already in scope.
+
+1. Read `modelPlacement.*` from `eav.model`.
+2. Apply `modelPlacement.transform`. The value is 16 row-major doubles. Translation is expressed in
+   `modelPlacement.units`.
+3. If `modelPlacement.appliedToGeometry` is `true`, invert that transform before you place the
+   model. Do this regardless of the receive datum.
+4. Then apply the receive datum you want, if it is not **Source**.
+
+AutoCAD and Civil 3D follow the same contract.
+
 ## FAQ
 
 <AccordionGroup>
   <Accordion title="Where did referencePointTransform go?">
-    It is not the placement record in 2026.9. Read `modelPlacement.*` from `eav.model`. The
-    transform is 16 row-major doubles. Translation is in `modelPlacement.units`.
+    It is not the placement record in 2026.9. Read `modelPlacement.*` from `eav.model`. See
+    [Placement record](/next/connectors/revit/revit#placement-record).
   </Accordion>
   <Accordion title="What happens if appliedToGeometry is true?">
     Invert `modelPlacement.transform` before you place the model, then apply your receive datum.
