@@ -11,6 +11,35 @@ import LoadFaq from '/snippets/connectors/load-faq.mdx'
 
 <Versions app="Grasshopper" versions="Rhino 7 & 8" os="Windows" />
 
+## What's changing in 2026.9
+
+The 2026.9 Grasshopper connector keeps existing scripts working. Nodes already on your canvas are
+renamed and hidden from the ribbon. They are not deleted, and no wires break.
+
+{/* IMAGE_PLACEHOLDER: Grasshopper Speckle ribbon — current Load and Publish nodes; canvas showing an older definition with Load (legacy) and Publish (legacy) nicknames. */}
+
+What you will notice after you update:
+
+- **Load** and **Publish** in the ribbon are the current nodes. Nodes you already placed are renamed
+  **Load (legacy)** and **Publish (legacy)**. They still run. The same rename applies to **(Sync)
+  Load** and **(Sync) Publish**.
+- **Speckle Data Object** is renamed **Speckle Object**. It is the same node with the same ports.
+  Existing scripts keep working.
+- The current **Speckle Geometry** node has no Name or Properties inputs. Name and properties live
+  on the **Speckle Object** that contains the geometry. Geometry nodes already on your canvas keep
+  those inputs and are renamed **Speckle Geometry (legacy)**.
+- **Explore** is a new node. After you load a 2026.9 version with the current Load node, it surfaces
+  relationships such as level, room, host, and block definition.
+- The current Load node can return more objects than before, including property-only elements such
+  as Revit rooms, levels, and areas. Materials and colours arrive on each object. The **Proxies**
+  output is not on the current Load node. Model-wide properties such as project information arrive on
+  a **Properties** output. The current Publish node has a matching optional **Properties** input.
+- Versions from the current **Publish** node need an upgraded connector to read. **Publish (legacy)**
+  can still be read by older connectors.
+
+Update the connector from **1 September 2026**, and no later than **1 November 2026**. See [Keep
+publishing and loading in 2026.9](/next/connectors/overview).
+
 ## Setup
 
 <Tip>
@@ -86,6 +115,12 @@ import LoadFaq from '/snippets/connectors/load-faq.mdx'
   </Step>
 </Steps>
 
+<Note>
+  In 2026.9, versions from the current **Publish** node need an upgraded connector to read. If
+  collaborators still use an older connector, leave **Publish (legacy)** in place until they have
+  updated.
+</Note>
+
 <AccordionGroup>
     <Accordion title="How do I create properties by key-value, instead of using the Create Properties node?">
       You can use the **Speckle Properties** passthrough node to create properties by key-value.
@@ -111,6 +146,7 @@ import LoadFaq from '/snippets/connectors/load-faq.mdx'
       You can create **Data Objects** which are a simplified version of the objects that are published from other connectors.
       If you assign a **builtInCategory** property to a Data Object, it will be loaded as a generic model with that category in Revit.
       However, there is currently no way to create elements that will be received as native types like walls and beams in BIM or structural applications.
+      In 2026.9 this node is named **Speckle Object**. It is the same node with the same ports, and existing scripts keep working.
     </Accordion>
 
     <Accordion title="How do I change my account?">
@@ -158,6 +194,11 @@ import LoadFaq from '/snippets/connectors/load-faq.mdx'
   </Step>
 </Steps>
 
+<Note>
+  In 2026.9, if your Load node is named **Load (legacy)**, it was placed by an older connector. It
+  keeps working. New features such as Explore land on the current Load node.
+</Note>
+
 <AccordionGroup>
 
     <Accordion title="How do I access object fields that I see in the web browser, but that are not in my Grasshopper object properties?">
@@ -170,6 +211,10 @@ import LoadFaq from '/snippets/connectors/load-faq.mdx'
 
     <Accordion title="How do I change my account?">
       Right-click your **Speckle Model URL** node and select **Change accounts** to change your account.
+    </Accordion>
+
+    <Accordion title="What happens to my Grasshopper scripts in 2026.9?">
+      Existing scripts keep working. Nodes are matched by identity, not by name, so renaming them does not drop wires. Use the current Load node when you want Explore, or when you load a version a teammate published with the current Publish node.
     </Accordion>
 
 </AccordionGroup>
