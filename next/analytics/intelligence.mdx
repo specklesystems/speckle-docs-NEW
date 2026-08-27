@@ -11,9 +11,12 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 <NextPreviewBanner />
 
-Speckle Intelligence is the assistant in the Speckle web app. You ask about a project in plain
-language. It reads the models you have published and replies with answers, charts, and — in the 3D
-viewer — changes to what you are looking at.
+Speckle Intelligence is the assistant in the Speckle web app. You ask in plain language. It reads
+the models you have published and replies with answers, charts, and — in the 3D viewer — changes to
+what you are looking at.
+
+Use **Chat** on the project page for project-scale questions. Use the sparkle in the main 3D viewer
+when you are looking at models and want to ask about those loaded models.
 
 There is no Current equivalent for this Chat surface. For how Speckle works today, see
 [Compare Current and v2026.9](/next/whats-new) and
@@ -26,23 +29,60 @@ There is no Current equivalent for this Chat surface. For how Speckle works toda
   license — Intelligence](/developers/server/deployment/enterprise-license#optional-intelligence).
 </Note>
 
-## Open Chat
+## How it works
 
-The live product entry point is **Chat**, not the **Intelligence** item in the project or workspace
-sidebar. That **Intelligence** label currently opens dashboards.
+Speckle Intelligence does not upload your Revit file (or another authoring file) to an AI so the
+AI can rebuild the model in memory. You publish to Speckle as you do today. The assistant then
+runs read-only queries against data Speckle already stores for those published versions.
+
+Those queries can cover:
+
+- Object properties on published models
+- How parts relate to each other (containment, connectivity, levels, systems, materials) when
+  the version is in the new data format
+- Where a model was published from (the source application on the version, and types in the
+  published data)
+- How the project has been updated (who published which version, and what changed between
+  versions)
+- Files in the workspace library, and registered tables such as CSV or XLSX uploads and
+  warehouse connections (Snowflake, Databricks, Microsoft Fabric), when those exist
+
+The assistant looks up what it needs with those queries, then writes the reply from the
+results. It can still be wrong if it skips a query or misreads a result. If the data is not
+there, it is instructed to say so rather than invent structure from an authoring file.
+
+The new data format is what adds the relationship graph. Versions that only have today's
+property data can still be asked about object properties. Questions about what connects to
+what, or what contains what, need the new format. See [Speckle's data model is
+changing](/workspaces/data-model-migration).
+
+This page does not cover how Speckle handles AI providers or data security.
+
+## Where to ask
+
+On day one of v2026.9, Speckle Intelligence has two entry points. They are not the same job.
+
+- **Chat** on the project page is for project-scale questions: the project as a whole, not only the
+  model you have open.
+- The sparkle at the top right of the main 3D viewer is for questions about the models loaded in
+  that viewer.
+
+The **Intelligence** item in the project or workspace sidebar currently opens dashboards, not Chat.
+
+### Ask about the project
 
 <Steps>
   <Step title="Open a project">
-    Open the project whose models you want to ask about. You should see the project sidebar with
-    **Browse** and **Chat** at the top when Chat is available for the workspace.
+    Open the project you want to ask about. You should see **Browse** and **Chat** at the top of the
+    project sidebar when Chat is available for the workspace.
   </Step>
   <Step title="Choose Chat">
     Select **Chat**. The page title is **Chat**. The empty state reads **Ask about** your project
     name, with the prompt to ask in plain language.
   </Step>
-  <Step title="Ask a question">
-    Type a question, or pick a suggested starter if one is shown. You can attach a published model
-    from the composer when the question needs a specific version.
+  <Step title="Ask a project-scale question">
+    Type a question about the project, or pick a suggested starter if one is shown. You can attach a
+    published model from the composer when the question needs a specific version.
   </Step>
   <Step title="Read the reply">
     Wait for the reply. You should see a conversation in the Chat history, titled from your
