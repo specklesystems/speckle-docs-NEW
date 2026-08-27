@@ -1,7 +1,7 @@
 ---
 title: 3D viewer in 2026.9
-sidebarTitle: 3D Viewer
-description: Preview entry for 2026.9 3D viewer documentation. Coverage is incremental.
+sidebarTitle: What's new
+description: What changed when you open a model in the 2026.9 web app — Selection, Filters, Views, and section planes.
 noindex: true
 contextual:
   options: []
@@ -11,6 +11,266 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 <NextPreviewBanner />
 
-2026.9-specific 3D viewer documentation starts here. Pages are added only when 2026.9 differs from
-the current viewer guides or needs its own write-up. For the current product, see
-[3D viewer](/3d-viewer/interface-nav).
+Opening a model in the 2026.9 web app uses a new 3D viewer. Geometry starts appearing while the
+full file is still downloading. **Selection**, **Filters**, and **Views** sit in dockable panels,
+and sectioning uses cutting **planes** instead of a box.
+
+This page covers only what changed. For interface basics that still apply — sharing, federation
+from the project, and issue fields — see [Interface and navigation](/3d-viewer/interface-nav),
+[Exploration](/3d-viewer/exploration), [Saved views](/3d-viewer/saved-views),
+[Issues](/3d-viewer/issues), and [Share your models](/3d-viewer/sharing).
+
+To ask questions about the models loaded in this viewer, use the sparkle. That flow is on
+[Ask questions about your models with Speckle Intelligence](/next/analytics/intelligence).
+
+## Open a model
+
+Large models use a hybrid load. A first overlay can show **Preparing 3D stream** or
+**Downloading model**. Once geometry starts painting, the overlay goes away and a progress stack
+in the top-right corner continues in the background. The downloaded copy is stored locally, so
+opening the same version again prefers that cache.
+
+{/* IMAGE_PLACEHOLDER: Model open — blocking overlay with Preparing 3D stream or Downloading model, then top-right progress stack after first paint. */}
+
+You should see objects in the scene before the background download finishes.
+
+## Find your way around
+
+Panels are dockable. Drag a panel icon onto another panel to make a labelled tab group, split it
+into the bottom dock, collapse it, or resize it.
+
+{/* IMAGE_PLACEHOLDER: Viewer chrome — left sidebar Models Filters Views Issues; Selection under the left tabs; Elements in the bottom dock; status bar; navigation cube bottom-right. */}
+
+On a first visit, **Selection** is open so the canvas is not empty.
+
+- **Models**, **Filters**, **Views**, and **Issues** sit in the left sidebar tab strip.
+- **Selection** sits under those tabs by default and shows properties for the current pick.
+- **Elements** sits in the bottom dock and lists every object in the loaded models.
+- The status bar at the bottom holds panel icons, undo, screenshot, shortcuts, and **Settings**.
+- The navigation cube sits at the bottom-right of the canvas for canonical camera directions.
+
+The status bar **Settings** menu holds projection (perspective or orthographic), the grid, and
+reference-point overlays. **Keyboard shortcuts** opens from the status bar, or from `?`.
+
+On narrower widths the left sidebar becomes a slide-over.
+
+<Tip>
+  Right-click the canvas or a row in **Models** for hide, isolate, and related actions on that pick.
+</Tip>
+
+## Select and inspect
+
+Click geometry, or click rows in **Models**. Selection highlights both ways: the 3D pick reveals
+the tree row, and the tree row highlights in 3D.
+
+**Selection** shows properties for the pick. Property groups auto-expand. Revit material quantity
+blocks are condensed into readable rows. Pin a property so it stays at the top of the list.
+
+When you select several objects, **Selection** shows one card per object, grouped so related
+items stay together. Each card can zoom, isolate, or hide that element.
+
+{/* IMAGE_PLACEHOLDER: Selection panel — multi-select cards grouped by hierarchy, expanded property groups, Filter to this value on a property. */}
+
+From a property value you can **Copy value**, **Filter to this value**, or **Add as table
+column**.
+
+### Browse objects in Elements
+
+**Elements** is a table of the objects in the loaded models. It follows the active **Filters**
+stack. Double-click a row to zoom to that object.
+
+{/* IMAGE_PLACEHOLDER: Elements bottom dock — object table with count, Filters control, a selected row, and Selection detail for that row. */}
+
+<Steps>
+  <Step title="Open Elements">
+    Select **Elements** in the bottom dock, or use Shift+T. You should see a table of objects and a
+    count.
+  </Step>
+  <Step title="Inspect a row">
+    Select a row. **Selection** shows that object's properties. Double-click the row to frame it in
+    the scene.
+  </Step>
+</Steps>
+
+Use **Show all** on the toolbar when objects are hidden or isolated.
+
+## Filter and color
+
+**Filters** is a stack of property cards, not a single search box. Each card has operators that
+match the property type. Applied filters stay in place when you change selection or close and
+reopen panels.
+
+{/* IMAGE_PLACEHOLDER: Filters panel — two property cards, All/Any tabs, Color by values active on one card. */}
+
+String operators include **is one of**, **is not one of**, **contains**, **does not contain**,
+**has value**, **is set**, and **is not set**. Numeric operators include **equals**, **is not
+equal**, **in range**, and the same value checks. Numeric equals tolerates small floating-point
+differences, and a numeric card can take more than one value.
+
+<Steps>
+  <Step title="Add a filter">
+    Open **Filters** and select **Add filter**. Choose a property. A card appears in the stack and
+    the scene narrows to matches.
+  </Step>
+  <Step title="Set the condition">
+    Choose an operator and the values to include or exclude. If nothing matches, **Filters** shows
+    **No objects match — everything is hidden**.
+  </Step>
+  <Step title="Color by values">
+    On the card you want as the legend, select **Color by values**. Matching objects take colors for
+    those values. Only one card colors the scene at a time.
+  </Step>
+</Steps>
+
+With two or more cards, **All** keeps objects that match every card. **Any** keeps objects that
+match at least one. **Clear all filters** is in the panel header. **Reset filters** on the
+toolbar clears the same stack without undoing hide and isolate.
+
+<Note>
+  Intelligence in this viewer can also color and isolate from Chat. That is documented on [Ask
+  questions about your models with Speckle Intelligence](/next/analytics/intelligence), not here.
+</Note>
+
+## Save and apply views
+
+**Views** lists two kinds of viewpoint in one panel.
+
+- **Model views** come from the source application when the connector published them. Select a
+  row to fly the camera. These rows stay in **Model views**; converting one does not remove it.
+- Saved views are viewpoints you (or a teammate) stored in Speckle. They are limited to the
+  models currently loaded.
+
+{/* IMAGE_PLACEHOLDER: Views panel — Model views section with Save as view on a row, plus grouped saved views with a private lock icon. */}
+
+Saving a view needs permission to create saved views on the project. If **Save view** or
+**Sketch** is disabled, the tooltip explains the denial.
+
+<Steps>
+  <Step title="Set the look">
+    Frame the camera, set filters and visibility, and add section planes or sketches you want
+    stored.
+  </Step>
+  <Step title="Save the view">
+    In **Views**, select **Save view**, or use the bookmark control on the toolbar. Name it. The new
+    view appears in the panel.
+  </Step>
+</Steps>
+
+To keep a connector-published viewpoint as a saved view, select **Save as view** on that **Model
+views** row, or drag the row into a saved-view group.
+
+On a saved view you can **Rename**, **Make private** or **Make public**, show or hide that
+view's sketches and measurements, and **Delete**. Private views show a lock and are visible only
+to you.
+
+<Note>
+  Creating saved views still needs the Contributor project role or higher. See [Saved
+  views](/3d-viewer/saved-views) for grouping and sharing rules that have not changed.
+</Note>
+
+## Cut, measure, and sketch
+
+The bottom toolbar holds **Section**, **Sketch**, and **Measure**. Press Esc to leave a tool.
+
+### Section planes
+
+Sectioning is no longer a six-sided box around the model. You add individual **section planes**
+and move each one.
+
+{/* IMAGE_PLACEHOLDER: Section tool — Plane, XY, XZ, YZ controls, plane list with Stop cutting and Flip, cutting plane handle in the scene. */}
+
+<Steps>
+  <Step title="Turn Section on">
+    Select **Section** on the toolbar. The tool options appear above the toolbar.
+  </Step>
+  <Step title="Add a plane">
+    Select **Plane**, then click a surface, or select **XY**, **XZ**, or **YZ** to cut at the scene
+    centre. The model is clipped on one side of the plane.
+  </Step>
+  <Step title="Adjust the cut">
+    Select a plane in the list to show its handle. Drag the handle, **Flip which side is cut away**,
+    or **Stop cutting** without removing the plane.
+  </Step>
+</Steps>
+
+You can hide plane handles for a cleaner screenshot; the cut stays. If **Plane** is disabled,
+the viewer is at its plane limit.
+
+### Measure
+
+Types: **Point to point**, **Perpendicular**, **Angle**, and **Area**.
+
+Measurements stay on the canvas for the session. If you can save views, they are stored on the
+saved view with sketches. Without that permission they disappear when you leave the model.
+
+### Sketch in 3D
+
+**Sketch** draws on the model in 3D. Ink stays with the geometry as you orbit, pan, and zoom. It
+is stored on a saved view: saving the view keeps the markup, and opening that view restores it
+in place.
+
+{/* IMAGE_PLACEHOLDER: Sketch tool — Pen Arrow Revision cloud Text Eraser, ink on model geometry in 3D, not a flat screen overlay. */}
+
+Tools: **Pen**, **Arrow**, **Revision cloud**, **Text**, and **Eraser**. Sketch is disabled
+without permission to save views.
+
+### Navigation cube
+
+The cube in the bottom-right of the canvas sets canonical directions. Alt+digit shortcuts also
+move the camera. Fit and zoom still sit on the toolbar: **Fit view to everything**, or **Zoom to
+selection** when something is selected.
+
+## Restore an issue's view
+
+**Issues** lists issues for the models in the scene. Opening an issue that was created in this
+viewer restores the camera, filters, and visibility stored with it.
+
+{/* IMAGE_PLACEHOLDER: Issues panel — issue selected, camera and filters restored to the issue's stored view. */}
+
+<Note>
+  An issue created in the previous viewer may show **Legacy issue — its view can't be applied here
+  yet**. If the issue points at models that are not loaded, the panel opens details only. Issue
+  fields, assignment, and permissions stay on [Issues](/3d-viewer/issues).
+</Note>
+
+## Inspect model placement
+
+When several models are federated, **Models** can open **Model placement** for a model. That
+dialog shows the published placement, geometry storage, and True North. It is inspect-only:
+switching placement in this viewer is not enabled yet.
+
+{/* IMAGE_PLACEHOLDER: Model placement dialog — Published placement, Geometry storage, Inspect placement option, notice that viewer switching is not enabled. */}
+
+How Revit stores placement on publish is on [Revit in 2026.9](/next/connectors/revit/introduction).
+Adding models to a scene from the project still follows [Model federation](/3d-viewer/federation).
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Where did the section box go?">
+    The 2026.9 viewer cuts with section planes, not a box. Add **XY**, **XZ**, or **YZ**, or place a
+    plane on a surface, then flip or hide individual planes. Explode and the older view mode styles
+    are not on this toolbar. Projection and the grid are in **Settings**.
+  </Accordion>
+  <Accordion title="Why is Sketch disabled?">
+    Sketch is stored on saved views, so it uses the same permission as **Save view**. Reviewers
+    without that permission cannot sketch. Save a view after you draw if you need the ink later.
+  </Accordion>
+  <Accordion title="Do measurements come back when I open a saved view?">
+    Yes, if they were stored on that view. Sketches and measurements share the view's ink. Use the
+    eye control on the view card to hide or show them. Without permission to save views,
+    measurements last only for the session.
+  </Accordion>
+  <Accordion title="What happens if I open a saved view from the previous viewer?">
+    Some older views show **Legacy view — not openable here yet**. Re-save the look in this viewer
+    if you need a viewpoint you can apply.
+  </Accordion>
+  <Accordion title="Why does a filter hide the whole model?">
+    When no objects match, **Filters** shows **No objects match — everything is hidden**. Change the
+    values, switch **All** to **Any**, or use **Reset filters**.
+  </Accordion>
+  <Accordion title="Can I reposition federated models in the viewer?">
+    Not yet. **Model placement** lets you inspect the published datum. Changing placement on publish
+    is documented for Revit on [Revit in 2026.9](/next/connectors/revit/introduction).
+  </Accordion>
+</AccordionGroup>
