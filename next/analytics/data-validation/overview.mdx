@@ -51,6 +51,51 @@ parameter filters in `WHERE` when you need a tighter rule.
 Unsaved drafts that still carry the old default are cleared when you reopen the editor. Saved
 checks keep their stored rules. After save, you can edit name and description only.
 
+## Checks against related objects
+
+In the current product, a rule looks at properties on one object. In v2026.9 you can also check
+that object against something it is related to, because those relationships are in the published
+version.
+
+Use **Add related object** on the rule. Pick a relationship such as **Host element**, **Room**,
+or **Connected element**. Then choose a property on that related object from the path picker.
+
+Examples you can author:
+
+- A door's fire rating must match the wall that hosts it
+- If the host wall is fire-rated, the door must be rated. Unrated walls are not applicable, not a
+  fail
+- Every door must be hosted on a wall
+- Every wall that bounds a room carries a rating, or at least one of them does
+- Doors can be checked against a room reached through the host wall (one related object chained
+  from another)
+
+**Add condition** adds a scope filter above the check. It does not turn the existing check into a
+filter.
+
+Rules display as short sentences, for example **category is Doors**. Select a sentence to edit
+it.
+
+<Note>
+  **Add related object** is disabled when the preview version has no relationship data. Publish a
+  new version with a current connector after the project uses the v2026.9 data format.
+  Related-object rules then show that there is no data, rather than failing the whole run.
+</Note>
+
+## Compare ratings that use different words
+
+Fire ratings and similar codes often use more than one wording, such as `60 MIN` and `1 HR`. On
+a comparison between two properties, open the mapping control and add a mapping so those labels
+count as the same value. You can also require that one side is at least as strict as the other,
+for example a `2 HR` wall demands a door rating of `90 MIN` or higher.
+
+## Match a property wherever it sits
+
+A Fire Rating parameter is not always on the same path. Click the path-matching control so the
+condition uses the end of the path, for example every property whose path ends with **Fire
+Rating**. Every matching value must pass. That covers instance and type placements without a
+separate rule for each path.
+
 ## Property paths
 
 Always pick property paths from the path picker after a preview model loads. Paths in the current
