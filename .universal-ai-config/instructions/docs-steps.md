@@ -23,3 +23,7 @@ alwaysApply: true
 ## Validation
 
 - Include a final verification section when failure is silent.
+
+## Image placeholders
+
+- Put `{/* IMAGE_PLACEHOLDER: … */}` comments **adjacent** to a Steps block when the user must recognize the UI. Do not nest them inside a Step. See **docs-image-placeholders**.
