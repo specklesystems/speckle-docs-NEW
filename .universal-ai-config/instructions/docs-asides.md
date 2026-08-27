@@ -20,6 +20,7 @@ alwaysApply: true
 - One idea per aside.
 - No multi-step instructions.
 - Reference the surrounding step or section explicitly.
+- `{/* IMAGE_PLACEHOLDER: … */}` comments sit adjacent to Steps or section intros, not inside a Step. See **docs-image-placeholders**.
 
 ## Tone
 

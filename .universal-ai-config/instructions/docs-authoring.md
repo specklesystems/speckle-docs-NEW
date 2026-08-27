@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Speckle Docs Authoring
 
-This project uses **universal-ai-config** for canonical doc rules. Generated instructions (e.g. docs-general, docs-steps, docs-faqs, docs-asides, docs-versioned-snippets, docs-titles-nav-seo) are the source of truth. For contributor setup (Mintlify, devcontainer, publishing), see **README.md**.
+This project uses **universal-ai-config** for canonical doc rules. Generated instructions (e.g. docs-general, docs-steps, docs-faqs, docs-asides, docs-image-placeholders, docs-versioned-snippets, docs-titles-nav-seo) are the source of truth. For contributor setup (Mintlify, devcontainer, publishing), see **README.md**.
 
 ## Approach to Users
 
@@ -23,7 +23,7 @@ This project uses **universal-ai-config** for canonical doc rules. Generated ins
 - **Mintlify only**: prefer Mint components over raw HTML/Markdown.
 - **Tone**: approachable, precise; short, imperative sentences.
 - **Structure**: task-first; show outcomes; keep pages brief.
-- **Visuals**: include only when they clarify; add captions or callouts if needed.
+- **Visuals**: include only when they clarify; add captions or callouts if needed. When the asset is not captured yet, insert `{/* IMAGE_PLACEHOLDER: … */}` per **docs-image-placeholders** — instructional steps and new-concept section intros — not fake image files.
 - **Extras**: add a compact FAQ, Best practices, and 1–3 Tips where appropriate.
 - **Tutorials**: keep tutorials separate; if a flow needs more than 3–5 steps, link out.
 - **Cross-link and naming**: cross-link related pages; name sections by user intent.
@@ -64,7 +64,7 @@ Do not explain the platform limitation to readers unless they hit a broken link 
 - **Titles**: verb-first, sentence case, about 3–7 words.
 - **Content**: 1–3 short sentences or a short ordered list; end with the **outcome**.
 - Do **not** nest complex components (Tabs, Accordions, code blocks) inside `<Step>`.
-- Put `<Tip>`, `<Note>`, `<Warning>` **adjacent** to the Steps block (not inside).
+- Put `<Tip>`, `<Note>`, `<Warning>`, and `{/* IMAGE_PLACEHOLDER: … */}` **adjacent** to the Steps block (not inside).
 - **Fallback**: when Steps need rich content, use `###` + ordered list instead of `<Steps>`.
 
 ## FAQs (Mintlify)
