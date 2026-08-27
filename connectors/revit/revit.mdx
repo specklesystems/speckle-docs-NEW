@@ -22,6 +22,12 @@ import CoordinationWorkflowRevitBenefit from '/snippets/connectors/coordination-
   post](https://speckle.community/t/adsk-2022-support-ending-with-the-release-of-2027-connectors/22094).
 </Warning>
 
+<Note>
+  Update the Revit connector from **1 September 2026**, and no later than **1 November 2026**.
+  Existing connectors keep working. For Apply Transform, the placement picker, and how reference
+  points work in 2026.9, see [Use Revit reference points in 2026.9](/next/connectors/revit/revit).
+</Note>
+
 ## Setup
 
 <Steps>
@@ -45,58 +51,6 @@ import CoordinationWorkflowRevitBenefit from '/snippets/connectors/coordination-
 <Publish app="Revit" />
 
 <CoordinationWorkflowRevitBenefit />
-
-<div id="revit-reference-points-20269" />
-
-### Reference points in 2026.9
-
-From **2026.9**, published geometry stays in Revit's internal coordinates. The **Reference Point**
-dropdown still selects the datum you want consumers to use. Speckle stores that choice next to the
-model as a **model placement**. The viewer and the Revit connector apply it when they load. The
-send and receive settings still look the same; what changed is what happens underneath.
-
-{/* IMAGE_PLACEHOLDER: Revit publish Settings — Reference Point dropdown next to Apply Transform toggle, default off. */}
-
-<Steps>
-  <Step title="Open publish settings">
-    Expand **Settings** at the bottom of the **Select objects** dialog while publishing a new
-    version. You should see **Reference Point** and a new **Apply Transform** toggle.
-  </Step>
-  <Step title="Choose a reference point">
-    Set **Reference Point** to **Internal Origin** (default), **Project Base Point**, **Survey
-    Point**, or **Shared Coordinates**. Survey Point uses the survey point origin only, with no
-    rotation. Shared Coordinates includes True North rotation. Use Shared Coordinates when you need
-    to match a survey or civil model's orientation, not just its origin.
-  </Step>
-  <Step title="Leave Apply Transform off">
-    Keep **Apply Transform** off. That is the default, and it is the 2026.9 path: geometry stays in
-    internal coordinates, and placement is stored separately. You should see the toggle remain off
-    when you publish.
-  </Step>
-</Steps>
-
-<Warning>
-  Turn **Apply Transform** on only if a downstream tool that does not understand model placements
-  needs the geometry pre-positioned. Once it is on, one publish cannot serve every datum for that
-  model.
-</Warning>
-
-<Note>
-  If the selected base point cannot be found in the document, the connector falls back to Internal
-  Origin. The viewer then shows **Internal Origin (fallback)**.
-</Note>
-
-{/* IMAGE_PLACEHOLDER: Viewer placement picker — published datum marked (published); Internal Origin, Project Base Point, Survey Point origin, Shared Coordinates listed. */}
-
-After you publish, the web viewer lands the model using that placement. A **placement picker** lets
-you inspect the same model from any other datum without republishing. The datum you published with
-is marked **(published)**.
-
-When you load into Revit, the **Reference Point** receive setting is unchanged: **Source**
-(default), **Internal Origin**, **Project Base Point**, **Survey Point**, or **Shared Coordinates**.
-Models published from a 2026.9 connector land in the right place regardless of the sender's **Apply
-Transform** choice. A linked model's placement in the host document is never written as the model's
-reference point.
 
 <AccordionGroup>
 
@@ -134,17 +88,10 @@ reference point.
           <img src="/images/connectors/revit_settings.jpg" alt="Revit settings" />
       </Frame>
       2. Check that the **Include linked models** toggle is turned on.
-
-      A linked model's placement in the host document is never written as the model's reference
-      point.
     </Accordion>
 
     <Accordion title="How do I make sure my Revit model is aligned with my other Speckle models?">
-      In 2026.9, follow [Reference points in 2026.9](#revit-reference-points-20269). Geometry stays
-      in Revit's internal coordinates. The **Reference Point** setting records the datum as a model
-      placement; leave **Apply Transform** off.
-
-      On an earlier connector, you can still publish according to a specific reference point:
+      If you are using reference points to coordinate your project, you can publish your Revit model according to a specific reference point:
       1. Expand the **Settings** field at the bottom of the **Select objects** dialog while publishing a new version.
       <Frame>
           <img src="/images/connectors/revit_settings.jpg" alt="Revit settings" />
@@ -153,22 +100,11 @@ reference point.
       Your published model will now be oriented according to your specified reference point.
     </Accordion>
 
-    <Accordion title="I published with Survey Point and the model shows at the internal origin in the viewer. What happened?">
-      Check the placement picker. The published datum is marked **(published)**. If it shows
-      **Internal Origin (fallback)**, the survey point could not be resolved in your document.
-    </Accordion>
-
-    <Accordion title="Do I still need to coordinate base points with collaborators?">
-      Yes. The placement record describes the datums in your document. Collaborators still need
-      matching shared coordinates for models to overlay. What you no longer need to do in 2026.9 is
-      republish to change datums.
-    </Accordion>
-
 <Accordion title="What is the difference between the Survey Point and Shared Coordinates reference points?">
-  Both are based on Revit's survey point, but they differ in rotation. **Survey Point** uses the
-  survey point origin only, with no rotation. **Shared Coordinates** uses the full shared-coordinate
-  orientation, including True North rotation. Use **Shared Coordinates** when you need to match a
-  survey or civil model's orientation, not just its origin.
+  Both are based on Revit's survey point, but differ in rotation: - **Survey Point** positions the
+  model at the survey point with no rotation. - **Shared Coordinates** positions the model at the
+  survey point and applies the True North rotation. In short: **Shared Coordinates = Survey Point +
+  True North rotation**.
 </Accordion>
 
     <Accordion title="How do I see the custom properties on my published Revit elements, like parameters or material quantities?">
@@ -219,22 +155,15 @@ reference point.
     </Accordion>
 
     <Accordion title="How do I load a Speckle Model according to a specific reference point in Revit?">
-      The **Reference Point** receive setting is unchanged in 2026.9: **Source** (default),
-      **Internal Origin**, **Project Base Point**, **Survey Point**, or **Shared Coordinates**.
-      Models published from a 2026.9 connector land in the right place regardless of the sender's
-      **Apply Transform** choice. If the sender baked the transform, Revit inverts it automatically.
-
-      If you are using reference points to coordinate your project, you can load according to a
-      specific reference point:
-      1. Expand the **Settings** field at the bottom of the **Select objects** dialog while loading a new version.
+      If you are using reference points to coordinate your project, you can load your Revit model according to a specific reference point:
+      1. Expand the **Settings** field at the bottom of the **Select objects** dialog while publishing a new version.
       <Frame>
           <img src="/images/connectors/revit_settings_receive.jpg" alt="Revit settings" />
       </Frame>
-      2. Set **Reference Point** to **Source** to load according to the incoming model coordinate system.
-      3. Set **Reference Point** to **Internal Origin** to load according to your current document's internal origin.
-      4. Set **Reference Point** to **Project Base Point** to load according to your current document's project base point.
-      5. Set **Reference Point** to **Survey Point** to load according to your current document's survey point.
-      6. Set **Reference Point** to **Shared Coordinates** to load with True North rotation as well as the survey origin.
+      2. Set the **Reference Point** setting to **source** if you want to load your model according to the incoming model coordinate system.
+      3. Set the **Reference Point** setting to **InternalOrigin** if you want to load your model according to your current document's internal origin.
+      4. Set the **Reference Point** setting to **ProjectBase** if you want to load your model according to your current document's project base point.
+      5. Set the **Reference Point** setting to **Survey** if you want to load your model according to your current document's survey point.
     </Accordion>
 
     <Accordion title="How do I change the material of a Speckle model object I loaded in Revit?">

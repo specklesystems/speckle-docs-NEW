@@ -1,0 +1,105 @@
+---
+title: Use Revit reference points in 2026.9
+sidebarTitle: Revit
+description: Apply Transform, the placement picker, and how published geometry stays in Revit's internal coordinates.
+noindex: true
+contextual:
+  options: []
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<NextPreviewBanner />
+
+In 2026.9, published geometry stays in Revit's internal coordinates. The **Reference Point**
+dropdown still selects the datum you want consumers to use. Speckle stores that choice next to the
+model as a **model placement**. The viewer and the Revit connector apply it when they load.
+
+For install, sign-in, publish, and load in today's connector, see
+[How to use Speckle for Revit](/connectors/revit/revit).
+
+One publish can now serve every datum. Collaborators choose their placement on their side instead of
+asking you to republish.
+
+## Publish with a reference point
+
+The send settings still look the same. What changed is a new **Apply Transform** toggle next to
+**Reference Point**, and that the transform is stored separately by default.
+
+{/* IMAGE_PLACEHOLDER: Revit publish Settings — Reference Point dropdown next to Apply Transform toggle, default off. */}
+
+<Steps>
+  <Step title="Open publish settings">
+    Expand **Settings** at the bottom of the **Select objects** dialog while publishing a new
+    version. You should see **Reference Point** and a new **Apply Transform** toggle.
+  </Step>
+  <Step title="Choose a reference point">
+    Set **Reference Point** to **Internal Origin** (default), **Project Base Point**, **Survey
+    Point**, or **Shared Coordinates**. Survey Point uses the survey point origin only, with no
+    rotation. Shared Coordinates includes True North rotation. Use Shared Coordinates when you need
+    to match a survey or civil model's orientation, not just its origin.
+  </Step>
+  <Step title="Leave Apply Transform off">
+    Keep **Apply Transform** off. That is the default, and it is the 2026.9 path: geometry stays in
+    internal coordinates, and placement is stored separately. You should see the toggle remain off
+    when you publish.
+  </Step>
+</Steps>
+
+<Warning>
+  Turn **Apply Transform** on only if a downstream tool that does not understand model placements
+  needs the geometry pre-positioned. Once it is on, one publish cannot serve every datum for that
+  model.
+</Warning>
+
+<Note>
+  If the selected base point cannot be found in the document, the connector falls back to Internal
+  Origin. The viewer then shows **Internal Origin (fallback)**.
+</Note>
+
+A linked model's placement in the host document is never written as the model's reference point.
+
+## Inspect placements in the viewer
+
+{/* IMAGE_PLACEHOLDER: Viewer placement picker — published datum marked (published); Internal Origin, Project Base Point, Survey Point origin, Shared Coordinates listed. */}
+
+After you publish, the web viewer lands the model using that placement. A **placement picker** lets
+you inspect the same model from any other datum without republishing. The datum you published with
+is marked **(published)**.
+
+Re-publish once from a 2026.9 connector to unlock the picker and datum switching for an existing
+model.
+
+## Load into Revit
+
+The **Reference Point** receive setting is unchanged: **Source** (default), **Internal Origin**,
+**Project Base Point**, **Survey Point**, or **Shared Coordinates**. Models published from a 2026.9
+connector land in the right place regardless of the sender's **Apply Transform** choice. If the
+sender baked the transform, Revit inverts it automatically.
+
+For the receive-setting steps in today's connector, see
+[How to use Speckle for Revit](/connectors/revit/revit).
+
+## Scripts and older models
+
+For the breaking change from root `referencePointTransform` to bundle `modelPlacement`, and for
+compatibility with v3 models, see [Migrate Revit model
+placement](/next/connectors/revit/migration).
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="I published with Survey Point and the model shows at the internal origin in the viewer. What happened?">
+    Check the placement picker. The published datum is marked **(published)**. If it shows
+    **Internal Origin (fallback)**, the survey point could not be resolved in your document.
+  </Accordion>
+  <Accordion title="Do I still need to coordinate base points with collaborators?">
+    Yes. The placement record describes the datums in your document. Collaborators still need
+    matching shared coordinates for models to overlay. What you no longer need to do in 2026.9 is
+    republish to change datums.
+  </Accordion>
+  <Accordion title="I need the same rotation as a survey or civil model, not just the same origin. What should I pick?">
+    Publish with **Shared Coordinates**. **Survey Point** uses the survey point origin only, with no
+    rotation.
+  </Accordion>
+</AccordionGroup>
