@@ -72,30 +72,36 @@ one-hop connection in either direction.
 
 ### Materials and appearance
 
-| Relation              | From → to           | Replaces in the Current model                         |
-| --------------------- | ------------------- | ----------------------------------------------------- |
-| `HAS_MATERIAL`        | geometry → material | RenderMaterial Proxy bound to display meshes          |
-| `HAS_COLOR`           | geometry → color    | Display color, kept distinct from material            |
-| `OBJECT_HAS_MATERIAL` | object → material   | Placement / instance paint when the object carries it |
-| `OBJECT_HAS_COLOR`    | object → color      | Object-plane color override                           |
+| Relation              | From → to            | Replaces in the Current model                         |
+| --------------------- | -------------------- | ----------------------------------------------------- |
+| `HAS_MATERIAL`        | geometry → material  | RenderMaterial Proxy bound to display meshes          |
+| `HAS_COLOR`           | geometry → color     | Display color, kept distinct from material            |
+| `OBJECT_HAS_MATERIAL` | object → material    | Placement / instance paint when the object carries it |
+| `OBJECT_HAS_COLOR`    | object → color       | Object-plane color override                           |
+| `NODE_HAS_MATERIAL`   | container → material | Authored layer or tag material (ByLayer fill)         |
+| `NODE_HAS_COLOR`      | container → color    | Authored layer or tag color (ByLayer default)         |
 
-Material and color are separate on purpose. An object can carry both. Geometry-level material is
-the intrinsic appearance; object-plane color is presentational and can override geometry color.
+Material and color are separate on purpose. An object can carry both. Material fills from specific
+to general: geometry `HAS_MATERIAL`, then `OBJECT_HAS_MATERIAL`, then the container's
+`NODE_HAS_MATERIAL`. Color is presentational: `OBJECT_HAS_COLOR` overrides geometry `HAS_COLOR`,
+and `NODE_HAS_COLOR` is the ByLayer default.
 
 ### Instancing
 
 Today's Definition and Instance Proxies become structural nodes plus relations.
 
-| Relation           | From → to                    | Replaces in the Current model            |
-| ------------------ | ---------------------------- | ---------------------------------------- |
-| `DEFINES`          | definition → geometry        | Definition Proxy holding shared geometry |
-| `DISPLAY_INSTANCE` | object → instance placement  | Instance that renders with a transform   |
-| `DEFINES_INSTANCE` | definition → nested instance | Nested instancing inside a definition    |
+| Relation           | From → to                    | Replaces in the Current model                                         |
+| ------------------ | ---------------------------- | --------------------------------------------------------------------- |
+| `DEFINES`          | definition → geometry        | Definition Proxy holding shared geometry                              |
+| `DISPLAY_INSTANCE` | object → instance placement  | Instance that renders with a transform                                |
+| `DEFINES_INSTANCE` | definition → nested instance | Nested instancing inside a definition                                 |
+| `DEFINES_MEMBER`   | definition → member object   | Definition membership on the object plane (geometry and nested alike) |
+| `PLACES`           | member object → instance     | Association without rendering, so member properties stay reachable    |
 
 <Note>
-  `DISPLAY_INSTANCE` is the render placement. Do not treat every object-to-instance association as a
-  render root. Definition members that must stay linked without drawing at the origin use a separate
-  association (`PLACES`) on producers that emit it.
+  `DISPLAY_INSTANCE` is the render root. `PLACES` is the same object-to-instance link without
+  drawing. Do not treat a definition member as a render placement, or it will draw untransformed at
+  the origin.
 </Note>
 
 ## What a script should do instead of unpacking Proxies
