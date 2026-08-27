@@ -1,7 +1,7 @@
 ---
 title: 3D viewer in 2026.9
-sidebarTitle: 3D Viewer
-description: Preview entry for 2026.9 3D viewer documentation. Coverage is incremental.
+sidebarTitle: What's new
+description: What changed when you open a model in the 2026.9 web app — Selection, Filters, Views, section planes, and the new panel chrome.
 noindex: true
 contextual:
   options: []
@@ -11,6 +11,421 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 <NextPreviewBanner />
 
-2026.9-specific 3D viewer documentation starts here. Pages are added only when 2026.9 differs from
-the current viewer guides or needs its own write-up. For the current product, see
-[3D viewer](/3d-viewer/interface-nav).
+Opening a model in the 2026.9 web app uses a new 3D viewer. Geometry starts appearing while the
+full file is still downloading. **Selection**, **Filters**, and **Views** sit in dockable panels,
+and sectioning uses cutting **planes** instead of a box.
+
+This page covers only what changed. For interface basics that still apply — sharing, federation
+from the project, and issue fields — see [Interface and navigation](/3d-viewer/interface-nav),
+[Exploration](/3d-viewer/exploration), [Saved views](/3d-viewer/saved-views),
+[Issues](/3d-viewer/issues), and [Share your models](/3d-viewer/sharing).
+
+To ask questions about the models loaded in this viewer, use the sparkle. That flow is on
+[Ask questions about your models with Speckle Intelligence](/next/analytics/intelligence).
+
+## Open a model
+
+Large models use a hybrid load. A first overlay can show **Preparing 3D stream** or
+**Downloading model**. Once geometry starts painting, the overlay goes away and a progress stack
+in the top-right corner continues in the background. The downloaded copy is stored locally, so
+opening the same version again prefers that cache.
+
+{/* IMAGE_PLACEHOLDER: Model open — blocking overlay with Preparing 3D stream or Downloading model, then top-right progress stack after first paint. */}
+
+You should see objects in the scene before the background download finishes.
+
+## Find your way around
+
+Panels are dockable. Drag a panel icon onto another panel to make a labelled tab group, split it
+into the bottom dock, collapse it, or resize it.
+
+{/* IMAGE_PLACEHOLDER: Viewer chrome — left sidebar Models Filters Views Issues; Selection under the left tabs; Elements in the bottom dock; status bar; navigation cube bottom-right. */}
+
+On a first visit, **Selection** is open so the canvas is not empty.
+
+- **Models**, **Filters**, **Views**, and **Issues** sit in the left sidebar tab strip.
+- **Selection** sits under those tabs by default and shows properties for the current pick.
+- **Elements** sits in the bottom dock and lists every object in the loaded models.
+- The status bar at the bottom holds panel icons, undo, redo, screenshot, shortcuts, and
+  **Settings**.
+- The navigation cube sits at the bottom-right of the canvas for canonical camera directions.
+
+The status bar **Settings** menu holds **Orthographic**, **Grid**, and **Reference points**.
+**Layout** in that menu lists every panel as a checkbox. **Models** stays on. **Lock layout**
+stops accidental drags. **Reset layout** restores the default arrangement after you unlock.
+
+These panels start hidden. Turn them on from **Settings** → **Layout**:
+
+- **Materials** lists materials and colours in the loaded models. Select the usage count to pick
+  the objects that use that material.
+- **Browse** pages through tables in the published data.
+- **SQL** runs a query against the attached models. **$selected** inserts the current pick's
+  application IDs.
+- **Inspector** shows envelope relations as a diagram or rows, plus a raw property table. When
+  nothing is selected it reads **Select an object in the viewer to inspect its rows**.
+
+{/* IMAGE_PLACEHOLDER: Settings Layout — Orthographic Grid Reference points; Layout checkboxes with hidden Materials Browse SQL Inspector; Lock layout Reset layout. */}
+
+On narrower widths the left sidebar becomes a slide-over.
+
+Right-click the canvas or a row in **Models** for **Hide**, **Isolate**, **Fit to view**,
+**Copy application ID**, **Add to chat**, and **Clear selection**. Right-click a selected object
+keeps the whole selection. Right-click an unselected object replaces the selection with that
+pick. **Add to chat** pins the pick for Speckle Intelligence. If too many objects are selected
+to pin individually, right-click a scene-tree group instead.
+
+{/* IMAGE_PLACEHOLDER: Canvas or Models row context menu — Hide Isolate Fit to view Copy application ID Add to chat Clear selection. */}
+
+<Tip>
+  **Keyboard shortcuts** opens from the status bar, or from `?`. That cheat sheet is the
+  authoritative list, including fly keys (W A S D, E and Q) and Alt+1–5 for standard views.
+</Tip>
+
+## Select and inspect
+
+Click geometry, or click rows in **Models**. Selection highlights both ways: the 3D pick reveals
+the tree row, and the tree row highlights in 3D. Open **Selection** with Shift+O.
+
+**Selection** shows properties for the pick. The title uses the first non-blank of **name**,
+**type**, or **category**. Property groups auto-expand. A **Pinned** group stays at the top when
+you pin a path. Revit material quantity blocks are condensed into readable rows named like
+**{Material} Area** or **{Material} Volume**. A **Relations** group at the bottom lists related
+objects by relation kind. Search the list with **Filter properties**.
+
+When nothing is selected, **Selection** shows **No properties**.
+
+{/* IMAGE_PLACEHOLDER: Selection panel — single object with Pinned group, condensed Material Quantities rows, Relations group, and right-click menu on a property. */}
+
+From a property you can:
+
+- **Add to filters** — open a **Filters** card for that property.
+- **Filter to this value** — add a card already set to this value. Relation rows skip this
+  action.
+- **Add as table column** — add the path to **Elements**. If it is already a column, the menu
+  reads **Shown as a table column** and opens **Elements**.
+- **Pin property** or **Unpin property**.
+- **Copy value** — copies the raw value, not the rounded display string.
+- **Copy path**.
+- **Copy all properties** — one `path: value` line per row.
+- **Copy group path** — from a group header that has a real path. **Pinned** and **Relations**
+  have no path to copy.
+
+When you select several objects, **Selection** shows one card per object. Each card can zoom,
+isolate, or hide that element. In a wide dock the cards sit in columns. Fold or expand all
+cards from the toolbar. The count reads **N selected**. Selections larger than 1,000 objects
+start folded; you can still open one card at a time.
+
+{/* IMAGE_PLACEHOLDER: Selection panel — multi-select cards with count, Zoom Isolate Hide on a card header, expanded property groups. */}
+
+Use **Show all** on the toolbar when objects are hidden or isolated.
+
+### Browse objects in Elements
+
+**Elements** is a table of the objects in the loaded models. It follows the active **Filters**
+stack. Double-click a row to zoom to that object. When several models are loaded, a scope
+control can limit the table to one model or to the current selection.
+
+{/* IMAGE_PLACEHOLDER: Elements bottom dock — object table with count, Filters control, Search rows, Update parameters, Export view to Excel. */}
+
+<Steps>
+  <Step title="Open Elements">
+    Select **Elements** in the bottom dock, or use Shift+T. You should see a table of objects and a
+    count.
+  </Step>
+  <Step title="Inspect a row">
+    Select a row. **Selection** shows that object's properties. Double-click the row to frame it in
+    the scene.
+  </Step>
+</Steps>
+
+**Search rows** narrows the table. **Export view to Excel** downloads the current columns, filter
+scope, and sort. If grouping or search is too large, a warning reads **Showing the first …
+elements — narrow the scope (filters or selection) for a complete view**.
+
+**Update parameters** turns table cells into editors. Staged edits do not change the published
+version. **Submit change requests** creates an issue that carries those deltas, so teammates can
+review the proposed values. Creating that issue needs permission to create issues on the project.
+
+{/* IMAGE_PLACEHOLDER: Elements table — Update parameters on, cells as editors, Submit change requests. */}
+
+## Filter and color
+
+**Filters** is a stack of property cards, not a single search box. Each card has operators that
+match the property type. Applied filters stay in place when you change selection or close and
+reopen panels. Open **Filters** with Shift+F.
+
+{/* IMAGE_PLACEHOLDER: Filters panel — two property cards, All/Any tabs, Color by values on a string card, empty state No filters yet. */}
+
+When the stack is empty, **Filters** shows **No filters yet** and an **Add filter** control. If
+the catalog fails, it shows **Failed to load properties**. If a resolve fails, it shows
+**Failed to resolve filter matches**. While a model is still attaching, it shows **Attaching
+model…**.
+
+Operators by property type:
+
+- String: **is one of**, **is not one of**, **contains**, **does not contain**, **has value**,
+  **is set**, **is not set**.
+- Number: **equals**, **is not equal**, **in range**, **has value**, **is set**, **is not set**.
+  Numeric **equals** and **is not equal** accept more than one value. Equals tolerates small
+  floating-point differences.
+- Boolean: **is** (**True** / **False**), **has value**, **is set**, **is not set**.
+- Relation (for example a level or network hop): **is one of**, **is set**, **is not set**.
+
+**Has value** matches objects where the property has a non-empty value. **Is set** matches
+objects where the property exists. **Is not set** matches objects where it is missing.
+
+{/* IMAGE_PLACEHOLDER: Filters card — operator menu open on a string or number property showing type-specific operators. */}
+
+<Steps>
+  <Step title="Add a filter">
+    Open **Filters** and select **Add filter**. Choose a property. A card appears in the stack and
+    the scene narrows to matches.
+  </Step>
+  <Step title="Set the condition">
+    Choose an operator and the values to include or exclude. If nothing matches, **Filters** shows
+    **No objects match — everything is hidden**.
+  </Step>
+  <Step title="Color by values">
+    On a string or relation card, select **Color by values**. Matching objects take colors for those
+    values. Only one card colors the scene at a time. Numeric and boolean cards do not color the
+    scene.
+  </Step>
+</Steps>
+
+With two or more cards, **All** keeps objects that match every card. **Any** keeps objects that
+match at least one. With **All**, each card's value list is scoped to the enabled cards above it.
+With **Any**, the cards are independent. Drag the grip, or use Alt+↑ / Alt+↓, to reorder.
+
+Right-click a card for **Change property**, **Collapse** or **Expand**, **Color by values** or
+**Stop coloring**, **Disable filter** or **Enable filter**, **Move up**, **Move down**,
+**Duplicate**, and **Remove filter**. A disabled card stays in the stack but does not hide
+objects.
+
+**Clear all filters** is in the panel header. **Reset filters** on the toolbar clears the same
+stack without undoing hide and isolate.
+
+<Note>
+  Intelligence in this viewer can also color and isolate from Chat. That is documented on [Ask
+  questions about your models with Speckle Intelligence](/next/analytics/intelligence), not here.
+</Note>
+
+## Save and apply views
+
+**Views** lists two kinds of viewpoint in one panel. Open it with Shift+V.
+
+- **Model views** come from the source application when the connector published them. Select a
+  row to fly the camera. These rows stay in **Model views**; converting one does not remove it.
+  An orthographic published view can show a **Parallel / orthographic (isometric)** cue.
+- Saved views are viewpoints you (or a teammate) stored in Speckle. The panel only lists views
+  whose models are currently loaded. A view saved on an older version of a loaded model still
+  applies.
+
+{/* IMAGE_PLACEHOLDER: Views panel — empty state No views yet with Save view; Model views section; grouped saved views with lock, Search views, New group. */}
+
+When nothing is saved and there are no groups, **Views** shows **No views yet**. A search with no
+hits shows **No matching views**. An empty named group reads **Drop views here**.
+
+Saving a view needs permission to create saved views on the project. If **Save view**, **New
+group**, or **Sketch** is disabled, the tooltip explains the denial. Creating saved views needs
+the Contributor project role or higher. See [Saved views](/3d-viewer/saved-views) for grouping
+and sharing rules that have not changed.
+
+<Note>
+  On a self-hosted server, saved views are available only on Speckle Enterprise Server. For
+  deployment setup, see [Enterprise license — Saved
+  Views](/developers/server/deployment/enterprise-license#optional-saved-views).
+</Note>
+
+<Steps>
+  <Step title="Set the look">
+    Frame the camera, set filters and visibility, and add section planes or sketches you want
+    stored.
+  </Step>
+  <Step title="Save the view">
+    In **Views**, select **Save view**, or use the bookmark control on the toolbar. Name it. The new
+    view appears in the panel.
+  </Step>
+</Steps>
+
+To keep a connector-published viewpoint as a saved view, select **Save as view** on that **Model
+views** row, or drag the row into a saved-view group. Dragging into a group needs at least one
+named group and permission to create views. You cannot drop a model view into **Ungrouped**.
+
+**New group** creates an empty group as a drop target. Search with **Search views**. Cards show
+the author and a relative date. Private views show a lock with the tooltip **Only visible to
+you**.
+
+On a saved view the ⋯ menu is **Rename**, **Make private** or **Make public**, and **Delete…**.
+There is no **Set as home view**, **Replace view**, or **Copy link** on this menu. Use the eye
+control to show or hide that view's sketches and measurements.
+
+On a group the ⋯ menu is **Rename**, **Make all private** or **Make all public**, and **Delete
+group…**. **Ungrouped** is a tail for views that were saved before grouping. You can drag views
+out of it. You cannot drop views into it. Its menu is **Delete all views…**.
+
+{/* IMAGE_PLACEHOLDER: Saved view card ⋯ menu — Rename Make private or Make public Delete; eye control for sketches and measurements. */}
+
+Deleting a view also deletes its sketches and measurements. The confirm dialog says so.
+
+A view created in the previous viewer can show **Legacy view — not openable here yet**. Re-save
+the look in this viewer if you need a viewpoint you can apply.
+
+## Cut, measure, and sketch
+
+The bottom toolbar holds **Section**, **Sketch**, and **Measure**. Shortcuts: Shift+B, Shift+K,
+and Shift+R. Press Esc to leave a tool. Cmd/Ctrl+Z undoes while sketching or measuring.
+
+### Section planes
+
+Sectioning is no longer a six-sided box around the model. You add individual **section planes**
+and move each one.
+
+{/* IMAGE_PLACEHOLDER: Section tool — Plane, XY, XZ, YZ controls, plane list with Stop cutting Flip Hide plane handles Remove all planes, cutting plane handle in the scene. */}
+
+<Steps>
+  <Step title="Turn Section on">
+    Select **Section** on the toolbar. The tool options appear above the toolbar.
+  </Step>
+  <Step title="Add a plane">
+    Select **Plane**, then click a surface, or select **XY**, **XZ**, or **YZ** to cut at the scene
+    centre. The model is clipped on one side of the plane.
+  </Step>
+  <Step title="Adjust the cut">
+    Select a plane in the list to show its handle. Drag the handle, **Flip which side is cut away**,
+    or **Stop cutting** without removing the plane. **Resume cutting** turns that plane back on.
+  </Step>
+</Steps>
+
+**Hide plane handles** keeps the cut for a cleaner screenshot. **Remove all planes** clears the
+list. If **Plane** is disabled, the tooltip reads that all plane slots are in use.
+
+### Measure
+
+Types: **Point to point**, **Perpendicular**, **Angle**, and **Area**.
+
+Measurements stay on the canvas for the session. If you can save views, they are stored on the
+saved view with sketches. Without that permission they disappear when you leave the model.
+
+### Sketch in 3D
+
+**Sketch** draws on the model in 3D. Ink stays with the geometry as you orbit, pan, and zoom. It
+is stored on a saved view: saving the view keeps the markup, and opening that view restores it
+in place.
+
+{/* IMAGE_PLACEHOLDER: Sketch tool — Pen Arrow Revision cloud Text Eraser, color swatches Custom color brush sizes, ink on model geometry in 3D. */}
+
+Tools: **Pen**, **Arrow**, **Revision cloud**, **Text**, and **Eraser**. Preset ink colours are
+**Red**, **Amber**, **Blue**, **Green**, and **White**. **Custom color** adds any colour and
+opacity. Brush sizes sit next to the colours. Sketch is disabled without permission to save
+views.
+
+### Navigation cube
+
+The cube in the bottom-right of the canvas sets canonical directions. Alt+1–5 also move the
+camera to Top, Front, Left, Back, and Right. Fit and zoom still sit on the toolbar: **Fit view
+to everything**, or **Zoom to selection** when something is selected. Shift+Space does the same
+fit. Shift+P toggles orthographic projection.
+
+Explode, the older view-mode styles (Pen, Arctic, Shaded), and lighting controls are not on this
+toolbar. Projection and the grid are in **Settings**.
+
+## Restore an issue's view
+
+**Issues** lists issues for the models in the scene. Open it with Shift+I. Opening an issue that
+was created in this viewer restores the camera, filters, and visibility stored with it.
+
+{/* IMAGE_PLACEHOLDER: Issues panel — empty state No issues for this scene with New issue, or issue selected with camera and filters restored. */}
+
+The **Issues** tab is always in the strip. If the feature is not available on the project, the
+panel body shows that denial instead of a list. Empty states: **No issues for this scene** with
+**New issue**, **No matching issues** after search or chip filters, and **Select an issue** in
+the wide-dock detail pane.
+
+{/* IMAGE_PLACEHOLDER: Issues panel — feature unavailable denial in the panel body, not a list. */}
+
+<Note>
+  Issues are available when your workspace plan includes them. On a self-hosted server, they are
+  available only on Speckle Enterprise Server. For deployment setup, see [Enterprise license —
+  Issues](/developers/server/deployment/enterprise-license#optional-issues). Issue fields,
+  assignment, and permissions stay on [Issues](/3d-viewer/issues).
+</Note>
+
+<Note>
+  An issue created in the previous viewer may show **Legacy issue — its view can't be applied here
+  yet**. If the issue points at models that are not loaded, the tooltip reads **References models
+  not loaded in this scene — opens details only**.
+</Note>
+
+## Inspect model placement
+
+When several models are federated, **Models** can open **Model placement** for a model. That
+dialog shows the published placement, geometry storage, Project True North, and translation.
+**Inspect placement option** previews Internal Origin, Project Base Point, Survey Point origin,
+or Shared Coordinates. It is inspect-only: switching placement in this viewer is not enabled
+yet.
+
+{/* IMAGE_PLACEHOLDER: Model placement dialog — Published placement, Geometry storage, Inspect placement option, notice that viewer switching is not enabled. */}
+
+How Revit stores placement on publish is on [Revit in 2026.9](/next/connectors/revit/introduction).
+Adding models to a scene from the project still follows [Model federation](/3d-viewer/federation).
+
+## Keyboard shortcuts
+
+Open the cheat sheet from the status bar or `?`. Bindings use Cmd on macOS and Ctrl elsewhere.
+
+{/* IMAGE_PLACEHOLDER: Keyboard shortcuts cheat sheet — panel tool camera fly bindings; opened from status bar or ?. */}
+
+- Panels: Shift+M **Models**, Shift+F **Filters**, Shift+V **Views**, Shift+I **Issues**,
+  Shift+T **Elements**, Shift+O **Selection**.
+- Tools: Shift+R **Measure**, Shift+B **Section**, Shift+K **Sketch**.
+- Camera: Shift+Space **Fit view / zoom to selection**, Shift+P **Orthographic projection**,
+  Alt+1–5 standard views.
+- Display: Shift+G **Grid**, Shift+X **Reference points**.
+- History: Cmd/Ctrl+Z **Undo**, Cmd/Ctrl+Shift+Z **Redo**.
+- Fly around: W A S D or arrow keys to move. E or Page Up moves up. Q or Page Down moves down.
+  Hold Shift for faster, Alt for slower.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Where did the section box go?">
+    The 2026.9 viewer cuts with section planes, not a box. Add **XY**, **XZ**, or **YZ**, or place a
+    plane on a surface, then flip or hide individual planes. Explode and the older view mode styles
+    are not on this toolbar. Projection and the grid are in **Settings**.
+  </Accordion>
+  <Accordion title="Why is Sketch disabled?">
+    Sketch is stored on saved views, so it uses the same permission as **Save view**. Reviewers
+    without that permission cannot sketch. Save a view after you draw if you need the ink later.
+  </Accordion>
+  <Accordion title="Do measurements come back when I open a saved view?">
+    Yes, if they were stored on that view. Sketches and measurements share the view's ink. Use the
+    eye control on the view card to hide or show them. Without permission to save views,
+    measurements last only for the session.
+  </Accordion>
+  <Accordion title="What happens if I open a saved view from the previous viewer?">
+    Some older views show **Legacy view — not openable here yet**. Re-save the look in this viewer
+    if you need a viewpoint you can apply.
+  </Accordion>
+  <Accordion title="Why does a filter hide the whole model?">
+    When no objects match, **Filters** shows **No objects match — everything is hidden**. Change the
+    values, switch **All** to **Any**, enable a disabled card, or use **Reset filters**.
+  </Accordion>
+  <Accordion title="Can I color the model from a numeric filter?">
+    No. **Color by values** is on string and relation cards only. Use Chat if you want Intelligence
+    to color by a property; that flow is on [Ask questions about your models with Speckle
+    Intelligence](/next/analytics/intelligence).
+  </Accordion>
+  <Accordion title="Where did Set as home view and Replace view go?">
+    They are not on the 2026.9 view-card menu. You can **Rename**, change public or private, show or
+    hide ink, and **Delete**. Grouping and dragging still work. Home view and replace remain
+    documented for the Current viewer on [Saved views](/3d-viewer/saved-views).
+  </Accordion>
+  <Accordion title="Can I reposition federated models in the viewer?">
+    Not yet. **Model placement** lets you inspect the published datum. Changing placement on publish
+    is documented for Revit on [Revit in 2026.9](/next/connectors/revit/introduction).
+  </Accordion>
+  <Accordion title="Do Update parameters change the published model?">
+    No. Edits stay staged in **Elements** until you **Submit change requests**. That creates an
+    issue with the proposed values. The published version is unchanged.
+  </Accordion>
+</AccordionGroup>
