@@ -31,29 +31,29 @@ Your report is at risk if all three statements are true:
 - It points to a model URL instead of a specific version.
 - The model will be published with a 4.0 authoring connector.
 
-Version 4.0 authoring connectors publish artifact-only versions. The legacy Power BI path reads
-JSON, so the report's next refresh fails with `JsonRepresentationUnavailable`.
+Version 4.0 authoring connectors publish artifact-only versions. The next refresh then fails with
+`JsonRepresentationUnavailable`. Pinning to a pre-4.0 version URL is a stopgap. Rebuild the report
+if it must keep following new versions.
 
-Reports pinned to a pre-4.0 version keep working. Existing queries also keep working against
-versions that still contain JSON.
+## Before and after
 
-## Before a 4.0 publish
+| Before                                    | After                                                     |
+| ----------------------------------------- | --------------------------------------------------------- |
+| Get Data entry is **Connect to Speckle**  | Get Data entry is **Speckle - Get Tables**                |
+| `Speckle.GetByUrl` returns one flat table | `Speckle.GetTables` returns related tables                |
+| Join and color on `Application ID`        | Join and bind on `Object Key`                             |
+| Old 3D visual field wells                 | **Model Info** and **Object Keys** from the Objects table |
+| JSON-only versions                        | Artifact bundles published with a 4.0 connector           |
 
-Choose one of these approaches before the first 4.0 publish:
+| Version contains                   | `Speckle.GetByUrl`                        | `Speckle.GetTables`                                      |
+| ---------------------------------- | ----------------------------------------- | -------------------------------------------------------- |
+| JSON and artifacts                 | Returns the legacy flat table             | Returns the new tables                                   |
+| JSON only, published before 4.0    | Returns the legacy flat table             | Fails and directs the user to `GetByUrl` or republishing |
+| Artifacts only, published with 4.0 | Fails and directs the user to `GetTables` | Returns the new tables                                   |
 
-1. **Pin the report.** Change its model URL to a version URL:
-   `.../models/MODEL_ID@VERSION_ID`. This keeps the report working but freezes it on that version.
-2. **Migrate the report.** Rebuild its queries with `Speckle.GetTables` and replace the 3D visual.
-3. **Coordinate both upgrades.** Migrate the report when the team upgrades its authoring
-   connectors.
+## How to switch
 
-Pinning is a temporary recovery option. Migration is required if the report must continue
-following new versions.
-
-A bundle-consuming report that must follow new versions should pin only as a stopgap, then rebuild
-with `Speckle.GetTables`, relate on `Object Key`, and replace the visual.
-
-## Restore a broken report
+### Pin a broken report
 
 If the report already fails, pin it to the last version published before 4.0.
 
@@ -152,23 +152,8 @@ Existing M functions remain available. They keep their 3.x contract and only acc
 | `Speckle.Projects.Issues(url, getReplies)`   | Remains independent of both object data paths and works with old and new reports                  |
 | `Speckle.GetVersion()`                       | Returns the connector version string, unchanged                                                   |
 
-These functions still evaluate and remain visible in Power Query. Their descriptions identify
-them as 3.x compatibility functions and point users to the new path.
-
-## Current limitations
-
-- Section box, view modes, edges, and ghosting are unavailable in the new visual. Their
-  non-functional controls have been removed.
-- Filtered-out objects are hidden. There is no ghosting toggle.
-- Named scene views are unavailable. The five canonical camera views remain available.
-- The visual requires WebGPU. There is no fallback. The visual shows an error when WebGPU is
-  missing.
-- Exact minimum versions for Speckle Server, Power BI Desktop, and WebView2 are not confirmed.
-
-The server must serve 4.0 artifact bundles and advertise a geometry stream. The exact minimum
-server version is not confirmed. The Power BI client must run in a WebGPU-capable environment.
-The visual uses the existing OAuth flow and receives a limited-scope token for each load. The
-account's main token does not enter the report.
+The connector installs machine-wide. After it is updated, every report on that machine runs through
+the new binary. Existing `GetByUrl` queries still evaluate when their target version contains JSON.
 
 ## FAQ
 
@@ -186,9 +171,5 @@ account's main token does not enter the report.
     The new `.pbiviz` replaces the old visual in place because they share the same GUID. Existing
     bindings break. Import it only during a planned migration, then reconnect Model Info, Object
     Keys, Object Data, and Color By.
-  </Accordion>
-  <Accordion title="Why does GetTables fail on a version published before 4.0?">
-    `GetTables` reads artifact bundles. JSON-only versions published before 4.0 need
-    `Speckle.GetByUrl`, or the model must be republished with a 4.0 connector.
   </Accordion>
 </AccordionGroup>
