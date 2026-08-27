@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Speckle Docs Authoring
 
-This project uses **universal-ai-config** for canonical doc rules. Generated instructions (e.g. docs-general, docs-steps, docs-faqs, docs-asides, docs-titles-nav-seo) are the source of truth. For contributor setup (Mintlify, devcontainer, publishing), see **README.md**.
+This project uses **universal-ai-config** for canonical doc rules. Generated instructions (e.g. docs-general, docs-steps, docs-faqs, docs-asides, docs-versioned-snippets, docs-titles-nav-seo) are the source of truth. For contributor setup (Mintlify, devcontainer, publishing), see **README.md**.
 
 ## Approach to Users
 

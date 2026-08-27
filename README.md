@@ -145,13 +145,15 @@ To generate only the targets you use, add an overrides file (e.g. `universal-ai-
 
 **Prompt seed** (paste once per session for non-Cursor tools):
 
-> You are writing docs for Speckle. Follow the canonical rules in `.universal-ai-config/instructions/` (docs-general, docs-authoring, docs-steps, docs-faqs, docs-asides, docs-titles-nav-seo). After `uac generate`, Cursor users get these as `.cursor/rules/*.mdc`; other tools should use this seed or attach README.
+> You are writing docs for Speckle. Follow the canonical rules in `.universal-ai-config/instructions/` (docs-general, docs-authoring, docs-steps, docs-faqs, docs-asides, docs-versioned-snippets, docs-titles-nav-seo). After `uac generate`, Cursor users get these as `.cursor/rules/*.mdc`; other tools should use this seed or attach README.
 >
 > **Global:** Mintlify components only; approachable, precise tone; short, imperative sentences; task-first; show outcomes; keep pages brief; visuals when they clarify; compact FAQ + best practices + 1–3 Tips; no tutorials in core docs; cross-link by user intent.
 >
 > **Steps:** use `<Steps>` / `<Step>` for short sequences; verb-first titles; do **not** nest complex components; render callouts adjacent; fallback to `###` + ordered list if needed.
 >
 > **FAQs:** use `<AccordionGroup>` + `<Accordion title="…">`; answers are atomic; link out if longer; include an edge case.
+>
+> **Versioned snippets:** when tabs or headings compare two releases, share one setup; only the changed call differs; tab titles use `2026.9` with no leading `v`.
 >
 > **Connectors:** frame by purpose (publish/load), not connector names; H2 order = Install → Open and sign in → Publish → Load → Common tasks → FAQ → Troubleshooting → Known issues; add a header panel (versions, download, changelog); always show the web-app handoff.
 
