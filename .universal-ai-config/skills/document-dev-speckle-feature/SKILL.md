@@ -52,8 +52,8 @@ Run an Explore agent with **CWD = the speckle-server repo path**. The agent shou
 Ask the user with AskUserQuestion which approach to use:
 
 - **Automatic screenshots** — launch Speckle locally and capture screenshots via browser tooling
-- **Placeholders** — create docs with image placeholder references (user fills in later)
-- **Skip screenshots** — no images in the initial draft
+- **Placeholders** — mark capture sites with IMAGE_PLACEHOLDER comments (fill in later)
+- **Skip screenshots** — no images and no placeholder comments in the initial draft
 
 ### If automatic screenshots are chosen:
 
@@ -65,15 +65,13 @@ Ask the user with AskUserQuestion which approach to use:
 
 ### If placeholders are chosen:
 
-Use this format in the generated docs:
+Follow **docs-image-placeholders**. Insert one JSX comment per capture, adjacent to instructional Steps and at the head of sections that introduce a new UI surface or concept:
 
 ```
-<Frame caption="Description of what should be shown here">
-  <img src="/images/path/to/placeholder.png" alt="Description" />
-</Frame>
+{/* IMAGE_PLACEHOLDER: UI location — what must be visible. */}
 ```
 
-Add a summary at the end listing all placeholder images the user needs to provide.
+Do not point a Frame at a missing placeholder.png. Do not tell readers a screenshot is coming. End the task with a list of the comments so they can be grepped later.
 
 ## 5. Create Documentation Pages
 
@@ -105,7 +103,7 @@ Present a summary:
 
 - Pages created (with file paths)
 - Navigation changes made to `docs.json`
-- Screenshots captured or placeholders to fill
+- Screenshots captured or IMAGE_PLACEHOLDER comments to fill
 - Suggested cross-links to add in existing pages
 
 ## Key Rules
