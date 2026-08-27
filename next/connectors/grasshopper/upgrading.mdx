@@ -1,6 +1,6 @@
 ---
 title: Upgrade Grasshopper scripts
-sidebarTitle: Grasshopper scripts
+sidebarTitle: Upgrade scripts
 description: What 2026.9 changes for Grasshopper, and how to move an existing script across.
 noindex: true
 contextual:
@@ -11,45 +11,19 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 <NextPreviewBanner />
 
-2026.9 changed how Grasshopper publishes and loads models, and where objects hold their name and
-properties. Both changes add new nodes alongside the ones you already have. Existing scripts keep
-working, and nothing on your canvas is deleted.
+Existing scripts keep working. Nothing on your canvas is deleted. This page is the mechanical path
+onto the current Load and Publish nodes.
 
-This page is the 2026.9 upgrade path. For publish and load today, see
-[How to use Speckle for Grasshopper](/connectors/grasshopper/grasshopper). For the short list of
-what changed, see [Grasshopper nodes in 2026.9](/next/connectors/grasshopper/grasshopper).
+For publish and load today, see [How to use Speckle for
+Grasshopper](/connectors/grasshopper/grasshopper). For node names, Explore, and extra objects, see
+[Grasshopper nodes in 2026.9](/next/connectors/grasshopper/grasshopper).
 
 <Note>
   Nothing is removed from your canvas and no wires break. The nodes you already have are renamed and
   hidden from the ribbon, not deleted.
 </Note>
 
-## What changed
-
-Every node below was added or renamed rather than altered, so nothing on your canvas shifts under
-you.
-
-### Publishing and loading
-
-| Node on your canvas                      | What it does now                                                                    |
-| ---------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Load** / **Publish**                   | The current nodes. They support 2026.9 onwards.                                     |
-| **Load (legacy)** / **Publish (legacy)** | Your existing nodes, renamed. They still work, and they are hidden from the ribbon. |
-
-The same rename applies to **(Sync) Load** and **(Sync) Publish**.
-
-### Objects
-
-| Node on your canvas           | What it does now                                                                |
-| ----------------------------- | ------------------------------------------------------------------------------- |
-| **Speckle Data Object**       | Renamed **Speckle Object**. Same node, same ports, back in the ribbon.          |
-| **Speckle Geometry (legacy)** | Your existing Speckle Geometry node, renamed. It still works, and it is hidden. |
-| **Speckle Geometry**          | New. Geometry, colour, and material — no Name or Properties. See below.         |
-
-A **Speckle Object** holds one name, one set of properties, and one or more geometries. Name and
-properties moved onto it, and off geometry.
-
-## Do I need to upgrade?
+## When to switch
 
 | If you...                                            | Then...                                              |
 | ---------------------------------------------------- | ---------------------------------------------------- |
@@ -58,7 +32,25 @@ properties moved onto it, and off geometry.
 | Want the Explore node                                | Upgrade the script's Load node.                      |
 | Load a version published by an upgraded teammate     | Upgrade the script's Load node.                      |
 
-## Upgrade a script
+## Before and after
+
+| On your canvas                           | After you switch                                                                    |
+| ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Load** / **Publish**                   | Current nodes. They support 2026.9 onwards.                                         |
+| **Load (legacy)** / **Publish (legacy)** | Your existing nodes, renamed. They still work, and they are hidden from the ribbon. |
+| **Speckle Data Object**                  | Renamed **Speckle Object**. Same node, same ports.                                  |
+| **Speckle Geometry (legacy)**            | Your existing Speckle Geometry node. It still works, and it is hidden.              |
+| **Speckle Geometry**                     | New. Geometry, colour, and material — no Name or Properties.                        |
+
+The same rename applies to **(Sync) Load** and **(Sync) Publish**.
+
+| Output         | **Load (legacy)**                  | **Load**                     |
+| -------------- | ---------------------------------- | ---------------------------- |
+| **Collection** | Data Objects and geometry          | Speckle Objects and geometry |
+| **Properties** | Model-wide properties              | Model-wide properties        |
+| **Proxies**    | Materials, colours, levels, groups | Not available                |
+
+## How to switch
 
 {/* IMAGE_PLACEHOLDER: Grasshopper canvas — Speckle Model wire moved onto a current Load node; Load (legacy) still on the canvas, unwired. */}
 
@@ -77,86 +69,12 @@ properties moved onto it, and off geometry.
     through the current node only.
   </Step>
   <Step title="Repeat for Publish, if your script publishes">
-    Read [Before you switch Publish](#before-you-switch-publish) first. Switching Publish affects
-    your collaborators, not just you.
+    Confirm collaborators have upgraded first. Switching Publish affects people who load your model,
+    not just you. If you are not sure, leave Publish on the legacy node and upgrade Load only.
   </Step>
 </Steps>
 
-## What the output looks like
-
-The current Load node reflects how models are stored now, so some outputs differ.
-
-| Output         | **Load (legacy)**                  | **Load**                     |
-| -------------- | ---------------------------------- | ---------------------------- |
-| **Collection** | Data Objects and geometry          | Speckle Objects and geometry |
-| **Properties** | Model-wide properties              | Model-wide properties        |
-| **Proxies**    | Materials, colours, levels, groups | Not available — see below    |
-
-A **Speckle Object** is what a Data Object was: one name, one set of properties, and one or more
-geometries. An element that arrived as one item still arrives as one item, so a wall with three
-meshes does not become three walls.
-
-Materials and colours arrive on each object rather than in a side list. Levels, rooms, hosts, and
-definitions are reachable through [Explore](#explore-object-relationships).
-
-<Note>
-  You may see slightly more objects than before. Elements that carry only properties and no geometry
-  — Revit rooms, levels, and areas — now come through where they were previously skipped.
-</Note>
-
-## Where Name and Properties went
-
-{/* IMAGE_PLACEHOLDER: Speckle Object node — Name and Properties ports; current Speckle Geometry node with colour and material only. */}
-
-The new **Speckle Geometry** node has no Name or Properties inputs. They belong to the **Speckle
-Object** that contains the geometry, not to the geometry itself.
-
-A wall is one thing with one name and one set of properties, and three meshes. If each mesh carried
-its own copy, summing a volume across your model would count that wall three times. Putting name and
-properties on the object means one wall, one volume, however many meshes it has.
-
-To set a name or properties, wire your geometry into a **Speckle Object** and set them there.
-
-<Note>
-  Your existing scripts still work. The **Speckle Geometry (legacy)** node keeps its Name and
-  Properties inputs, and geometry that already carries them keeps carrying them.
-</Note>
-
-## Explore object relationships
-
-When you load a 2026.9 version with the current **Load** node, the model also records how objects
-relate to each other: which level a wall sits on, which room it is in, which block definition an
-instance uses, and what it is hosted on.
-
-{/* IMAGE_PLACEHOLDER: Explore node — Speckle Object input; dynamic outputs such as level, rooms, host, and definition. */}
-
-The **Explore** node surfaces those connections. Plug in a Speckle Object, Speckle Geometry, Block
-Instance, or Collection. Explore creates an output for each relationship the model records for that
-object. The set of outputs changes with what you plug in.
-
-Explore does not repeat what the object already carries. Material, colour, and Collection path are
-already set on the object when it loads.
-
-<Note>
-  Explore supports versions published with 2026.9 onwards, loaded with the current Load node.
-  Versions published before then do not record these connections, so there is nothing for Explore to
-  show. Objects loaded with **Load (legacy)** also produce no Explore outputs.
-</Note>
-
-If Explore reports that nothing is cached for a model that loaded correctly earlier, reload the
-model. Explore reads a local copy that your machine may have cleared.
-
-## Before you switch Publish
-
 {/* IMAGE_PLACEHOLDER: Publish (legacy) node — canvas remark that older connectors can still read versions from this node. */}
-
-Versions from the current **Publish** node need an upgraded connector to read. Versions from
-**Publish (legacy)** can still be read by older connectors, which is why that node is still
-available.
-
-If people consume your model in another application, confirm they have upgraded before you switch.
-If you are not sure, leave Publish on the legacy node and upgrade Load only. The two are
-independent.
 
 <Warning>
   If your script publishes and then reloads in the same definition, use the current nodes for both.
@@ -192,19 +110,5 @@ independent.
   <Accordion title="Do I have to upgrade Load and Publish together?">
     No. They are independent. Upgrading Load only is a good first step, because it affects nobody
     but you.
-  </Accordion>
-  <Accordion title="What happened to the Speckle Data Object node?">
-    It is now called **Speckle Object** and is back in the ribbon. Same node, same ports, same
-    behaviour. Existing scripts keep working.
-  </Accordion>
-  <Accordion title="Why does my Speckle Geometry node have fewer inputs?">
-    It does not. The node in your script is **Speckle Geometry (legacy)** and keeps all of its
-    inputs. The **Speckle Geometry** in the ribbon is a new node without Name and Properties.
-  </Accordion>
-  <Accordion title="What happens if Explore produces no outputs?">
-    The usual cause is a version published before 2026.9, or a **Load (legacy)** node. Republish
-    with the current Publish node, then load with the current Load node. Explore also has nothing to
-    show for objects inside a block definition, rather than a placed instance, or for objects that
-    were never loaded from Speckle.
   </Accordion>
 </AccordionGroup>
