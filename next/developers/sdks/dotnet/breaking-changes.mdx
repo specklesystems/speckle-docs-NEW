@@ -104,15 +104,9 @@ Today you walk a `Base` tree. In v2026.9, objects are a flat list. Properties ar
 <Tabs>
   <Tab title="Today">
     ```csharp Today lines icon="/images/developers/sdks/csharp.svg"
-    using Speckle.Objects.Data;
-    using Speckle.Sdk.Models.Extensions;
-
-    static string GetCategory(Base obj) =>
-        obj is DataObject d && d.properties.TryGetValue("category", out var cat) && cat is string s
-            ? s
-            : obj["category"] as string ?? obj.speckle_type ?? "Unknown";
-
-    var counts = root.Flatten().GroupBy(GetCategory).OrderByDescending(g => g.Count());
+    var counts = root.Flatten()
+        .OfType<DataObject>()
+        .GroupBy(d => d.properties.GetValueOrDefault("category") as string ?? "Unknown");
 
     var byLevel = root.Flatten()
         .OfType<DataObject>()
