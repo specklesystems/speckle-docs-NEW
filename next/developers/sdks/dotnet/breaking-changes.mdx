@@ -114,22 +114,17 @@ Today you walk a `Base` tree. In v2026.9, objects are a flat list. Properties ar
 
     var walls = root.Flatten()
         .OfType<DataObject>()
-        .Where(d => d.properties.GetValueOrDefault("category") as string == "Walls")
-        .ToList();
+        .Where(d => d.properties.GetValueOrDefault("category") as string == "Walls");
     ```
 
   </Tab>
   <Tab title="v2026.9">
     ```csharp v2026.9 lines icon="/images/developers/sdks/csharp.svg"
-    var counts = model.Objects
-        .GroupBy(o => o.GetString("category") ?? o.Name ?? "Unknown")
-        .OrderByDescending(g => g.Count());
+    var counts = model.Objects.GroupBy(o => o.GetString("category") ?? o.Name ?? "Unknown");
 
     var byLevel = model.Objects.GroupBy(o => o.Level?.Name ?? "Unknown");
 
-    var walls = model.ObjectsWith("category")
-        .Where(o => o.GetString("category") == "Walls")
-        .ToList();
+    var walls = model.ObjectsWith("category").Where(o => o.GetString("category") == "Walls");
     ```
 
   </Tab>
