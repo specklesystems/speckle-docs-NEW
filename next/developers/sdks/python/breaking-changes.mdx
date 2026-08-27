@@ -1,7 +1,7 @@
 ---
-title: Assess specklepy scripts for v2026.9
+title: Assess specklepy scripts for 2026.9
 sidebarTitle: specklepy
-description: Before and after examples for specklepy receive, property access, and traversal on v2026.9 data.
+description: Before and after examples for specklepy receive, property access, and traversal on 2026.9 data.
 noindex: true
 contextual:
   options: []
@@ -12,20 +12,25 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 <NextPreviewBanner />
 
 Use this page to assess a specklepy script that receives a version, reads properties, or walks an
-object tree. It covers only the breaking-change surface for v2026.9. For day-to-day send and
+object tree. It covers only the breaking-change surface for 2026.9. For day-to-day send and
 receive, stay on [specklepy](/developers/sdks/python/introduction) and the
 [Quickstart](/developers/sdks/python/getting-started/quickstart).
 
 The object-model change itself is on
-[Object model in v2026.9](/next/developers/object-model/overview). Dates, compatibility mode, and
+[Object model in 2026.9](/next/developers/object-model/overview). Dates, compatibility mode, and
 who must act are on
 [Data model migration for developers](/developers/migration/data-model-migration).
 
+<Warning>
+  Versions published by a 2026.9 connector need an upgraded specklepy before you receive them. An
+  older build 404s on that data. Versions from older connectors keep working. See [Who's
+  affected](/developers/migration/data-model-migration#whos-affected).
+</Warning>
+
 <Note>
   If the script already calls `operations.receive` and reads nested `properties` the way [BIM data
-  patterns](/developers/sdks/python/guides/bim-data-patterns) describes, bump specklepy before you
-  receive a bundle-only version. The receive call stays the same. The sections below are the places
-  that do change.
+  patterns](/developers/sdks/python/guides/bim-data-patterns) describes, the receive call stays the
+  same. The sections below are the places that do change.
 </Note>
 
 ## Upgrade specklepy first
@@ -74,7 +79,7 @@ version = client.version.get(version_id, project_id)
 root = operations.receive(version.referenced_object, remote_transport=transport)
 ```
 
-### In v2026.9
+### In 2026.9
 
 The call is unchanged. After you upgrade specklepy, receive dispatches on the `bundle.` prefix
 and still returns a `Base` tree. `ServerTransport` is only a credentials carrier on that
@@ -110,7 +115,7 @@ width = root.parameters["Type Parameters"]["Width"]["value"]
 [Working with objects](/developers/sdks/python/guides/how-to-work-with-objects) guide treats that
 id as reserved.
 
-### In v2026.9
+### In 2026.9
 
 `operations.receive` still returns a DataObject-shaped tree with nested `properties` rebuilt
 from the columnar store. `speckle_type` is `Objects.Data.DataObject`. Per-parameter metadata
@@ -150,7 +155,7 @@ def iter_elements(obj):
         yield from iter_elements(child)
 ```
 
-### In v2026.9
+### In 2026.9
 
 If the script goes through `operations.receive`, the upgraded SDK returns a reconstructed
 DataObject tree in the v3 sender idiom. Walking that tree for names, nested `properties`, and
@@ -158,7 +163,7 @@ DataObject tree in the v3 sender idiom. Walking that tree for names, nested `pro
 
 Do not unpack a Proxy's `objects` array to rebuild topology. Containment, levels, materials,
 and connectivity are typed relations on the version, not a tree you reconstruct. See
-[Relations in v2026.9](/next/developers/object-model/relations).
+[Relations in 2026.9](/next/developers/object-model/relations).
 
 ```python lines icon="python"
 from specklepy.objects.data_objects import DataObject
@@ -174,8 +179,8 @@ def iter_data_objects(obj):
 
 A missing nested `elements` tree or Proxy `objects` list is expected when the script is not
 going through that receive reconstruction. Identify objects by `applicationId`, read property
-paths, and follow named relations — or pin to **v2026.8** until you can. Details:
-[Object model in v2026.9](/next/developers/object-model/overview#what-a-script-should-assume).
+paths, and follow named relations — or pin to **2026.8** until you can. Details:
+[Object model in 2026.9](/next/developers/object-model/overview#what-a-script-should-assume).
 
 ## Do not receive and resend a version
 
@@ -194,8 +199,9 @@ Receive, derive new data, and send that result remains ordinary supported use.
     yourself.
   </Accordion>
   <Accordion title="What happens if I receive with an older specklepy?">
-    Hash-era versions still receive. A bundle-only version 404s on the objects path. The response
-    body carries upgrade guidance. Existing published hash-era data is not on a removal clock.
+    Versions from older connectors still receive. A version published by a 2026.9 connector 404s on
+    the objects path. The response body carries upgrade guidance. Existing published data from older
+    connectors is not on a removal clock.
   </Accordion>
   <Accordion title="Why did parameter['value'] stop working?">
     On a bundle-only receive, parameter metadata is collapsed to scalars inside nested `properties`.
@@ -205,7 +211,7 @@ Receive, derive new data, and send that result remains ordinary supported use.
   <Accordion title="Can I still walk Collection.elements and unpack Proxies?">
     Only on the reconstructed tree that upgraded `operations.receive` returns, and only for values
     and geometry. Topology (what sits on a level, what hosts what) is a relation, not a Proxy list.
-    See [Relations in v2026.9](/next/developers/object-model/relations).
+    See [Relations in 2026.9](/next/developers/object-model/relations).
   </Accordion>
   <Accordion title="Does operations.send still work?">
     Yes. Legacy send stays accepted. Newer specklepy releases will emit a `DeprecationWarning`.
