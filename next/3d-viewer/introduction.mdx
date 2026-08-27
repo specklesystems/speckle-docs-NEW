@@ -1,7 +1,7 @@
 ---
 title: 3D viewer in 2026.9
 sidebarTitle: What's new
-description: What changed when you open a model in the 2026.9 web app — Selection, Filters, Views, and section planes.
+description: What changed when you open a model in the 2026.9 web app — Selection, Filters, Views, section planes, and the new panel chrome.
 noindex: true
 contextual:
   options: []
@@ -46,40 +46,82 @@ On a first visit, **Selection** is open so the canvas is not empty.
 - **Models**, **Filters**, **Views**, and **Issues** sit in the left sidebar tab strip.
 - **Selection** sits under those tabs by default and shows properties for the current pick.
 - **Elements** sits in the bottom dock and lists every object in the loaded models.
-- The status bar at the bottom holds panel icons, undo, screenshot, shortcuts, and **Settings**.
+- The status bar at the bottom holds panel icons, undo, redo, screenshot, shortcuts, and
+  **Settings**.
 - The navigation cube sits at the bottom-right of the canvas for canonical camera directions.
 
-The status bar **Settings** menu holds projection (perspective or orthographic), the grid, and
-reference-point overlays. **Keyboard shortcuts** opens from the status bar, or from `?`.
+The status bar **Settings** menu holds **Orthographic**, **Grid**, and **Reference points**.
+**Layout** in that menu lists every panel as a checkbox. **Models** stays on. **Lock layout**
+stops accidental drags. **Reset layout** restores the default arrangement after you unlock.
+
+These panels start hidden. Turn them on from **Settings** → **Layout**:
+
+- **Materials** lists materials and colours in the loaded models. Select the usage count to pick
+  the objects that use that material.
+- **Browse** pages through tables in the published data.
+- **SQL** runs a query against the attached models. **$selected** inserts the current pick's
+  application IDs.
+- **Inspector** shows envelope relations as a diagram or rows, plus a raw property table. When
+  nothing is selected it reads **Select an object in the viewer to inspect its rows**.
 
 On narrower widths the left sidebar becomes a slide-over.
 
+Right-click the canvas or a row in **Models** for **Hide**, **Isolate**, **Fit to view**,
+**Copy application ID**, **Add to chat**, and **Clear selection**. Right-click a selected object
+keeps the whole selection. Right-click an unselected object replaces the selection with that
+pick. **Add to chat** pins the pick for Speckle Intelligence. If too many objects are selected
+to pin individually, right-click a scene-tree group instead.
+
 <Tip>
-  Right-click the canvas or a row in **Models** for hide, isolate, and related actions on that pick.
+  **Keyboard shortcuts** opens from the status bar, or from `?`. That cheat sheet is the
+  authoritative list, including fly keys (W A S D, E and Q) and Alt+1–5 for standard views.
 </Tip>
 
 ## Select and inspect
 
 Click geometry, or click rows in **Models**. Selection highlights both ways: the 3D pick reveals
-the tree row, and the tree row highlights in 3D.
+the tree row, and the tree row highlights in 3D. Open **Selection** with Shift+O.
 
-**Selection** shows properties for the pick. Property groups auto-expand. Revit material quantity
-blocks are condensed into readable rows. Pin a property so it stays at the top of the list.
+**Selection** shows properties for the pick. The title uses the first non-blank of **name**,
+**type**, or **category**. Property groups auto-expand. A **Pinned** group stays at the top when
+you pin a path. Revit material quantity blocks are condensed into readable rows named like
+**{Material} Area** or **{Material} Volume**. A **Relations** group at the bottom lists related
+objects by relation kind. Search the list with **Filter properties**.
 
-When you select several objects, **Selection** shows one card per object, grouped so related
-items stay together. Each card can zoom, isolate, or hide that element.
+When nothing is selected, **Selection** shows **No properties**.
 
-{/* IMAGE_PLACEHOLDER: Selection panel — multi-select cards grouped by hierarchy, expanded property groups, Filter to this value on a property. */}
+{/* IMAGE_PLACEHOLDER: Selection panel — single object with Pinned group, condensed Material Quantities rows, Relations group, and right-click menu on a property. */}
 
-From a property value you can **Copy value**, **Filter to this value**, or **Add as table
-column**.
+From a property you can:
+
+- **Add to filters** — open a **Filters** card for that property.
+- **Filter to this value** — add a card already set to this value. Relation rows skip this
+  action.
+- **Add as table column** — add the path to **Elements**. If it is already a column, the menu
+  reads **Shown as a table column** and opens **Elements**.
+- **Pin property** or **Unpin property**.
+- **Copy value** — copies the raw value, not the rounded display string.
+- **Copy path**.
+- **Copy all properties** — one `path: value` line per row.
+- **Copy group path** — from a group header that has a real path. **Pinned** and **Relations**
+  have no path to copy.
+
+When you select several objects, **Selection** shows one card per object. Each card can zoom,
+isolate, or hide that element. In a wide dock the cards sit in columns. Fold or expand all
+cards from the toolbar. The count reads **N selected**. Selections larger than 1,000 objects
+start folded; you can still open one card at a time.
+
+{/* IMAGE_PLACEHOLDER: Selection panel — multi-select cards with count, Zoom Isolate Hide on a card header, expanded property groups. */}
+
+Use **Show all** on the toolbar when objects are hidden or isolated.
 
 ### Browse objects in Elements
 
 **Elements** is a table of the objects in the loaded models. It follows the active **Filters**
-stack. Double-click a row to zoom to that object.
+stack. Double-click a row to zoom to that object. When several models are loaded, a scope
+control can limit the table to one model or to the current selection.
 
-{/* IMAGE_PLACEHOLDER: Elements bottom dock — object table with count, Filters control, a selected row, and Selection detail for that row. */}
+{/* IMAGE_PLACEHOLDER: Elements bottom dock — object table with count, Filters control, Search rows, Update parameters, Export view to Excel. */}
 
 <Steps>
   <Step title="Open Elements">
