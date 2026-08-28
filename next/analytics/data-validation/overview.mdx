@@ -16,7 +16,8 @@ result review still work as in the current product. For those flows, see
 [Data Validation](/analytics/data-validation/overview).
 
 This page covers only the differences that change how a check scopes objects, reads properties,
-compares an object to something it is related to, and maps labels before a comparison.
+binds a related object (direction, all versus any, multi-hop), and maps labels before a
+comparison.
 
 ## What stays the same
 
@@ -57,24 +58,20 @@ checks keep their stored rules. After save, you can edit name and description on
 
 ## Checks against related objects
 
-{/* IMAGE_PLACEHOLDER: Check editor — Add related object; Host element / Room / Connected element; path picker on the related object. */}
+{/* IMAGE_PLACEHOLDER: Check editor — Add related object; binding row with @name, relation Host element, forward arrow, all/any, where. */}
 
 In the current product, a rule looks at properties on one object. In 2026.9 you can also check
 that object against something it is related to, because those relationships are in the published
 version.
 
-Use **Add related object** on the rule. Pick a relationship such as **Host element**, **Room**,
-or **Connected element**. Then choose a property on that related object from the path picker.
+Use **Add related object** on the rule. The editor adds a binding row. The name on the left
+(`@host`, `@room`, `@connected`) is how later conditions address that object. Pick a
+relationship from the list the version actually carries. Friendly labels include **Host
+element**, **Sub-elements**, **Room**, **Bounded room**, **Assembly**, and **Connected
+element**.
 
-Examples you can author:
-
-- A door's fire rating must match the wall that hosts it
-- If the host wall is fire-rated, the door must be rated. Unrated walls are not applicable, not a
-  fail
-- Every door must be hosted on a wall
-- Every wall that bounds a room carries a rating, or at least one of them does
-- Doors can be checked against a room reached through the host wall (one related object chained
-  from another)
+Then choose a property on that related object from the path picker. Related paths show as
+`@host · Fire Rating` in the sentence pills.
 
 **Add condition** adds a scope filter above the check. It does not turn the existing check into a
 filter.
@@ -83,44 +80,88 @@ Rules display as short sentences, for example **category is Doors**. Select a se
 it.
 
 <Note>
-  **Add related object** is disabled when the preview version has no relationship data. Publish a
-  new version with a current connector after the project uses the 2026.9 data format. Related-object
-  rules then show that there is no data, rather than failing the whole run.
+  **Add related object** is disabled when the preview version has no relationship data. The tooltip
+  reads **This model has no relationship data — re-publish with a current connector to use
+  related-object rules.** Publish a new version after the project uses the 2026.9 data format.
 </Note>
+
+### Direction, all versus any, and narrowing
+
+{/* IMAGE_PLACEHOLDER: Related-object binding — forward/back arrow tooltip, all and any, where expanded with Narrow related objects. */}
+
+The arrow on the binding follows the relation **forward** (for example a door toward its host
+wall) or **backward** (a wall toward the elements hosted on it). Click the arrow to reverse it.
+
+**all** (default) means every related object must satisfy the check. **any** means one related
+object is enough. That setting applies to the check only. A scope filter on a related path still
+keeps a subject when at least one related object matches, regardless of **all** or **any**.
+
+Open **where** and select **Narrow related objects** to keep only some related objects, for
+example hosts whose category is Walls. Those filters run on the related object. They do not use
+`@` prefixes.
+
+### When there is no related object
+
+A subject with no related object **fails** a check that reads that binding. If a door with no
+host should be not applicable instead of a fail, add a scope condition that the related path
+exists (for example `@host` is present) before the check.
+
+Examples you can author:
+
+- A door's fire rating must match the wall that hosts it
+- If the host wall is fire-rated, the door must be rated. Unrated walls are not applicable, not a
+  fail (scope on the host rating, then check the door)
+- Every door must be hosted on a wall
+- Every wall that bounds a room carries a rating (**all**), or at least one of them does
+  (**any**)
+- A door can be checked against a room reached through the host wall: add a second related
+  object, set **of** to `@host` instead of **this element**, and pick **Bounded room** or
+  **Room**
+
+You cannot remove a binding while a condition still uses `@name`, or while a later binding
+chains from it. Update those references first.
 
 ## Map labels before you compare
 
-{/* IMAGE_PLACEHOLDER: Equals property comparison control — Compare equals / at least / at most; This value maps / Other value maps; Add mapping. */}
+{/* IMAGE_PLACEHOLDER: Equals property comparison control — Compare = equals / ≥ at least / ≤ at most; This value maps / Other value maps; Add mapping; Seed N known values. */}
 
 When a check compares two properties (**Equals property**), 2026.9 can map each side's raw
 labels onto shared values before it compares them. This is how `60 MIN` and `1 HR` become the
 same rating, and how a `2 HR` wall can require a door of at least `90 MIN`.
 
 Select **Equals property**, pick the other path, then open the comparison control beside it. The
-control shows `=` until you add a mapping.
+control shows `=` until you add a mapping or change the comparison.
 
-Set **Compare** to **equals**, **at least**, or **at most**. Under **This value maps** and
+Set **Compare** to **= equals**, **≥ at least**, or **≤ at most**. Under **This value maps** and
 **Other value maps**, select **Add mapping**, pick a raw value from the list, and set what it
 **maps to**. Unmapped values stay as they are.
 
 Map both sides to the same numbers when the labels should count as equal. Map the other side to a
-required minimum and use **at least** when one side must be stricter than the other.
+required minimum and use **≥ at least** when one side must be stricter than the other.
 
 The same mapping works when the other path is on a related object, such as a host wall.
 
 <Tip>
-  If preview already lists known values, **Seed N known values** fills both mapping lists so you do
-  not type every label.
+  If preview already lists known values, **Seed N known values** on that mapping list fills it so
+  you do not type every label. Seed one side at a time. The control is hidden when the list is empty
+  or too large to seed in one step.
 </Tip>
 
 ## Match a property wherever it sits
 
-{/* IMAGE_PLACEHOLDER: Path-matching control — match every property whose path ends with Fire Rating. */}
+{/* IMAGE_PLACEHOLDER: Path-matching control cycling exact (=), suffix (*.x), and regex (.*) on a Fire Rating condition. */}
 
-A Fire Rating parameter is not always on the same path. Click the path-matching control so the
-condition uses the end of the path, for example every property whose path ends with **Fire
-Rating**. Every matching value must pass. That covers instance and type placements without a
-separate rule for each path.
+A Fire Rating parameter is not always on the same path. Click the path-matching control next to
+the path to cycle modes:
+
+- **Exact** (`=`) — the full path from the picker
+- **Suffix** (`*.x`) — every property whose path ends with that segment, for example **Fire
+  Rating**. Every matching value must pass
+- **Regex** (`.*`) — a regular expression over the full path
+
+That covers instance and type placements without a separate rule for each path. Path matching is
+not available on **Equals property** or **Equals template**. Those operators compare two specific
+paths.
 
 ## Property paths
 
@@ -153,9 +194,19 @@ does not load, publish a new version after the project has moved to 2026.9. See
     parameter filters in `WHERE` when you need a tighter rule.
   </Accordion>
   <Accordion title="Why is Add related object disabled?">
-    The preview version has no relationship data. Publish a new version with a current connector
-    after the project uses the 2026.9 data format. See [Checks against related
-    objects](#checks-against-related-objects).
+    The preview version has no relationship data. The tooltip asks you to re-publish with a current
+    connector. Publish a new version after the project uses the 2026.9 data format. See [Checks
+    against related objects](#checks-against-related-objects).
+  </Accordion>
+  <Accordion title="Why does a door with no host fail the related-object check?">
+    A subject with no related object fails a check that reads that binding. Add a scope condition
+    that the related path exists if that case should be not applicable. See [When there is no
+    related object](#when-there-is-no-related-object).
+  </Accordion>
+  <Accordion title="What is the difference between all and any?">
+    **all** requires every related object to satisfy the check. **any** requires one. Scope filters
+    on related paths still keep a subject when at least one related object matches. See [Direction,
+    all versus any, and narrowing](#direction-all-versus-any-and-narrowing).
   </Accordion>
   <Accordion title="How do I check a door against the wall that hosts it?">
     On the door rule, select **Add related object**, choose **Host element**, then compare the
@@ -168,6 +219,12 @@ does not load, publish a new version after the project has moved to 2026.9. See
     **This value maps** and **Other value maps**, add a mapping so both labels map to the same
     number, such as `60`. Unmapped values stay as they are. See [Map labels before you
     compare](#map-labels-before-you-compare).
+  </Accordion>
+  <Accordion title="How do I match Fire Rating on every path it appears?">
+    Click the path-matching control until it shows **suffix** (`*.x`), and set the path to **Fire
+    Rating**. Every matching value must pass. Click again for regex over the full path. Path
+    matching is not available on **Equals property**. See [Match a property wherever it
+    sits](#match-a-property-wherever-it-sits).
   </Accordion>
   <Accordion title="Do I rewrite every property path in every check?">
     Only when a path no longer exists on the new version. Load preview, pick the replacement from
