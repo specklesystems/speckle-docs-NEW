@@ -1,0 +1,374 @@
+---
+title: Reuse organisation playbooks with Intelligence skills
+sidebarTitle: Skills
+description: Save reusable instructions for Speckle Intelligence Chat, share them across the workspace, and invoke them with /skill-name.
+noindex: true
+contextual:
+  options: []
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<NextPreviewBanner />
+
+A **skill** is a reusable playbook for Speckle Intelligence. You write the instructions once —
+how your organisation colours a model, how it prices work, which carbon factors to use, which
+words to say, or how replies should sound — and anyone who can see that skill pulls it into a
+conversation with `/skill-name`. Speckle Intelligence can also **draft the skill for you**:
+describe the playbook in plain language, or save a chat that already works.
+
+Skills live on the workspace. They are how you exercise control at organisation scale without
+re-explaining the same rules in every chat. A skill tuned to the way your company does things
+also spends fewer AI tokens reinventing that method on every turn: the assistant follows the
+playbook instead of rediscovering colour legends, cost codes, carbon factors, house lingo, or
+tone of voice from scratch.
+
+Anything you would put in a generic AI chat tool as a custom instruction can be a skill here —
+brand voice, meeting notes format, translation rules, non-AEC analysis — as well as model-aware
+playbooks that use Speckle data. For where to ask questions, see [Ask questions about your models
+with Speckle Intelligence](/next/analytics/intelligence).
+
+<Note>
+  Skills appear when the workspace plan includes Speckle Intelligence Chat. On a self-hosted server,
+  Chat is available only on Speckle Enterprise Server. For deployment setup, see [Enterprise license
+  — Intelligence](/developers/server/deployment/enterprise-license#optional-intelligence).
+</Note>
+
+## When to use a skill
+
+Use a skill when the same behaviour should happen again: a colour theme, a cost or carbon method,
+a formula, a report shape, a glossary, a tone of voice, or any other repeated instruction you
+would save in a generic AI assistant. Share it as **Workspace** visibility when the whole
+organisation should be able to invoke it. The more the instructions match how your company
+already works, the less each conversation spends credit re-deriving that process.
+
+Do not use a skill for a one-off question. Do not use a skill for a standing constraint that must
+apply to **every** conversation without anyone typing `/skill-name`. That always-on layer is [AI
+Rules](/next/analytics/intelligence-rules). If you only need the assistant to match the language
+of your question, ask in that language — Speckle Intelligence usually keeps replying in the same
+language without a skill or a rule.
+
+## Create a skill
+
+{/* IMAGE_PLACEHOLDER: Workspace Settings → Skills — heading Skills, New skill, Workspace-badge list of organisation playbooks. */}
+
+Workspace **members** can create skills. Guests can invoke a **Workspace** skill in Chat. They
+cannot author one, and they usually do not see **Settings → Skills** — they arm skills from the
+Chat **/** menu instead. Workspace admins can edit or delete any skill in the workspace, including
+someone else's **Private** skill.
+
+You can author a skill three ways. Use Speckle Intelligence when you want a strong first draft;
+you always review the form before anything is saved.
+
+### Draft with AI
+
+{/* IMAGE_PLACEHOLDER: New skill — Draft with AI card, example prompt, Draft with AI button above the form. */}
+
+<Steps>
+  <Step title="Open New skill">
+    Open the workspace, select **Settings**, then **Skills**, then **New skill**. You should see the
+    **Draft with AI** card above the form.
+  </Step>
+  <Step title="Describe the playbook">
+    In **Draft with AI**, describe what the skill should do in plain language — for example **Audit
+    models for missing fire ratings and report the gaps in a table**, or **Colour the model silver
+    by classification type**. Select **Draft with AI**.
+  </Step>
+  <Step title="Review, pin knowledge, and save">
+    Speckle fills **Name**, **Description**, **Instructions**, and related fields. Nothing is
+    created until you save. Edit the draft, set **Visibility** to **Private** or **Workspace**, pin
+    **Knowledge** if the playbook needs a rate card or factor table, then select **Create skill**.
+    You should see the skill on the Skills list.
+  </Step>
+</Steps>
+
+<Note>
+  Drafting with AI fills the whole form. If you already typed in the fields, Speckle asks **Replace
+  your edits?** Choose **Draft anyway** only when you want the AI draft to replace what you entered.
+  Drafting spends workspace AI credit the same way other Intelligence actions do.
+</Note>
+
+### Save a chat as a skill
+
+{/* IMAGE_PLACEHOLDER: Chat header — Save as skill control on an active conversation. */}
+
+In **Chat**, when a conversation already behaves the way you want, select **Save as skill**.
+Speckle drafts a skill from that thread and opens the create form. Tighten the instructions, set
+visibility, pin knowledge if needed, then save. Use this when you discovered the method in Chat
+and want the organisation to reuse it.
+
+### Write the form yourself
+
+{/* IMAGE_PLACEHOLDER: Skill create or edit form — Name slug with Used in chat as /name, Description, Instructions, Visibility, Conversation starters, Knowledge, Create skill or Save changes. */}
+
+You can fill the form without a draft. Set **Name** to a slug such as `embodied-carbon` (Chat
+uses `/embodied-carbon`), write **Instructions** in the organisation's method and lingo, choose
+**Visibility**, then **Create skill**.
+
+### What you can attach
+
+**Knowledge** pins workspace files and data warehouse tables (Snowflake, Databricks, Microsoft
+Fabric) to the skill. When the skill is active, Chat can draw on those sources — a rate card, an
+EPD library, a carbon factor sheet, a classification map — without you attaching them every time.
+
+A skill can pin up to 20 knowledge sources. Instructions can be up to 8,000 characters.
+
+## Use a skill in Chat
+
+{/* IMAGE_PLACEHOLDER: Chat composer — Use a skill control showing /, menu of /skill-name rows, Manage skills or Create a skill. */}
+
+Skills work in project **Chat** and in the 3D viewer sparkle. Arming a skill applies its
+instructions to the **next message** you send. The armed chip clears after that send. It does not
+rewrite earlier replies, and it does not stay on for the rest of the thread unless you arm it
+again.
+
+<Steps>
+  <Step title="Open Chat or the viewer sparkle">
+    Open **Chat** in the project sidebar, or select the sparkle in the main 3D viewer. You should
+    see the composer.
+  </Step>
+  <Step title="Choose the skill">
+    Select the **/** control (**Use a skill**), or type `/` and the skill name. Pick `/skill-name`.
+    You should see that skill as a chip above the composer, or as `/skill-name` in the message.
+  </Step>
+  <Step title="Ask with the playbook on">
+    Type the question, or pick a conversation starter the skill provides. You should get a reply
+    that follows those instructions — colour legend, cost codes, carbon method, tone of voice, or
+    whatever the playbook defines.
+  </Step>
+</Steps>
+
+{/* IMAGE_PLACEHOLDER: Chat composer — armed /skill-name chip above the input; conversation starters from that skill. */}
+
+<Tip>
+  If the organisation needs the same playbook on every project, set the skill to **Workspace**
+  visibility and tell people the slash name. Chat does not run workspace skills automatically. The
+  **/** menu also links to **Manage skills** or **Create a skill** when you can author skills.
+</Tip>
+
+## What custom skills are for
+
+A skill is organisation control you opt into. The catalogue below mixes model-aware AEC playbooks
+with the same kinds of custom instructions people save in generic AI chat tools. It is not a
+limit on what you can write. If people keep repeating the same method, lingo, formula, visual
+rule, or voice, put it in a skill.
+
+### Tone of voice and non-AEC playbooks
+
+- Write every reply in the company's brand voice: plain, formal, client-facing, or internal — and
+  keep that voice stable across projects.
+- Prefer short bullets for directors, and longer technical prose for engineers, as two separate
+  skills rather than one vague assistant.
+- Translate or localise answers into the workspace language, including how the firm spells product
+  names and place names.
+- Structure meeting notes, action lists, or decision logs the way the PMO template already does.
+- Summarise chats for email or a board pack with the firm's subject-line and disclaimer rules.
+- Explain Speckle data to a non-technical stakeholder without host jargon, or the reverse for a
+  specialist audience.
+- Apply general analysis habits that are not AEC-specific: always show assumptions, always cite
+  sources, never invent numbers, always end with three next steps.
+- Turn a pinned company handbook, style guide, or FAQ workbook into **Knowledge** so Chat answers
+  HR, IT, or process questions in the approved words.
+- Keep a private personal skill for how you like replies formatted, and a workspace skill for the
+  organisation voice everyone should use with clients.
+
+### Colour and view the model
+
+- Apply a house colour theme — for example a graduated silver or grey palette by classification
+  type — with clear rules for which host property to read (category, `speckle_type`, type) when
+  models come from different applications.
+- Colour the loaded model with the company's discipline legend, and keep those colours identical
+  on every project.
+- Colour by coordination status using the organisation's red / amber / green meanings, not a
+  one-off palette.
+- Colour by fire rating, acoustic rating, or accessibility category the way the fire engineer
+  and the architect already talk about those values.
+- Isolate MEP systems with the firm's system names and colours, then restore a clean overview
+  when the walkthrough is done.
+- Hide furniture, entourage, and site context for a coordination view that matches the BIM
+  execution plan.
+- Frame typical elevations or a true-north camera so review screenshots look like the office
+  standard, not a random orbit.
+- Colour by the parameter the firm always uses for phase, zone, or work package, even when the
+  published property name differs between hosts.
+- Offer darker / lighter / reverse / revert adjustments in the instructions so reviewers can tune
+  the theme without rewriting the skill.
+- Apply a client-facing colour theme for workshops, and a denser internal theme for design
+  reviews, as two separate skills.
+
+### Cost, carbon, and quantities
+
+- Price quantities with the company's unit rates, cost codes, and work breakdown structure, and
+  say those codes out loud in the reply.
+- Turn room or space data into the organisation's area standard — NUA, NIA, NLA, GLA, GIA, GEA,
+  GBA, or the chargeable area the lease uses — with the same definitions every time.
+- Apply the firm's measurement rules: wall centreline versus finished face, doors counted in the
+  wall or excluded, and which voids count.
+- Convert published units into the units the commercial team invoices in, and round the way the
+  cost plan rounds.
+- Estimate embodied carbon (for example A1–A3) by matching model quantities to a pinned factor
+  table, with category fallbacks and an unmatched list instead of silent guesses.
+- Separate A1–A3 product carbon from A4 transport and A5 construction when the firm reports that
+  way, and refuse to blend them.
+- Flag missing rates or missing carbon factors instead of inventing a number, and list the
+  exclusions in the firm's language.
+- Pin a rate-card spreadsheet or a live warehouse table as **Knowledge** so the skill reads this
+  year's prices, not last year's memory.
+- Produce a cost or carbon narrative that uses the commercial team's words: elemental, package,
+  provisional sum, contingency — not generic AI phrasing.
+
+### Language, classification, and house style
+
+- Use the organisation's names for levels, grids, and storeys, and never swap in a host
+  application's synonym.
+- Map host categories and IFC types onto Uniclass, OmniClass, or the firm's own classification,
+  and quote the code the document controller expects.
+- Call coordination issues what the BEP calls them. If the office says "coordination issue", do
+  not say "clash".
+- Keep spelling, units, and date formats on the regional standard the workspace uses (UK
+  millimetres and DD/MM/YYYY, or US feet-inches).
+- Address the client by the name in the appointment, and describe the scheme the way the bid did.
+- Prefer the firm's abbreviations (GA, NBS, RIBA stage, LOD) and expand them only when the
+  audience is external.
+- Never rename parameters the way a general assistant might. Repeat the published Speckle
+  property names the connectors actually sent.
+
+### Formulas and conversions
+
+- Compute steel tonnage from volume and the firm's density, then apply the agreed section
+  utilisation or connection allowance.
+- Derive door, window, and finish schedules with the takeoff formulas the interior package
+  already uses.
+- Convert between host units, SI, and the commercial unit of measure in one place so every chat
+  does the same conversion.
+- Apply percentage complete, earned value, or design maturity rules the project controls team
+  already uses.
+- Include wastage, lapping, and cutting allowances the estimator uses, and show the allowance as
+  a line, not a silent fudge.
+- Normalise type marks, family names, and type catalogues into the firm's type-naming pattern
+  before totals.
+- Recalculate areas when the skill's measurement rule disagrees with a raw property, and say
+  which rule won.
+
+### Reports, tours, and output shape
+
+- Structure every commercial reply as executive summary, exclusions, then tables — the same
+  skeleton the director reads on Friday.
+- Build a saved **Report** from Chat that already uses the firm's rate card and carbon method,
+  then share that report rather than the raw thread.
+- Lead a client workshop view sequence: site, envelope, typical floor, services, then risks.
+- Produce a quantity survey in the column order the cost plan template uses.
+- Write a change commentary between two versions using the firm's added / omitted / revised
+  vocabulary.
+- Keep charts in the organisation's preferred breakdown (by level, by Uniclass, by package), not
+  whatever the model tree happens to be.
+
+### Knowledge files and live data
+
+- Pin the approved rate card, carbon factor workbook, or product library so Chat does not scrape
+  a random file from the conversation.
+- Pin a warehouse table for live commercial data so the skill stays current when finance updates
+  the sheet.
+- Pin a mapping table from host category to company cost code, and instruct the skill to fail
+  closed when a row is missing.
+- Pin specification extracts or employer's information requirements so answers cite the
+  appointment, not generic good practice.
+- Pin a legend image or colour dictionary if the visual standard is easier to describe from that
+  file than from prose alone.
+
+### Coordination, quality, and safety
+
+- Assess BIM and tabular data readiness for design review, analytics, cost or carbon joins,
+  compliance, handover, or asset reuse — and report gaps in the firm's checklist order.
+- Turn readiness findings into a versioned conditioning **manifest**: proposed transformations
+  that are explainable, testable, attributable, and reversible, without mutating source data from
+  the skill itself.
+- Preserve an auditable path from every headline finding to the smallest set of calculations or
+  comparisons needed for the decision (a BIM benchmark style skill).
+- Review a version the way the BIM manager reviews it: required parameters present, naming
+  pattern held, dummy types called out.
+- List coordination risks in BEP order (structure vs services, then envelope, then interiors).
+- Call out fire-stopping, accessibility clearances, or maintenance access with the language the
+  compliance lead uses.
+- Refuse to answer from versions still in the old data format, and tell the user to publish after
+  the project uses the new format. See [Speckle's data model is
+  changing](/workspaces/data-model-migration).
+- Always name the version, the publisher, and the source application before any total, so a
+  forwarded answer is auditable.
+
+### Role, region, and programme
+
+- Give the quantity surveyor package-based totals, and give the architect room-based totals, as
+  two skills rather than one vague assistant.
+- Give the structural engineer utilisation and mass, and give MEP flow, load, and system
+  membership, without mixing those audiences.
+- Switch UK Approved Document language, US code language, or another region's citations by
+  workspace or by skill, not by hoping the model guesses.
+- Hold a RIBA stage, AIA phase, or in-house gate in the instructions so the assistant does not
+  recommend deliverables that stage does not include.
+- Keep a private personal skill for how you like replies formatted, and a workspace skill for
+  what the organisation allows everyone to use.
+
+If none of those headings fit, write the skill anyway. Model-aware AEC methods and generic chat
+habits both belong here. The test is repetition: the organisation wants the same control next
+week, on the next project, in the same words and the same voice.
+
+## Skills and AI Rules
+
+- Opt-in playbook people invoke with `/skill-name` — use a **skill**.
+- Standing constraint on every conversation — use an [AI Rule](/next/analytics/intelligence-rules).
+- Match the language of this conversation — ask in that language (no skill required).
+- One-off question — use Chat with no skill armed.
+
+Skills do not replace [workspace Settings](/next/workspaces/settings). Create and share skills
+from **Settings**, then **Skills**. Create standing rules under **AI Rules**. Invoke skills from
+Chat; rules apply on every turn.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Why doesn't my skill run on every chat?">
+    A skill is opt-in. Someone must arm it with `/skill-name` or **Use a skill**. For a rule that
+    must apply to every conversation in the workspace, use [AI
+    Rules](/next/analytics/intelligence-rules).
+  </Accordion>
+  <Accordion title="Does Chat follow the language I type in?">
+    Yes, usually. If you ask in a given language, Speckle Intelligence keeps replying in that
+    language for the conversation. Use a skill or an AI Rule when the language or dialect must stay
+    fixed even if someone asks in another language.
+  </Accordion>
+  <Accordion title="Who can see a Private skill?">
+    Only the owner, and workspace admins. Other members do not see it in the picker. A skill you
+    want the organisation to use must be **Workspace** visibility.
+  </Accordion>
+  <Accordion title="Can guests use skills?">
+    Guests can invoke a **Workspace** skill in Chat with `/skill-name`. They cannot create, edit, or
+    delete skills, and they usually do not see **Settings → Skills**. Workspace members can create
+    skills. Admins can edit or delete any skill in the workspace.
+  </Accordion>
+  <Accordion title="Why is Skills missing from Settings?">
+    **Skills** in the Settings sidebar appears when you can create skills (workspace member, Chat on
+    the plan, and **AI features** on in workspace settings). Guests still arm shared skills from
+    Chat. If Chat itself is missing, see [Ask questions about your models with Speckle
+    Intelligence](/next/analytics/intelligence).
+  </Accordion>
+  <Accordion title="What happens if I delete a skill that chats already used?">
+    Those conversations continue without it. The history stays. Later messages no longer receive
+    those instructions.
+  </Accordion>
+  <Accordion title="Where do I attach a rate card or carbon workbook?">
+    On the skill, use **Knowledge**. Pin a workspace file or a warehouse table. When the skill is
+    active, Chat can query that source. Do not rely on pasting the same sheet into every thread.
+  </Accordion>
+  <Accordion title="Does a skill spend extra AI credit?">
+    Arming a skill does not spend credit by itself. Sending the next Chat message does, the same as
+    any other turn. A company-tuned skill usually spends less on that turn than reinventing the
+    method in free-form chat. **Draft with AI** and **Save as skill** spend credit when Speckle
+    drafts the form. Viewing a saved report still does not spend credit.
+  </Accordion>
+  <Accordion title="Can Speckle Intelligence write the skill for me?">
+    Yes. On **New skill**, use **Draft with AI** and describe the playbook. Or in Chat, use **Save
+    as skill** after a conversation that already works. You always review and edit before **Create
+    skill** saves anything.
+  </Accordion>
+</AccordionGroup>
