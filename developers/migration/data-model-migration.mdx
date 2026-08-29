@@ -67,7 +67,7 @@ If you're running Speckle's open-source core, you already own your connector dis
 
 ## Migration guidance
 
-Old connectors, old SDKs, and your existing published data aren't on a deprecation clock — they continue working exactly as they do now. ACC sync and drag-and-drop uploads auto-migrate to the new format after the migration; if that breaks something downstream, ask us to switch your workspace into compatibility mode to keep writing the old format while you update.
+Old connectors, old SDKs, and your existing published data aren't on a deprecation clock — they continue working exactly as they do now. Speckle may convert an older-connector publish to the 2026.9 format on the server; treat that as best effort, not a guarantee. ACC sync and drag-and-drop uploads auto-migrate to the new format after the migration; if that breaks something downstream, ask us to switch your workspace into compatibility mode to keep writing the old format while you update.
 
 If you maintain internal tooling that reads Speckle data more directly than the standard SDK/API surface — something that assumes the shape of the old object model rather than going through supported accessors — and it breaks against the new format, pin your server and connector to **2026.8**: the last version before this migration converts data to the new model. That buys you time to update the tool without anything breaking in the meantime.
 
@@ -108,10 +108,11 @@ If you maintain internal tooling that reads Speckle data more directly than the 
     what already exists in your projects.
   </Accordion>
   <Accordion title="Does this affect my Speckle Automate functions?">
-    It depends on which connector published the version your function is processing, not on your
-    function's own code. A version from an old connector works with your function exactly as it does
-    today. A version from a connector that only writes the new bundle format needs your function's
-    SDK dependency bumped — no code change, just an updated SDK build.
+    It depends on the format of the version your function is processing, not on your function's own
+    code. A version still in the current data model works exactly as it does today. A version in the
+    2026.9 format needs your function's SDK dependency bumped — no code change, just an updated SDK
+    build. Speckle may convert an older-connector publish on the server; that conversion is not
+    guaranteed. See [Who's affected](#whos-affected).
   </Accordion>
   <Accordion title="What if my integration doesn't fit either 'standard SDK' or 'ACC sync/drag-and-drop'?">
     If you maintain a production integration that reads Speckle data more directly than the standard
