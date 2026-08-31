@@ -8,9 +8,9 @@ noindex: true
 <Warning>
   **This page is for developers who publish data to Speckle from code**: scripts calling
   `client.version.create` (specklepy) or `client.Version.Create` (Speckle.Sdk for .NET), older
-  scripts calling the `commitCreate` GraphQL mutation, and Speckle Automate function authors. If a
-  deprecation warning in your SDK pointed you here, this is the right place. Desktop connector and
-  web app users are not affected.
+  scripts calling the `commitCreate` GraphQL mutation (including SketchUp-era tooling), and Speckle
+  Automate function authors. If a deprecation warning in your SDK pointed you here, this is the
+  right place. Desktop connector and web app users are not affected.
 </Warning>
 
 ## What changed
@@ -45,7 +45,7 @@ The practical consequence: **code that creates a version and immediately reads i
 
 ```python lines icon="python"
 from specklepy.api import operations
-from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+from specklepy.api.inputs.version_inputs import CreateVersionInput
 from specklepy.transports.server import ServerTransport
 
 transport = ServerTransport(project_id, client)
@@ -80,7 +80,7 @@ def wait_for_version(client, project_id: str, version_id: str, timeout: float = 
 ready = wait_for_version(client, project_id, version.id)
 ```
 
-A future specklepy release replaces this pattern with a publish API that runs on the ingestion rail directly. The `DeprecationWarning` on `version.create` will point at this page once it ships.
+A future specklepy release replaces this pattern with a publish API that runs on the ingestion rail directly.
 
 ### .NET scripts (Speckle.Sdk)
 
@@ -109,7 +109,7 @@ If you build the new-format data bundle yourself, an upcoming Speckle.Sdk releas
 
 ### Raw GraphQL and v1-era scripts
 
-Both `versionMutations.create` and the legacy `commitCreate` mutation still return the id synchronously. Treat it as reserved: do not build "view it online" links, query the version, or hand the id to another system until the ingestion completes. Use the queries and subscription in [Wait for the version](#wait-for-the-version).
+Both `versionMutations.create` and the legacy `commitCreate` mutation (still used by SketchUp-era tooling and v1 scripts) return the id synchronously. Treat it as reserved: do not build "view it online" links, query the version, or hand the id to another system until the ingestion completes. Use the queries and subscription in [Wait for the version](#wait-for-the-version).
 
 ### Automate functions
 
@@ -172,6 +172,8 @@ query WaitForPublish($projectId: String!, $modelId: String!) {
 }
 ```
 
+If other publishes may hit the same model concurrently, list recent ingestions with `model.ingestionHistory` instead of `latestIngestion` and pick the entry whose `versionId` matches yours.
+
 For push-based updates instead of polling, use the `projectModelIngestionUpdated` subscription with a `modelId` reference and react when `statusData` becomes a success or failure status. See [Real-time subscriptions](/developers/api/subscriptions#tracking-file-upload-and-model-ingestion-progress) for a complete example.
 
 `version_created` webhooks also fire only at completion, so existing webhook consumers need no change: by the time your handler runs, the version is queryable.
@@ -183,9 +185,9 @@ Legacy send stays accepted. The deprecation warnings mean "no longer the recomme
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="My script creates a version and immediately gets a not-found error reading it back.">
-    That is this change. The id you got back is reserved; the version appears when processing
-    completes. Add a wait as shown in [Wait for the version](#wait-for-the-version).
+  <Accordion title="Why does reading a version right after creating it fail?">
+    The id you got back is reserved, not yet a real version. Add a wait as shown in [Wait for the
+    version](#wait-for-the-version).
   </Accordion>
   <Accordion title="Does operations.send still work?">
     Yes, unchanged. Sending objects and receiving them by object id works exactly as before. Only
@@ -196,10 +198,10 @@ Legacy send stays accepted. The deprecation warnings mean "no longer the recomme
     no version is created. Polling the version alone cannot distinguish "still processing" from
     "failed", so check the ingestion status when a wait runs long.
   </Accordion>
-  <Accordion title="I call modelIngestionMutations.completeWithVersion and parse the success status from its response.">
-    That mutation now returns the ingestion in `processing` with the reserved id on the top-level
-    `versionId` field, not a success status. Read the reserved id from there, then wait for the
-    ingestion to succeed. The mutation was already deprecated; new uploads should complete through
-    the v2 upload rail.
+  <Accordion title="What happens if I parse the success status off completeWithVersion's response?">
+    It breaks: that mutation now returns the ingestion in `processing` with the reserved id on the
+    top-level `versionId` field, not a success status. Read the reserved id from there, then wait
+    for the ingestion to succeed. The mutation was already deprecated; new uploads should complete
+    through the v2 upload rail.
   </Accordion>
 </AccordionGroup>
