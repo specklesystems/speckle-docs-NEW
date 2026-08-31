@@ -1,0 +1,205 @@
+---
+title: 'Publish through model ingestions, not legacy send'
+sidebarTitle: 'Publish via ingestions'
+description: 'Version-creating calls now return a reserved id and finish asynchronously. What to change if you call version.create, commitCreate, or the Automate publish helpers.'
+noindex: true
+---
+
+<Warning>
+  **This page is for developers who publish data to Speckle from code**: scripts calling
+  `client.version.create` (specklepy) or `client.Version.Create` (Speckle.Sdk for .NET), older
+  scripts calling the `commitCreate` GraphQL mutation, and Speckle Automate function authors. If a
+  deprecation warning in your SDK pointed you here, this is the right place. Desktop connector and
+  web app users are not affected.
+</Warning>
+
+## What changed
+
+Creating a version used to be synchronous: the mutation wrote the version, and you could query it, open its URL, or receive it immediately.
+
+Now every version-creating call goes through the same processing pipeline as file uploads, called a **model ingestion**:
+
+1. Your call returns immediately with a **reserved version id**. The response shape is unchanged, so existing code keeps compiling and running.
+2. The server processes your already-uploaded objects in the background (packing, then building the new-format data bundle).
+3. The version is created **when processing completes**. Only then does it appear in queries and version lists, resolve at its URL, and fire `version_created` webhooks and subscriptions.
+
+The practical consequence: **code that creates a version and immediately reads it back no longer finds it.** Fetching the version right after the call returns a not-found error until processing finishes. If processing fails, the version is never created at all, so a failed ingestion is your signal to resend, and you never get a partial or broken version.
+
+<Note>
+  This applies to app.speckle.systems and to self-hosted servers running **v2026.9 or later**. It is
+  part of the wider [data model migration](/developers/migration/data-model-migration).
+</Note>
+
+## What to call instead
+
+| You call today                                                                          | Status                     | What to do                                                                                                         |
+| --------------------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| specklepy: `operations.send` + `client.version.create`                                  | Deprecated, still accepted | Keep the call for now and [wait for the version](#wait-for-the-version). An ingestion-based publish API is coming. |
+| .NET: `Send2` + `client.Version.Create`                                                 | Deprecated, still accepted | Move to `SendPipeline` + `client.Ingestion`, or keep the call and [wait for the version](#wait-for-the-version).   |
+| Raw GraphQL: `versionMutations.create` or `commitCreate`                                | Deprecated, still accepted | Treat the returned id as reserved and [wait for the version](#wait-for-the-version).                               |
+| Automate: `CreateNewVersionInProject` (.NET) / `create_new_version_in_project` (Python) | Keeps working              | Nothing, unless your function reads back the version it created. An ingestion-backed publish helper is coming.     |
+
+### specklepy scripts
+
+`client.version.create` keeps working and returns the same `Version` object, but its `id` is a reserved id: the version does not exist yet.
+
+```python lines icon="python"
+from specklepy.api import operations
+from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+from specklepy.transports.server import ServerTransport
+
+transport = ServerTransport(project_id, client)
+object_id = operations.send(base, [transport])
+
+version = client.version.create(
+    CreateVersionInput(object_id=object_id, model_id=model_id, project_id=project_id)
+)
+# version.id is reserved. Do NOT query, link, or receive it yet.
+```
+
+If your script only publishes and exits, you are done. If it needs the version to exist (to build a link, trigger something downstream, or receive it back), add a wait, for example by polling until the version resolves:
+
+```python lines icon="python"
+import time
+
+from specklepy.logging.exceptions import GraphQLException
+
+
+def wait_for_version(client, project_id: str, version_id: str, timeout: float = 600.0):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            return client.version.get(version_id, project_id)
+        except GraphQLException:
+            time.sleep(5)
+    raise TimeoutError(
+        "Version not created in time. Check the model's ingestions: a failed ingestion means the publish failed and you should resend."
+    )
+
+
+ready = wait_for_version(client, project_id, version.id)
+```
+
+A future specklepy release replaces this pattern with a publish API that runs on the ingestion rail directly. The `DeprecationWarning` on `version.create` will point at this page once it ships.
+
+### .NET scripts (Speckle.Sdk)
+
+`client.Version.Create` keeps working the same way: the returned `Version.id` is reserved, not yet queryable.
+
+The supported successor is the ingestion upload path the desktop connectors use: create an ingestion, run `SendPipeline`, and let the server create the version when processing completes. The ingestion is your progress and readiness surface, and there is no separate `Version.Create` call at all.
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var sourceData = new SourceDataInput("my-app", "1.0.0", fileName: null, fileSizeBytes: null);
+var ingestion = await client.Ingestion.Create(
+    new ModelIngestionCreateInput(model.id, project.id, "Publishing", sourceData));
+
+using var pipeline = provider.GetRequiredService<ISendPipelineFactory>()
+    .CreateInstance(ingestion, client.Account, new Progress<StreamProgressArgs>(), CancellationToken.None);
+
+await pipeline.Process(myData);
+await pipeline.WaitForUpload();
+
+// The server packs, bundles, and creates the version. Observe via:
+var updated = await client.Ingestion.Get(ingestion.id, project.id);
+```
+
+See [Publish large models](/developers/sdks/dotnet/guides/building-connector-scale-sends) for the full walkthrough and [Model ingestion](/developers/sdks/dotnet/api-reference/resources/ingestion) for the API reference, including `client.Subscription.CreateProjectModelIngestionUpdatedSubscription` for push-based updates instead of polling.
+
+If you build the new-format data bundle yourself, an upcoming Speckle.Sdk release also exposes the v2 upload rail (`uploads/complete`), where the version is created as soon as your upload completes. Most integrations should use `SendPipeline` and let the server do the conversion.
+
+### Raw GraphQL and v1-era scripts
+
+Both `versionMutations.create` and the legacy `commitCreate` mutation still return the id synchronously. Treat it as reserved: do not build "view it online" links, query the version, or hand the id to another system until the ingestion completes. Use the queries and subscription in [Wait for the version](#wait-for-the-version).
+
+### Automate functions
+
+`CreateNewVersionInProject` (.NET) and `create_new_version_in_project` (Python) keep working unchanged:
+
+```python lines icon="python"
+version = automate_context.create_new_version_in_project(root_object, model_id, "Analysis results")
+# version.id is reserved; the version appears once processing completes.
+```
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+var version = await context.CreateNewVersionInProject(rootObject, model, "Analysis results");
+// version.id is reserved; the version appears once processing completes.
+```
+
+Automation runs that trigger on `version_created` are unaffected: the trigger already fires only when the version exists. Your function is only affected if it reads back a version it just created in the same run. In that case, wait for it as shown below. An ingestion-backed publish helper for the Automate SDKs is planned; until it ships, the helpers above remain the supported path.
+
+## Wait for the version
+
+The ingestion is the readiness surface while your version is being processed. Its lifecycle:
+
+- `queued` → `processing` → `success`, `failed`, `cancelled`, `timeout`, or `invalidInput`
+- While `processing`, legacy sends report the server-side phases `PACKING` (raw objects into a packfile) and `BUNDLING` (packfile into the new-format bundle), with progress.
+- On `success`, the status carries the **version id**, and the version now exists.
+- On any failure status, **no version is ever created**. Fix the problem (or just retry) and resend.
+
+Two ids matter, and they are different signals:
+
+- **`ModelIngestion.versionId`** (top-level field): the reserved id, present from the moment the ingestion is created. It matches the id your create call returned. Use it to find your ingestion, never to decide the version exists.
+- **`ModelIngestionSuccessStatus.versionId`** (inside `statusData`): only present once the ingestion succeeded. This is the signal that the version exists.
+
+Query your model's latest ingestion and match it to the id your call returned:
+
+```graphql
+query WaitForPublish($projectId: String!, $modelId: String!) {
+  project(id: $projectId) {
+    model(id: $modelId) {
+      latestIngestion {
+        id
+        versionId # reserved id, matches what your create call returned
+        statusData {
+          ... on ModelIngestionProcessingStatus {
+            status
+            phase
+            progress
+            progressMessage
+          }
+          ... on ModelIngestionSuccessStatus {
+            status
+            versionId # the version exists now
+          }
+          ... on ModelIngestionFailedStatus {
+            status
+            errorReason
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+For push-based updates instead of polling, use the `projectModelIngestionUpdated` subscription with a `modelId` reference and react when `statusData` becomes a success or failure status. See [Real-time subscriptions](/developers/api/subscriptions#tracking-file-upload-and-model-ingestion-progress) for a complete example.
+
+`version_created` webhooks also fire only at completion, so existing webhook consumers need no change: by the time your handler runs, the version is queryable.
+
+## No removal date
+
+Legacy send stays accepted. The deprecation warnings mean "no longer the recommended path", not "scheduled for removal". Retirement will be criteria-driven and announced well in advance; no date is set. You can keep publishing through the deprecated calls as long as they are accepted, provided your code handles the deferred version visibility described above.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="My script creates a version and immediately gets a not-found error reading it back.">
+    That is this change. The id you got back is reserved; the version appears when processing
+    completes. Add a wait as shown in [Wait for the version](#wait-for-the-version).
+  </Accordion>
+  <Accordion title="Does operations.send still work?">
+    Yes, unchanged. Sending objects and receiving them by object id works exactly as before. Only
+    the version-creating step became asynchronous.
+  </Accordion>
+  <Accordion title="How do I know a publish failed?">
+    The ingestion ends in a failure status (`failed`, `cancelled`, `timeout`, or `invalidInput`) and
+    no version is created. Polling the version alone cannot distinguish "still processing" from
+    "failed", so check the ingestion status when a wait runs long.
+  </Accordion>
+  <Accordion title="I call modelIngestionMutations.completeWithVersion and parse the success status from its response.">
+    That mutation now returns the ingestion in `processing` with the reserved id on the top-level
+    `versionId` field, not a success status. Read the reserved id from there, then wait for the
+    ingestion to succeed. The mutation was already deprecated; new uploads should complete through
+    the v2 upload rail.
+  </Accordion>
+</AccordionGroup>
