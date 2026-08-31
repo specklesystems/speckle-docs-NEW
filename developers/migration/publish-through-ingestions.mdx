@@ -25,6 +25,8 @@ Now every version-creating call goes through the same processing pipeline as fil
 
 The practical consequence: **code that creates a version and immediately reads it back no longer finds it.** Fetching the version right after the call returns a not-found error until processing finishes. If processing fails, the version is never created at all, so a failed ingestion is your signal to resend, and you never get a partial or broken version.
 
+You do not create this ingestion yourself: on these calls the server creates and drives it, and your job is only to observe it. Creating your own ingestion is part of the upload paths that replace these calls, such as `SendPipeline` in the .NET SDK.
+
 <Note>
   This applies to app.speckle.systems and to self-hosted servers running **v2026.9 or later**. It is
   part of the wider [data model migration](/developers/migration/data-model-migration).
