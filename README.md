@@ -69,12 +69,15 @@ Connector pages are naturally more detailed because they must cover multiple hos
 
 ### PR checks (CI)
 
-Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as **four parallel jobs**:
+Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as parallel jobs:
 
 - **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only; **blocking**)
 - **Mintlify validate** — `pnpm valid` (full site; **blocking**)
 - **Broken links** — `pnpm check-links` (anchors + redirects + Snippet links; full site; **blocking**)
+- **Missing assets** — `pnpm check:assets` (local image and download files; **blocking**)
+- **Structure** — redirects, orphans, image framing (**blocking**)
 - **Accessibility** — `pnpm check:a11y` (`mint a11y`; full site; **blocking**)
+- **Image placeholders** — `pnpm report:placeholders` (outstanding `{/* IMAGE_PLACEHOLDER: … */}` comments; **informational**, always green)
 
 Require the blocking jobs on `main`:
 
@@ -106,6 +109,7 @@ pnpm check:format-lint     # Prettier + markdownlint on changed files only
 pnpm check:validate        # Mintlify validate
 pnpm check:links           # anchors, redirects, snippets
 pnpm check:a11y            # accessibility
+pnpm report:placeholders   # outstanding screenshot comments (not a gate)
 ```
 
 Full-repo format/lint (not what CI runs on PRs):
