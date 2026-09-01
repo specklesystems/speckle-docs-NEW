@@ -1,0 +1,194 @@
+---
+title: Sync models from Trimble Connect
+sidebarTitle: Trimble Connect
+description: Connect Trimble Connect to Speckle for automatic model synchronization.
+tag: Beta
+noindex: true
+contextual:
+  options: []
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<NextPreviewBanner />
+
+Connect Trimble Connect to Speckle for automatic model synchronization. Pick files from your Trimble
+Connect projects, and every new version uploaded to Trimble Connect becomes a new version of a
+Speckle model — no manual re-uploads.
+
+<Note>
+  The Trimble Connect integration is in **beta** and available on **Team** and **Enterprise**
+  workspace plans. Reach out if you want early access.
+</Note>
+
+## How it works
+
+- **Browsing is personal.** You sign in to Trimble Connect with your own Trimble ID to browse
+  projects, folders, and files. Your Trimble login stays in your browser — Speckle never stores it.
+- **Background sync uses a service account.** Trimble Connect does not offer application-level
+  (machine-to-machine) access, so each Speckle workspace connects one Trimble account as its
+  **service account**. Speckle encrypts that account's credentials, refreshes them automatically,
+  and uses them to download new file versions in the background.
+- **Changes are detected by polling.** Trimble Connect has no webhooks, so Speckle checks your
+  synced files for new versions every 5 minutes.
+
+## Prerequisites
+
+- A Speckle workspace on an eligible plan, and **workspace admin** rights to set up the service
+  account (any workspace member can browse and create syncs afterwards)
+- A Trimble Connect account with access to the projects you want to sync
+- A Trimble account to act as the **service account** — use a dedicated account (for example
+  `speckle-sync@yourcompany.com`) rather than a personal one, so background sync does not break when
+  someone leaves the team
+- The service account must be **invited to every Trimble Connect project** you plan to sync (any
+  role that can view and download files)
+
+## Connect the service account
+
+Workspace admin only. Do this once per workspace.
+
+<Steps>
+  <Step title="Open Trimble Connect">
+    Open any project in your workspace. In the project sidebar, go to **Integrations** → **Trimble
+    Connect**.
+  </Step>
+  <Step title="Connect the service account">
+    In the header, select **Connect service account**. Trimble's sign-in page opens. Sign in with
+    the **service account** (not your personal account) and approve access.
+
+    You return to Speckle. The header shows **Background sync:** with the service account email and
+    a green indicator.
+
+  </Step>
+</Steps>
+
+{/* IMAGE_PLACEHOLDER: Trimble Connect — Connect service account in header before connection. */}
+
+<Warning>
+  Speckle encrypts the service account's credentials before storing them. They are used only for
+  server-side file downloads and background synchronization, and are refreshed automatically so they
+  never expire from inactivity.
+</Warning>
+
+<Note>
+  Trimble may skip the login screen if you are already signed in to Trimble in that browser. When
+  connecting the service account, Speckle always forces the sign-in screen so you can pick the right
+  account.
+</Note>
+
+## Connect and sync files
+
+Any workspace member can do this after the service account is connected.
+
+<Steps>
+  <Step title="Sign in to browse">
+    Go to **Integrations** → **Trimble Connect** and select **Connect to Trimble**. Sign in with
+    your own Trimble ID.
+  </Step>
+  <Step title="Pick a project and files">
+    Choose a **Trimble Connect project** from the selector in the header. Projects from all Trimble
+    Connect regions are listed; the region appears next to each project name. Browse the folder tree
+    and select the files you want to sync. Use search and the source filter to narrow the list.
+  </Step>
+  <Step title="Configure Revit options if needed">
+    For Revit files, optionally set a **view name** and **reference point** in the selected-files
+    panel. See [Revit options](#revit-options).
+  </Step>
+  <Step title="Create the sync">
+    Select **Create sync**. Each synced file gets its own Speckle model, named after the file and
+    its folder path. The first version imports immediately. After that, every new version uploaded
+    to Trimble Connect is picked up automatically.
+  </Step>
+</Steps>
+
+{/* IMAGE_PLACEHOLDER: Trimble Connect — Connect to Trimble and project selector with region labels. */}
+
+{/* IMAGE_PLACEHOLDER: Trimble Connect — folder tree with files selected and Create sync. */}
+
+## Keep models in sync
+
+- Speckle polls your synced folders **every 5 minutes**. A new file version in Trimble Connect
+  typically appears as a new Speckle version within 5 minutes plus conversion time.
+- The **Syncs** panel on the Trimble Connect page shows every sync in the project, its latest
+  status, and links to the Speckle model.
+- You can **pause** and **resume** a sync from the Syncs panel. Paused syncs keep their existing
+  versions; they stop watching for changes.
+- If a synced file is moved or deleted in Trimble Connect, Speckle pauses the sync after a few
+  failed checks and emails the sync's creator.
+
+## Revit options
+
+### View name
+
+By default, all elements of a Revit model are imported. To import only the elements visible in a
+specific 3D view, enter the view's exact name (case-sensitive) when creating the sync.
+
+### Reference point
+
+Choose which Revit coordinate origin the model is aligned to: **Internal Origin** (default),
+**Project Base Point**, or **Survey Point and Shared Coordinates**. Use the same setting across
+models that need to align in Speckle.
+
+## Supported file formats
+
+| Format           | Extensions      | Status    |
+| ---------------- | --------------- | --------- |
+| Revit            | `.rvt`          | Supported |
+| IFC              | `.ifc`          | Supported |
+| Navisworks       | `.nwd`, `.nwc`  | Supported |
+| Rhino            | `.3dm`          | Supported |
+| SketchUp         | `.skp`          | Supported |
+| DGN / DWG        | `.dgn`, `.dwg`  | Supported |
+| Tekla Structures | `.db1` / folder | Soon      |
+| TrimBIM          | `.trb`          | Soon      |
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Is the connection read-only?">
+    Yes. Speckle only reads and downloads files from Trimble Connect. It never writes to, modifies,
+    or deletes anything in your Trimble Connect projects.
+  </Accordion>
+  <Accordion title="How quickly does a new version show up in Speckle?">
+    Speckle checks for changes every 5 minutes, so expect the new version within 5 minutes plus the
+    time it takes to convert the file.
+  </Accordion>
+  <Accordion title="Why do I need a service account? ACC does not ask for one.">
+    Autodesk lets an application access files with its own credentials. Trimble Connect currently
+    only supports user-level access, so background downloads run as a real Trimble account. Speckle
+    stores that account's credentials encrypted and rotates them automatically. Trimble has
+    application-level access on its roadmap; once available, the service account step will go away.
+  </Accordion>
+  <Accordion title="Who can connect or disconnect the service account?">
+    Workspace admins only. Browsing and creating syncs is open to all workspace members.
+  </Accordion>
+  <Accordion title="Do I have to add the service account to every Trimble Connect project?">
+    Yes. Background downloads run as the service account, so it needs access to each project you
+    sync. Files in projects it cannot access fail to download.
+  </Accordion>
+  <Accordion title="What happens if I disconnect the service account?">
+    Existing Speckle versions are unaffected, but background sync stops: syncs pause on their next
+    check and their creators are emailed. Reconnecting a service account resumes them automatically.
+  </Accordion>
+  <Accordion title="My sync got paused unexpectedly. Why?">
+    Two common causes: the file was moved, renamed, or deleted in Trimble Connect (Speckle pauses
+    after several failed checks), or the service account's access was revoked or its login expired.
+    Check the file in Trimble Connect, then reconnect the service account if needed and resume the
+    sync.
+  </Accordion>
+  <Accordion title="I don't see my Trimble Connect project in the list.">
+    Make sure the Trimble account you signed in with is a member of that project. Projects from
+    every Trimble Connect region are listed, so region is not the issue.
+  </Accordion>
+  <Accordion title="Can I sync the same file into several Speckle projects?">
+    Yes — create a sync for the file in each Speckle project. Each is tracked independently.
+  </Accordion>
+  <Accordion title="Does deleting a Speckle model stop the sync?">
+    Yes. Deleting the model removes its sync. The file in Trimble Connect is untouched.
+  </Accordion>
+</AccordionGroup>
+
+## Getting help
+
+Having trouble with the setup? Contact support or ask in the
+[Speckle Community forum](https://speckle.community/).
