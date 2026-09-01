@@ -1,6 +1,9 @@
 # Docs PR checks: Format and lint (changed files), Mintlify validate, Broken
 # links, Missing assets, Structure, and Accessibility are blocking.
 #
+# Image placeholders is informational: catalogues IMAGE_PLACEHOLDER comments
+# (outstanding screenshots). Always green. Not a required check.
+#
 # Broken links and Missing assets are deliberately separate: `mint broken-links`
 # checks page links, while Missing assets checks local image and download files,
 # which it does not cover.
@@ -250,3 +253,22 @@ jobs:
             echo ''
             echo '`mint a11y` — blocking; required status check on `main`.'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  image-placeholders:
+    name: Image placeholders
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Report outstanding screenshots
+        run: node scripts/report-image-placeholders.mjs --markdown --annotate
