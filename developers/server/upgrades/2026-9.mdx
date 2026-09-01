@@ -1,0 +1,234 @@
+---
+title: 'Upgrading to 2026.9'
+description: 'Operator guide for upgrading a self-hosted Speckle Enterprise deployment to the 2026.9 release line: the new conversion runner, irreversible database migrations, and the bundle-only viewer.'
+sidebarTitle: '2026.9'
+tag: 'Enterprise'
+noindex: true
+---
+
+<Note>
+  This page is unlisted: it does not appear in the docs navigation, search, or the sitemap. It is
+  part of the [self-hosted upgrade guide](/developers/server/upgrades/introduction). Bookmark both.
+</Note>
+
+<Note>
+  This upgrade applies to Speckle Enterprise Server. For license setup, see [License
+  Key](/developers/server/deployment/enterprise-license#license-key) in the Enterprise deployment
+  guide.
+</Note>
+
+2026.9 is the release the last two upgrades prepared for. The server now
+serves the viewer, previews, and data queries from the bundle format only,
+and its database migrations are irreversible: **there is no downgrade path
+from 2026.9 back to 2026.8**.
+
+You must be on 2026.8 with its
+[bundle migration](/developers/server/upgrades/2026-8) finished before you
+start.
+
+2026.9 also changes what your deployment needs from you more than any
+release before it. File imports now run in a new component, the
+**conversion runner**, which the chart does not enable for you — a default
+upgrade succeeds and then **accepts no file uploads** until you enable it.
+The preview service renders on CPU by default and offers a GPU opt-in.
+Read the [infrastructure requirements](#infrastructure-requirements)
+before you upgrade.
+
+## Shipped versions
+
+The 2026.9 compatibility line consists of:
+
+| Component                         | Version         | Notes                                                                                                                                       |
+| --------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| speckle-server                    | **2026.9.1**    | Deploy this version, not 2026.9.0 (its publish was incomplete). Includes the migration worker image at the same tag                         |
+| speckle-converters                | **2026.9.0**    | New component: the conversion runner Job image, `ghcr.io/specklesystems/speckle-converters`. Pin the exact tag, never `latest`              |
+| speckle-automate                  | 2026.9.0        | Execution engine release                                                                                                                    |
+| speckle-intelligence (dashboards) | 2026.9.0        | Dashboards app and Helm chart                                                                                                               |
+| speckle-oda file importers        | 2026.9.1        | Automate functions serving legacy conversion paths on Speckle-hosted infrastructure                                                         |
+| specklepy                         | 2026.9.0b3      | Python SDK, beta. The stable 2026.9.0 follows within days and this page will not change because of it                                       |
+| Speckle.Sdk (.NET)                | 2026.9.0-beta.4 | .NET SDK, beta; same stable follow-up. The 2026.9 connectors deliberately ship carrying these beta SDK pins                                 |
+| Viewer (npm)                      | 2026.9.0        | `@speckle/viewer-webgpu` + `@speckle/viewer-tools`                                                                                          |
+| Connectors                        | 2026.9.0        | All connectors. Exception: the Navisworks connector is **deprecated** and stays on its 2026.8 installer — the server converts nwd files now |
+
+## Before you upgrade
+
+<Steps>
+  <Step title="Confirm the 2026.8 bundle migration has finished">
+    Run the [2026.8 monitoring queries](/developers/server/upgrades/2026-8#monitoring-the-migration)
+    against every regional database. Upgrade only when `remaining` is `0` everywhere and you have
+    reviewed the parked list. Unmigrated versions render blank on 2026.9 until the migration reaches
+    them.
+  </Step>
+  <Step title="Take a database backup">
+    The 2026.9 schema migrations run automatically at startup and cannot be reversed. Follow the
+    [server maintenance guide](/developers/server/deployment/backup-upgrade-restore). This is the
+    last point at which a backup restores a 2026.8-shaped database.
+  </Step>
+  <Step title="Confirm the migration token secret exists">
+    The key `bundle_migration_token_secret` in your main server secret is now required at boot: a
+    2026.9 server refuses to start without it, with a named error. You added it during the 2026.8
+    upgrade; confirm it is still there.
+  </Step>
+  <Step title="Mirror the new image (private registries)">
+    Add `ghcr.io/specklesystems/speckle-converters:2026.9.0` to your registry, and keep
+    `speckle-bundle-migration-service` mirrored at the server tag (`2026.9.1`). A missing converter
+    mirror shows up later as conversion Jobs stuck in `ImagePullBackOff`.
+  </Step>
+  <Step title="Provision the conversion node pool">
+    Decide where conversion Jobs run, using the [infrastructure
+    requirements](#infrastructure-requirements) below. Conversions are bursty, memory-hungry batch
+    Jobs; a dedicated tainted pool keeps them off your serving nodes.
+  </Step>
+</Steps>
+
+## Infrastructure requirements
+
+### Conversion runner
+
+File imports (drag-and-drop uploads and CDE syncs) now run as Kubernetes
+Jobs in your cluster, launched by the server from the
+`speckle-converters` image. This replaces the ifc-import-service worker,
+which no longer deploys by default.
+
+The runner is off by default, and the chart cannot responsibly turn it on
+for you: it needs capacity and objects only you can provide.
+
+- **A node pool** for conversion Jobs. Label it (for example
+  `purpose=conversion`) and taint it so nothing else lands there. Size for
+  your import volume: Jobs default to 4Gi base memory and may grow to the
+  configured maximum (64Gi default ceiling) for large files; each Job has
+  a two hour deadline by default. Speckle's hosted service runs an
+  autoscaling pool of 16 vCPU / 128Gi nodes.
+- **A namespace and RBAC** for the Jobs. The chart creates them when you
+  set `conversionRunner.createNamespace: true` and
+  `conversionRunner.createResources: true` (both off by default so
+  clusters that manage these objects elsewhere do not collide). The
+  RBAC lets the server and objects service accounts launch and watch Jobs.
+- **Registry credentials** in the conversion namespace when you mirror
+  images: name the Secret in `conversionRunner.imagePullSecrets`. The
+  Secret itself is always operator-created.
+- **The exact converter image pin**:
+  `conversionRunner.converterImage: ghcr.io/specklesystems/speckle-converters:2026.9.0`
+  (or your mirrored path). Never run the runner on a mutable `latest` tag:
+  the converter and the server's migration tooling must reference the same
+  bundle format version, which an ambient `latest` silently breaks.
+
+<Warning>
+  With `accIntegrationEnabled`, `bentleyIntegrationEnabled`, or `trimbleIntegrationEnabled` set and
+  the runner off, the 2026.9 server refuses to start ("Syncs require the conversion jobrunner").
+  Enable the runner in the same upgrade that keeps those flags on.
+</Warning>
+
+### Preview service
+
+The preview service is rebuilt on the new viewer and renders on the CPU by
+default (via SwiftShader), so it works on clusters without GPUs. CPU
+rendering is markedly slower than a GPU and may struggle on very large
+models; give the preview pods 1 to 3 CPUs and 2 to 4Gi memory.
+
+To render previews on a GPU instead:
+
+- Use passthrough NVIDIA GPUs only (never vGPU), driver 515.48.07 or
+  newer, with `nvidia-drm modeset=1`.
+- Set `preview_service.webgpu.requireHardwareAdapter: true` and reserve
+  the GPU via the preview pod resources. With the flag on, a pod that
+  cannot see a hardware adapter fails readiness loudly instead of
+  silently falling back to slow CPU rendering.
+
+## Enable the conversion runner
+
+This is the required step for file imports to work at all.
+
+<Steps>
+  <Step title="Enable the runner on the server">
+    Set `featureFlags.jobRunnerEnabled: true`. Upload acceptance derives from the runner: with it
+    off, the server accepts no file formats.
+  </Step>
+  <Step title="Configure the conversionRunner block">
+    Set the exact converter image, the node pool, and the creation gates, using the values excerpt
+    below as the template.
+  </Step>
+  <Step title="Upgrade the release and verify">
+    Upgrade to chart 2026.9.1. With `helm_test_enabled` on, `helm test` runs a conversion canary
+    that proves the whole launch path, including the image pull. Then upload a file through the web
+    app: it should convert and open in the viewer.
+  </Step>
+</Steps>
+
+A complete values excerpt, with Jobs pinned to a pool labelled
+`purpose=conversion` and the chart creating the namespace and RBAC:
+
+```yaml
+featureFlags:
+  jobRunnerEnabled: true
+
+conversionRunner:
+  converterImage: ghcr.io/specklesystems/speckle-converters:2026.9.0
+  createNamespace: true
+  createResources: true
+  nodePool: 'conversion'
+  # imagePullSecrets: ['ghcr-mirror-credentials'] # when mirroring
+```
+
+<Note>
+  `conversionRunner.rhinoToken` stays empty for standard deployments; it is only needed if Speckle
+  enables Rhino-based file formats for your deployment, and Speckle will tell you when that applies.
+</Note>
+
+## What changes at 2026.9
+
+- **The viewer, previews, and data queries are served from bundles
+  only.** Versions the 2026.8 migration did not reach are not deleted, but
+  they render blank and fail previews until the migration processes them.
+- **Keep the bundle migration enabled.** The worker deployments now deploy
+  by default (`bundle_migration.enabled: true`), and the migration queues
+  and API are always on: versions still published in the old format by
+  older clients complete through them. `featureFlags.bundleMigrationEnabled`
+  now gates only the backfill of pre-existing versions.
+- **The objects REST API is deprecated, not removed.** Existing
+  integrations keep working on 2026.9; plan their move to the current
+  APIs.
+- **The ifc-import-service worker no longer deploys by default**
+  (`ifc_import_service.enabled: false`). IFC imports run through the
+  conversion runner. If you set the value explicitly, remove it.
+- **Schema migrations are irreversible.** They run automatically at
+  startup in every regional database and complete in seconds; there is no
+  rollback.
+- **SDKs ship as betas first.** The connectors on this line deliberately
+  pin the beta SDKs; the stable SDK releases follow within days without
+  requiring any action from you.
+
+<Warning>
+  There is no downgrade from 2026.9. A restored pre-upgrade backup loses everything written since
+  the upgrade. Recovery from an incomplete 2026.8 migration is forward-only: keep the migration
+  enabled on 2026.9 and let it finish.
+</Warning>
+
+<Tip>
+  If old models appear blank after the upgrade, check the `bundle_migrations` table before reaching
+  for backups. A blank model on 2026.9 is an unmigrated version; the data is still there.
+</Tip>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="File uploads stopped working after the upgrade. What did I miss?">
+    The conversion runner. A 2026.9 deployment with `jobRunnerEnabled` off accepts no file formats;
+    uploads are rejected at selection time. Work through [Enable the conversion
+    runner](#enable-the-conversion-runner).
+  </Accordion>
+  <Accordion title="Can I run 2026.9 without any GPU?">
+    Yes. CPU preview rendering is the default and needs no configuration. GPUs are an optional
+    upgrade for faster previews on large models.
+  </Accordion>
+  <Accordion title="What happens to file imports that were queued during the upgrade?">
+    Imports the old pipeline had accepted but not finished are re-processed by the conversion runner
+    once it is enabled. New uploads are rejected until then, so enable the runner in the same
+    maintenance window.
+  </Accordion>
+  <Accordion title="We still use the Navisworks connector. What now?">
+    The installed connector keeps working against 2026.9, but it is deprecated and receives no
+    updates. Publishing nwd files by upload or ACC sync converts them server-side through the
+    conversion runner instead.
+  </Accordion>
+</AccordionGroup>
