@@ -24,7 +24,7 @@ One JSX comment per capture:
 {/* IMAGE_PLACEHOLDER: UI location — what must be visible. */}
 ```
 
-Invisible to readers. Catalogue with `rg IMAGE_PLACEHOLDER` from the docs package root.
+Invisible to readers. Catalogue with `rg IMAGE_PLACEHOLDER` from the docs package root, or `pnpm report:placeholders` (also a non-blocking PR check).
 
 ## Where comments belong
 
