@@ -68,13 +68,12 @@ The 2026.9 compatibility line consists of:
   <Step title="Confirm the migration token secret exists">
     The key `bundle_migration_token_secret` in your main server secret is now required at boot: a
     2026.9 server refuses to start without it, with a named error. You added it during the 2026.8
-    upgrade; confirm it is still there.
+    upgrade; the key should still appear in the secret's data.
   </Step>
   <Step title="Mirror the new image (private registries)">
     Add `ghcr.io/specklesystems/speckle-converters:2026.9.0` to your registry, and keep
-    `speckle-bundle-migration-service` mirrored at the server tag (`2026.9.1`). A missing converter
-    mirror does not fail the upgrade; it surfaces later as conversion Jobs stuck in
-    `ImagePullBackOff`. Confirm both tags pull from your registry before you continue.
+    `speckle-bundle-migration-service` mirrored at the server tag (`2026.9.1`). Both tags should
+    pull from your registry before you continue.
   </Step>
   <Step title="Provision the conversion node pool">
     Decide where conversion Jobs run, using the [infrastructure
@@ -83,6 +82,11 @@ The 2026.9 compatibility line consists of:
     `kubectl get nodes -l purpose=conversion` lists its nodes with the taint applied.
   </Step>
 </Steps>
+
+<Note>
+  A missing converter mirror does not fail the upgrade itself; it surfaces later as conversion Jobs
+  stuck in `ImagePullBackOff`. That is why the mirror step above ends with a pull check.
+</Note>
 
 ## Infrastructure requirements
 
@@ -144,12 +148,12 @@ This is the required step for file imports to work at all.
 
 <Steps>
   <Step title="Enable the runner on the server">
-    Set `featureFlags.jobRunnerEnabled: true`. Upload acceptance derives from the runner: with it
-    off, the server accepts no file formats.
+    Upload acceptance derives from the runner: with it off, the server accepts no file formats. Set
+    `featureFlags.jobRunnerEnabled: true` in your values.
   </Step>
   <Step title="Configure the conversionRunner block">
-    Set the exact converter image, the node pool, and the creation gates, using the values excerpt
-    below as the template.
+    Set the exact converter image, the node pool, and the creation gates. Your values should end up
+    matching the excerpt below.
   </Step>
   <Step title="Upgrade the release and verify">
     Upgrade to chart 2026.9.1. With `helm_test_enabled` on, `helm test` runs a conversion canary
@@ -158,7 +162,7 @@ This is the required step for file imports to work at all.
   </Step>
 </Steps>
 
-A complete values excerpt, with Jobs pinned to a pool labelled
+A complete values excerpt, with Jobs pinned to a pool labeled
 `purpose=conversion` and the chart creating the namespace and RBAC:
 
 ```yaml
