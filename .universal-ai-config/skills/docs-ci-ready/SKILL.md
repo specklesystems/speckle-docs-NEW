@@ -35,6 +35,8 @@ CI and `pnpm check` lint **changed** files for format/markdownlint. Use `pnpm li
 
 Scheduled only (not PR): `pnpm check-links:external`. Optional `mint score` needs repo var `DOCS_SITE_URL`.
 
+**Image placeholders** (`pnpm report:placeholders`) is **informational** — catalogues `{/* IMAGE_PLACEHOLDER: … */}` comments. Always green. Not part of `pnpm check`.
+
 Optional base range (same idea as CI `DIFF_RANGE`):
 
 ```bash
