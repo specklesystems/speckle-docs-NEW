@@ -175,17 +175,21 @@ In 2026.9 those paths are flat. `PropertyView` is the type that replaces that wa
 
 Prefer `get_string` / `get_double` for a single path. Use `under` when you need a group.
 
+The snippets below assume `wall` is already in scope: a `DataObject` from the tree, or a
+`ModelObject` from `model.objects`.
+
 <Tabs>
   <Tab title="Prior to 2026.9">
     ```python Prior to 2026.9 lines icon="python"
-    width = root.parameters["Type Parameters"]["Width"]["value"]
+    groups = (wall.properties or {}).get("parameters") or {}
+    x = groups.get("x") or {}
+    y = x.get("y")
     ```
 
   </Tab>
   <Tab title="2026.9">
     ```python 2026.9 lines icon="python"
-    wall = model.objects[0]
-    width = wall.get_double("Width")
+    y = wall.get_string("parameters.x.y")
     offset = wall.get_double("Constraints.Base Offset")
 
     constraints = wall.properties.under("Constraints")
