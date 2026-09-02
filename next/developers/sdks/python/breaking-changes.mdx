@@ -124,6 +124,13 @@ path-keyed (`"category"`, `"Constraints.Base Offset"`). Relations are accessors,
         key = (obj.properties or {}).get("category") or "Unknown"
         counts[key] = counts.get(key, 0) + 1
 
+    by_level = {}
+    for obj in iter_elements(root):
+        if not isinstance(obj, DataObject):
+            continue
+        key = (obj.properties or {}).get("level") or "Unknown"
+        by_level.setdefault(key, []).append(obj)
+
     walls = [
         o
         for o in iter_elements(root)
