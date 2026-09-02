@@ -105,7 +105,7 @@ Inside UAC markdown, do **not** use Markdown links to sibling instruction files.
 
 ### Workflow / tooling notes
 
-- Node **22** in CI; `packageManager` in `package.json` pins pnpm — do not also set `version` on `pnpm/action-setup` (hash conflict)
+- Node **22** for scripts; `packageManager` in `package.json` pins pnpm — do not also set `version` on `pnpm/action-setup` (hash conflict). Actions themselves (`checkout@v7`, `setup-node@v7`, `pnpm/action-setup@v6`) run on Node 24.
 - Checkout needs full history for changed-file diffs (`fetch-depth: 0` in the workflow)
 
 ## After UAC template edits
