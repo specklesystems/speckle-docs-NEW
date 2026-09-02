@@ -32,7 +32,7 @@ This project uses **universal-ai-config** for canonical doc rules. Generated ins
 
 - **Hard rule:** Speckle Next is an internal codename for **2026.9**, one of several. Never write "Speckle Next" (or other internal codenames) in reader-facing docs, nav labels, titles, or banners. The `next/` directory is an internal path only. **2026.9** is the temporary public label. Write it exactly like the SDK and server version: `2026.9`, never `v2026.9`. Same for `2026.8`. It is fine if that string leaks as pages ship. Do not hide it, do not add a "placeholder" disclaimer for readers, and do not invent a marketing name. When product supplies a public name, replace 2026.9 everywhere it appears.
 - 2026.9 is a Mintlify **version** (`navigation.versions` in `navigation.json` / `navigation.next.json`), not a top-level dropdown. Do not add a 2026.9 item next to User Guides / Developers / IT Administrators.
-- Every page under `next/` sets `noindex: true`, `contextual.options: []`, and the preview banner (`snippets/next-preview-banner.mdx`).
+- Every page under `next/` sets `contextual.options: []` and the preview banner (`snippets/next-preview-banner.mdx`). Do **not** set `noindex: true` — 2026.9 is a public Mintlify version.
 - `next/` is additive and sparse. Do not clone or port a main-docs page into `next/` as a starting point.
 - A missing `next/` page is expected. Do not backfill "for completeness." Gap analysis is a later explicit pass.
 
