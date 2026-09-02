@@ -1,7 +1,7 @@
 ---
-title: Assess specklepy scripts for 2026.9
+title: Assess specklepy breaking changes
 sidebarTitle: specklepy
-description: Before and after examples for specklepy receive, property access, and traversal on 2026.9 data.
+description: Before-and-after specklepy examples so you can judge 2026.9 migration impact.
 noindex: true
 contextual:
   options: []
@@ -11,215 +11,282 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 <NextPreviewBanner />
 
-Use this page to assess a specklepy script that receives a version, reads properties, or walks an
-object tree. It covers only the breaking-change surface for 2026.9. For day-to-day send and
-receive, stay on [specklepy](/developers/sdks/python/introduction) and the
-[Quickstart](/developers/sdks/python/getting-started/quickstart).
+Use this page to judge what a specklepy script must change for 2026.9. It is not a replacement for
+the [specklepy](/developers/sdks/python/introduction) guides, and it is not a full API reference.
 
-The object-model change itself is on
-[Object model in 2026.9](/next/developers/object-model/overview). Dates, compatibility mode, and
-who must act are on
-[Data model migration for developers](/developers/migration/data-model-migration).
+Prior to 2026.9, the path is still **PAT → `operations.receive` → walk a `Base` tree**. In 2026.9
+that receive is a compatibility shim. The new path is **`operations.receive3`**, which returns a
+disposable `Model` with columnar properties and typed relations. Dates, compatibility mode, and who
+must act are on
+[Data model migration for developers](/developers/migration/data-model-migration). The object-model
+change itself is on [Object model in 2026.9](/next/developers/object-model/overview).
 
 <Warning>
-  Versions published by a 2026.9 connector need an upgraded specklepy before you receive them. An
-  older build 404s on that data. Versions from older connectors keep working. See [Who's
+  Versions published by a 2026.9 connector need specklepy **2026.9.0b3** or later, installed with
+  the `bundle` extra. An older build 404s on that data. Versions from older connectors keep working
+  on the specklepy you have today. See [Who's
   affected](/developers/migration/data-model-migration#whos-affected).
 </Warning>
 
 <Note>
-  If the script already calls `operations.receive` and reads nested `properties` the way [BIM data
-  patterns](/developers/sdks/python/guides/bim-data-patterns) describes, the receive call stays the
-  same. The sections below are the places that do change.
+  Prefer `operations.receive3` for new scripts. `operations.receive` stays callable on legacy
+  object-graph versions, and on bundle-only versions it returns a projected `Base` tree.
 </Note>
 
-## Upgrade specklepy first
+## What changes for a script
+
+| Concern                 | Prior to 2026.9                                | In 2026.9                                                                                            |
+| ----------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Package                 | `pip install specklepy`                        | `pip install "specklepy[bundle]==2026.9.0b3"`. The `bundle` extra pulls in pyarrow                   |
+| Load a version          | `operations.receive` with `referenced_object`  | `operations.receive3` with account plus project, model, and version ids. Returns `Model`             |
+| Filter and count        | Walk `elements`, then `DataObject.properties`  | `model.objects`, `objects_with`, and `get_string` / `get_double`                                     |
+| Nested property walk    | `properties["x"]` then `["y"]`                 | Dotted path (`get_string("x.y")`) or `PropertyView.under`                                            |
+| Level, material, groups | Unpack proxy `objects` lists                   | Accessors on `ModelObject` (`level`, `host`, `collection`)                                           |
+| Publish from a script   | `operations.send` then `client.version.create` | `operations.send3` with a `BundleBuilder`. The version is visible only after ingestion completes     |
+| Transports              | `send` / `receive` with `ServerTransport`      | Frozen legacy surface. A bundle reference through `receive` needs an authenticated `ServerTransport` |
+
+## Update specklepy first
+
+Install a 2026.9 specklepy that can receive bundle-only versions, including the `bundle` extra.
+**2026.9.0b3** is the first public build that does this. A later stable **2026.9.0** replaces the
+beta pin; the calls on this page do not change.
+
+```bash
+pip install "specklepy[bundle]==2026.9.0b3"
+```
 
 On a bundle-only version, `version.referenced_object` is a bundle reference such as
-`bundle.<projectId>.<modelId>.<versionId>`, not a content hash. An older specklepy build treats
-that string as an object id, requests it from the objects API, and receives a 404 whose body
-tells you to upgrade.
-
-Install the first specklepy release that can receive bundle-only versions. This page does not
-stamp that version number. When the release exists, the 404 body will name it.
+`bundle.<projectId>.<modelId>.<versionId>`, not a content hash. An older specklepy treats that
+string as an object id, requests it from the objects API, and receives a 404 whose body tells you
+to upgrade.
 
 <Warning>
   Do not fetch `version.referenced_object` from the objects REST endpoints. Bundle references always
-  404 there, including after you upgrade. Pass the value to `operations.receive` and let specklepy
-  dispatch.
+  404 there, including after you upgrade. Pass ids to `operations.receive3`, or pass the reference
+  to `operations.receive` and let specklepy dispatch.
 </Warning>
 
-## Receive a version
+## Load a model
 
-Authenticate with a personal access token, then receive through `operations.receive`. That is
-the same shortest path as the Current quickstart.
+Prior to 2026.9, you resolve `referenced_object` and call `operations.receive`. In 2026.9,
+`operations.receive3` takes an `Account` plus project, model, and version ids and returns a
+disposable `Model`. Use it as a context manager: it owns the downloaded bundle files on disk until
+the `with` block ends.
 
-```python lines icon="python"
-import os
+Auth and version lookup stay on [Authentication](/developers/sdks/python/getting-started/authentication)
+and the [Quickstart](/developers/sdks/python/getting-started/quickstart). The snippets below assume
+`account`, `client`, `transport`, `project_id`, `model_id`, and `version_id` are already in scope.
+Build `account` with `Account.from_token` and a PAT, or `get_default_account()`.
 
-from specklepy.api import operations
-from specklepy.api.client import SpeckleClient
-from specklepy.transports.server import ServerTransport
+<Tabs>
+  <Tab title="Prior to 2026.9 (receive)">
+    ```python Prior to 2026.9 lines icon="python"
+    version = client.version.get(version_id, project_id)
+    root = operations.receive(version.referenced_object, remote_transport=transport)
+    ```
 
-client = SpeckleClient(host="app.speckle.systems")
-client.authenticate_with_token(os.environ["SPECKLE_TOKEN"])
+  </Tab>
+  <Tab title="2026.9 (receive3)">
+    ```python 2026.9 lines icon="python"
+    with operations.receive3(account, project_id, model_id, version_id) as model:
+        wall = model.object_by_application_id("wall-1")
+    ```
 
-project_id = "your_project_id"
-version_id = "your_version_id"
-transport = ServerTransport(stream_id=project_id, client=client)
-```
-
-### Today
-
-`referenced_object` is a content hash. `operations.receive` downloads the object graph through
-the transport.
-
-```python lines icon="python"
-version = client.version.get(version_id, project_id)
-root = operations.receive(version.referenced_object, remote_transport=transport)
-```
-
-### In 2026.9
-
-The call is unchanged. After you upgrade specklepy, receive dispatches on the `bundle.` prefix
-and still returns a `Base` tree. `ServerTransport` is only a credentials carrier on that
-branch.
-
-```python lines icon="python"
-version = client.version.get(version_id, project_id)
-root = operations.receive(version.referenced_object, remote_transport=transport)
-```
+  </Tab>
+</Tabs>
 
 <Tip>
-  Hash-era versions keep the legacy receive path. You do not branch in your script. Upgraded
-  specklepy handles both forms.
+  Close the model (leave the `with` block, or call `model.close()`) so the download directory is
+  deleted. Parsed objects stay usable after close. Geometry you have not touched yet cannot be read
+  afterwards.
 </Tip>
 
-## Read properties
+## Count and filter objects
 
-Current connector data is already a v3 `DataObject`: BIM meaning lives in the `properties`
-dictionary, not in typed classes such as `Wall`. That part stays. What changes on a bundle-only
-receive is parameter metadata and object identity.
+Prior to 2026.9, you walk a `Base` tree. In 2026.9, objects are a flat list. Properties are
+path-keyed (`"category"`, `"Constraints.Base Offset"`). Relations are accessors, not Proxy lists.
 
-### Today
+<Tabs>
+  <Tab title="Prior to 2026.9">
+    ```python Prior to 2026.9 lines icon="python"
+    from specklepy.objects.data_objects import DataObject
 
-Category and type are dictionary values. Revit-style parameters often wrap each value in a
-metadata dict.
+    def iter_elements(obj):
+        yield obj
+        for child in getattr(obj, "elements", None) or []:
+            yield from iter_elements(child)
 
-```python lines icon="python"
-category = root.properties.get("category")
-width = root.parameters["Type Parameters"]["Width"]["value"]
-```
 
-`Base.id` after send or receive is a content hash. The Current
-[Working with objects](/developers/sdks/python/guides/how-to-work-with-objects) guide treats that
-id as reserved.
+    counts = {}
+    for obj in iter_elements(root):
+        if not isinstance(obj, DataObject):
+            continue
+        key = (obj.properties or {}).get("category") or "Unknown"
+        counts[key] = counts.get(key, 0) + 1
 
-### In 2026.9
+    walls = [
+        o
+        for o in iter_elements(root)
+        if isinstance(o, DataObject) and (o.properties or {}).get("category") == "Walls"
+    ]
+    ```
 
-`operations.receive` still returns a DataObject-shaped tree with nested `properties` rebuilt
-from the columnar store. `speckle_type` is `Objects.Data.DataObject`. Per-parameter metadata
-(`units`, `isShared`, a nested `"value"` key) is collapsed to scalars. `id` is the source
-`applicationId`, not a content hash.
+  </Tab>
+  <Tab title="2026.9">
+    ```python 2026.9 lines icon="python"
+    counts = {}
+    for obj in model.objects:
+        key = obj.get_string("category") or obj.name or "Unknown"
+        counts[key] = counts.get(key, 0) + 1
 
-```python lines icon="python"
-category = root.properties.get("category")
-width = root.properties.get("Width")
-object_key = root.id
-```
+    by_level = {}
+    for obj in model.objects:
+        key = obj.level.name if obj.level else "Unknown"
+        by_level.setdefault(key, []).append(obj)
+
+    walls = [o for o in model.objects_with("category") if o.get_string("category") == "Walls"]
+    ```
+
+  </Tab>
+</Tabs>
+
+Look up one object with `model.object_by_application_id(id)`. `application_id` is the only identity
+a bundle object has. Do not treat `Base.id` as a content hash on bundle-only versions.
+
+## Replace property walks
+
+Prior to 2026.9, nested parameters are dictionaries you walk: `obj.properties["x"]` then `["y"]`.
+In 2026.9 those paths are flat. `PropertyView` is the type that replaces that walk.
+`ModelObject.properties` is already this view.
+
+- **`get_string` / `get_double` / `get_bool`:** typed lookup. `None` if the path is missing or the
+  value is another type. Instance, then type, then root-scalar precedence.
+- **Indexer (`obj["path"]`):** untyped lookup, same precedence.
+- **`properties.under("Constraints")`:** the subtree under that prefix, with the prefix stripped.
+- **`to_nested()`:** the old nested-dictionary tree. Allocates. Use only when a caller still
+  requires that shape.
+
+Prefer `get_string` / `get_double` for a single path. Use `under` when you need a group.
+
+<Tabs>
+  <Tab title="Prior to 2026.9">
+    ```python Prior to 2026.9 lines icon="python"
+    width = root.parameters["Type Parameters"]["Width"]["value"]
+    ```
+
+  </Tab>
+  <Tab title="2026.9">
+    ```python 2026.9 lines icon="python"
+    wall = model.objects[0]
+    width = wall.get_double("Width")
+    offset = wall.get_double("Constraints.Base Offset")
+
+    constraints = wall.properties.under("Constraints")
+    for key, value in constraints.items():
+        print(f"{key}: {value}")
+    ```
+
+  </Tab>
+</Tabs>
 
 <Warning>
   If the script reads `parameter["value"]` or other per-parameter metadata from the received tree,
-  that shape is gone on bundle-only versions. Keep using nested `properties` for values. Parameter
-  metadata, type tables, and cross-version joins are not on this receive path.
+  that shape is gone on bundle-only versions. Read the value from a dotted path, not from a metadata
+  wrapper.
 </Warning>
 
-## Traverse the tree
+## Replace Proxy walks
 
-### Today
+Prior to 2026.9, grouping by level or material means indexing `applicationId`s and resolving proxy
+`objects` lists. In 2026.9 those links are typed relations. See
+[Relations in 2026.9](/next/developers/object-model/relations) for the names.
 
-A script walks `elements`, then reconstructs levels, groups, and instances from Proxy `objects`
-lists. See [Finding and extracting data](/developers/sdks/python/guides/how-to-find-and-extract-data)
-and [Working with proxies](/developers/sdks/python/guides/working-with-proxies).
+<Tabs>
+  <Tab title="Prior to 2026.9">
+    ```python Prior to 2026.9 lines icon="python"
+    by_app_id = {}
+    for obj in iter_elements(root):
+        app_id = getattr(obj, "applicationId", None)
+        if app_id:
+            by_app_id[app_id] = obj
+    ```
 
-```python lines icon="python"
-from specklepy.objects import Base
+  </Tab>
+  <Tab title="2026.9">
+    ```python 2026.9 lines icon="python"
+    by_level = {}
+    for obj in model.objects:
+        key = obj.level.name if obj.level else "Unknown"
+        by_level.setdefault(key, []).append(obj)
 
+    hosted = [o for o in model.objects if o.host is not None]
+    ```
 
-def iter_elements(obj):
-    if not isinstance(obj, Base):
-        return
-    yield obj
-    elements = getattr(obj, "elements", None) or []
-    for child in elements:
-        yield from iter_elements(child)
-```
+  </Tab>
+</Tabs>
 
-### In 2026.9
+A missing nested `elements` tree or Proxy `objects` list on 2026.9 data is expected. Do not unpack
+Proxies to rebuild containment.
 
-If the script goes through `operations.receive`, the upgraded SDK returns a reconstructed
-DataObject tree in the v3 sender idiom. Walking that tree for names, nested `properties`, and
-`displayValue` stays valid.
+## What operations.receive still does
 
-Do not unpack a Proxy's `objects` array to rebuild topology. Containment, levels, materials,
-and connectivity are typed relations on the version, not a tree you reconstruct. See
-[Relations in 2026.9](/next/developers/object-model/relations).
+`operations.receive` remains callable. It is the compatibility path, not the 2026.9 default.
 
-```python lines icon="python"
-from specklepy.objects.data_objects import DataObject
+- **Legacy object-graph versions:** behaviour is unchanged. You still pass `referenced_object` as a
+  content hash.
+- **Bundle-only versions:** `referenced_object` is a bundle reference
+  (`bundle.<projectId>.<modelId>.<versionId>`). A 2026.9 specklepy dispatches on that prefix and
+  returns a best-effort `Base` tree (`Model.to_base()`, DataObject idiom, `version = 4` on the
+  root). That projection does not scale to the model sizes the bundle format is built for, and it
+  is not a lossless round trip. It needs an authenticated `ServerTransport` for the reference's
+  project.
+- **Older specklepy:** fetching that `referenced_object` from the objects API returns **404** with
+  upgrade guidance. Upgrade specklepy rather than parsing the 404 body.
 
+<Warning>
+  Receiving a bundle-only version as a `Base` tree and sending it again with `operations.send` is
+  not a supported copy workflow. The tree is a baked view, not the authored graph. Receive, derive
+  new data, then send remains ordinary supported use.
+</Warning>
 
-def iter_data_objects(obj):
-    if isinstance(obj, DataObject):
-        yield obj
-    members = getattr(obj, "elements", None) or getattr(obj, "displayValue", None) or []
-    for child in members:
-        yield from iter_data_objects(child)
-```
+## Publish from a script
 
-A missing nested `elements` tree or Proxy `objects` list is expected when the script is not
-going through that receive reconstruction. Identify objects by `applicationId`, read property
-paths, and follow named relations — or pin to **2026.8** until you can. Details:
-[Object model in 2026.9](/next/developers/object-model/overview#what-a-script-should-assume).
+Most analysis scripts only receive. If you currently call `operations.send` then
+`client.version.create`, the 2026.9 replacement is `operations.send3` with a `BundleBuilder`.
+`operations.send` stays accepted and starts emitting deprecation warnings. There is no removal date.
 
-## Do not receive and resend a version
-
-Receiving a bundle-only version as a `Base` tree and sending it again with `operations.send` is
-not a supported copy workflow. The received tree is a baked view, not the authored graph, and
-resending bakes it again.
-
-Receive, derive new data, and send that result remains ordinary supported use.
+`send3` returns a reserved version id immediately. Queries, the version URL, and `version_created`
+webhooks fire when ingestion completes. Poll for the version, or watch the project's model
+ingestions, if you need to follow up in the same process.
 
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Do I change the receive call if I already use operations.receive?">
-    No. Pass `version.referenced_object` to `operations.receive` as you do today. Upgrade specklepy
-    so dispatch can handle a `bundle.` prefix. Do not download that string from the objects API
-    yourself.
+  <Accordion title="Do I have to rewrite an operations.receive script on day one?">
+    Upgrade specklepy first so versions from a 2026.9 connector do not 404. Versions from older
+    connectors keep working on `operations.receive`. Rewrite to `operations.receive3` when you need
+    relations, columnar property lookups, or models that are too large to materialize as a `Base`
+    tree.
   </Accordion>
-  <Accordion title="What happens if I receive with an older specklepy?">
-    Versions from older connectors still receive. A version published by a 2026.9 connector 404s on
-    the objects path. The response body carries upgrade guidance. Existing published data from older
-    connectors is not on a removal clock.
+  <Accordion title="Why does receive3 return Model instead of Base?">
+    `Model` is the bundle itself: objects, path-keyed properties, and relation accessors, with
+    geometry parsed only when you ask. A `Base` tree inflates every object and mesh into Python
+    objects. That is why `operations.receive` is the compatibility path for the new format, not the
+    default.
+  </Accordion>
+  <Accordion title="What happens if I forget to close Model?">
+    Downloaded parquet files stay under a scratch directory until `close` runs. Always use a `with`
+    block. Objects and already-loaded geometry stay in memory after close; geometry you have not
+    touched yet cannot be read afterwards.
+  </Accordion>
+  <Accordion title="Can I keep using ServerTransport?">
+    Yes for hash-era data, until that path is retired. For bundle-only versions,
+    `operations.receive` still needs an authenticated `ServerTransport` so it can dispatch to
+    `receive3`. Move server-facing scripts to `operations.receive3`.
   </Accordion>
   <Accordion title="Why did parameter['value'] stop working?">
-    On a bundle-only receive, parameter metadata is collapsed to scalars inside nested `properties`.
-    Read the value from `properties`, not from a metadata wrapper. That is a contracted
+    On a bundle-only receive, parameter metadata is collapsed to scalars on dotted paths. Read the
+    value with `get_double` or `obj["Width"]`, not from a metadata wrapper. That is a contracted
     receive-fidelity change, not a bug in your filter.
-  </Accordion>
-  <Accordion title="Can I still walk Collection.elements and unpack Proxies?">
-    Only on the reconstructed tree that upgraded `operations.receive` returns, and only for values
-    and geometry. Topology (what sits on a level, what hosts what) is a relation, not a Proxy list.
-    See [Relations in 2026.9](/next/developers/object-model/relations).
-  </Accordion>
-  <Accordion title="Does operations.send still work?">
-    Yes. Legacy send stays accepted. Newer specklepy releases will emit a `DeprecationWarning`.
-    There is no removal date on this page. Do not use send to copy a version you just received.
-  </Accordion>
-  <Accordion title="Why is a version I just created missing from queries?">
-    Publishing finishes processing before the version becomes visible. The create call still returns
-    the version id immediately, but lists, the version URL, and webhooks fire when processing
-    completes. Treat that id as a promise, then receive it.
   </Accordion>
 </AccordionGroup>
