@@ -42,17 +42,18 @@ The current line needs the following from you before the server boots or accepts
 | Blob storage reachable from your users' browsers and connectors, with bucket CORS                                                       | [2026.7 infrastructure requirements](/developers/server/upgrades/2026-7#infrastructure-requirements) |
 | Preview rendering on CPU by default; GPU rendering is an opt-in                                                                         | [2026.9 preview service](/developers/server/upgrades/2026-9#preview-service)                         |
 
-The chart also ships a compatibility layer that completes publishes arriving in the pre-2026.9 data format. A new deployment does not run it: turn it off in `values.yaml`, and treat the deployment as compatible with the 2026.9 connector and SDK line only. Publishes from older connectors, older SDK versions, or the deprecated objects REST API are not completed on such a deployment.
+The chart also ships a compatibility layer that completes publishes arriving in the pre-2026.9 data format. A new deployment does not run it: leave the `bundle_migration_token_secret` key out of the main server secret, and turn the worker deployments off in `values.yaml`.
 
 ```yaml
 bundle_migration:
   enabled: false
 ```
 
+Without the key the server starts, logs one warning, and accepts 2026.9-format publishes only. A publish from an older connector, an older SDK version, or the deprecated objects REST API is rejected with `LEGACY_SEND_UNSUPPORTED` (HTTP 422); the error message points the user at the [publishing migration guide](/developers/migration/publish-through-ingestions). Treat the deployment as compatible with the 2026.9 connector and SDK line only.
+
 <Note>
-  Chart `2026.9.2` still requires a `bundle_migration_token_secret` key in the main server secret at
-  boot even with the layer off. Until you run the patch that lifts this, add the key with any random
-  value, for example `openssl rand -hex 32`.
+  Chart `2026.9.2` predates this behaviour and refuses to boot without the key. Until you run the
+  patch that carries it, add the key with any random value, for example `openssl rand -hex 32`.
 </Note>
 
 ## Configuration Steps
