@@ -38,23 +38,22 @@ The current line needs the following from you before the server boots or accepts
 | Requirement                                                                                                                             | Where                                                                                                |
 | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | A valid license in the main server secret; workspaces and the licensing module are on by default                                        | [License Key](#license-key)                                                                          |
-| A `bundle_migration_token_secret` key in the main server secret; the server refuses to boot without it                                  | [Token signing secret](#token-signing-secret)                                                        |
 | The conversion runner enabled, with a labeled node pool and an exact converter image pin; without it the server accepts no file uploads | [File imports](#file-imports-conversion-runner)                                                      |
 | Blob storage reachable from your users' browsers and connectors, with bucket CORS                                                       | [2026.7 infrastructure requirements](/developers/server/upgrades/2026-7#infrastructure-requirements) |
 | Preview rendering on CPU by default; GPU rendering is an opt-in                                                                         | [2026.9 preview service](/developers/server/upgrades/2026-9#preview-service)                         |
 
-The chart also ships a compatibility layer for data published by pre-2026.9 clients. A new deployment has none; turn it off in `values.yaml`:
+The chart also ships a compatibility layer that completes publishes arriving in the pre-2026.9 data format. A new deployment does not run it: turn it off in `values.yaml`, and treat the deployment as compatible with the 2026.9 connector and SDK line only. Publishes from older connectors, older SDK versions, or the deprecated objects REST API are not completed on such a deployment.
 
 ```yaml
 bundle_migration:
   enabled: false
 ```
 
-<Tip>
-  As part of deployment support, Speckle can provide its reference GitOps repository for Google
-  Cloud (GKE) or Azure (AKS) as a working baseline: Terraform for the cluster, node pools and
-  managed services, and Flux manifests for the Helm release. Ask your Speckle representative.
-</Tip>
+<Note>
+  Chart `2026.9.2` still requires a `bundle_migration_token_secret` key in the main server secret at
+  boot even with the layer off. Until you run the patch that lifts this, add the key with any random
+  value, for example `openssl rand -hex 32`.
+</Note>
 
 ## Configuration Steps
 
@@ -168,27 +167,6 @@ The test runs a conversion canary that proves the whole file-import launch path,
   above, or set `featureFlags.workspacesModuleEnabled` and `featureFlags.gatekeeperModuleEnabled` to
   `false`.
 </Warning>
-
-### Token signing secret
-
-The server signs short-lived tokens with a key it reads at boot. From 2026.9 the key is required; a server without it exits with a named error.
-
-1. Add a key named `bundle_migration_token_secret` to your main server secret (the one `secretName` points at), with a unique random value:
-
-   ```bash
-   kubectl patch secret <SERVER_SECRET_NAME> -n <NAMESPACE> \
-   --type merge \
-   -p "{\"stringData\":{\"bundle_migration_token_secret\":\"$(openssl rand -hex 32)\"}}"
-   ```
-
-1. To keep the key in a different Secret instead, point the chart at it:
-
-   ```yaml
-   server:
-     bundleMigrationTokenSecret:
-       secretName: '<SECRET_NAME>'
-       secretKey: 'bundle_migration_token_secret'
-   ```
 
 ### Enable Workspaces
 
