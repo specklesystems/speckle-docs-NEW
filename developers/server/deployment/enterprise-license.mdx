@@ -38,15 +38,17 @@ The current line needs the following from you before the server boots or accepts
 | Requirement                                                                                                                             | Where                                                                                                |
 | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | A valid license in the main server secret; workspaces and the licensing module are on by default                                        | [License Key](#license-key)                                                                          |
-| A `bundle_migration_token_secret` key in the main server secret; the server refuses to boot without it                                  | [Migration token secret](#migration-token-secret)                                                    |
+| A `bundle_migration_token_secret` key in the main server secret; the server refuses to boot without it                                  | [Token signing secret](#token-signing-secret)                                                        |
 | The conversion runner enabled, with a labeled node pool and an exact converter image pin; without it the server accepts no file uploads | [File imports](#file-imports-conversion-runner)                                                      |
 | Blob storage reachable from your users' browsers and connectors, with bucket CORS                                                       | [2026.7 infrastructure requirements](/developers/server/upgrades/2026-7#infrastructure-requirements) |
 | Preview rendering on CPU by default; GPU rendering is an opt-in                                                                         | [2026.9 preview service](/developers/server/upgrades/2026-9#preview-service)                         |
 
-<Note>
-  The bundle migration worker deployments deploy by default on 2026.9 and idle on an empty database.
-  Leave them at their defaults on a new deployment.
-</Note>
+The chart also ships a compatibility layer for data published by pre-2026.9 clients. A new deployment has none; turn it off in `values.yaml`:
+
+```yaml
+bundle_migration:
+  enabled: false
+```
 
 ## Configuration Steps
 
@@ -161,9 +163,9 @@ The test runs a conversion canary that proves the whole file-import launch path,
   `false`.
 </Warning>
 
-### Migration token secret
+### Token signing secret
 
-The server signs a short-lived token for every bundle migration job. From 2026.9 the signing key is required at boot; a server without it exits with a named error.
+The server signs short-lived tokens with a key it reads at boot. From 2026.9 the key is required; a server without it exits with a named error.
 
 1. Add a key named `bundle_migration_token_secret` to your main server secret (the one `secretName` points at), with a unique random value:
 
@@ -181,8 +183,6 @@ The server signs a short-lived token for every bundle migration job. From 2026.9
        secretName: '<SECRET_NAME>'
        secretKey: 'bundle_migration_token_secret'
    ```
-
-Rotating the value invalidates every queued migration job; on a new deployment there are none.
 
 ### Enable Workspaces
 

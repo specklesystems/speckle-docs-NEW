@@ -369,10 +369,10 @@ helm repo update
 </Step>
 <Step>
 
-Deploy the CertManager Helm release with the following command. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.
+Deploy the CertManager Helm release with the following command. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster. This installs the latest cert-manager release; check that it supports your cluster's Kubernetes version in the [cert-manager release table](https://cert-manager.io/docs/releases/), and add `--version` to pick an older release if it does not.
 
 ```shell
-helm upgrade cert-manager jetstack/cert-manager --namespace cert-manager --version v1.8.0 --set installCRDs=true --install --create-namespace --kube-context "${YOUR_CLUSTER_CONTEXT_NAME}"
+helm upgrade cert-manager jetstack/cert-manager --namespace cert-manager --set crds.enabled=true --install --create-namespace --kube-context "${YOUR_CLUSTER_CONTEXT_NAME}"
 ```
 
 <Frame>
@@ -563,7 +563,7 @@ EOF
   - `s3.bucket`: required, this is the name of your DigitalOcean space.
   - `s3.publicEndpoint`: required when `s3.endpoint` is a private or in-cluster address. Browsers and connectors fetch and upload model data through pre-signed URLs built on this value, so it must be an HTTPS URL reachable from your users' machines. Leave it empty when `s3.endpoint` is already public, as with DigitalOcean Spaces.
   - `s3.access_key`: required, this is the `Key` of your Spaces API key. You can find this by viewing it from the [Spaces API Key page on DigitalOcean](https://cloud.digitalocean.com/account/api/tokens)
-  - `s3.auth.local.enabled`: this is enabled by default. This requires users to register on your Speckle cluster with a username and password. If you wish to use a different authorization provider, such as Azure AD, GitHub, or Google, set this value to `false` and amend the relevant section below by enabling it and providing the necessary details.
+  - `server.auth.local.enabled`: this is enabled by default. This requires users to register on your Speckle cluster with a username and password. If you wish to use a different authorization provider, such as Azure AD, GitHub, or Google, set this value to `false` and amend the relevant section below by enabling it and providing the necessary details.
   - `server.email`: optional, enabling emails will enable extra features like sending invites.
     - You will need to set `server.email.enabled` to `true`.
     - Please set `server.email.host`, `server.email.username`, and optionally, depending on your email server, `server.email.port`
