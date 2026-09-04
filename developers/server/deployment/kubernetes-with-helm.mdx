@@ -6,6 +6,15 @@ description: Deploy Speckle server to Kubernetes for enterprise and production e
 To ease new deployments, we are maintaining [a Kubernetes Helm chart](https://hub.docker.com/r/speckle/speckle-server-chart).
 
 <Note>
+  This walkthrough installs the public open-source chart from Docker Hub, which follows the public
+  `speckle-server` repository (currently the 2.31 line). Speckle Enterprise Server installs a
+  different chart at a different version from a private registry: use this page for the cluster,
+  dependencies, ingress and certificates, and the [Enterprise deployment
+  guide](/developers/server/deployment/enterprise-license) for the chart, its version, and the
+  additional secrets and values it needs.
+</Note>
+
+<Note>
 This setup is not recommended for use as-is in production for a few reasons, namely:
 
 - Application-level updates: We tend to move quite fast, and if things get busy, blink twice, and you’re on an outdated server. This has security implications, too.
@@ -185,7 +194,7 @@ Speckle requires Blob Storage to store files and other data. You can provide you
 
 - Once created, click on the `Settings` tab and add a `CORS Configurations`.
 
-- Add a CORS Configuration which allows `PUT` requests from your domain.
+- Add a CORS Configuration which allows `GET`, `PUT` and `POST` requests from your domain, allows all request headers, and exposes the `ETag`, `Content-Encoding` and `Content-Length` response headers. Browsers and connectors upload and download model data directly against the bucket, and `ETag` is required to complete an upload.
 
 <Frame>
   <img
@@ -302,6 +311,7 @@ metadata:
 value: 100
 globalDefault: false
 description: "High priority (100) for business-critical services."
+---
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
@@ -309,6 +319,7 @@ metadata:
 value: 50
 globalDefault: true
 description: "Medium priority (50) - dev/test services."
+---
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
@@ -409,6 +420,7 @@ spec:
     - http01:
         ingress:
           class:  nginx
+---
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -549,6 +561,7 @@ EOF
   - `db.certificate`: required, this can be found by clicking `Download CA certificate` in your database's overview page on DigitalOcean. You can find your Postgres database by selecting it from the [Database page on DigitalOcean](https://cloud.digitalocean.com/databases). When entering the data, please use Helm's pipe operator for multiline strings and be careful with indentation. We recommend reading [Helm's guide on formatting multiline strings](https://helm.sh/docs/chart_template_guide/yaml_techniques/#strings-in-yaml), and refer to the image below for an example of this format.
   - `s3.endpoint`: required, the endpoint can be found in the Settings Page of your DigitalOcean Space. You can find your Space by selecting it from the [Spaces page on DigitalOcean](https://cloud.digitalocean.com/spaces?i=b49c54). This value must be prepended with `https://`.
   - `s3.bucket`: required, this is the name of your DigitalOcean space.
+  - `s3.publicEndpoint`: required when `s3.endpoint` is a private or in-cluster address. Browsers and connectors fetch and upload model data through pre-signed URLs built on this value, so it must be an HTTPS URL reachable from your users' machines. Leave it empty when `s3.endpoint` is already public, as with DigitalOcean Spaces.
   - `s3.access_key`: required, this is the `Key` of your Spaces API key. You can find this by viewing it from the [Spaces API Key page on DigitalOcean](https://cloud.digitalocean.com/account/api/tokens)
   - `s3.auth.local.enabled`: this is enabled by default. This requires users to register on your Speckle cluster with a username and password. If you wish to use a different authorization provider, such as Azure AD, GitHub, or Google, set this value to `false` and amend the relevant section below by enabling it and providing the necessary details.
   - `server.email`: optional, enabling emails will enable extra features like sending invites.
@@ -574,7 +587,7 @@ The remaining values can be left as their defaults.
 Run the following command to deploy the Helm chart to your Kubernetes cluster configured with the values you configured in the [prior step](#configure-your-deployment). Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.
 
 ```shell
-helm upgrade my-speckle-server oci://registry-1.docker.io/speckle/speckle-server \
+helm upgrade my-speckle-server oci://registry-1.docker.io/speckle/speckle-server-chart \
  --values values.yaml \
  --namespace speckle \
  --install --create-namespace \
@@ -664,7 +677,10 @@ You have deployed a Speckle Server on a fully controlled Kubernetes cluster.
 To reconfigure the server, you can change the values in `values.yaml` and run the following command. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.:
 
 ```shell
-helm upgrade my-speckle-server --values values.yaml --kube-context "${YOUR_CLUSTER_CONTEXT_NAME}"
+helm upgrade my-speckle-server oci://registry-1.docker.io/speckle/speckle-server-chart \
+ --values values.yaml \
+ --namespace speckle \
+ --kube-context "${YOUR_CLUSTER_CONTEXT_NAME}"
 ```
 
 ## Common Issues

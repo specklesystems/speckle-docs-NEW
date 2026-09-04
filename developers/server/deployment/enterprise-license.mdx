@@ -14,24 +14,57 @@ If you are not using the Speckle Enterprise licensed server, please refer to our
 
 </Note>
 
+<Note>
+  The current release line is 2026.9, deployed as chart version `2026.9.2`. Moving an existing
+  deployment between release lines follows the [self-hosted upgrade
+  guide](/developers/server/upgrades/introduction); bookmark it, it is not in the navigation.
+</Note>
+
 ## Prerequisites
 
 Before you can configure Speckle Enterprise Server, your organization will have already completed the following steps:
 
-1. **Deployment**: Deployed the Speckle Open Source Server on Kubernetes. See our instructions for [deploying on Kubernetes](/developers/server/deployment/kubernetes-with-helm) for more details.
-2. **License Acquisition**: Acquired a commercial license for Speckle Enterprise Server from Speckle Systems.
-3. **Package Registry Token**: Obtained a package registry token from Speckle Systems to access the private Helm charts & Docker images for Enterprise features.
-4. **Package Registry URL**: Received the URL for the private package registry hosting the Enterprise Helm charts and Docker images.
+1. **License Acquisition**: Acquired a commercial license for Speckle Enterprise Server from Speckle Systems.
+2. **Package Registry Token**: Obtained a package registry token from Speckle Systems to access the private Helm charts & Docker images for Enterprise features.
+3. **Package Registry URL**: Received the URL for the private package registry hosting the Enterprise Helm charts and Docker images.
+4. **Cluster and dependencies**: A Kubernetes cluster with Postgres, a single-node Valkey or Redis cache, blob storage (S3-compatible or Azure), an ingress controller, a certificate manager, and the `high-priority` and `low-priority` priority classes the chart schedules with. The [Kubernetes deployment guide](/developers/server/deployment/kubernetes-with-helm) walks through each of these on DigitalOcean; the same components are needed on any provider.
+
+## New deployments
+
+A new deployment installs the current release line directly. There is no data to migrate, so the [upgrade order](/developers/server/upgrades/introduction#upgrade-order) applies from your first upgrade onwards, not to the install.
+
+The current line needs the following from you before the server boots or accepts uploads. Each item is covered in this guide or on the linked release page.
+
+| Requirement                                                                                                                             | Where                                                                                                |
+| --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| A valid license in the main server secret; workspaces and the licensing module are on by default                                        | [License Key](#license-key)                                                                          |
+| A `bundle_migration_token_secret` key in the main server secret; the server refuses to boot without it                                  | [Migration token secret](#migration-token-secret)                                                    |
+| The conversion runner enabled, with a labeled node pool and an exact converter image pin; without it the server accepts no file uploads | [File imports](#file-imports-conversion-runner)                                                      |
+| Blob storage reachable from your users' browsers and connectors, with bucket CORS                                                       | [2026.7 infrastructure requirements](/developers/server/upgrades/2026-7#infrastructure-requirements) |
+| Preview rendering on CPU by default; GPU rendering is an opt-in                                                                         | [2026.9 preview service](/developers/server/upgrades/2026-9#preview-service)                         |
+
+<Note>
+  The bundle migration worker deployments deploy by default on 2026.9 and idle on an empty database.
+  Leave them at their defaults on a new deployment.
+</Note>
 
 ## Configuration Steps
 
 ### Retrieving the Helm Chart
 
-To access the private Helm charts for the Speckle Enterprise Server, you need to add the Speckle Enterprise package registry to your Helm repositories:
+The Enterprise Helm chart and images are published to an OCI registry. Log in to the registry host with the token Speckle issued you:
 
     ```bash
-    helm login <PACKAGE_REGISTRY_URL> --username <PACKAGE_REGISTRY_USERNAME> --password <PACKAGE_REGISTRY_TOKEN>
+    helm registry login <PACKAGE_REGISTRY_HOST> --username <PACKAGE_REGISTRY_USERNAME> --password <PACKAGE_REGISTRY_TOKEN>
     ```
+
+`<PACKAGE_REGISTRY_HOST>` is the host part of the package registry URL. To read the chart's reference `values.yaml`, pull the chart locally:
+
+    ```bash
+    helm pull oci://<PACKAGE_REGISTRY_URL>/speckle-server-chart --version 2026.9.2 --untar
+    ```
+
+Use this file, not the one in the public GitHub repository, as the reference for the values available on your chart version.
 
 ### Image Pull Secrets
 
@@ -63,23 +96,26 @@ You will need to create an Image Pull secret in Kubernetes to allow your cluster
      - name: speckle-enterprise-registry
    ```
 
-1. Upgrade your existing open source Speckle Server deployment, using the new Helm Chart:
-
-   ```bash
-   helm upgrade speckle-server speckle-enterprise/speckle-server \
-   --namespace <NAMESPACE> \
-   -f values.yaml
-   ```
-
 ### Deploying the Helm Chart
 
-Please follow the instructions in our [Kubernetes deployment guide](/developers/server/deployment/kubernetes-with-helm) to deploy the Speckle Enterprise Server Helm chart, making sure to specify the Enterprise version of the chart:
+Prepare `values.yaml` as described in the [Kubernetes deployment guide](/developers/server/deployment/kubernetes-with-helm#configure-your-deployment), add the Enterprise values from the sections below, then install the chart at an exact version:
 
     ```bash
-    helm install speckle-server <PACKAGE_REGISTRY_URL>/speckle-server-chart \
+    helm upgrade --install speckle-server oci://<PACKAGE_REGISTRY_URL>/speckle-server-chart \
+    --version 2026.9.2 \
     --namespace <NAMESPACE> \
     -f values.yaml
     ```
+
+The same command applies later changes to `values.yaml`, and moves to a newer chart version when you change `--version`. If you are switching an existing open-source deployment to the Enterprise chart, run it against the existing release name and namespace; the release history is kept.
+
+With the conversion runner enabled and `helm_test_enabled` on (the default), verify the installation:
+
+    ```bash
+    helm test speckle-server --namespace <NAMESPACE>
+    ```
+
+The test runs a conversion canary that proves the whole file-import launch path, including the image pull and node pool scheduling.
 
 ### License Key
 
@@ -103,7 +139,7 @@ Please follow the instructions in our [Kubernetes deployment guide](/developers/
        secretKey: 'license_token'
    ```
 
-1. Update the Helm values.yaml file to enable the Gatekeeper module, which is responsible for validating the license:
+1. Confirm the Gatekeeper module, which validates the license, is enabled. It is on by default since 2026.7; set it explicitly if your values file manages every flag:
 
    ```yaml
    featureFlags:
@@ -119,15 +155,42 @@ Please follow the instructions in our [Kubernetes deployment guide](/developers/
    kubectl rollout restart deployment speckle-objects -n <NAMESPACE>
    ```
 
+<Warning>
+  With the default values and no license, server pods do not start. Either wire in the license as
+  above, or set `featureFlags.workspacesModuleEnabled` and `featureFlags.gatekeeperModuleEnabled` to
+  `false`.
+</Warning>
+
+### Migration token secret
+
+The server signs a short-lived token for every bundle migration job. From 2026.9 the signing key is required at boot; a server without it exits with a named error.
+
+1. Add a key named `bundle_migration_token_secret` to your main server secret (the one `secretName` points at), with a unique random value:
+
+   ```bash
+   kubectl patch secret <SERVER_SECRET_NAME> -n <NAMESPACE> \
+   --type merge \
+   -p "{\"stringData\":{\"bundle_migration_token_secret\":\"$(openssl rand -hex 32)\"}}"
+   ```
+
+1. To keep the key in a different Secret instead, point the chart at it:
+
+   ```yaml
+   server:
+     bundleMigrationTokenSecret:
+       secretName: '<SECRET_NAME>'
+       secretKey: 'bundle_migration_token_secret'
+   ```
+
+Rotating the value invalidates every queued migration job; on a new deployment there are none.
+
 ### Enable Workspaces
 
 [Workspaces](/workspaces/introduction) is a core feature of Speckle Enterprise Server that provides enhanced data management and collaboration capabilities for your users.
 
-To enable workspaces in Speckle Enterprise Server, we need to configure some feature flags.
-We need to enable the Gatekeeper module, which is responsible for validating the license.
-We can then enable the Workspaces module.
+Workspaces is on by default since 2026.7 and depends on the Gatekeeper module and a valid license, configured above.
 
-1. Update the Helm values.yaml file to enable workspaces:
+1. If your values file manages every flag, set it explicitly:
 
    ```yaml
    featureFlags:
@@ -328,15 +391,20 @@ Intelligence currently requires access to an external Content Delivery Network (
 
 ### (Optional) ACC Integration
 
-<Note>ACC Integration requires Automate to be enabled.</Note>
+<Note>
+  ACC Integration requires the conversion runner: syncs convert files through it, and the server
+  refuses to start with `accIntegrationEnabled` on and the runner off.
+</Note>
 
-Currently, this feature requires a commercial license from third-party vendors. We are actively working to streamline this process and make it easier for our Enterprise customers to set up and configure this feature, but in the meantime, please contact your Speckle representative if you are interested in enabling it.
+Your deployment's callback URL also has to be registered on Speckle's Autodesk application. Contact your Speckle representative to enable the integration.
 
-### (Optional) Supporting additional file types in Direct Uploads
+### File imports (conversion runner)
 
-The open source Speckle Server allows users to upload [IFC files directly to Speckle Server for processing](/connectors/direct-uploads/introduction). We have extended this functionality in Speckle's publicly available version (https://app.speckle.systems) to support additional file types, including RVT, SKP, OBJ, and DWG files.
+From 2026.9, [direct uploads](/connectors/direct-uploads/introduction) and CDE syncs convert files in your cluster: the server launches one Kubernetes Job per file from the `speckle-converters` image, on a node pool you provision. Without the runner, the server accepts no file uploads at all, including IFC.
 
-At present, this feature requires running a separate Windows Virtual Machine and commercial licenses with third-party vendors. We are actively working to streamline this process and make it easier for our Enterprise customers to set up and configure this feature, but in the meantime, please contact your Speckle representative if you are interested in enabling it.
+With the runner on, the server accepts `ifc`, `rvt`, `nwd`, `nwc`, `dwg`, `dgn`, `skp`, `3dm`, `obj`, `step` and `stp`. Converting `3dm` and `obj` additionally needs a Rhino license token from Speckle; the other formats need no third-party license.
+
+To enable it, follow [Enable the conversion runner](/developers/server/upgrades/2026-9#enable-the-conversion-runner) on the 2026.9 page: mirror the exact converter image if you use a private registry, provision a node pool labeled `purpose=conversion` to the documented contract, then set `featureFlags.jobRunnerEnabled` and the `conversionRunner` block. `helm test` verifies the result.
 
 ### (Optional) Microsoft Azure Blob Storage support
 
@@ -360,6 +428,8 @@ s3:
 The secret access key for Azure Blob Storage should be stored in a Kubernetes secret, named `server-vars` with the property `s3_secret_key`, similar to the instructions for setting up S3 compatible blob storage in our [Kubernetes deployment guide](/developers/server/deployment/kubernetes-with-helm).
 
 ### Upgrade notes
+
+Upgrades between release lines from 2026.7 onwards are documented in the [self-hosted upgrade guide](/developers/server/upgrades/introduction), one page per release. Read the guide before every upgrade: releases must be applied in order, and 2026.9 has no downgrade path.
 
 #### Upgrading to 3.0.21
 

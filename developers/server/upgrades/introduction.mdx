@@ -49,6 +49,27 @@ order**. Each release includes work that the next release depends on:
 
 <Note>Recovery is forward-only. Complete the skipped migration. Do not downgrade.</Note>
 
+## New deployments
+
+A new deployment installs the current release line directly, 2026.9 as
+chart `2026.9.2`. With no existing data there is nothing to migrate, and
+the order above applies from your first upgrade onwards.
+
+The infrastructure requirements on the release pages are cumulative, and a
+new deployment must satisfy all of them from the start:
+
+- blob storage reachable from users' browsers and connectors, with bucket
+  CORS ([2026.7](/developers/server/upgrades/2026-7#infrastructure-requirements));
+- the `bundle_migration_token_secret` key in the main server secret; the
+  worker deployments it serves deploy by default and idle on an empty
+  database ([2026.8](/developers/server/upgrades/2026-8#enable-the-bundle-migration));
+- the conversion runner with its node pool and exact image pin, without
+  which the server accepts no file uploads, and the CPU-default preview
+  service ([2026.9](/developers/server/upgrades/2026-9#infrastructure-requirements)).
+
+The [Enterprise deployment guide](/developers/server/deployment/enterprise-license#new-deployments)
+walks through them in install order.
+
 ## Release pages
 
 | Release | Operator highlights                                                                                                                            | Page                                                      |
