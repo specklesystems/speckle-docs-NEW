@@ -217,12 +217,23 @@ conversionRunner:
   # imagePullSecrets: ['ghcr-mirror-credentials'] # when mirroring
 ```
 
-<Note>
-  `conversionRunner.rhinoToken.secretName` stays empty for standard deployments; it is only needed
-  if Speckle enables Rhino-based file formats for your deployment, and Speckle will tell you when
-  that applies. With those formats enabled and no token Secret named, conversions of those formats
-  fail fast with a configuration error instead of launching a Job.
-</Note>
+With the runner on, the server accepts these upload formats and advertises
+them to the web app and connectors: `ifc`, `rvt`, `nwd`, `nwc`, `dwg`, `dgn`,
+`skp`, `3dm`, `obj`, `step`, `stp`. The list is fixed by the server; there is
+no per-format switch.
+
+`3dm` and `obj` convert through the runner's Rhino leg, which needs a Rhino
+license token. To convert them, put the token Speckle issues you in a Secret
+and name it in `conversionRunner.rhinoToken` (`secretName`, key
+`rhino_token` by default). The token reaches each Job as a plain environment
+variable, readable by anyone with pod read access in the conversion
+namespace; the chart's Role grants that only to the server and objects
+service accounts.
+
+<Warning>
+  The server accepts `3dm` and `obj` uploads whether or not a Rhino token is configured. Without
+  one, those uploads fail fast with a configuration error instead of launching a Job.
+</Warning>
 
 ## What changes at 2026.9
 
