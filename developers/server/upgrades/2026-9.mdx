@@ -76,10 +76,10 @@ The 2026.9 compatibility line consists of:
     pull from your registry before you continue.
   </Step>
   <Step title="Provision the conversion node pool">
-    Decide where conversion Jobs run, using the [infrastructure
-    requirements](#infrastructure-requirements) below. Conversions are bursty, memory-hungry batch
-    Jobs; a dedicated tainted pool keeps them off your serving nodes. When the pool is ready,
-    `kubectl get nodes -l purpose=conversion` lists its nodes with the taint applied.
+    Decide where conversion Jobs run, using the [node pool contract](#node-pool-contract) below.
+    Conversions are bursty, memory-hungry batch Jobs; a dedicated pool keeps them off your serving
+    nodes. Label the pool `purpose=conversion`. If you also taint it, use the `PreferNoSchedule`
+    effect only. When the pool is ready, `kubectl get nodes -l purpose=conversion` lists its nodes.
   </Step>
 </Steps>
 
@@ -87,6 +87,12 @@ The 2026.9 compatibility line consists of:
   A missing converter mirror does not fail the upgrade itself; it surfaces later as conversion Jobs
   stuck in `ImagePullBackOff`. That is why the mirror step above ends with a pull check.
 </Note>
+
+<Warning>
+  Conversion Jobs select nodes by label only and carry no tolerations. A `NoSchedule` or `NoExecute`
+  taint on the pool leaves every Job, including the `helm test` canary, stuck in `Pending` with
+  `FailedScheduling`. If you taint the pool, use `PreferNoSchedule`.
+</Warning>
 
 ## Infrastructure requirements
 
@@ -100,12 +106,12 @@ which no longer deploys by default.
 The runner is off by default, and the chart cannot responsibly turn it on
 for you: it needs capacity and objects only you can provide.
 
-- **A node pool** for conversion Jobs. Label it (for example
-  `purpose=conversion`) and taint it so nothing else lands there. Size for
-  your import volume: Jobs default to 4Gi base memory and may grow to the
-  configured maximum (64Gi default ceiling) for large files; each Job has
-  a two hour deadline by default. Speckle's hosted service runs an
-  autoscaling pool of 16 vCPU / 128Gi nodes.
+- **A node pool** for conversion Jobs, labeled `purpose=conversion` (the
+  value of `conversionRunner.nodePool`). Size for your import volume: Jobs
+  default to 4Gi base memory and may grow to the configured maximum (64Gi
+  default ceiling) for large files; each Job has a two hour deadline by
+  default. The [node pool contract](#node-pool-contract) below is what the
+  pool must satisfy.
 - **A namespace and RBAC** for the Jobs. The chart creates them when you
   set `conversionRunner.createNamespace: true` and
   `conversionRunner.createResources: true` (both off by default so
@@ -116,9 +122,49 @@ for you: it needs capacity and objects only you can provide.
   Secret itself is always operator-created.
 - **The exact converter image pin**:
   `conversionRunner.converterImage: ghcr.io/specklesystems/speckle-converters:2026.9.0`
-  (or your mirrored path). Never run the runner on a mutable `latest` tag:
-  the converter and the server's migration tooling must reference the same
-  bundle format version, which an ambient `latest` silently breaks.
+  (or your mirrored path). Run the same `YYYY.M` converter and server line
+  and upgrade both together: they must reference the same bundle format
+  version. Never run the runner on a mutable `latest` tag, which silently
+  breaks that pairing on the next push.
+
+#### Node pool contract
+
+Conversion Jobs are placed by the node selector `purpose: <nodePool>` and
+nothing else. Hand this contract to whoever provisions the pool.
+
+- **Label and taint.** The `purpose` label is mandatory. A taint is
+  optional and must use the `PreferNoSchedule` effect: Jobs carry no
+  tolerations, so a hard taint strands every Job in `Pending`.
+- **Three chart values must match the pool.** The chart does not validate
+  any of them.
+  - The pool's `purpose` label equals `conversionRunner.nodePool`.
+  - The namespace the Jobs run in equals `conversionRunner.namespace`
+    (`conversion` by default). The pull Secret lives there too.
+  - `conversionRunner.maxMemoryMib` stays under node allocatable memory.
+    The 64Gi default ceiling pairs with 128 GB nodes; raise it only on
+    larger nodes.
+- **Machine shape.** Memory-optimized nodes with at least 8 GB of RAM per
+  core. The reference shape is 16 vCPU / 128 GB, which is what Speckle's
+  hosted service runs. Give each node at least 200 GB of disk: Jobs
+  declare no ephemeral-storage request, so nothing stops a large source
+  file from filling a small node disk.
+- **Autoscaling.** Minimum node count of at least 1, so the first upload
+  does not wait on a scale-up and the autoscaler can see the label.
+  Maximum roughly the number of large conversions you expect to run at
+  once, plus 2.
+
+<Note>
+  Provider-specific: on GKE and AKS, set the label and the `PreferNoSchedule` taint on the node pool
+  itself (`--node-labels` / `--node-taints` on GKE, `--labels` / `--node-taints` on AKS) so new
+  nodes inherit them. On EKS, set them on the managed node group or the Karpenter NodePool. A label
+  added by hand to running nodes is lost when the autoscaler replaces them.
+</Note>
+
+<Note>
+  If your ingress load balancer targets every node in the cluster, also label the pool
+  `node.kubernetes.io/exclude-from-external-load-balancers=true`. Autoscaler churn on the conversion
+  pool otherwise adds and removes load balancer members on every scale event.
+</Note>
 
 <Warning>
   With `accIntegrationEnabled`, `bentleyIntegrationEnabled`, or `trimbleIntegrationEnabled` set and
@@ -177,10 +223,23 @@ conversionRunner:
   # imagePullSecrets: ['ghcr-mirror-credentials'] # when mirroring
 ```
 
-<Note>
-  `conversionRunner.rhinoToken` stays empty for standard deployments; it is only needed if Speckle
-  enables Rhino-based file formats for your deployment, and Speckle will tell you when that applies.
-</Note>
+With the runner on, the server accepts these upload formats and advertises
+them to the web app and connectors: `ifc`, `rvt`, `nwd`, `nwc`, `dwg`, `dgn`,
+`skp`, `3dm`, `obj`, `step`, `stp`. The list is fixed by the server; there is
+no per-format switch.
+
+`3dm` and `obj` convert through the runner's Rhino leg, which needs a Rhino
+license token. To convert them, put the token Speckle issues you in a Secret
+and name it in `conversionRunner.rhinoToken` (`secretName`, key
+`rhino_token` by default). The token reaches each Job as a plain environment
+variable, readable by anyone with pod read access in the conversion
+namespace; the chart's Role grants that only to the server and objects
+service accounts.
+
+<Warning>
+  The server accepts `3dm` and `obj` uploads whether or not a Rhino token is configured. Without
+  one, those uploads fail fast with a configuration error instead of launching a Job.
+</Warning>
 
 ## What changes at 2026.9
 
@@ -223,6 +282,12 @@ conversionRunner:
     The conversion runner. A 2026.9 deployment with `jobRunnerEnabled` off accepts no file formats:
     the web app shows "Unsupported file type" as soon as a file is picked or dropped, before
     anything uploads. Work through [Enable the conversion runner](#enable-the-conversion-runner).
+  </Accordion>
+  <Accordion title="Conversion Jobs, or the helm test canary, sit in Pending. Why?">
+    The Jobs cannot find a node. Run `kubectl describe pod` on one and look for `FailedScheduling`:
+    either no node carries the `purpose` label matching `conversionRunner.nodePool`, or the pool has
+    a `NoSchedule` taint, which Jobs carry no toleration for. Fix the label or change the taint
+    effect to `PreferNoSchedule`; the Jobs schedule on their own once a node qualifies.
   </Accordion>
   <Accordion title="Can I run 2026.9 without any GPU?">
     Yes. CPU preview rendering is the default and needs no configuration. GPUs are an optional
