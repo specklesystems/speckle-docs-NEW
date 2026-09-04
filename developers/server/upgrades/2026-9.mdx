@@ -40,7 +40,7 @@ The 2026.9 compatibility line consists of:
 
 | Component                         | Version         | Notes                                                                                                                                      |
 | --------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| speckle-server                    | **2026.9.2**    | Deploy this version, not 2026.9.0 (its publish was incomplete). Includes the migration worker image at the same tag                        |
+| speckle-server                    | **2026.9.3**    | Deploy this version, not 2026.9.0 (its publish was incomplete). Includes the migration worker image at the same tag                        |
 | speckle-converters                | **2026.9.0**    | New component: the conversion runner Job image, `ghcr.io/specklesystems/speckle-converters`. Pin the exact tag, never `latest`             |
 | speckle-automate                  | 2026.9.0        | Execution engine release                                                                                                                   |
 | speckle-intelligence (dashboards) | 2026.9.0        | Dashboards app and Helm chart                                                                                                              |
@@ -66,13 +66,14 @@ The 2026.9 compatibility line consists of:
     should end with a backup per database, each dated after the migration check above.
   </Step>
   <Step title="Confirm the migration token secret exists">
-    The key `bundle_migration_token_secret` in your main server secret is now required at boot: a
-    2026.9 server refuses to start without it, with a named error. You added it during the 2026.8
-    upgrade; the key should still appear in the secret's data.
+    The key `bundle_migration_token_secret` in your main server secret is what lets publishes from
+    pre-2026.9 clients complete. You added it during the 2026.8 upgrade; the key should still appear
+    in the secret's data. A 2026.9.3 server without it starts, logs a warning, and rejects every
+    such publish with `LEGACY_SEND_UNSUPPORTED`.
   </Step>
   <Step title="Mirror the new image (private registries)">
     Add `ghcr.io/specklesystems/speckle-converters:2026.9.0` to your registry, and keep
-    `speckle-bundle-migration-service` mirrored at the server tag (`2026.9.2`). Both tags should
+    `speckle-bundle-migration-service` mirrored at the server tag (`2026.9.3`). Both tags should
     pull from your registry before you continue.
   </Step>
   <Step title="Provision the conversion node pool">
@@ -202,7 +203,7 @@ This is the required step for file imports to work at all.
     matching the excerpt below.
   </Step>
   <Step title="Upgrade the release and verify">
-    Upgrade to chart 2026.9.2. With `helm_test_enabled` on, `helm test` runs a conversion canary
+    Upgrade to chart 2026.9.3. With `helm_test_enabled` on, `helm test` runs a conversion canary
     that proves the whole launch path, including the image pull. Then upload a file through the web
     app: it should convert and open in the viewer.
   </Step>
@@ -248,9 +249,15 @@ service accounts.
   they render blank and fail previews until the migration processes them.
 - **Keep the bundle migration enabled.** The worker deployments now deploy
   by default (`bundle_migration.enabled: true`), and the migration queues
-  and API are always on: versions still published in the old format by
-  older clients complete through them. `featureFlags.bundleMigrationEnabled`
-  now gates only the backfill of pre-existing versions.
+  and API are live whenever `bundle_migration_token_secret` is set:
+  versions still published in the old format by older clients complete
+  through them. `featureFlags.bundleMigrationEnabled` now gates only the
+  backfill of pre-existing versions. From 2026.9.3 the key is also the
+  switch for those old-format publishes: a server without it boots and
+  rejects them with `LEGACY_SEND_UNSUPPORTED` (HTTP 422). Upgrading
+  deployments keep the key.
+- **2026.9.0 to 2026.9.2 refuse to boot without the key.** If you land on
+  one of those patches, the key is a hard requirement; 2026.9.3 lifts it.
 - **The objects REST API is deprecated, not removed.** Existing
   integrations keep working on 2026.9; plan their move to the current
   APIs.
