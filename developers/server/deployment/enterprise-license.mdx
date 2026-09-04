@@ -15,7 +15,7 @@ If you are not using the Speckle Enterprise licensed server, please refer to our
 </Note>
 
 <Note>
-  The current release line is 2026.9, deployed as chart version `2026.9.2`. Moving an existing
+  The current release line is 2026.9, deployed as chart version `2026.9.3`. Moving an existing
   deployment between release lines follows the [self-hosted upgrade
   guide](/developers/server/upgrades/introduction); bookmark it, it is not in the navigation.
 </Note>
@@ -51,11 +51,6 @@ bundle_migration:
 
 Without the key the server starts, logs one warning, and accepts 2026.9-format publishes only. A publish from an older connector, an older SDK version, or the deprecated objects REST API is rejected with `LEGACY_SEND_UNSUPPORTED` (HTTP 422); the error message points the user at the [publishing migration guide](/developers/migration/publish-through-ingestions). Treat the deployment as compatible with the 2026.9 connector and SDK line only.
 
-<Note>
-  Chart `2026.9.2` predates this behaviour and refuses to boot without the key. Until you run the
-  patch that carries it, add the key with any random value, for example `openssl rand -hex 32`.
-</Note>
-
 ## Configuration Steps
 
 ### Retrieving the Helm Chart
@@ -69,7 +64,7 @@ The Enterprise Helm chart and images are published to an OCI registry. Log in to
 `<PACKAGE_REGISTRY_HOST>` is the host part of the package registry URL. To read the chart's reference `values.yaml`, pull the chart locally:
 
     ```bash
-    helm pull oci://<PACKAGE_REGISTRY_URL>/speckle-server-chart --version 2026.9.2 --untar
+    helm pull oci://<PACKAGE_REGISTRY_URL>/speckle-server-chart --version 2026.9.3 --untar
     ```
 
 Use this file, not the one in the public GitHub repository, as the reference for the values available on your chart version.
@@ -110,7 +105,7 @@ Prepare `values.yaml` as described in the [Kubernetes deployment guide](/develop
 
     ```bash
     helm upgrade --install speckle-server oci://<PACKAGE_REGISTRY_URL>/speckle-server-chart \
-    --version 2026.9.2 \
+    --version 2026.9.3 \
     --namespace <NAMESPACE> \
     -f values.yaml
     ```
