@@ -144,10 +144,43 @@ custom code, just more steps than the single GraphQL query it replaces.
   serves the latest version.
 </Note>
 
+## Payload size, and moving to the bundle directly
+
+Losing `select` and `query` doesn't break anything — you still end up with the same elements once
+you've filtered client-side — but it does change what "minimal" means. The old query returned
+exactly the fields you asked for, for exactly the elements that matched. The properties endpoint
+above always returns everything: every indexed property, on every element, every time you call it.
+That's a fixed cost that scales with model size, not with how much of the model you actually
+wanted.
+
+For a one-off check, or a model with a few hundred elements, that's a non-issue. For something that
+runs repeatedly against a large model — a nightly flow, a live dashboard — downloading and
+re-filtering the full properties table on every run is the wrong shape for the job, even though it
+technically works.
+
+At that point, don't look for a lighter version of the JSON export — there isn't one yet (see the
+FAQ below). Instead, stop treating the version as "a JSON payload to filter" and start reading its
+bundle directly:
+
+```
+GET /api/v2/projects/{projectId}/models/{modelId}/versions/{versionId}/artifacts
+```
+
+This returns presigned URLs to the version's actual parquet files — the same underlying data the
+properties export flattens into JSON, but structured for reading only the columns and rows you
+need instead of pulling the whole table every time. This is what the SDK paths below attach to
+directly, which is why they scale where the JSON export doesn't.
+
+<Note>
+  This only helps if your integration can run code that reads Parquet — it isn't a fit for a
+  low-code tool like Power Automate, which is exactly the properties-export endpoint's use case
+  instead.
+</Note>
+
 ### From an SDK instead of raw HTTP
 
-If you're writing a script rather than a low-code flow, an SDK's native path is usually a better
-fit than downloading the full properties table yourself:
+For anything that can run real code rather than a low-code flow, an SDK's native path reads the
+bundle above directly instead of downloading the full properties table yourself:
 
 - **Python:** see [Assess specklepy breaking
   changes](/next/developers/sdks/python/breaking-changes) — `operations.receive3` gives direct,
