@@ -19,19 +19,19 @@ conceptual model behind this change and who's affected, see [Object model in
 developers](/developers/migration/data-model-migration).
 
 <Warning>
-  Sending a 2026.9 version's `referencedObject` to the legacy objects endpoints
-  (`/objects/{projectId}/{objectId}`, `Project.object(id)`) returns **404** with
-  `error: "BUNDLE_REFERENCE_NOT_FOUND"`. Treat that as "this version uses the new format," never
-  as "empty model." You can tell which format a version uses from the shape of `referencedObject`
-  itself — see the table below.
+  Sending a 2026.9 version's `referencedObject` to the legacy objects endpoints (`/objects/
+  {projectId}/{objectId}`, `Project.object(id)`) returns **404** with `error:
+  "BUNDLE_REFERENCE_NOT_FOUND"`. Treat that as "this version uses the new format," never as "empty
+  model." You can tell which format a version uses from the shape of `referencedObject` itself — see
+  the table below.
 </Warning>
 
 ## Tell the two formats apart
 
-| `referencedObject` looks like                                        | Format                | `object.children` filtering |
-| ---------------------------------------------------------------------- | ---------------------- | ---------------------------- |
-| A 32-character hex string (e.g. `c462dbafa995e9d1ee3c60ccb0bc1087`)    | Current object graph   | Works as before              |
-| `bundle.<projectId>.<modelId>.<versionId>`                              | 2026.9 columnar format | **Not supported**            |
+| `referencedObject` looks like                                       | Format                 | `object.children` filtering |
+| ------------------------------------------------------------------- | ---------------------- | --------------------------- |
+| A 32-character hex string (e.g. `c462dbafa995e9d1ee3c60ccb0bc1087`) | Current object graph   | Works as before             |
+| `bundle.<projectId>.<modelId>.<versionId>`                          | 2026.9 columnar format | **Not supported**           |
 
 Workspaces in compatibility mode (see [Data model migration for
 developers](/developers/migration/data-model-migration#whos-affected)) can still produce the
@@ -96,8 +96,22 @@ a pre-filtered result:
 
 ```json
 [
-  { "objectId": "3a1f...", "path": "ifcType", "valueText": "IfcDoor", "valueNum": null, "type": "string", "units": null },
-  { "objectId": "3a1f...", "path": "name", "valueText": "Door-01", "valueNum": null, "type": "string", "units": null }
+  {
+    "objectId": "3a1f...",
+    "path": "ifcType",
+    "valueText": "IfcDoor",
+    "valueNum": null,
+    "type": "string",
+    "units": null
+  },
+  {
+    "objectId": "3a1f...",
+    "path": "name",
+    "valueText": "Door-01",
+    "valueNum": null,
+    "type": "string",
+    "units": null
+  }
 ]
 ```
 
@@ -122,11 +136,11 @@ In a low-code tool such as Power Automate, that's two **Filter array** actions i
 custom code, just more steps than the single GraphQL query it replaces.
 
 <Note>
-  This endpoint doesn't accept filter parameters yet — it always returns the whole properties
-  table, and you filter after receiving it. That's fine at door-count scale; less fine on a model
-  with hundreds of thousands of elements. There's also a `GET
-  .../versions/{versionId}/eav/download` variant for a plain download, and a `GET
-  .../models/{modelId}/eav/download` variant that always serves the latest version.
+  This endpoint doesn't accept filter parameters yet — it always returns the whole properties table,
+  and you filter after receiving it. That's fine at door-count scale; less fine on a model with
+  hundreds of thousands of elements. There's also a `GET .../versions/{versionId}/eav/download`
+  variant for a plain download, and a `GET .../models/{modelId}/eav/download` variant that always
+  serves the latest version.
 </Note>
 
 ### From an SDK instead of raw HTTP
