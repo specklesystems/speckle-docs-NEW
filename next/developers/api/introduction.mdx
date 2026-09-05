@@ -197,6 +197,26 @@ bundle above directly instead of downloading the full properties table yourself:
     a bug or a temporary gap: server-side filtering over the object tree doesn't apply to that
     format. Use the properties endpoint above instead.
   </Accordion>
+  <Accordion title="Can I still use object.children for versions created before 2026.9?">
+    Yes, unchanged. Nothing on this page affects a version whose `referencedObject` is a hex
+    string. The two formats can coexist — check the version you actually have rather than assuming
+    based on project or workspace.
+  </Accordion>
+  <Accordion title="I just uploaded a file and the version/properties endpoints return nothing yet — is something wrong?">
+    Probably not. A version's id is reserved as soon as ingestion starts, but the version — and its
+    properties — don't exist until ingestion actually succeeds, which can take from several seconds
+    to around a minute depending on the file and rail. Querying immediately after upload will
+    legitimately show nothing. Poll `Model.latestIngestion.statusData` until it reports
+    `ModelIngestionSuccessStatus`, then query the version it names — don't fire the read on a timer
+    or a webhook that isn't actually tied to ingestion completion.
+  </Accordion>
+  <Accordion title="Does the properties endpoint only work for 2026.9 (bundle) versions?">
+    No — it works for any version that already has a properties artifact built, hex-referenced or
+    bundle-referenced. It 404s with `"Version not found or has no EAV artefact"` if that version
+    hasn't had one built yet, which is a different failure than "wrong format." Bundle versions
+    always have one; older versions may or may not, depending on whether they've been through
+    backfill.
+  </Accordion>
   <Accordion title="Is server-side filtering coming to the properties endpoint?">
     Not documented yet. This page will be updated when that changes. For now, download and filter
     client-side.
@@ -212,5 +232,26 @@ bundle above directly instead of downloading the full properties table yourself:
     Not available today for 2026.9 versions — count distinct `objectId` values in the properties
     export, or use an SDK's native accessors (see [From an SDK instead of raw
     HTTP](#from-an-sdk-instead-of-raw-http)).
+  </Accordion>
+  <Accordion title="Can a low-code tool like Power Automate read the bundle artifacts directly?">
+    Not without extra tooling. Power Automate's standard cloud-flow actions have no built-in way to
+    parse Parquet — that's a gap in the platform, not something Speckle can route around. The
+    properties export endpoint exists specifically so low-code tools have a plain-JSON option; the
+    bundle artifacts are for integrations that can run code. See [Payload size, and moving to the
+    bundle directly](#payload-size-and-moving-to-the-bundle-directly).
+  </Accordion>
+  <Accordion title="How do I decide between the JSON properties export and reading the bundle directly?">
+    Two questions decide it: can your integration run code that reads Parquet, and does it run
+    repeatedly against a large model? If either answer is no — a low-code flow, a one-off check, a
+    small model — use the JSON properties export; it's simpler and the overhead doesn't matter. If
+    both are yes — a script or service running on a schedule against a model with many thousands of
+    elements — read the bundle directly instead. See [Payload size, and moving to the bundle
+    directly](#payload-size-and-moving-to-the-bundle-directly).
+  </Accordion>
+  <Accordion title="Can one project have both hex-reference and bundle-reference versions?">
+    Yes. Format is decided per version, at the time it's created, not per project or workspace.
+    Older versions and versions made while compatibility mode was active can be hex-referenced
+    while newer versions on the same model are bundle-referenced. Always check the version you're
+    actually reading, never assume from a sibling version or from when the project was created.
   </Accordion>
 </AccordionGroup>
