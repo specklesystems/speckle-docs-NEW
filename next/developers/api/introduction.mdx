@@ -10,11 +10,159 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 <NextPreviewBanner />
 
-2026.9 developer notes for GraphQL, REST, and webhooks are not on this preview yet. Use the
-[current GraphQL documentation](/developers/api/graphql) until those notes land. REST and webhooks
-stay on their Current pages as well.
+This page covers what changes for **GraphQL and REST** consumers in 2026.9 — scripts, low-code
+flows (Power Automate, Zapier), and custom integrations that call the API directly. It is not a
+full reference: for everything unaffected, keep using the current
+[GraphQL](/developers/api/graphql) and [REST](/developers/api/rest) documentation. For the
+conceptual model behind this change and who's affected, see [Object model in
+2026.9](/next/developers/object-model/overview) and [Data model migration for
+developers](/developers/migration/data-model-migration).
+
+<Warning>
+  Sending a 2026.9 version's `referencedObject` to the legacy objects endpoints
+  (`/objects/{projectId}/{objectId}`, `Project.object(id)`) returns **404** with
+  `error: "BUNDLE_REFERENCE_NOT_FOUND"`. Treat that as "this version uses the new format," never
+  as "empty model." You can tell which format a version uses from the shape of `referencedObject`
+  itself — see the table below.
+</Warning>
+
+## Tell the two formats apart
+
+| `referencedObject` looks like                                        | Format                | `object.children` filtering |
+| ---------------------------------------------------------------------- | ---------------------- | ---------------------------- |
+| A 32-character hex string (e.g. `c462dbafa995e9d1ee3c60ccb0bc1087`)    | Current object graph   | Works as before              |
+| `bundle.<projectId>.<modelId>.<versionId>`                              | 2026.9 columnar format | **Not supported**            |
+
+Workspaces in compatibility mode (see [Data model migration for
+developers](/developers/migration/data-model-migration#whos-affected)) can still produce the
+first shape for uploads and ACC sync, until **1 November 2026**. Check the shape of
+`referencedObject` on the version you actually have — don't assume based on upload date or
+workspace settings alone.
+
+## What's no longer supported
+
+For a version whose `referencedObject` is a bundle reference, these stop working. There is
+currently no GraphQL-level replacement for the filtering and selection behavior — see [Get element
+data today](#get-element-data-today) for what to use instead.
+
+- **`Object.children(query:, select:, limit:)`** — the server-side filter/select mechanism (for
+  example, filtering by an IFC type and selecting a handful of property paths in one request).
+- **`Object.totalChildrenCount`** — nothing to count against; there is no object tree.
+- **`Project.object(id: referencedObject)`** — the reference isn't a content hash, so there's
+  nothing to look up.
+- **Reading geometry as JSON** (the `data` field) — 2026.9 geometry is stored in a binary format
+  read by the Viewer and SDKs, not served as a JSON payload.
+
+## Get element data today
+
+Prior to 2026.9, one GraphQL query could filter elements by property and select just the fields
+you needed:
+
+<Tabs>
+  <Tab title="Prior to 2026.9">
+    ```graphql Prior to 2026.9
+    query ($myQuery: [JSONObject!]) {
+      project(id: "PROJECT_ID") {
+        object(id: "REFERENCED_OBJECT") {
+          totalChildrenCount
+          children(query: $myQuery, select: ["id", "Name"], limit: 100) {
+            totalCount
+            objects { id data }
+          }
+        }
+      }
+    }
+    ```
+
+    ```json Variables
+    { "myQuery": [{ "field": "ifcType", "value": "IfcDoor", "operator": "=" }] }
+    ```
+
+  </Tab>
+  <Tab title="2026.9">
+    ```bash 2026.9
+    curl -X POST \
+      "https://app.speckle.systems/api/v1/projects/PROJECT_ID/models/MODEL_ID/versions/VERSION_ID/eav/query" \
+      -H "Authorization: Bearer YOUR_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{"format": "json"}'
+    ```
+
+  </Tab>
+</Tabs>
+
+The 2026.9 call returns every indexed property on every element, one row per property, rather than
+a pre-filtered result:
+
+```json
+[
+  { "objectId": "3a1f...", "path": "ifcType", "valueText": "IfcDoor", "valueNum": null, "type": "string", "units": null },
+  { "objectId": "3a1f...", "path": "name", "valueText": "Door-01", "valueNum": null, "type": "string", "units": null }
+]
+```
+
+To reproduce the "every `IfcDoor`" filter from the query above, filter that array yourself:
+
+<Steps>
+  <Step title="Find matching object ids">
+    Filter the rows for `path == "ifcType"` and `valueText == "IfcDoor"`, and collect their
+    `objectId` values.
+  </Step>
+  <Step title="Pull their other properties">
+    Filter the full array again for rows whose `objectId` is one of those ids. The outcome is every
+    property row belonging to a matching element.
+  </Step>
+  <Step title="Group by objectId">
+    Group the result by `objectId` to get one record per door with its properties. The outcome
+    matches what `select` used to return, without the size limit.
+  </Step>
+</Steps>
+
+In a low-code tool such as Power Automate, that's two **Filter array** actions in sequence — no
+custom code, just more steps than the single GraphQL query it replaces.
 
 <Note>
-  More API notes will land later. This preview does not yet describe 2026.9 request or schema
-  changes.
+  This endpoint doesn't accept filter parameters yet — it always returns the whole properties
+  table, and you filter after receiving it. That's fine at door-count scale; less fine on a model
+  with hundreds of thousands of elements. There's also a `GET
+  .../versions/{versionId}/eav/download` variant for a plain download, and a `GET
+  .../models/{modelId}/eav/download` variant that always serves the latest version.
 </Note>
+
+### From an SDK instead of raw HTTP
+
+If you're writing a script rather than a low-code flow, an SDK's native path is usually a better
+fit than downloading the full properties table yourself:
+
+- **Python:** see [Assess specklepy breaking
+  changes](/next/developers/sdks/python/breaking-changes) — `operations.receive3` gives direct,
+  filtered property access (`model.objects_with("ifcType")`), and the legacy `operations.receive`
+  keeps working as a compatibility path.
+- **.NET:** see [Assess .NET SDK breaking changes](/next/developers/sdks/dotnet/breaking-changes).
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Why did my object.children query suddenly return null?">
+    The version you queried is in the 2026.9 format — check whether `referencedObject` is a
+    `bundle.` reference (see [Tell the two formats apart](#tell-the-two-formats-apart)). This isn't
+    a bug or a temporary gap: server-side filtering over the object tree doesn't apply to that
+    format. Use the properties endpoint above instead.
+  </Accordion>
+  <Accordion title="Is server-side filtering coming to the properties endpoint?">
+    Not documented yet. This page will be updated when that changes. For now, download and filter
+    client-side.
+  </Accordion>
+  <Accordion title="My workspace has compatibility mode on — why is object.children still failing?">
+    Compatibility mode affects new uploads and ACC sync going forward; it doesn't change versions
+    that already exist. Confirm you're querying the version created after compatibility mode was
+    turned on, and that its `referencedObject` is a hex string, not a `bundle.` reference. See [Data
+    model migration for developers](/developers/migration/data-model-migration#whos-affected) —
+    compatibility mode ends **1 November 2026** either way, so plan the move regardless.
+  </Accordion>
+  <Accordion title="How do I get a total element count without walking the whole properties table?">
+    Not available today for 2026.9 versions — count distinct `objectId` values in the properties
+    export, or use an SDK's native accessors (see [From an SDK instead of raw
+    HTTP](#from-an-sdk-instead-of-raw-http)).
+  </Accordion>
+</AccordionGroup>
