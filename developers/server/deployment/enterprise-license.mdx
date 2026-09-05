@@ -428,17 +428,17 @@ Conversion Jobs are placed by the node selector `purpose: <nodePool>` and nothin
 </Note>
 
 <Warning>
-  Conversion Jobs select nodes by label only and carry no tolerations. A `NoSchedule` or `NoExecute`
-  taint on the pool leaves every Job, including the `helm test` canary, stuck in `Pending` with
-  `FailedScheduling`. If you taint the pool, use `PreferNoSchedule`.
+  A `NoSchedule` or `NoExecute` taint on the pool leaves every Job, including the `helm test`
+  canary, stuck in `Pending`. If you taint the pool, use `PreferNoSchedule`.
 </Warning>
 
 #### Enable the runner
 
 <Steps>
   <Step title="Enable the runner on the server">
-    Upload acceptance derives from the runner: with it off, the server accepts no file formats. Set
-    `featureFlags.jobRunnerEnabled: true` in your values.
+    Set `featureFlags.jobRunnerEnabled: true` in your values. Upload acceptance derives from the
+    runner: once the server restarts with it on, the web app's upload dialog lists the supported
+    formats.
   </Step>
   <Step title="Configure the conversionRunner block">
     Set the exact converter image, the node pool, the creation gates, and the pull Secret. Your
@@ -471,13 +471,28 @@ conversionRunner:
   the conversion jobrunner"). Enable the runner before you turn on any CDE integration.
 </Warning>
 
-If conversion Jobs, or the `helm test` canary, sit in `Pending`, run `kubectl describe pod` on one and look for `FailedScheduling`: either no node carries the `purpose` label matching `conversionRunner.nodePool`, or the pool has a `NoSchedule` taint, which Jobs carry no toleration for. Fix the label or change the taint effect to `PreferNoSchedule`; the Jobs schedule on their own once a node qualifies. A Job stuck in `ImagePullBackOff` means the pull Secret is missing from the conversion namespace or not named in `conversionRunner.imagePullSecrets`.
+<AccordionGroup>
+  <Accordion title="Conversion Jobs, or the helm test canary, sit in Pending. Why?">
+    The Jobs cannot find a node. Run `kubectl describe pod` on one and look for `FailedScheduling`:
+    either no node carries the `purpose` label matching `conversionRunner.nodePool`, or the pool has
+    a `NoSchedule` taint, which Jobs carry no toleration for. Fix the label or change the taint
+    effect to `PreferNoSchedule`; the Jobs schedule on their own once a node qualifies.
+  </Accordion>
+  <Accordion title="A conversion Job is stuck in ImagePullBackOff. What is missing?">
+    The pull Secret in the conversion namespace. Create it there with the command above and name it
+    in `conversionRunner.imagePullSecrets`; the server namespace's Secret does not reach the Jobs.
+  </Accordion>
+  <Accordion title="File uploads are rejected as unsupported before anything uploads. What did I miss?">
+    The runner is off. With `featureFlags.jobRunnerEnabled` false the server accepts no file
+    formats, and the web app says "Unsupported file type" as soon as a file is picked.
+  </Accordion>
+</AccordionGroup>
 
 #### Rhino token for 3dm and obj
 
 `3dm` and `obj` convert through the runner's Rhino leg, which runs Rhino under McNeel's core-hour billing. The token is yours to supply, not Speckle's: generate a core-hour billing auth token in the [McNeel Licenses Portal](https://www.rhino3d.com/licenses) under your own Rhino account or team, so that usage bills to your organization.
 
-Store the token in a Kubernetes Secret and name it in `conversionRunner.rhinoToken`:
+Leave `conversionRunner.rhinoToken` empty if you do not need those formats. To enable them, store the token in a Kubernetes Secret and name it in `conversionRunner.rhinoToken`:
 
 ```bash
 kubectl create secret generic rhino-token \
@@ -498,8 +513,7 @@ The token reaches each Rhino-routed Job as a plain environment variable, readabl
 
 <Warning>
   The server accepts `3dm` and `obj` uploads whether or not a Rhino token is configured. Without
-  one, those uploads fail fast with a configuration error instead of launching a Job. Leave
-  `conversionRunner.rhinoToken` empty if you do not need those formats.
+  one, those uploads fail fast with a configuration error instead of launching a Job.
 </Warning>
 
 ### Blob storage reachable by clients
