@@ -16,6 +16,7 @@ alwaysApply: true
 - Use task or outcome first; avoid internal product names unless necessary.
 - Sentence case; 50 to 65 characters where possible.
 - One clear promise; no compound clauses.
+- Quote frontmatter `title` when the value is only a YAML float (for example `2026.9`). Unquoted `title: 2026.9` parses as a number and Mintlify PageHeader crashes (`trim is not a function`). Same if the title is only an integer.
 
 ## Navigation Labels
 
