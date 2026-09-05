@@ -1,7 +1,7 @@
 ---
-title: Interfaces notes in 2026.9
+title: Get element data without object.children in 2026.9
 sidebarTitle: Interfaces
-description: 2026.9 notes for GraphQL, REST, and webhooks are not on this preview yet.
+description: What changes for GraphQL and REST in 2026.9, and how to replace object.children filtering.
 contextual:
   options: []
 ---
@@ -10,11 +10,262 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 <NextPreviewBanner />
 
-2026.9 developer notes for GraphQL, REST, and webhooks are not on this preview yet. Use the
-[current GraphQL documentation](/developers/api/graphql) until those notes land. REST and webhooks
-stay on their Current pages as well.
+This page covers what changes for **GraphQL and REST** consumers in 2026.9 — scripts, low-code
+flows (Power Automate, Zapier, n8n), and custom integrations that call the API directly. It is not a
+full reference: for everything unaffected, keep using the current
+[GraphQL](/developers/api/graphql) and [REST](/developers/api/rest) documentation. For the
+conceptual model behind this change and who's affected, see [Object model in
+2026.9](/next/developers/object-model/overview) and [Data model migration for
+developers](/developers/migration/data-model-migration).
+
+<Warning>
+  Sending a 2026.9 version's `referencedObject` to the legacy objects endpoints (`/objects/
+  {projectId}/{objectId}`, `Project.object(id)`) returns **404** with `error:
+  "BUNDLE_REFERENCE_NOT_FOUND"`. Treat that as "this version uses the new format," never as "empty
+  model." You can tell which format a version uses from the shape of `referencedObject` itself — see
+  the table below.
+</Warning>
+
+## Tell the two formats apart
+
+| `referencedObject` looks like                                       | Format                 | `object.children` filtering |
+| ------------------------------------------------------------------- | ---------------------- | --------------------------- |
+| A 32-character hex string (e.g. `c462dbafa995e9d1ee3c60ccb0bc1087`) | Current object graph   | Works as before             |
+| `bundle.<projectId>.<modelId>.<versionId>`                          | 2026.9 columnar format | **Not supported**           |
+
+Workspaces in compatibility mode — sometimes called "legacy conversions" or "legacy sync" in
+support conversations, same thing — can still produce the first shape for uploads and ACC sync,
+until **1 November 2026**. See [Data model migration for
+developers](/developers/migration/data-model-migration#whos-affected) for how it's granted. Check
+the shape of `referencedObject` on the version you actually have — don't assume based on upload
+date or workspace settings alone.
+
+## What's no longer supported
+
+For a version whose `referencedObject` is a bundle reference, these stop working. There is
+currently no GraphQL-level replacement for the filtering and selection behavior — see [Get element
+data today](#get-element-data-today) for what to use instead.
+
+- **`Object.children(query:, select:, limit:)`** — the server-side filter/select mechanism (for
+  example, filtering by an IFC type and selecting a handful of property paths in one request).
+- **`Object.totalChildrenCount`** — nothing to count against; there is no object tree.
+- **`Project.object(id: referencedObject)`** — the reference isn't a content hash, so there's
+  nothing to look up.
+- **Reading geometry as JSON** (the `data` field) — 2026.9 geometry is stored in a binary format
+  read by the Viewer and SDKs, not served as a JSON payload.
+
+## Get element data today
+
+Prior to 2026.9, one GraphQL query could filter elements by property and select just the fields
+you needed:
+
+<Tabs>
+  <Tab title="Prior to 2026.9">
+    ```graphql Prior to 2026.9
+    query ($myQuery: [JSONObject!]) {
+      project(id: "PROJECT_ID") {
+        object(id: "REFERENCED_OBJECT") {
+          totalChildrenCount
+          children(query: $myQuery, select: ["id", "Name"], limit: 100) {
+            totalCount
+            objects { id data }
+          }
+        }
+      }
+    }
+    ```
+
+    ```json Variables
+    { "myQuery": [{ "field": "ifcType", "value": "IfcDoor", "operator": "=" }] }
+    ```
+
+  </Tab>
+  <Tab title="2026.9">
+    ```bash 2026.9
+    curl -X POST \
+      "https://app.speckle.systems/api/v1/projects/PROJECT_ID/models/MODEL_ID/versions/VERSION_ID/eav/query" \
+      -H "Authorization: Bearer YOUR_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{"format": "json"}'
+    ```
+
+  </Tab>
+</Tabs>
+
+The 2026.9 call returns every indexed property on every element, one row per property, rather than
+a pre-filtered result:
+
+```json
+[
+  {
+    "objectId": "3a1f...",
+    "path": "ifcType",
+    "valueText": "IfcDoor",
+    "valueNum": null,
+    "type": "string",
+    "units": null
+  },
+  {
+    "objectId": "3a1f...",
+    "path": "name",
+    "valueText": "Door-01",
+    "valueNum": null,
+    "type": "string",
+    "units": null
+  }
+]
+```
+
+To reproduce the "every `IfcDoor`" filter from the query above, filter that array yourself:
+
+<Steps>
+  <Step title="Find matching object ids">
+    Filter the rows for `path == "ifcType"` and `valueText == "IfcDoor"`, and collect their
+    `objectId` values. The outcome is the id of every door in the model.
+  </Step>
+  <Step title="Pull their other properties">
+    Filter the full array again for rows whose `objectId` is one of those ids. The outcome is every
+    property row belonging to a matching element.
+  </Step>
+  <Step title="Group by objectId">
+    Group the result by `objectId` to get one record per door with its properties. The outcome
+    matches what `select` used to return, without the size limit.
+  </Step>
+</Steps>
+
+In a low-code tool, that's two filter steps in sequence — two **Filter array** actions in Power
+Automate, two **Filter** nodes in n8n — no custom code, just more steps than the single GraphQL
+query it replaces.
+
+There's also a `GET .../versions/{versionId}/eav/download` variant for a plain download, and a `GET
+.../models/{modelId}/eav/download` variant that always serves the latest version.
 
 <Note>
-  More API notes will land later. This preview does not yet describe 2026.9 request or schema
-  changes.
+  This endpoint doesn't accept filter parameters yet — it always returns the whole properties table,
+  and you filter after receiving it. That's fine at door-count scale; less fine on a model with
+  hundreds of thousands of elements.
 </Note>
+
+## Payload size, and moving to the bundle directly
+
+Losing `select` and `query` doesn't break anything — you still end up with the same elements once
+you've filtered client-side — but it does change what "minimal" means. The old query returned
+exactly the fields you asked for, for exactly the elements that matched. The properties endpoint
+above always returns everything: every indexed property, on every element, every time you call it.
+That's a fixed cost that scales with model size, not with how much of the model you actually
+wanted.
+
+For a one-off check, or a model with a few hundred elements, that's a non-issue. For something that
+runs repeatedly against a large model — a nightly flow, a live dashboard — downloading and
+re-filtering the full properties table on every run is the wrong shape for the job, even though it
+technically works.
+
+At that point, don't look for a lighter version of the JSON export — there isn't one yet (see the
+FAQ below). Instead, stop treating the version as "a JSON payload to filter" and start reading its
+bundle directly:
+
+```
+GET /api/v2/projects/{projectId}/models/{modelId}/versions/{versionId}/artifacts
+```
+
+This returns presigned URLs to the version's actual parquet files — the same underlying data the
+properties export flattens into JSON, but structured for reading only the columns and rows you
+need instead of pulling the whole table every time. This is what the SDK paths below attach to
+directly, which is why they scale where the JSON export doesn't.
+
+<Note>
+  This only helps if your integration can run code that reads Parquet — it isn't a fit for most
+  low-code tools, which is exactly the properties-export endpoint's use case instead. Self-hosted
+  n8n is a partial exception; see the FAQ below.
+</Note>
+
+### From an SDK instead of raw HTTP
+
+For anything that can run real code rather than a low-code flow, an SDK's native path reads the
+bundle above directly instead of downloading the full properties table yourself:
+
+- **Python:** see [Assess specklepy breaking
+  changes](/next/developers/sdks/python/breaking-changes) — `operations.receive3` gives direct,
+  filtered property access (`model.objects_with("ifcType")`), and the legacy `operations.receive`
+  keeps working as a compatibility path.
+- **.NET:** see [Assess .NET SDK breaking changes](/next/developers/sdks/dotnet/breaking-changes).
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="My upload fails outright with an error — is that this page?">
+    Probably not. If the failure happens at upload time — a 400 error, code `UNSUPPORTED_FILE_TYPE`
+    — you're almost certainly still calling the deprecated `startFileImport` mutation, which the
+    2026.9 server rejects outright as of 1 September 2026. See [File
+    uploads](/developers/api/guides/file-uploads#what-developers-need-to-know) to switch to
+    `startFileIngestion`. This page covers a different symptom: uploads that succeed, but querying
+    elements back afterward returns null or empty.
+  </Accordion>
+  <Accordion title="Why did my object.children query suddenly return null?">
+    The version you queried is in the 2026.9 format — check whether `referencedObject` is a
+    `bundle.` reference (see [Tell the two formats apart](#tell-the-two-formats-apart)). This isn't
+    a bug or a temporary gap: server-side filtering over the object tree doesn't apply to that
+    format. Use the properties endpoint above instead.
+  </Accordion>
+  <Accordion title="Can I still use object.children for versions created before 2026.9?">
+    Yes, unchanged. Nothing on this page affects a version whose `referencedObject` is a hex string.
+    The two formats can coexist — check the version you actually have rather than assuming based on
+    project or workspace.
+  </Accordion>
+  <Accordion title="I just uploaded a file and the version/properties endpoints return nothing yet — is something wrong?">
+    Probably not. A version's id is reserved as soon as ingestion starts, but the version — and its
+    properties — don't exist until ingestion actually succeeds, which can take from several seconds
+    to around a minute depending on the file and rail. Querying immediately after upload will
+    legitimately show nothing. Poll `Model.latestIngestion.statusData` until it reports
+    `ModelIngestionSuccessStatus`, then query the version it names — don't fire the read on a timer
+    or a webhook that isn't actually tied to ingestion completion.
+  </Accordion>
+  <Accordion title="Does the properties endpoint only work for 2026.9 (bundle) versions?">
+    No — it works for any version that already has a properties artifact built, hex-referenced or
+    bundle-referenced. It 404s with `"Version not found or has no EAV artefact"` if that version
+    hasn't had one built yet, which is a different failure than "wrong format." Bundle versions
+    always have one; older versions may or may not, depending on whether they've been through
+    backfill.
+  </Accordion>
+  <Accordion title="Is server-side filtering coming to the properties endpoint?">
+    Not documented yet. This page will be updated when that changes. For now, download and filter
+    client-side.
+  </Accordion>
+  <Accordion title="My workspace has compatibility mode on — why is object.children still failing?">
+    Compatibility mode affects new uploads and ACC sync going forward; it doesn't change versions
+    that already exist. Confirm you're querying the version created after compatibility mode was
+    turned on, and that its `referencedObject` is a hex string, not a `bundle.` reference. See [Data
+    model migration for developers](/developers/migration/data-model-migration#whos-affected) —
+    compatibility mode ends **1 November 2026** either way, so plan the move regardless.
+  </Accordion>
+  <Accordion title="How do I get a total element count without walking the whole properties table?">
+    Not available today for 2026.9 versions — count distinct `objectId` values in the properties
+    export, or use an SDK's native accessors (see [From an SDK instead of raw
+    HTTP](#from-an-sdk-instead-of-raw-http)).
+  </Accordion>
+  <Accordion title="Can a low-code tool like Power Automate, Zapier, or n8n read the bundle artifacts directly?">
+    Not natively, in most cases. Power Automate and Zapier have no built-in way to parse Parquet —
+    that's a platform gap, not something Speckle can route around. n8n is a partial exception: its
+    Code node can't import external npm packages on n8n Cloud, so the same limitation applies there,
+    but a self-hosted n8n instance can read Parquet if you enable external modules
+    (`NODE_FUNCTION_ALLOW_EXTERNAL`) or install a community node built for it — that's a deliberate
+    setup step, not the default. The properties export endpoint exists specifically so low-code
+    tools have a plain-JSON option that works everywhere, cloud or self-hosted, with no extra
+    configuration. See [Payload size, and moving to the bundle
+    directly](#payload-size-and-moving-to-the-bundle-directly).
+  </Accordion>
+  <Accordion title="How do I decide between the JSON properties export and reading the bundle directly?">
+    Two questions decide it: can your integration run code that reads Parquet, and does it run
+    repeatedly against a large model? If either answer is no — a low-code flow, a one-off check, a
+    small model — use the JSON properties export; it's simpler and the overhead doesn't matter. If
+    both are yes — a script or service running on a schedule against a model with many thousands of
+    elements — read the bundle directly instead. See [Payload size, and moving to the bundle
+    directly](#payload-size-and-moving-to-the-bundle-directly).
+  </Accordion>
+  <Accordion title="Can one project have both hex-reference and bundle-reference versions?">
+    Yes. Format is decided per version, at the time it's created, not per project or workspace.
+    Older versions and versions made while compatibility mode was active can be hex-referenced while
+    newer versions on the same model are bundle-referenced. Always check the version you're actually
+    reading, never assume from a sibling version or from when the project was created.
+  </Accordion>
+</AccordionGroup>
