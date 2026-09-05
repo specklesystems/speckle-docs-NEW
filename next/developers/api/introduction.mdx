@@ -11,7 +11,7 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 <NextPreviewBanner />
 
 This page covers what changes for **GraphQL and REST** consumers in 2026.9 — scripts, low-code
-flows (Power Automate, Zapier), and custom integrations that call the API directly. It is not a
+flows (Power Automate, Zapier, n8n), and custom integrations that call the API directly. It is not a
 full reference: for everything unaffected, keep using the current
 [GraphQL](/developers/api/graphql) and [REST](/developers/api/rest) documentation. For the
 conceptual model behind this change and who's affected, see [Object model in
@@ -133,8 +133,9 @@ To reproduce the "every `IfcDoor`" filter from the query above, filter that arra
   </Step>
 </Steps>
 
-In a low-code tool such as Power Automate, that's two **Filter array** actions in sequence — no
-custom code, just more steps than the single GraphQL query it replaces.
+In a low-code tool, that's two filter steps in sequence — two **Filter array** actions in Power
+Automate, two **Filter** nodes in n8n — no custom code, just more steps than the single GraphQL
+query it replaces.
 
 <Note>
   This endpoint doesn't accept filter parameters yet — it always returns the whole properties table,
@@ -172,9 +173,9 @@ need instead of pulling the whole table every time. This is what the SDK paths b
 directly, which is why they scale where the JSON export doesn't.
 
 <Note>
-  This only helps if your integration can run code that reads Parquet — it isn't a fit for a
-  low-code tool like Power Automate, which is exactly the properties-export endpoint's use case
-  instead.
+  This only helps if your integration can run code that reads Parquet — it isn't a fit for most
+  low-code tools, which is exactly the properties-export endpoint's use case instead. Self-hosted
+  n8n is a partial exception; see the FAQ below.
 </Note>
 
 ### From an SDK instead of raw HTTP
@@ -233,12 +234,16 @@ bundle above directly instead of downloading the full properties table yourself:
     export, or use an SDK's native accessors (see [From an SDK instead of raw
     HTTP](#from-an-sdk-instead-of-raw-http)).
   </Accordion>
-  <Accordion title="Can a low-code tool like Power Automate read the bundle artifacts directly?">
-    Not without extra tooling. Power Automate's standard cloud-flow actions have no built-in way to
-    parse Parquet — that's a gap in the platform, not something Speckle can route around. The
-    properties export endpoint exists specifically so low-code tools have a plain-JSON option; the
-    bundle artifacts are for integrations that can run code. See [Payload size, and moving to the
-    bundle directly](#payload-size-and-moving-to-the-bundle-directly).
+  <Accordion title="Can a low-code tool like Power Automate, Zapier, or n8n read the bundle artifacts directly?">
+    Not natively, in most cases. Power Automate and Zapier have no built-in way to parse Parquet —
+    that's a platform gap, not something Speckle can route around. n8n is a partial exception: its
+    Code node can't import external npm packages on n8n Cloud, so the same limitation applies there,
+    but a self-hosted n8n instance can read Parquet if you enable external modules
+    (`NODE_FUNCTION_ALLOW_EXTERNAL`) or install a community node built for it — that's a deliberate
+    setup step, not the default. The properties export endpoint exists specifically so low-code
+    tools have a plain-JSON option that works everywhere, cloud or self-hosted, with no extra
+    configuration. See [Payload size, and moving to the bundle
+    directly](#payload-size-and-moving-to-the-bundle-directly).
   </Accordion>
   <Accordion title="How do I decide between the JSON properties export and reading the bundle directly?">
     Two questions decide it: can your integration run code that reads Parquet, and does it run
