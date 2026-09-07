@@ -37,7 +37,7 @@ The current line needs the following from you before the server boots or accepts
 
 | Requirement                                                                                                                             | Where                                                                   |
 | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| A valid license in the main server secret; workspaces and the licensing module are on by default                                        | [License Key](#license-key)                                             |
+| A valid license in the main server secret; workspaces and the licensing module are on by default                                        | [License key](#license-key)                                             |
 | The conversion runner enabled, with a labeled node pool and an exact converter image pin; without it the server accepts no file uploads | [File imports](#file-imports-conversion-runner)                         |
 | Blob storage reachable from your users' browsers and connectors, with bucket CORS                                                       | [Blob storage reachable by clients](#blob-storage-reachable-by-clients) |
 | Preview rendering on CPU by default; GPU rendering is an opt-in                                                                         | [Preview rendering](#preview-rendering)                                 |
@@ -51,9 +51,9 @@ bundle_migration:
 
 Without the key the server starts, logs one warning, and accepts 2026.9-format publishes only. A publish from an older connector, an older SDK version, or the deprecated objects REST API is rejected with `LEGACY_SEND_UNSUPPORTED` (HTTP 422); the error message points the user at the [publishing migration guide](/developers/migration/publish-through-ingestions). Treat the deployment as compatible with the 2026.9 connector and SDK line only.
 
-## Configuration Steps
+## Configuration steps
 
-### Retrieving the Helm Chart
+### Retrieving the Helm chart
 
 The Enterprise Helm chart and images are published to an OCI registry. Log in to the registry host with the token Speckle issued you:
 
@@ -69,7 +69,7 @@ The Enterprise Helm chart and images are published to an OCI registry. Log in to
 
 Use this file, not the one in the public GitHub repository, as the reference for the values available on your chart version.
 
-### Image Pull Secrets
+### Image pull secrets
 
 The Helm Chart references Docker Images that are hosted in the same private registry as the Helm Chart.
 You will need to create an Image Pull secret in Kubernetes to allow your cluster to authenticate with the registry and pull the necessary images.
@@ -99,7 +99,7 @@ You will need to create an Image Pull secret in Kubernetes to allow your cluster
      - name: speckle-enterprise-registry
    ```
 
-### Deploying the Helm Chart
+### Deploying the Helm chart
 
 Prepare `values.yaml` as described in the [Kubernetes deployment guide](/developers/server/deployment/kubernetes-with-helm#configure-your-deployment), add the Enterprise values from the sections below, then install the chart at an exact version:
 
@@ -120,7 +120,7 @@ With the conversion runner enabled and `helm_test_enabled` on (the default), ver
 
 The test runs a conversion canary that proves the whole file-import launch path, including the image pull and node pool scheduling.
 
-### License Key
+### License key
 
 1. Obtain your Speckle Enterprise license key from Speckle.
 1. Create a Kubernetes Secret to store the license key:
@@ -179,7 +179,7 @@ Workspaces is on by default since 2026.7 and depends on the Gatekeeper module an
 
 1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
 
-### (Optional) Admin Support Mode
+### (Optional) Admin support mode
 
 [Admin Support Mode](/it-admin/support-mode) gives server administrators controlled, auditable access to workspaces for troubleshooting and support. Server admins can read workspace data by default, but write access requires an explicit support session approved by a workspace admin.
 
@@ -194,7 +194,7 @@ Workspaces is on by default since 2026.7 and depends on the Gatekeeper module an
 
 1. Verify that Admin Support Mode is available by navigating to **Server Settings > Workspaces**, selecting a workspace, and checking for the **Support Access** section. See the [Admin Support Mode guide](/it-admin/support-mode) for usage details.
 
-### (Optional) Saved Views
+### (Optional) Saved views
 
 [Saved Views](/3d-viewer/saved-views) is a feature that enables users to mark up their models with annotations, save those views for later, or share with others.
 
@@ -224,7 +224,7 @@ The [Issues](/3d-viewer/issues) feature allows users to create and manage issues
 
 1. Verify that the Issues feature is available by following our [documentation](/3d-viewer/issues).
 
-### (Optional) Multi-regional Deployment
+### (Optional) Multi-regional deployment
 
 Multi-regional deployments allow you to provide [data residency](/workspaces/data-residency) options for your users.
 
@@ -369,7 +369,7 @@ Intelligence currently requires access to an external Content Delivery Network (
 
 1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
 
-### (Optional) ACC Integration
+### (Optional) ACC integration
 
 <Note>
   ACC Integration requires the conversion runner: syncs convert files through it, and the server
@@ -388,28 +388,30 @@ With the runner on, the server accepts `ifc`, `rvt`, `nwd`, `nwc`, `dwg`, `dgn`,
 
 - **A node pool** for conversion Jobs, labeled `purpose=conversion` (the value of `conversionRunner.nodePool`). Conversions are bursty, memory-hungry batch Jobs; a dedicated pool keeps them off your serving nodes. Jobs default to 4Gi base memory and may grow to the configured maximum (64Gi default ceiling) for large files; each Job has a two hour deadline by default. The [node pool contract](#node-pool-contract) below is what the pool must satisfy.
 - **A namespace and RBAC** for the Jobs. The chart creates them when you set `conversionRunner.createNamespace: true` and `conversionRunner.createResources: true` (both off by default so clusters that manage these objects elsewhere do not collide). The RBAC lets the server and objects service accounts launch and watch Jobs.
-- **Registry credentials in the conversion namespace.** The Job pods pull the converter image from the same private registry as the chart, but from their own namespace, so the image pull secret you created for the server does not reach them. Create the same `docker-registry` Secret in `conversionRunner.namespace` (`conversion` by default) and name it in `conversionRunner.imagePullSecrets`. The Secret itself is always operator-created.
+- **Registry credentials in the conversion namespace.** The Job pods pull the converter image from the same private registry as the chart, but from their own namespace, so the image pull secret you created for the server does not reach them. Create the same `docker-registry` Secret in the conversion namespace and name it in `conversionRunner.imagePullSecrets`. The Secret itself is always operator-created.
 
   ```bash
   kubectl create secret docker-registry speckle-enterprise-registry \
   --docker-server=<PACKAGE_REGISTRY_URL> \
   --docker-username=<PACKAGE_REGISTRY_USERNAME> \
   --docker-password=<PACKAGE_REGISTRY_TOKEN> \
-  -n conversion \
+  -n <CONVERSION_NAMESPACE> \
   --dry-run=client \
   -o yaml | kubectl apply -f -
   ```
 
-- **The exact converter image pin**: `conversionRunner.converterImage: ghcr.io/specklesystems/speckle-converters:2026.9.0` (or your mirrored path). Run the same `YYYY.M` converter and server line and upgrade both together: they must reference the same bundle format version. Never run the runner on a mutable `latest` tag, which silently breaks that pairing on the next push.
+  `<CONVERSION_NAMESPACE>` is the value of `conversionRunner.namespace`, `conversion` by default.
+
+- **The exact converter image pin**: `conversionRunner.converterImage: ghcr.io/specklesystems/speckle-converters:2026.9.0`. Mirroring is optional: if you would rather serve images from your own registry, copy that image into it, point `converterImage` at the mirrored path, and create the pull Secret above with your registry's credentials instead. Run the same `YYYY.M` converter and server line and upgrade both together: they must reference the same bundle format version. Never run the runner on a mutable `latest` tag, which silently breaks that pairing on the next push.
 
 #### Node pool contract
 
 Conversion Jobs are placed by the node selector `purpose: <nodePool>` and nothing else. Hand this contract to whoever provisions the pool.
 
-- **Label and taint.** The `purpose` label is mandatory. A taint is optional and must use the `PreferNoSchedule` effect: Jobs carry no tolerations, so a hard taint strands every Job in `Pending`.
+- **Label and taint.** The `purpose` label is mandatory. A taint is optional and must use the `PreferNoSchedule` effect: Jobs carry no tolerations, so a `NoSchedule` or `NoExecute` taint strands every Job, including the `helm test` canary, in `Pending`.
 - **Three chart values must match the pool.** The chart does not validate any of them.
   - The pool's `purpose` label equals `conversionRunner.nodePool`.
-  - The namespace the Jobs run in equals `conversionRunner.namespace` (`conversion` by default). The pull Secret lives there too.
+  - The namespace the Jobs run in equals `conversionRunner.namespace`.
   - `conversionRunner.maxMemoryMib` stays under node allocatable memory. The 64Gi default ceiling pairs with 128 GB nodes; raise it only on larger nodes.
 - **Machine shape.** Memory-optimized nodes with at least 8 GB of RAM per core. The reference shape is 16 vCPU / 128 GB, which is what Speckle's hosted service runs. Give each node at least 200 GB of disk: Jobs declare no ephemeral-storage request, so nothing stops a large source file from filling a small node disk.
 - **Autoscaling.** Minimum node count of at least 1, so the first upload does not wait on a scale-up and the autoscaler can see the label. Maximum roughly the number of large conversions you expect to run at once, plus 2.
@@ -427,11 +429,6 @@ Conversion Jobs are placed by the node selector `purpose: <nodePool>` and nothin
   pool otherwise adds and removes load balancer members on every scale event.
 </Note>
 
-<Warning>
-  A `NoSchedule` or `NoExecute` taint on the pool leaves every Job, including the `helm test`
-  canary, stuck in `Pending`. If you taint the pool, use `PreferNoSchedule`.
-</Warning>
-
 #### Enable the runner
 
 <Steps>
@@ -441,13 +438,15 @@ Conversion Jobs are placed by the node selector `purpose: <nodePool>` and nothin
     formats.
   </Step>
   <Step title="Configure the conversionRunner block">
-    Set the exact converter image, the node pool, the creation gates, and the pull Secret. Your
-    values should end up matching the excerpt below.
+    Set the exact converter image, the node pool, the creation gates, and the pull Secret, as in the
+    excerpt below. `helm template` with these values now renders the conversion Namespace, the Job
+    ServiceAccount, and its Role and RoleBinding.
   </Step>
   <Step title="Deploy and verify">
-    Install or upgrade the release as described above. With `helm_test_enabled` on, `helm test` runs
-    a conversion canary that proves the whole launch path, including the image pull and node pool
-    scheduling. Then upload a file through the web app: it should convert and open in the viewer.
+    Install or upgrade the release as in [Deploying the Helm chart](#deploying-the-helm-chart). With
+    `helm_test_enabled` on, `helm test` runs a conversion canary that proves the whole launch path,
+    including the image pull and node pool scheduling. Then upload a file through the web app: it
+    should convert and open in the viewer.
   </Step>
 </Steps>
 
@@ -463,13 +462,8 @@ conversionRunner:
   createResources: true
   nodePool: 'conversion'
   imagePullSecrets:
-    - speckle-enterprise-registry
+    - name: speckle-enterprise-registry
 ```
-
-<Warning>
-  With `accIntegrationEnabled` set and the runner off, the server refuses to start ("Syncs require
-  the conversion jobrunner"). Enable the runner before you turn on any CDE integration.
-</Warning>
 
 <AccordionGroup>
   <Accordion title="Conversion Jobs, or the helm test canary, sit in Pending. Why?">
@@ -479,8 +473,8 @@ conversionRunner:
     effect to `PreferNoSchedule`; the Jobs schedule on their own once a node qualifies.
   </Accordion>
   <Accordion title="A conversion Job is stuck in ImagePullBackOff. What is missing?">
-    The pull Secret in the conversion namespace. Create it there with the command above and name it
-    in `conversionRunner.imagePullSecrets`; the server namespace's Secret does not reach the Jobs.
+    The pull Secret in the conversion namespace. Create it as described in [What the runner needs
+    from you](#what-the-runner-needs-from-you).
   </Accordion>
   <Accordion title="File uploads are rejected as unsupported before anything uploads. What did I miss?">
     The runner is off. With `featureFlags.jobRunnerEnabled` false the server accepts no file
