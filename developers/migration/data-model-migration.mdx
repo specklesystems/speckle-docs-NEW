@@ -44,6 +44,15 @@ The one area to watch is data that reaches Speckle without going through a conne
   relying on it needs to be migrated off before then.
 </Warning>
 
+The other area to watch, separate from ACC sync and drag-and-drop specifically: anything built
+directly on the **open-source Viewer package** — extending render pipelines, forking extensions,
+reading render views/batches, or otherwise reaching into its internals, rather than only embedding
+the hosted web viewer or reading data through the GraphQL/REST API. That exposure isn't limited to
+ACC sync or drag-and-drop uploads — it applies to any data your workspace loads that has been
+converted to the 2026.9 format, including publishes from an upgraded connector. There's no
+updated Viewer package for the new format yet, so if this is you, ask for compatibility mode too.
+See [Viewer developer notes in 2026.9](/next/developers/viewer/introduction) for specifics.
+
 Everyone else — desktop connector users, SDK/API consumers, custom analytics, and ETL — can carry on as normal.
 
 Speckle Automate functions are worth calling out specifically, since what a function needs to do depends on the format of the version it's processing, not on the function's own code:
