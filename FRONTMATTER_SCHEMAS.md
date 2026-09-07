@@ -25,16 +25,16 @@ ai:
     permission, and compatibility limitations stated in the page.
 ```
 
-| Field | Meaning |
-| --- | --- |
-| `docs_version` | Documentation set, quoted to keep it a string. |
-| `product_generation` | Internal generation identifier: `next` or explicitly historical `legacy`. |
-| `docs_status: current` | Maintained authority within this versioned set, not a claim that every deployment has upgraded. |
-| `docs_authority: canonical` | Authoritative for the version and coverage specified. |
-| `applies_to_version` | Product version to match when retrieving this page. Does not assume all future releases behave identically. |
-| `applies_from` | Release applicability month (`YYYY-MM`), not an exact rollout or page publication date. |
-| `ai.precedence` | Corpus convention for ranking matching guidance, not a built-in Fin configuration setting. |
-| `ai.context` | Readable scope and conflict-resolution rule. |
+| Field                       | Meaning                                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `docs_version`              | Documentation set, quoted to keep it a string.                                                              |
+| `product_generation`        | Internal generation identifier: `next` or explicitly historical `legacy`.                                   |
+| `docs_status: current`      | Maintained authority within this versioned set, not a claim that every deployment has upgraded.             |
+| `docs_authority: canonical` | Authoritative for the version and coverage specified.                                                       |
+| `applies_to_version`        | Product version to match when retrieving this page. Does not assume all future releases behave identically. |
+| `applies_from`              | Release applicability month (`YYYY-MM`), not an exact rollout or page publication date.                     |
+| `ai.precedence`             | Corpus convention for ranking matching guidance, not a built-in Fin configuration setting.                  |
+| `ai.context`                | Readable scope and conflict-resolution rule.                                                                |
 
 Coverage remains incremental. A Next page that says its documentation is not yet available
 is authoritative about that limitation; it does not replace the Current guide it links to.
@@ -51,7 +51,7 @@ changes_in_version: '2026.9'
 changes_from: '2026-09'
 next_docs:
   - /next/workspaces/settings
-change_scope: "Workspace Settings navigation; existing configuration details remain applicable"
+change_scope: 'Workspace Settings navigation; existing configuration details remain applicable'
 ai:
   precedence: defer_for_changed_topics
   context: >-
@@ -60,15 +60,15 @@ ai:
     Do not treat the entire page or feature as deprecated.
 ```
 
-| Field | Meaning |
-| --- | --- |
-| `docs_status: impacted` | A documented dependency or compatibility change affects part of the guidance. |
-| `docs_status: changed` | A concrete UI, workflow or data-model change is documented. |
-| `docs_status: superseded` | The identified guidance has a replacement or is explicitly unavailable for the target version. Earlier-version use remains valid. |
-| `changes_in_version` / `changes_from` | Version and release month in which the scoped change applies; not the original page's version. |
-| `next_docs` | List of site-relative paths to the corresponding 2026.9 guidance. |
-| `change_scope` | Exactly which guidance is affected; avoids declaring the entire feature obsolete. |
-| `ai.precedence: defer_for_changed_topics` | Prefer linked 2026.9 guidance only for the specified changes and matching version. |
+| Field                                     | Meaning                                                                                                                           |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `docs_status: impacted`                   | A documented dependency or compatibility change affects part of the guidance.                                                     |
+| `docs_status: changed`                    | A concrete UI, workflow or data-model change is documented.                                                                       |
+| `docs_status: superseded`                 | The identified guidance has a replacement or is explicitly unavailable for the target version. Earlier-version use remains valid. |
+| `changes_in_version` / `changes_from`     | Version and release month in which the scoped change applies; not the original page's version.                                    |
+| `next_docs`                               | List of site-relative paths to the corresponding 2026.9 guidance.                                                                 |
+| `change_scope`                            | Exactly which guidance is affected; avoids declaring the entire feature obsolete.                                                 |
+| `ai.precedence: defer_for_changed_topics` | Prefer linked 2026.9 guidance only for the specified changes and matching version.                                                |
 
 Do not invent an original `docs_version` or label all non-Next pages as legacy.
 The Current corpus also contains applicable migration guides and unchanged reference material.
