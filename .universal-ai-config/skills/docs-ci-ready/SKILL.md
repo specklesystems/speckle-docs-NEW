@@ -1,9 +1,10 @@
 ---
 name: docs-ci-ready
 description: >-
-  Make Speckle docs PR CI-ready. Use when fixing Docs PR checks failures (Prettier,
-  markdownlint, mint validate, broken links, a11y), before opening or updating a
-  docs PR, or when the user asks to make docs CI green / check:changed / format-ready.
+  Make Speckle docs PR CI-ready (CI mechanics only). Use when fixing Docs PR checks
+  failures (Prettier, markdownlint, mint validate, broken links, a11y), before opening
+  or updating a docs PR, or when the user asks to make docs CI green / check:changed /
+  format-ready. For content and tone, use docs-page-review.
 argumentHint: '[optional: failing check name or log snippet]'
 ---
 
@@ -127,3 +128,7 @@ Commit generated outputs only if this repo tracks them. Never hand-edit generate
 - `pnpm check:a11y` succeeds (blocking)
 
 Report which commands passed.
+
+CI green is not review-ready: if page content was written or revised this
+session and the `docs-page-review` skill has not run, run it now, then
+re-check formatting on the pages it changed.

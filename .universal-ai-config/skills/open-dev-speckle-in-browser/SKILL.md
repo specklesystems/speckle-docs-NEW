@@ -1,6 +1,11 @@
 ---
 name: open-dev-speckle-in-browser
-description: Open local Speckle development environment in a browser for exploring flows and taking documentation screenshots. Triggers when user wants to run Speckle locally, capture screenshots, or explore the app UI.
+description: >-
+  Open the local Speckle development environment in a browser for exploring flows
+  and taking documentation screenshots. Use when the user wants Speckle running
+  locally, wants screenshots captured or retaken for a docs page, wants an app flow
+  verified against the real UI, or when another skill needs a live local deployment
+  in the browser.
 argumentHint: "[optional: path to speckle-server repo]"
 ---
 

@@ -25,6 +25,7 @@ This project uses **universal-ai-config** for canonical doc rules. Generated ins
 - **Structure**: task-first; show outcomes; keep pages brief.
 - **Visuals**: include only when they clarify; add captions or callouts if needed. When the asset is not captured yet, insert `{/* IMAGE_PLACEHOLDER: … */}` per **docs-image-placeholders** — instructional steps and new-concept section intros — not fake image files.
 - **Extras**: add a compact FAQ, Best practices, and 1–3 Tips where appropriate.
+- **Self-review**: before opening or updating a docs PR, run the `docs-page-review` skill on every written or revised page, then `docs-ci-ready`.
 - **Tutorials**: keep tutorials separate; if a flow needs more than 3–5 steps, link out.
 - **Cross-link and naming**: cross-link related pages; name sections by user intent.
 
