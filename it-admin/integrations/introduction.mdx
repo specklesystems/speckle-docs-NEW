@@ -1,0 +1,115 @@
+---
+title: 'Cloud Integrations: Access and Governance'
+sidebarTitle: 'Introduction'
+description: 'How Speckle cloud integrations authenticate, what they can see, and what they never do — for IT administrators governing a CDE or data platform.'
+---
+
+This page explains what is common to every Speckle cloud integration before you enable a specific one. It is written for administrators who govern access on the source side — an Autodesk hub, a ProjectWise datasource, a Databricks or Snowflake account — and need to know what Speckle will and will not be able to reach.
+
+## The rule that applies everywhere
+
+**Speckle never has more access than you grant on your side.** There is no Speckle-side switch that widens what an integration can read. Every integration authenticates with an identity you control, and the permissions attached to that identity in your platform are the whole boundary.
+
+Two consequences follow:
+
+- **You govern in your own tools.** Access reviews, revocation, and scoping happen in Autodesk admin, ProjectWise, Unity Catalog, or Snowflake roles — the places your team already audits. Speckle adds nothing that needs a parallel policy.
+- **Nothing is crawled.** Speckle does not index your hub, datasource, catalog, or lake. It reads only the specific files or tables a user selects, only when a sync or query runs, and only if the identity is permitted to read them.
+
+## Two kinds of integration
+
+|                          | Syncs                                                                                          | Subscriptions                                                                                                |
+| ------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Source**               | BIM and CAD files in a CDE — Autodesk Forma Data Management (ACC), Bentley ProjectWise         | Tables and views in a data platform — Databricks, Snowflake                                                  |
+| **What Speckle does**    | Reads the file, converts it into Speckle objects, and stores the result in the Speckle project | Registers the table and runs read-only `SELECT` queries against it on demand                                 |
+| **Where the data lives** | A converted copy lives in Speckle; the source file is untouched                                | Data stays in your platform; Speckle stores the query results it needs to render a view or answer a question |
+| **Direction**            | Read only. Speckle never writes back to the CDE                                                | Read only. Speckle never writes, alters, or deletes                                                          |
+
+### Syncs (BIM and CAD)
+
+A sync takes a file the user can already open in the CDE and converts it into Speckle's object model — atomised into individual elements with their properties, normalised so a Revit wall and an IFC wall can be queried the same way. That conversion is what enables the viewer, dashboards, AI chat, and the SQL join to your tables. The source file is read, not modified, and the sync does not trigger paid translation or consume cloud credits on the CDE side.
+
+### Subscriptions (data)
+
+A subscription points at a table or view in your warehouse. Speckle presents a browser of what the service identity can see; a user picks a table, and Speckle queries it read-only when a dashboard, AI chat, or SQL join needs it — for example, joining a cost table to the elements of a synced model. Queries run on your warehouse compute under the service identity, so they appear in your query history and consume your compute like any other client.
+
+## Who the integration acts as
+
+This is where the integrations differ, and it determines where you scope access.
+
+| Integration                              | Identity Speckle uses                                                                  | What a user can reach                                                                             |
+| ---------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Autodesk Forma Data Management (ACC)** | The signed-in user's own Autodesk account, via OAuth with read-only scopes             | Exactly the hubs, projects, and folders that user already has in Autodesk — no more, no less      |
+| **Bentley ProjectWise**                  | A Speckle service account you add to projects, plus the user's own Bentley credentials | Only projects the service account has been added to **and** the user is permitted to see          |
+| **Databricks**                           | A service principal you create, with SQL grants you assign                             | Whatever the service principal has `SELECT` on — the same for every user in the Speckle workspace |
+| **Snowflake**                            | A service user you create, with a role you grant                                       | Whatever the role can read — the same for every user in the Speckle workspace                     |
+
+**For ACC, permissions are per user and follow the user.** If Sarah is a member of two hubs — full read on one, a single project on the other — she can sync anything she can read across both, and nothing else. Change her Autodesk permissions and her Speckle reach changes with them. There is nothing for you to enable beyond registering the Speckle integration on the hub once.
+
+**For Databricks and Snowflake, permissions are per workspace and follow the service identity.** Everyone in the Speckle workspace sees the same set of tables: the ones you granted. This is deliberate — it lets you publish a curated, governed surface (specific schemas, views with row filtering applied on your side) without mirroring individual user entitlements into Speckle. If different teams need different data, use separate Speckle workspaces with separate service identities.
+
+**ProjectWise is both.** The service account must be added to a project for it to be reachable at all, and within that the user's own ProjectWise permissions still apply.
+
+<Note>
+  Speckle's own project roles govern what happens *after* data is in Speckle — who can view,
+  comment, or load a model. They do not extend anyone's reach into the source platform.
+</Note>
+
+## What Speckle never does
+
+- **Write back.** No integration modifies, uploads, or deletes anything in the source platform. Scopes and grants are read-only by design; in ACC, the requested scopes are `account:read`, `user-profile:read`, `data:read`, `data:search`, `bucket:read`, `viewables:read`, and `openid`.
+- **Crawl or enumerate beyond the identity's permissions.** Speckle lists only what the identity can list, and only when a user opens the browser view.
+- **Escalate.** Speckle cannot request broader access on a user's behalf; broadening access is always an action you take in your own admin console.
+- **Expose credentials.** Service principal secrets and private keys are encrypted in the browser before they are sent, stored encrypted at rest, and never displayed again after you save them.
+
+## Recommended scoping patterns
+
+For **ACC**, if you want tighter control than per-user inheritance, create a dedicated Autodesk account with access to only the projects you want synced and have users sign in to Speckle with it.
+
+For **Databricks and Snowflake**, treat the service identity as a publishing surface. Grant it access to a dedicated schema or set of views rather than to raw tables, and apply any row- or column-level policies on your side — Speckle only ever sees what the query returns.
+
+For **ProjectWise**, add the service account only to the projects that need syncing; unlisted projects are invisible regardless of user permissions.
+
+## Enable a specific integration
+
+<CardGroup cols={2}>
+  <Card title="Autodesk Forma Data Management (ACC)" icon="cloud" href="/it-admin/integrations/acc">
+    Register the Speckle integration on your hub
+  </Card>
+  <Card title="Bentley ProjectWise" icon="cloud" href="/it-admin/integrations/projectwise">
+    Add the service account, or configure an on-premises WSG server
+  </Card>
+  <Card title="Databricks" icon="database" href="/it-admin/integrations/databricks">
+    Create a service principal and grant it read access
+  </Card>
+  <Card title="Snowflake" icon="database" href="/it-admin/integrations/snowflake">
+    Create a service user, role, and key-pair credentials
+  </Card>
+</CardGroup>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can a Speckle user see something in our hub they can't see in Autodesk?">
+    No. ACC access is the user's own Autodesk permission set, requested read-only. If they cannot
+    open it in Autodesk, they cannot sync it.
+  </Accordion>
+  <Accordion title="If I revoke a user's access on our side, does Speckle keep the data?">
+    New syncs and queries stop immediately. Data already converted into a Speckle project stays
+    there, governed by Speckle project roles, until a project owner removes it — the same as any
+    file a user had legitimately exported while they had access.
+  </Accordion>
+  <Accordion title="Why does everyone in the workspace see the same Databricks tables?">
+    Because the integration authenticates as the service principal, not as each user. Scope the
+    service principal to a governed set of views; use separate workspaces if teams need different
+    surfaces.
+  </Accordion>
+  <Accordion title="Do syncs or queries cost us anything on our platform?">
+    Syncs read existing files and derivatives and do not trigger paid translation. Warehouse queries
+    run on your compute under the service identity and are billed by your platform like any other
+    client.
+  </Accordion>
+  <Accordion title="Does Speckle store our warehouse data?">
+    Speckle stores the query results it needs to render a dashboard or answer a question, not a copy
+    of the table. The table of record stays in your warehouse.
+  </Accordion>
+</AccordionGroup>
