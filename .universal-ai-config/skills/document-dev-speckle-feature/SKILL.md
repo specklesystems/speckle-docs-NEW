@@ -1,6 +1,11 @@
 ---
 name: document-dev-speckle-feature
-description: Explore a new feature in a local Speckle Server deployment and create documentation pages for it. Handles codebase exploration, screenshot capture, doc placement, and page creation.
+description: >-
+  Explore a feature in a local Speckle Server deployment and create documentation
+  pages for it. Use when the user wants a new or recently shipped feature documented,
+  wants docs pages drafted from the server codebase, or asks where a feature's docs
+  should live. Handles codebase exploration, screenshot capture, doc placement, and
+  page creation; ends with a docs-page-review pass.
 argumentHint: '[feature name or description]'
 ---
 
@@ -99,7 +104,8 @@ Generate the doc pages following these rules:
 
 ## 6. Final Review
 
-Present a summary:
+Run the `docs-page-review` skill on every created page, then present a
+summary:
 
 - Pages created (with file paths)
 - Navigation changes made to `docs.json`
