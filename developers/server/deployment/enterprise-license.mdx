@@ -371,12 +371,93 @@ Intelligence currently requires access to an external Content Delivery Network (
 
 ### (Optional) ACC integration
 
+[Autodesk Forma Data Management (ACC)](/connectors/cloud-integrations/acc) sync lets users connect a file in their Autodesk hub to a Speckle model. The server converts the file in your cluster and updates the model each time a new version is published in Autodesk.
+
 <Note>
   ACC Integration requires the conversion runner: syncs convert files through it, and the server
-  refuses to start with `accIntegrationEnabled` on and the runner off.
+  refuses to start with `accIntegrationEnabled` on and the runner off (`Syncs require the conversion
+  jobrunner`). Complete [File imports](#file-imports-conversion-runner) before turning the
+  integration on.
 </Note>
 
-Your deployment's callback URL also has to be registered on Speckle's Autodesk application. Contact your Speckle representative to enable the integration.
+The integration runs on Speckle's Autodesk application, so enabling it involves Speckle as well as your cluster.
+
+#### What the integration needs from you
+
+- **Credentials issued by Speckle.** The client ID and client secret belong to Speckle's Autodesk application. You do not create an application in the Autodesk developer portal. Speckle issues both when it enables the integration for your deployment.
+- **Your public origin, registered by Speckle.** After a user signs in, Autodesk redirects them to `https://<DOMAIN>/api/v1/acc/auth/callback`, and it accepts that redirect only if Speckle has registered it on the application. `<DOMAIN>` is the `domain` value of your chart.
+- **A server that Autodesk can reach.** Syncs are webhook-driven: Autodesk posts to `https://<DOMAIN>/api/v1/acc/webhook/callback` when a new file version is published. A deployment reachable only from inside your network lets users sign in but never picks up new versions.
+- **The client secret in a Kubernetes Secret**, named in `accIntegration.clientSecret`. The client ID is a plain chart value.
+
+#### Enable the integration
+
+<Steps>
+  <Step title="Request enablement from Speckle">
+    Send your Speckle representative the public origin of your deployment, `https://<DOMAIN>`.
+    Speckle registers the callback URL on its Autodesk application and returns the client ID and
+    client secret.
+  </Step>
+  <Step title="Store the client secret">
+    Create an opaque Secret in the server namespace that holds the client secret, as in the command
+    below. The Secret name and key are what you reference in the values file.
+  </Step>
+  <Step title="Set the values">
+    Turn on `featureFlags.accIntegrationEnabled` and fill the `accIntegration` block with the client
+    ID and the Secret name and key, as in the excerpt below. Keep `featureFlags.jobRunnerEnabled` on.
+  </Step>
+  <Step title="Upgrade and verify">
+    Upgrade the release as in [Deploying the Helm chart](#deploying-the-helm-chart). The server pods
+    start and log `ACC Enabled`. In the web app, **Workspace settings** now lists Autodesk Forma
+    Data Management with a **Log in** button.
+  </Step>
+</Steps>
+
+The Secret, with the name and key the excerpt below expects:
+
+```bash
+kubectl create secret generic acc-integration \
+--from-literal=clientSecret=<ACC_CLIENT_SECRET> \
+-n <NAMESPACE> \
+--dry-run=client \
+-o yaml | kubectl apply -f -
+```
+
+A complete values excerpt:
+
+```yaml
+featureFlags:
+  jobRunnerEnabled: true
+  accIntegrationEnabled: true
+
+accIntegration:
+  clientId: '<ACC_CLIENT_ID>'
+  clientSecret:
+    secretName: 'acc-integration'
+    secretKey: 'clientSecret'
+  enableNwd: true
+  enableDwg: true
+```
+
+`enableNwd` and `enableDwg` are the chart's switches for NWD/NWC and DWG syncs. Leave them on unless you want those formats off.
+
+Two steps remain outside your cluster before a user can create a sync. An Autodesk account admin at your organisation adds Speckle as a custom integration on the ACC hub, following [Enable Autodesk Forma Data Management integration](/it-admin/integrations/acc). Users then sign in and create syncs from their workspace, following the [user guide](/connectors/cloud-integrations/acc).
+
+<AccordionGroup>
+  <Accordion title="Sign in returns from Autodesk with a redirect URI error. Why?">
+    The origin Speckle registered does not match your deployment. Autodesk compares the redirect
+    URI character for character, so a different host, a plain `http` scheme, or a trailing path all
+    fail. Send Speckle the exact `https://<DOMAIN>` your users open.
+  </Accordion>
+  <Accordion title="Users can sign in, but syncs never pick up new versions. What did I miss?">
+    Autodesk cannot reach the webhook URL. Confirm `https://<DOMAIN>/api/v1/acc/webhook/callback`
+    answers from the public internet and is not behind an ingress allow-list or an authenticating
+    proxy.
+  </Accordion>
+  <Accordion title="The flags are on, but Workspace settings offers no Log in button. Why?">
+    The integration is a workspace plan feature. Check that the workspace is on a plan that
+    includes it; the Enterprise and Unlimited plans do.
+  </Accordion>
+</AccordionGroup>
 
 ### File imports (conversion runner)
 
