@@ -17,12 +17,12 @@ Two consequences follow:
 
 ## Two kinds of integration
 
-| | Syncs | Subscriptions |
-| --- | --- | --- |
-| **Source** | BIM and CAD files in a CDE — Autodesk Forma Data Management (ACC), Bentley ProjectWise | Tables and views in a data platform — Databricks, Snowflake |
-| **What Speckle does** | Reads the file, converts it into Speckle objects, and stores the result in the Speckle project | Registers the table and runs read-only `SELECT` queries against it on demand |
-| **Where the data lives** | A converted copy lives in Speckle; the source file is untouched | Data stays in your platform; Speckle stores the query results it needs to render a view or answer a question |
-| **Direction** | Read only. Speckle never writes back to the CDE | Read only. Speckle never writes, alters, or deletes |
+|                          | Syncs                                                                                          | Subscriptions                                                                                                |
+| ------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Source**               | BIM and CAD files in a CDE — Autodesk Forma Data Management (ACC), Bentley ProjectWise         | Tables and views in a data platform — Databricks, Snowflake                                                  |
+| **What Speckle does**    | Reads the file, converts it into Speckle objects, and stores the result in the Speckle project | Registers the table and runs read-only `SELECT` queries against it on demand                                 |
+| **Where the data lives** | A converted copy lives in Speckle; the source file is untouched                                | Data stays in your platform; Speckle stores the query results it needs to render a view or answer a question |
+| **Direction**            | Read only. Speckle never writes back to the CDE                                                | Read only. Speckle never writes, alters, or deletes                                                          |
 
 ### Syncs (BIM and CAD)
 
@@ -36,12 +36,12 @@ A subscription points at a table or view in your warehouse. Speckle presents a b
 
 This is where the integrations differ, and it determines where you scope access.
 
-| Integration | Identity Speckle uses | What a user can reach |
-| --- | --- | --- |
-| **Autodesk Forma Data Management (ACC)** | The signed-in user's own Autodesk account, via OAuth with read-only scopes | Exactly the hubs, projects, and folders that user already has in Autodesk — no more, no less |
-| **Bentley ProjectWise** | A Speckle service account you add to projects, plus the user's own Bentley credentials | Only projects the service account has been added to **and** the user is permitted to see |
-| **Databricks** | A service principal you create, with SQL grants you assign | Whatever the service principal has `SELECT` on — the same for every user in the Speckle workspace |
-| **Snowflake** | A service user you create, with a role you grant | Whatever the role can read — the same for every user in the Speckle workspace |
+| Integration                              | Identity Speckle uses                                                                  | What a user can reach                                                                             |
+| ---------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Autodesk Forma Data Management (ACC)** | The signed-in user's own Autodesk account, via OAuth with read-only scopes             | Exactly the hubs, projects, and folders that user already has in Autodesk — no more, no less      |
+| **Bentley ProjectWise**                  | A Speckle service account you add to projects, plus the user's own Bentley credentials | Only projects the service account has been added to **and** the user is permitted to see          |
+| **Databricks**                           | A service principal you create, with SQL grants you assign                             | Whatever the service principal has `SELECT` on — the same for every user in the Speckle workspace |
+| **Snowflake**                            | A service user you create, with a role you grant                                       | Whatever the role can read — the same for every user in the Speckle workspace                     |
 
 **For ACC, permissions are per user and follow the user.** If Sarah is a member of two hubs — full read on one, a single project on the other — she can sync anything she can read across both, and nothing else. Change her Autodesk permissions and her Speckle reach changes with them. There is nothing for you to enable beyond registering the Speckle integration on the hub once.
 
