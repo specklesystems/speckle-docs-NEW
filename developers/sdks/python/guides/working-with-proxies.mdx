@@ -161,6 +161,8 @@ if some_obj:
 
 **Why build an index?** Without it, you'd traverse the entire tree for each lookup. With an index, lookups are instant (O(1) vs O(n)).
 
+**A note on duplicates:** `index[obj.applicationId] = obj` overwrites silently if two objects share an `applicationId` - no exception, no warning, the earlier object just disappears from the index. `applicationId` is expected to be unique per object in the graph; if lookups are returning the wrong object or an instance is missing its own transform, check for a producer-side id collision before assuming a bug in this code.
+
 ## Working with Instance Definitions
 
 ### Understanding Instance Definitions

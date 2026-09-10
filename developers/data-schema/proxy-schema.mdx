@@ -327,6 +327,7 @@ Unlike proxies which reference by `applicationId` and are stored at root level, 
 
 Fields:
 
+- **`applicationId`** (required, must be unique per instance) - Identifies this specific placement. Reusing an id across two instances resolves them to the same one - the second placement's transform is dropped, not applied.
 - **`definitionId`** (required) - The `applicationId` of the Definition proxy that contains the geometry
 - **`transform`** (required) - 4x4 transformation matrix for the instance placement
 - **`units`** (required) - Units of the host application file
@@ -345,6 +346,7 @@ Fields:
 3. **No circular references** - Proxies don't reference other proxies
 4. **Value is the resource** - The `value` field contains the actual resource data
 5. **objects is a list** - Can reference zero or more objects
+6. **applicationId is not mandatory, but where it is relied on as identity it must be unique** - a Proxy's own `applicationId`, and any object's `applicationId` used to resolve a placement (for example `InstanceProxy`), is read as that object's identity. Two objects sharing one are treated as the same object referenced twice, not as two occurrences, and this is not validated - a collision collapses silently rather than raising an error.
 
 <Accordion title="Can an object be in multiple groups?">
   Yes! An object's `applicationId` can appear in multiple Group proxy `objects` arrays. This allows
