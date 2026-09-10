@@ -352,7 +352,7 @@ See [WorkspaceResource](/developers/sdks/python/api-reference/resources/workspac
 
 ## Custom GraphQL Queries
 
-When the SDK doesn't provide a method for a specific GraphQL operation, you can execute raw GraphQL queries using `execute_query()`.
+When the SDK doesn't provide a method for a specific GraphQL operation, you can execute raw GraphQL queries. `execute_query()` covers queries with no variables; for anything that takes variables, call `execute()` on the client's underlying `httpclient` instead.
 
 ### execute_query()
 
@@ -360,7 +360,12 @@ When the SDK doesn't provide a method for a specific GraphQL operation, you can 
 client.execute_query(query: str) -> Dict
 ```
 
-Execute a raw GraphQL query against the Speckle server.
+<Note>
+  `execute_query()` is deprecated in favour of `client.httpclient.execute()`, which is used in the
+  examples below and is also the only way to pass variables.
+</Note>
+
+Execute a raw GraphQL query against the Speckle server. It does not accept variables.
 
 Parameters:
 
@@ -383,8 +388,8 @@ from specklepy.api.client import SpeckleClient
 client = SpeckleClient(host="https://app.speckle.systems")
 client.authenticate_with_token(token)
 
-# Custom GraphQL query
-query = gql("""
+# Custom GraphQL query, no variables
+query = """
     query CustomQuery {
         projects(limit: 100) {
             items {
@@ -395,7 +400,7 @@ query = gql("""
             }
         }
     }
-""")
+"""
 
 result = client.execute_query(query)
 projects = result['projects']['items']
@@ -404,19 +409,17 @@ for project in projects:
     print(f"{project['name']}: {project['id']}")
 ```
 
-### When to Use Custom Queries
+### Queries and mutations with variables
 
-Use `execute_query()` when you need to:
-
-- Access GraphQL fields not exposed by SDK methods
-- Perform complex queries with specific field selections
-- Use new API features before SDK support is added
-- Optimize queries by requesting only needed fields
-
-Example - Custom Fields:
+`execute_query()` takes a plain query string and has no way to bind variables to it. When an operation needs variables, wrap it with `gql()` and call `execute()` on `client.httpclient` (the [`gql`](https://gql.readthedocs.io/) client SpeckleClient is built on), passing `variable_values`:
 
 ```python
-# Query custom or new fields not in SDK
+from gql import gql
+from specklepy.api.client import SpeckleClient
+
+client = SpeckleClient(host="https://app.speckle.systems")
+client.authenticate_with_token(token)
+
 query = gql("""
     query ProjectWithCustomFields($projectId: String!) {
         project(id: $projectId) {
@@ -430,9 +433,17 @@ query = gql("""
     }
 """)
 
-# Execute with variables
-result = client.execute_query(query)
+result = client.httpclient.execute(query, variable_values={"projectId": "your-project-id"})
 ```
+
+### When to Use Custom Queries
+
+Use a custom query or mutation when you need to:
+
+- Access GraphQL fields not exposed by SDK methods
+- Perform complex queries with specific field selections
+- Use new API features before SDK support is added
+- Optimize queries by requesting only needed fields
 
 Example - Mutations:
 
@@ -450,7 +461,10 @@ mutation = gql("""
     }
 """)
 
-result = client.execute_query(mutation)
+result = client.httpclient.execute(
+    mutation,
+    variable_values={"input": {"field": "value"}},
+)
 ```
 
 <Note>
