@@ -45,12 +45,15 @@ This section applies to every sync integration — Autodesk Forma Data Managemen
 - **Sync attempt** — one run of a sync against one source version Speckle has seen: download, convert, store. Each seen source version gets exactly one attempt, which either succeeds (a Speckle version now exists) or fails (it does not).
 - **Speckle version** — the converted copy a successful attempt stores. Speckle versions are ordered by when they were created in Speckle, not by source version number.
 - **Latest version** — the most recently created Speckle version of a model, and what the viewer, dashboards, and API show by default.
-- **Missed source version** — a source version whose attempt failed, or that Speckle never saw because the integration was disconnected, its authorisation had lapsed, or the sync was paused. Both cases are handled the same way.
+- **Retry** — running a new sync attempt against the same source version as the sync's most recent attempt. Available from the sync's status in the UI, and only while that source version is still the newest one Speckle has seen. Once a newer source version has been seen, the earlier one can no longer be retried.
+- **Missed source version** — a source version whose attempt failed and that can no longer be retried because a newer source version has since been seen, or that Speckle never saw because the integration was disconnected, its authorisation had lapsed, or the sync was paused. Both cases are handled the same way.
 - **Re-publish** — producing a new source version in the source platform (re-issuing, re-saving, or re-uploading the file). Speckle treats it as any other new source version.
 
 ### The guarantee
 
 **Syncs are forward-only.** A sync acts only on the source version current when it runs, and each new Speckle version comes from a source version at least as new as the one before it. A model's latest version always reflects the most recent _successful_ sync attempt. It is never an older source version brought in out of order.
+
+**A failed attempt can be retried only while its source version is still the newest.** If the most recent attempt failed, retry it from the sync's status. The retry runs against the same source version, so it cannot disturb version order. Once a newer source version has been seen, the earlier failure is a missed source version and the retry is no longer offered.
 
 **Missed source versions are not replayed.** Whatever the cause — a Speckle-side fault, or the source platform's availability, authorisation, permissions, or rate limits — a missed source version is not retried later and is not backfilled. The next successful attempt produces the next Speckle version. To get a missed version into Speckle, re-publish it on the source platform.
 
