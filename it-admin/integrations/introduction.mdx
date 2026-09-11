@@ -32,6 +32,43 @@ A sync takes a file the user can already open in the CDE and converts it into Sp
 
 A subscription points at a table or view in your warehouse. Speckle presents a browser of what the service identity can see; a user picks a table, and Speckle queries it read-only when a dashboard, AI chat, or SQL join needs it — for example, joining a cost table to the elements of a synced model. Queries run on your warehouse compute under the service identity, so they appear in your query history and consume your compute like any other client.
 
+## Sync guarantees
+
+This section applies to every sync integration — Autodesk Forma Data Management (ACC), Bentley ProjectWise, Trimble Connect, and any integration added later. It states what Speckle guarantees when a sync runs and what it does when a sync does not.
+
+### Terms
+
+- **Source platform** — the system Speckle reads from. It is the system of record for its own files and version history; Speckle never is.
+- **Sync** — a standing link between one file in the source platform and one Speckle model. Created once, it produces Speckle versions over time. Pausing or disconnecting a sync stops new versions; existing versions stay.
+- **Source version** — one saved state of a file in the source platform. The source platform numbers and retains these.
+- **Change detection** — how Speckle learns a new source version exists. ACC notifies Speckle at publish time. ProjectWise and Trimble Connect are checked on a schedule, so Speckle sees only the source version current at check time; versions superseded between checks are never seen.
+- **Sync attempt** — one run of a sync against one source version Speckle has seen: download, convert, store. Each seen source version gets exactly one attempt, which either succeeds (a Speckle version now exists) or fails (it does not).
+- **Speckle version** — the converted copy a successful attempt stores. Speckle versions are ordered by when they were created in Speckle, not by source version number.
+- **Latest version** — the most recently created Speckle version of a model, and what the viewer, dashboards, and API show by default.
+- **Retry** — running a new sync attempt against the same source version as the sync's most recent attempt. Available from the sync's status in the UI, and only while that source version is still the newest one Speckle has seen. Once a newer source version has been seen, the earlier one can no longer be retried.
+- **Missed source version** — a source version whose attempt failed and that can no longer be retried because a newer source version has since been seen, or that Speckle never saw because the integration was disconnected, its authorisation had lapsed, or the sync was paused. Both cases are handled the same way.
+- **Re-publish** — producing a new source version in the source platform (re-issuing, re-saving, or re-uploading the file). Speckle treats it as any other new source version.
+
+### The guarantee
+
+**Syncs are forward-only.** A sync acts only on the source version current when it runs, and each new Speckle version comes from a source version at least as new as the one before it. A model's latest version always reflects the most recent _successful_ sync attempt. It is never an older source version brought in out of order.
+
+**A failed attempt can be retried only while its source version is still the newest.** If the most recent attempt failed, retry it from the sync's status. The retry runs against the same source version, so it cannot disturb version order. Once a newer source version has been seen, the earlier failure is a missed source version and the retry is no longer offered.
+
+**Missed source versions are not replayed.** Whatever the cause — a Speckle-side fault, or the source platform's availability, authorisation, permissions, or rate limits — a missed source version is not retried later and is not backfilled. The next successful attempt produces the next Speckle version. To get a missed version into Speckle, re-publish it on the source platform.
+
+**What Speckle does when attempts fail.** Speckle surfaces the failure in the sync's status, fixes the cause so subsequent attempts succeed, and confirms with the reporting customer. Where the cause was on Speckle's side, Speckle notifies affected workspace admins with the models involved, the date window, and the re-publish remedy. How a failure is surfaced — auto-pause, email to the sync's creator — is described on each integration's page.
+
+**Responsibility boundary.** Every integration is a two-party arrangement. Speckle is not responsible for source versions that fail to sync because of the source platform's availability, authorisation, permissions, rate limits, or content Speckle cannot process. Speckle's service commitments cover Speckle's half.
+
+**Disconnection gaps.** If an integration is disconnected, a sync is paused, or authorisation lapses, source versions during the gap are missed. Reconnecting or resuming continues from the next source version Speckle sees, not from the gap.
+
+<Note>
+  The source platform keeps its full version history regardless of what Speckle synced. Treat
+  Speckle's version list as the record of what was successfully converted, not as a mirror of the
+  source platform's history.
+</Note>
+
 ## Who the integration acts as
 
 This is where the integrations differ, and it determines where you scope access.
@@ -107,6 +144,17 @@ For **ProjectWise**, add the service account only to the projects that need sync
     Syncs read existing files and derivatives and do not trigger paid translation. Warehouse queries
     run on your compute under the service identity and are billed by your platform like any other
     client.
+  </Accordion>
+  <Accordion title="A source version was missed. Can Speckle recover it?">
+    If it is the sync's most recent attempt, retry it from the sync's status. If a newer source
+    version has been seen since, no: syncs are forward-only and missed source versions are not
+    replayed, whatever the cause. Re-publish the file on the source platform; Speckle syncs it as a
+    new version. See [Sync guarantees](#sync-guarantees).
+  </Accordion>
+  <Accordion title="Will the latest version in Speckle ever be older than the latest in our CDE?">
+    It can lag — by the check interval on scheduled integrations, plus conversion time — and it can
+    be missing a version that failed to sync. It will never be an older version brought in after a
+    newer one; the latest Speckle version always comes from the most recent successful sync.
   </Accordion>
   <Accordion title="Does Speckle store our warehouse data?">
     Speckle stores the query results it needs to render a dashboard or answer a question, not a copy
