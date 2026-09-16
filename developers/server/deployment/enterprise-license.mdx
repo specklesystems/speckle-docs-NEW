@@ -15,7 +15,7 @@ If you are not using the Speckle Enterprise licensed server, please refer to our
 </Note>
 
 <Note>
-  The current release line is 2026.9, deployed as chart version `2026.9.3`. Moving an existing
+  The current release line is 2026.9, deployed as chart version `2026.9.4`. Moving an existing
   deployment between release lines follows the [self-hosted upgrade
   guide](/developers/server/upgrades/introduction); bookmark it, it is not in the navigation.
 </Note>
@@ -64,7 +64,7 @@ The Enterprise Helm chart and images are published to an OCI registry. Log in to
 `<PACKAGE_REGISTRY_HOST>` is the host part of the package registry URL. To read the chart's reference `values.yaml`, pull the chart locally:
 
     ```bash
-    helm pull oci://<PACKAGE_REGISTRY_URL>/speckle-server-chart --version 2026.9.3 --untar
+    helm pull oci://<PACKAGE_REGISTRY_URL>/speckle-server-chart --version 2026.9.4 --untar
     ```
 
 Use this file, not the one in the public GitHub repository, as the reference for the values available on your chart version.
@@ -105,7 +105,7 @@ Prepare `values.yaml` as described in the [Kubernetes deployment guide](/develop
 
     ```bash
     helm upgrade --install speckle-server oci://<PACKAGE_REGISTRY_URL>/speckle-server-chart \
-    --version 2026.9.3 \
+    --version 2026.9.4 \
     --namespace <NAMESPACE> \
     -f values.yaml
     ```
@@ -354,10 +354,15 @@ We provide a separate guide for enabling Automate, available in our documentatio
 ### (Optional) Intelligence
 
 <Note>
-Intelligence features can be enabled on their own, but are limited without the Automate module, which provides the necessary backend support. For a full experience, we recommend enabling both features together.
+  Intelligence features can be enabled on their own, but are limited without the Automate module,
+  which provides the necessary backend support. For a full experience, we recommend enabling both
+  features together.
+</Note>
 
-Intelligence currently requires access to an external Content Delivery Network (CDN) for the feature to work. If your cluster is in an environment without access to external networks, please contact your Speckle representative to discuss options for enabling this feature.
-
+<Note>
+  Intelligence currently requires access to an external Content Delivery Network (CDN) for the
+  feature to work. If your cluster is in an environment without access to external networks, please
+  contact your Speckle representative to discuss options for enabling this feature.
 </Note>
 
 1. To enable Intelligence features, update the Helm values.yaml file to include the following feature flag:
@@ -463,7 +468,7 @@ Two steps remain outside your cluster before a user can create a sync. An Autode
 
 From 2026.9, [direct uploads](/connectors/direct-uploads/introduction) and CDE syncs convert files in your cluster: the server launches one Kubernetes Job per file from the `speckle-converters` image, on a node pool you provision. The runner is off by default, and the chart cannot responsibly turn it on for you: it needs capacity and objects only you can provide. Without the runner, the server accepts no file uploads at all, including IFC.
 
-With the runner on, the server accepts `ifc`, `rvt`, `nwd`, `nwc`, `dwg`, `dgn`, `skp`, `3dm`, `obj`, `step` and `stp`. The list is fixed by the server; there is no per-format switch. The converter image ships with the licensed ODA SDKs built in, so the ODA-based formats (`rvt`, `nwd`, `nwc`, `dwg`, `dgn`) need no credentials from you. Converting `3dm` and `obj` additionally needs a [Rhino token you supply](#rhino-token-for-3dm-and-obj).
+With the runner on, the server accepts `ifc`, `rvt`, `nwd`, `nwc`, `dwg`, `dgn`, `skp`, `step` and `stp`. The list is fixed by the server; there is no per-format switch. The converter image ships with the licensed ODA SDKs built in, so the ODA-based formats (`rvt`, `nwd`, `nwc`, `dwg`, `dgn`) need no credentials from you. `3dm` and `obj` are the exception. They stay off until you [turn on Rhino conversion](#rhino-conversion-for-3dm-and-obj) with a token you supply.
 
 #### What the runner needs from you
 
@@ -561,13 +566,18 @@ conversionRunner:
     The runner is off. With `featureFlags.jobRunnerEnabled` false the server accepts no file
     formats, and the web app says "Unsupported file type" as soon as a file is picked.
   </Accordion>
+  <Accordion title="IFC uploads work, but 3dm and obj are rejected as unsupported. Why?">
+    Rhino conversion is off. Those two formats need `featureFlags.rhinoConversionEnabled: true` next
+    to the Rhino token. A token on its own does not enable them. See [Rhino conversion for 3dm and
+    obj](#rhino-conversion-for-3dm-and-obj).
+  </Accordion>
 </AccordionGroup>
 
-#### Rhino token for 3dm and obj
+#### Rhino conversion for 3dm and obj
 
-`3dm` and `obj` convert through the runner's Rhino leg, which runs Rhino under McNeel's core-hour billing. The token is yours to supply, not Speckle's: generate a core-hour billing auth token in the [McNeel Licenses Portal](https://www.rhino3d.com/licenses) under your own Rhino account or team, so that usage bills to your organization.
+`3dm` and `obj` convert through Rhino itself, which the runner runs under McNeel's core-hour billing. The token is yours to supply, not Speckle's: generate a core-hour billing auth token in the [McNeel Licenses Portal](https://www.rhino3d.com/licenses) under your own Rhino account or team, so that usage bills to your organization.
 
-Leave `conversionRunner.rhinoToken` empty if you do not need those formats. To enable them, store the token in a Kubernetes Secret and name it in `conversionRunner.rhinoToken`:
+Rhino conversion is off by default. Leave both `featureFlags.rhinoConversionEnabled` and `conversionRunner.rhinoToken` unset if you do not need those formats. The server then does not advertise them, rejects uploads and syncs of them as unsupported, and needs no token. To turn them on, set the pair together. Store the token in a Kubernetes Secret, name it in `conversionRunner.rhinoToken`, and set the flag:
 
 ```bash
 kubectl create secret generic rhino-token \
@@ -578,17 +588,22 @@ kubectl create secret generic rhino-token \
 ```
 
 ```yaml
+featureFlags:
+  rhinoConversionEnabled: true
+
 conversionRunner:
   rhinoToken:
     secretName: 'rhino-token'
     secretKey: 'rhino_token'
 ```
 
-The token reaches each Rhino-routed Job as a plain environment variable, readable by anyone with pod read access in the conversion namespace; the chart's Role grants that only to the server and objects service accounts.
+With the flag on and no token, `3dm` and `obj` uploads fail fast with a configuration error instead of launching a Job. The token reaches each Rhino-routed Job as a plain environment variable, readable by anyone with pod read access in the conversion namespace; the chart's Role grants that only to the server and objects service accounts.
 
 <Warning>
-  The server accepts `3dm` and `obj` uploads whether or not a Rhino token is configured. Without
-  one, those uploads fail fast with a configuration error instead of launching a Job.
+  Deployments that already convert `3dm` and `obj` on chart 2026.9.3 or earlier must add
+  `featureFlags.rhinoConversionEnabled: true` next to their existing `conversionRunner.rhinoToken`
+  when upgrading to 2026.9.4. Without the flag, the server silently stops accepting those two
+  formats.
 </Warning>
 
 ### Blob storage reachable by clients
