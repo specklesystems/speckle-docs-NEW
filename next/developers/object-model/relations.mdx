@@ -36,6 +36,10 @@ container). For the two-store picture, see [Object model in 2026.9](/next/develo
 Dates and who must act are on
 [Data model migration for developers](/developers/migration/data-model-migration).
 
+Proxies themselves do not exist in 2026.9 bundle data - there is no `RenderMaterial`, `Level`,
+`Group`, `Definition`, `InstanceProxy`, or `InstanceDefinitionProxy` object anywhere in the format.
+The relation types below are what carries that information instead.
+
 ## Why relations exist
 
 Proxies let one object participate in several organizations without copying geometry. They do not
@@ -129,7 +133,9 @@ Today's Definition and Instance Proxies become structural nodes plus relations.
   </Step>
   <Step title="Identify objects by applicationId">
     Key source elements by `applicationId`, not by their position in a nested `elements` tree. The
-    outcome is a stable object set across versions.
+    outcome is a stable object set across versions. If you are producing data rather than only
+    reading it, this only holds if every placement's `applicationId` is unique — a repeated id
+    resolves to the same object, not a second occurrence.
   </Step>
   <Step title="Read the columnar property store">
     Take attributes from property paths on those objects. See [Columnar property
@@ -173,5 +179,14 @@ separate. Until they ship in these docs, use supported SDK accessors and the
     generate — rewriting those files mismatches on the next republish, and you own whatever you add.
     Do not mint unused numeric relation type ids from the Speckle catalog; Speckle reserves those
     numbers for future platform types.
+  </Accordion>
+  <Accordion title="What happens if two objects share the same applicationId?">
+    They are treated as the same object referenced twice, not as two occurrences.
+    `applicationId` is not required on every object, but wherever it is relied on as identity — a
+    `DISPLAY_INSTANCE` or `DEFINES_INSTANCE` placement, a `Flatten().ToDictionary(o =>
+    o.applicationId)` lookup, any join back to a source element — that identity has to be unique
+    for the objects relying on it. A producer that reuses an id across two distinct placements
+    will see the second one silently collapse onto the first: same node, same transform, no error
+    raised.
   </Accordion>
 </AccordionGroup>
