@@ -1,0 +1,75 @@
+{
+  "_comment": "Tier B sources for next/developers/object-model pages: concepts with no speckle-bundle-spec-generated catalog to diff against (see the sync-object-model-docs skill). Each entry pins the sha256 of a source file as of the last time an agent actually read it and drew a conclusion from it. check-object-model-freshness.mjs re-hashes these sibling-checkout files and flags any that changed, so a stale conclusion gets re-verified instead of silently rotting. Update the hash (and the note, if the fact changed) whenever you re-verify or the source moves.",
+  "entries": [
+    {
+      "docsPage": "next/developers/object-model/version-metadata.mdx",
+      "concept": "What replaced the Commit object (root-object metadata split: version record, ingestion, meta row, model-scoped properties)",
+      "verifiedAt": "2026-09-16",
+      "note": "Already documented in full on this page (see the 'What the root object carried, and where it lives now' table and FAQ) — this manifest entry exists to catch drift against the page's SDK/spec-side claims, not to flag a gap. VERIFICATION IS PARTIAL: sources below confirm the SDK-side publish sequence (Ingestion.Create pre-allocates the version id, meta row shape, SetProducer) and the meta table DDL. They do NOT independently verify this page's server-side claims (REST error codes like BUNDLE_REFERENCE_NOT_FOUND, the version_created event, GraphQL mutation shapes) against speckle-server-internal source — that repo isn't in this manifest yet.",
+      "sources": [
+        {
+          "repo": "atlas",
+          "path": "glossary.md",
+          "sha256": "99824e7ad278874d15a8e4e2b39d90c7e6cb47ab2d49e14713180ebb8b818c1f",
+          "why": "Canonical renames (version was commit), the bundle reference format, and the Version.schemaVersion vs meta.schema_version distinction"
+        },
+        {
+          "repo": "speckle-bundle-spec",
+          "path": "spec/bundle-spec.sql",
+          "sha256": "45c91980085c4342fab7a5b099cc71343c04d54b45eca62b9349b2826dcb2f73",
+          "why": "The meta table DDL (schema_version, produced_by, producer_version, sdk_name, sdk_version, migrated_from_schema_version) — search for 'CREATE TABLE meta'"
+        },
+        {
+          "repo": "speckle-sharp-sdk",
+          "path": "src/Speckle.Sdk/Bundles/BundleSender.cs",
+          "sha256": "3e560978726acd2b7ad87862cf65299f52891f8848d2e4afe012132f6c705032",
+          "why": ".NET publish sequence: Ingestion.Create pre-allocates the version id, upload, WaitForVersionAsync -> Version.Get"
+        },
+        {
+          "repo": "speckle-sharp-sdk",
+          "path": "src/Speckle.Sdk.Parquet/Pipelines/Send/Artifacts/EnvelopeWriter.cs",
+          "sha256": "8e64722538601b6f91985fde54d9ea07d44a9755c9f6574df1b1c1131ea3efa5",
+          "why": "meta table's field-by-field doc comment on EnvelopeWriter's class summary"
+        },
+        {
+          "repo": "speckle-sharp-sdk",
+          "path": "src/Speckle.Sdk/Objects/Utils/ObjectsArtifactPipeline.cs",
+          "sha256": "52b0335f22a78d77cadf4aff6eefac1d81fed01b3495ce29aa5667e0e52ade27",
+          "why": "SetProducer(...) — 'Required before Complete: every bundle names its producer'"
+        },
+        {
+          "repo": "specklepy",
+          "path": "src/specklepy/bundle/send.py",
+          "sha256": "b195b9915dfb06b03ec0b570f8f3f727da15c450d135782f5930bb86d43288df",
+          "why": "Python publish sequence — confirms parity with BundleSender.cs (ModelIngestionCreateInput, get_reserved_version_id, ArtifactPipeline)"
+        },
+        {
+          "repo": "specklepy",
+          "path": "src/specklepy/bundle/envelope_writer.py",
+          "sha256": "918187cd37df552e293969027b96b8f24f4fecc7744cbd17a8afdb982e7c73b8",
+          "why": "Confirms the meta schema fields are identical to the .NET EnvelopeWriter"
+        }
+      ]
+    },
+    {
+      "docsPage": "next/developers/building-integrations/publish.mdx",
+      "concept": "The ingestion publish sequence (create -> build -> sign -> upload -> complete -> wait) and bundle-correctness rules",
+      "verifiedAt": "2026-09-16",
+      "note": "Already documented in full on this page, including REST/GraphQL wire detail (sign/complete endpoints, ETag handling, ModelIngestionCreateInput shape) this manifest does NOT independently verify — those live in speckle-server-internal, not in this manifest's source list. What IS verified here: the SDK-side sequence and its parity between .NET and Python matches this page's Steps + code tabs.",
+      "sources": [
+        {
+          "repo": "speckle-sharp-sdk",
+          "path": "src/Speckle.Sdk/Bundles/BundleSender.cs",
+          "sha256": "3e560978726acd2b7ad87862cf65299f52891f8848d2e4afe012132f6c705032",
+          "why": ".NET side of the sequence this page's Steps block and .NET code tab describe"
+        },
+        {
+          "repo": "specklepy",
+          "path": "src/specklepy/bundle/send.py",
+          "sha256": "b195b9915dfb06b03ec0b570f8f3f727da15c450d135782f5930bb86d43288df",
+          "why": "Python side of the same sequence — confirms the page's Python code tab matches current send.py"
+        }
+      ]
+    }
+  ]
+}
