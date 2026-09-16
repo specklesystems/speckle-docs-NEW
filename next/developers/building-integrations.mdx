@@ -227,7 +227,8 @@ often get wrong.
 ### Geometry
 
 - Write the SGEO header exactly: magic, version, primitive type, flags, the spec's unit code, and a
-  CRC32 over the body, all little-endian. Consumers verify the checksum.
+  CRC32 over the body, all little-endian. Consumers verify the checksum. See [Geometry encoding in
+  2026.9](/next/developers/object-model/geometry-encoding).
 - `DISPLAY`, `SOLID`, and `CENTERLINE` each keep their own ordinal counter per object.
 - Ship the solid beside the display mesh, not instead of it. Foreign hosts read the mesh.
 - `CENTERLINE` is never a render edge. A consumer that drew every geometry an object owns would
@@ -324,21 +325,27 @@ often get wrong.
   </Step>
 </Steps>
 
-## Reference producers
+## Open-source producers to learn from
 
-Read these as worked examples of the rules above. Each is a different language and a different
-host.
+Every Speckle connector is open source. Read them as worked examples of the rules above, in the
+language closest to yours. The SDKs are the reference builders; the non-SDK producers show the same
+contract implemented from scratch.
 
-- [Speckle.Sdk](https://github.com/specklesystems/speckle-sharp-sdk), the .NET bundle builder and
-  artifact pipeline under `Speckle.Sdk.Bundles`.
-- [specklepy](https://github.com/specklesystems/specklepy), the Python bundle builder under
-  `specklepy.bundle`, with the `bundle` extra.
-- [speckle-archicad](https://github.com/specklesystems/speckle-archicad), a C++ producer that writes
-  parquet and drives the ingestion with no Speckle SDK.
-- [speckle-blender](https://github.com/specklesystems/speckle-blender), a Python producer built on
-  specklepy, with instancing and per-object geometry keys worth reading.
-- [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors), the .NET
-  desktop connectors, with the reference-point and by-layer material handling.
+| Repository                                                                             | Language   | Hosts                                                                                                               | How it publishes in 2026.9                                                     | Read it for                                                                |
+| -------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| [speckle-sharp-sdk](https://github.com/specklesystems/speckle-sharp-sdk)               | C#         | Any                                                                                                                 | The reference bundle builder and artifact pipeline under `Speckle.Sdk.Bundles` | The builder contract, sharding, progress and cancellation plumbing         |
+| [specklepy](https://github.com/specklesystems/specklepy)                               | Python     | Any                                                                                                                 | The reference bundle builder under `specklepy.bundle`, with the `bundle` extra | A compact builder, the SGEO encoder, the upload client                     |
+| [speckle-archicad](https://github.com/specklesystems/speckle-archicad)                 | C++        | Archicad                                                                                                            | Its own parquet writer and ingestion client. No Speckle SDK                    | The complete non-SDK producer: column binding, EAV rules, SGEO, upload     |
+| [speckle-sketchup](https://github.com/specklesystems/speckle-sketchup)                 | Ruby       | SketchUp                                                                                                            | Its own envelope writer and ingestion client. No Speckle SDK                   | A non-SDK producer in a dynamic language                                   |
+| [speckle-blender](https://github.com/specklesystems/speckle-blender)                   | Python     | Blender                                                                                                             | specklepy's bundle builder                                                     | Instancing, per-object geometry keys, world-space display geometry         |
+| [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors) | C#         | Revit, Rhino, Grasshopper, AutoCAD, Civil 3D, Plant 3D, ETABS, SAP2000, Tekla Structures, Tekla Structural Designer | Speckle.Sdk's bundle builder and the same v2 upload rail                       | Reference points, by-layer materials, type-level properties, linked models |
+| [speckle-connectors-dui](https://github.com/specklesystems/speckle-connectors-dui)     | TypeScript | Shared connector UI                                                                                                 | Does not publish. Observes the ingestion until the version exists              | Subscribing to ingestion status and reporting it to a user                 |
+| [speckle-powerbi](https://github.com/specklesystems/speckle-powerbi)                   | TypeScript | Power BI                                                                                                            | Load only                                                                      | Reading versions and properties without producing                          |
+
+Navisworks has no 2026.9 desktop connector. Large NWC and NWD files go through [direct
+uploads](/connectors/direct-uploads/introduction), where a server-side converter produces the
+bundle. Older archived repositories such as the QGIS, Unity, and Excel connectors publish the
+Current object graph and are not a pattern for 2026.9.
 
 ## FAQ
 
@@ -349,17 +356,9 @@ host.
     `LEGACY_SEND_UNSUPPORTED`. Treat that as the wrong rail, not a transient error. See [Publish
     through model ingestions](/developers/migration/publish-through-ingestions).
   </Accordion>
-  <Accordion title="Do I have to write the viewer .dat?">
-    No. The server builds it from your bundle after completion. Write the parquet files only.
-  </Accordion>
   <Accordion title="What happens if my host has no levels, materials, or instances?">
     Emit nothing for them. An absent relation means "not in this model". Consumers must never treat
     a missing relation type as an error.
-  </Accordion>
-  <Accordion title="Why does completing the upload return a version id that I cannot query?">
-    The id was reserved when the ingestion opened. The version record is created when ingestion
-    finishes, which includes building the viewer `.dat`. Wait for the terminal status before you
-    link, query, or receive it.
   </Accordion>
   <Accordion title="Where do units go if there is no root object?">
     On every object as a root scalar, on every instance node, in every SGEO header, and per property
