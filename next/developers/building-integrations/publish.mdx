@@ -333,18 +333,24 @@ often get wrong.
 - Treat a dropped row as a failed publish. Count rows written, not rows attempted.
 
 <Note>
-  The bundle spec's source and its validator are not published today. What is public is the
-  generated vocabulary, vendored into the open-source producers: `specklepy.bundle.spec` in Python,
-  the `Libs/bundlespec` headers in the Archicad connector, and `artifacts/vocab.rb` in the SketchUp
-  connector. Every bundle also carries its own `rel_types` and `node_kinds` catalogs, so a version
-  published by any Speckle connector shows you the live vocabulary. Copy from the most recently
-  updated of those and record which one you copied.
+  The spec is public at
+  [speckle-bundle-spec](https://github.com/specklesystems/speckle-bundle-spec). Build against the
+  generated constants under `generated/` for your language and pin to a commit. The vendored copies
+  in specklepy, the Archicad connector, and the SketchUp connector show what that looks like, and
+  every bundle carries its own `rel_types` and `node_kinds` catalogs.
 </Note>
 
 <Note>
-  Without the validator, your correctness loop is the server: publish to a test project, wait for
-  the ingestion to reach `success`, open the version in the viewer, then receive it with an SDK and
-  check that it reports no unknown relations and no geometry decode errors. Run that loop in CI.
+  Run the spec's validator on every bundle before you upload, from a checkout of the repository:
+
+```bash
+npm run validate -- <bundle-dir>
+```
+
+It checks file presence, live ids, column sets, and referential integrity. The server checks only
+ETags. Close the loop in CI as well: publish to a test project, wait for `success`, receive with
+an SDK, and check for unknown relations and decode errors.
+
 </Note>
 
 ## Suggested build order
