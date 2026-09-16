@@ -132,7 +132,9 @@ function main() {
     console.log()
   }
 
-  console.log('This is a name-only check. Drafting the actual table row or FAQ prose is editorial —')
+  console.log(
+    'This is a name-only check. Drafting the actual table row or FAQ prose is editorial —'
+  )
   console.log('use the sync-bundle-spec-docs skill rather than pasting spec text onto the page.')
 
   process.exitCode = 1
