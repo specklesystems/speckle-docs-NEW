@@ -1,0 +1,122 @@
+---
+title: Validate incoming models automatically
+sidebarTitle: Automatic model validation
+description: Author a check once and set it to run on every new version, so a consultant, subcontractor, or federated model is validated against your standard at each submission without anyone remembering to run it.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow linked Current documentation for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+Checking every incoming model by hand against your own standard doesn't scale — someone has to
+remember to run it, on every submission, on every model. A **Validation Check** with **auto**
+trigger removes the remembering: author the rule once, and it runs itself against every new
+version of the tracked model. This page covers that specific pattern — a standard applied at
+every submission milestone, not a one-off spot check.
+
+<Info>
+  This is a rules-based check, not a Chat conversation — Data Validation runs the same `WHERE` /
+  `CHECK` predicates every time rather than reasoning about a question. For plain-language questions
+  about a model, use [Ask questions about your models with Speckle
+  Intelligence](/next/analytics/intelligence) instead.
+</Info>
+
+## What this workflow does
+
+- **Encode the standard once** — required parameters, naming pattern, or a value that must match
+  a related object, as `WHERE` / `CHECK` rules.
+- **Run it without anyone asking** — **auto** trigger fires the check against tracked models when
+  a new version lands, so validation happens at the moment of submission, not whenever someone
+  remembers.
+- **Score the submission** — a pass rate against your threshold, not just a pass/fail per object.
+- **Keep a history** — every run is recorded, so you can see whether a consultant's compliance is
+  improving or not across a project.
+
+## Walkthrough
+
+<Steps>
+  <Step title="Author the check against your standard">
+    Open **Run check** in the project sidebar and draft your rules — for example, every element from
+    the incoming discipline must carry a required parameter, follow a naming pattern, or match a
+    value on a related host object. See [Checks](/analytics/data-validation/checks) for rule
+    structure, predicates, and how to check an object against something it's related to.
+  </Step>
+  <Step title="Preview against a real submission">
+    Run **Preview** against the model you're building the check for. Tighten `WHERE` first if the
+    scope is too broad — a check that's too loose floods the result with noise nobody will read.
+  </Step>
+  <Step title="Set the trigger to auto and save">
+    Save the check with **auto** trigger, and set your pass (and optional warn) threshold. From this
+    point, every new version of the tracked model runs this check without anyone starting it
+    manually.
+  </Step>
+  <Step title="Review results as submissions land">
+    Each new version's result appears in **Checks** with its pass rate. A consultant's or
+    subcontractor's model is validated against your standard the moment it's published — not at
+    whatever point someone gets around to checking it.
+  </Step>
+</Steps>
+
+## Reuse the standard elsewhere
+
+A saved check is tied to its tracked models. If the same standard applies on other projects,
+recreate it there rather than expecting it to follow a model automatically — 2026.9 does not yet
+have a rollup from one project's checks into a workspace-wide standard; see [Project
+standards](/next/analytics/data-validation/overview#project-standards) for where that's headed.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can I edit the rules after I save the check?">
+    No — after saving, only the check's name and description are editable. Tracked models, rules,
+    predicates, and trigger mode stay frozen. Create a new check for different behaviour. See
+    [Checks](/analytics/data-validation/checks).
+  </Accordion>
+  <Accordion title="What happens if the submission uses a version in the old data format?">
+    Data Validation preview and saved-check runs need a version in the 2026.9 data format. If a
+    submission is still on the old format, ask the consultant or subcontractor to publish with a
+    current connector. See [Speckle's data model is changing](/workspaces/data-model-migration).
+  </Accordion>
+  <Accordion title="Can I check a submission against a related model, like a host wall from another discipline?">
+    Yes, on a version in the 2026.9 data format — add a related object to the rule and pick the
+    relationship (host element, room, connected element, and others). See [Checks against related
+    objects](/next/analytics/data-validation/overview#checks-against-related-objects).
+  </Accordion>
+  <Accordion title="Does auto trigger notify anyone, or do I have to check the results page?">
+    The result appears in **Checks** with its pass rate; this page does not cover a separate
+    notification channel. Build a **Model Validation** or **Property checker** widget into a
+    dashboard if you want the pass/fail state visible somewhere your team already looks — see [Run a
+    quick validation check](/analytics/dashboards/common-workflows#run-a-quick-validation-check).
+  </Accordion>
+  <Accordion title="Is this the same as pinning a check in a Speckle Intelligence skill?">
+    No. A skill is an opt-in playbook someone arms with `/skill-name` in a conversation. A
+    Validation Check with auto trigger runs on its own schedule (every new version) independent of
+    Chat. They can complement each other — for example, ask Chat to summarise a check's recent
+    failures in plain language — but the check itself is authored and run through Data Validation.
+  </Accordion>
+</AccordionGroup>
+
+## See also
+
+- [Checks](/analytics/data-validation/checks)
+- [Data Validation in 2026.9](/next/analytics/data-validation/overview)
+- [Viewing Results](/analytics/data-validation/viewing-results)
+- [Run a quick validation check](/analytics/dashboards/common-workflows#run-a-quick-validation-check)
+  — the dashboard-widget route for a spot check rather than a standing gate
