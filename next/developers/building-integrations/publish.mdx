@@ -1,0 +1,388 @@
+---
+title: Publish a bundle from your own code
+sidebarTitle: Publish
+description: The ingestion sequence a producer drives to create a 2026.9 version, the rules that make a bundle correct, and a build order.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow linked Current documentation for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+A publish in 2026.9 is an ingestion you open, a bundle you write and upload, and a version the
+server creates when ingestion finishes. Nothing here calls a create-version mutation, and nothing
+is visible until the ingestion reaches `success`. This page assumes you know what a bundle and a
+bundle builder are from [Building integrations in 2026.9](/next/developers/building-integrations).
+
+## How a publish creates a version
+
+The version id is allocated before any bytes move, and the version is born on the server. Every
+Speckle producer follows this sequence.
+
+<Steps>
+  <Step title="Open a model ingestion">
+    Call the ingestion create mutation with the model, the source application slug and version, a
+    progress message, and an idle timeout. The outcome is an ingestion id and a reserved version id.
+    If the response has no version id, the server predates 2026.9. Stop; there is no fallback on
+    this rail.
+  </Step>
+  <Step title="Build the bundle under that version id">
+    Run your conversion and write the files with the reserved id as their stem. The outcome is a
+    complete bundle on local disk that you can validate before anything is uploaded.
+  </Step>
+  <Step title="Sign the uploads">
+    Post the list of bare filenames to the sign endpoint. The outcome is one presigned URL per file.
+  </Step>
+  <Step title="Upload each file">
+    Put each file to its URL with no extra headers, and keep the returned ETag exactly as received.
+    The outcome is every file in storage and an ETag per filename.
+  </Step>
+  <Step title="Complete the upload">
+    Post the ETags, the bundle reference as the root id, the object count, and the version message.
+    The outcome is the server accepting the bundle and starting ingestion. The response echoes the
+    version id.
+  </Step>
+  <Step title="Wait for the ingestion to finish">
+    Subscribe to ingestion updates or poll until the status is terminal. The outcome on `success` is
+    a version that answers queries, has a viewer `.dat`, and fires `version_created`.
+  </Step>
+</Steps>
+
+The SDK tabs run the whole sequence in one call. The GraphQL and REST tabs are the calls a
+non-SDK producer makes, numbered to match the steps.
+
+<Tabs>
+  <Tab title="GraphQL">
+    ```graphql
+    # 1. Open the ingestion. The response carries the reserved version id.
+    mutation IngestionCreate($input: ModelIngestionCreateInput!) {
+      projectMutations {
+        modelIngestionMutations {
+          create(input: $input) {
+            id
+            versionId
+            cancellationRequested
+          }
+        }
+      }
+    }
+
+    # While you convert: keep the idle clock alive and read the cancel flag.
+    mutation IngestionUpdateProgress($input: ModelIngestionUpdateInput!) {
+      projectMutations {
+        modelIngestionMutations {
+          updateProgress(input: $input) {
+            id
+            cancellationRequested
+          }
+        }
+      }
+    }
+
+    # On any failure: close the ingestion. failWithCancel and failWithInvalid have the same shape.
+    mutation IngestionFailWithError($input: ModelIngestionFailedInput!) {
+      projectMutations {
+        modelIngestionMutations {
+          failWithError(input: $input) {
+            id
+          }
+        }
+      }
+    }
+
+    # 6. After complete: wait for a terminal status.
+    subscription ProjectModelIngestionUpdated($input: ProjectModelIngestionSubscriptionInput!) {
+      projectModelIngestionUpdated(input: $input) {
+        modelIngestion {
+          id
+          statusData {
+            __typename
+            ... on ModelIngestionSuccessStatus {
+              versionId
+            }
+            ... on ModelIngestionProcessingStatus {
+              progressMessage
+              progress
+            }
+          }
+        }
+      }
+    }
+    ```
+
+    ```json Variables for IngestionCreate
+    {
+      "input": {
+        "projectId": "<projectId>",
+        "modelId": "<modelId>",
+        "progressMessage": "Sending from my-producer 1.0",
+        "sourceData": {
+          "sourceApplicationSlug": "my-producer",
+          "sourceApplicationVersion": "1.0"
+        },
+        "maxIdleTimeoutSeconds": 600
+      }
+    }
+    ```
+
+  </Tab>
+  <Tab title="REST">
+    ```http
+    # 3. Sign. Bare filenames only, no paths.
+    POST /api/v2/projects/{projectId}/modelingestion/{ingestionId}/uploads/sign
+    Authorization: Bearer <token>
+    apollographql-client-name: my-producer
+    apollographql-client-version: 1.0
+    Content-Type: application/json
+
+    { "files": ["<versionId>.envelope.meta.parquet", "<versionId>.eav.objects.parquet", "..."] }
+
+    200 { "uploads": { "<name>": { "url": "https://...", "key": "..." } } }
+
+    # 4. Upload. One PUT per file, no Authorization header, no extra headers.
+    PUT <presigned url>
+    <file bytes>
+
+    200  ETag: "<etag>"
+
+    # 5. Complete. ETags verbatim, quotes included.
+    POST /api/v2/projects/{projectId}/modelingestion/{ingestionId}/uploads/complete
+    Authorization: Bearer <token>
+    apollographql-client-name: my-producer
+    apollographql-client-version: 1.0
+    Content-Type: application/json
+
+    {
+      "etags": { "<name>": "\"<etag>\"" },
+      "rootId": "bundle.<projectId>.<modelId>.<versionId>",
+      "totalChildrenCount": <object count>,
+      "message": "Nightly export"
+    }
+
+    200 { "versionId": "<versionId>" }
+    ```
+
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from specklepy.api import operations
+    from specklepy.bundle import BundleBuilder, Producer, SendOptions
+
+    builder = BundleBuilder(Producer(slug="my-producer", version="1.0"), units="m")
+    # add objects, containers, levels, and relations on the builder
+
+    result = operations.send3(
+        account, project_id, model_id, builder, SendOptions(message="Nightly export")
+    )
+    print(result.version_id, result.bundle_reference)
+    ```
+
+  </Tab>
+  <Tab title=".NET">
+    ```csharp
+    var producer = new SpeckleApplication
+    {
+        HostApplication = "My producer",
+        HostApplicationVersion = "1.0",
+        Slug = "my-producer",
+        SpeckleVersion = "2026.9",
+    };
+    using var builder = new BundleBuilder(producer, units: "m");
+    // add objects, containers, levels, and relations on the builder
+
+    var sent = await SpeckleBootstrap.Operations.Send3(
+        account, projectId, modelId, builder, new SendOptions(Message: "Nightly export"), ct
+    );
+    var version = await SpeckleBootstrap.Operations.WaitForVersion(account, sent, cancellationToken: ct);
+    ```
+
+  </Tab>
+</Tabs>
+
+<Note>
+  Forward the ETag byte for byte. Object storage wraps it in double quotes and the complete endpoint
+  compares against that exact value. Stripping the quotes fails the publish with an ETag mismatch
+  that looks like a server fault.
+</Note>
+
+<Note>
+  Close the ingestion on every exit. Report `failWithError`, `failWithInvalid`, or `failWithCancel`
+  through the ingestion mutations, using a request that cannot itself be cancelled. An ingestion you
+  leave open sits until the idle timeout fires.
+</Note>
+
+<Tip>
+  Send the `apollographql-client-name` and `apollographql-client-version` headers on the sign and
+  complete calls. The server reads the publishing client from those headers. Send nothing extra on
+  the presigned puts, which accept only the headers that were signed.
+</Tip>
+
+<Tip>
+  Files above a few hundred megabytes can use the multipart endpoints under the same ingestion path
+  (`uploads/multipart/start`, `complete`, and `abort`) instead of one put per file.
+</Tip>
+
+Progress and cancellation run through the same ingestion. Report progress on a throttle, with at
+most one update in flight, and never let a failed report fail the publish. The idle timeout is an
+idle clock, reset by each report, so a long conversion must keep reporting. Cancellation is
+cooperative in both directions: check your own cancel signal per object and per file, and watch
+`cancellationRequested` on every ingestion response.
+
+## Rules that decide whether your bundle is correct
+
+The server checks only that every file arrived with a matching ETag. Correctness is checked by the
+bundle spec's validator before upload and by consumers after. These are the rules producers most
+often get wrong.
+
+### Identity
+
+- `applicationId` must be stable across publishes and unique per placement. A linked file placed
+  twice needs a per-placement suffix, or its objects and their topology collide.
+- Key geometry on the placed object, never on a shared source block. Two objects sharing one mesh
+  describe different world-space geometry.
+- Derive geometry and definition keys from content, quantized, not from random ids. Random keys make
+  material bindings fragile and defeat definition deduplication.
+- An object with no properties, no geometry, and no relations is noise. Do not intern it.
+
+### Properties
+
+- One value per row: exactly one of the string, number, or boolean columns is set. Numbers must be
+  finite.
+- Paths are dotted. Nesting is rebuilt from the path, never stored as a blob.
+- Stamp the root scalars on every object: `speckle_type`, `name`, `units`, and the host's own
+  `type`.
+- Parameters shared by a type go to the type tables once, linked from each object, not repeated
+  per object.
+- Decide a policy for multi-valued properties. The reference walk drops arrays; joining them is a
+  valid alternative when your host emits them.
+
+### Geometry
+
+- Write the SGEO header exactly: magic, version, primitive type, flags, the spec's unit code, and a
+  CRC32 over the body, all little-endian. Consumers verify the checksum. See [Geometry encoding in
+  2026.9](/next/developers/object-model/geometry-encoding).
+- `DISPLAY`, `SOLID`, and `CENTERLINE` each keep their own ordinal counter per object.
+- Ship the solid beside the display mesh, not instead of it. Foreign hosts read the mesh.
+- `CENTERLINE` is never a render edge. A consumer that drew every geometry an object owns would
+  draw the axis through the duct.
+- Shard the geometry table at 1536 MiB of uncompressed content. Shard zero keeps the canonical name.
+  Readers glob all shards.
+
+### Instancing
+
+- A definition owns its geometry once. Each placement is an instance node with a transform of 16
+  row-major doubles and its own units.
+- When you convert transform units, scale only the translation column. Scaling all sixteen values
+  resizes the instance.
+- Definition members get no render edge. They keep an object row for properties and membership, and
+  join back through `DEFINES_MEMBER` and `PLACES`. A member with a render edge draws twice.
+- Create definition nodes before you walk placements, so a placement never references a nameless
+  definition.
+
+### Grouping
+
+- Membership is an edge (`IN_COLLECTION`, `IN_MODEL`, `IN_GROUP`, `IN_SYSTEM`). Nesting of
+  containers is a parent reference on the container node. Do not conflate them.
+- Containers are one node kind with a subtype (Layer, Collection, Folder, Model, Group, MEP System,
+  Network). Key them by full path so two branches with the same leaf name stay distinct.
+- The tree a viewer shows is a scene view: a recipe of tiers, some relations and some property
+  paths. Declare one, or accept the default over `IN_COLLECTION`.
+- Emit no container that would end up empty in the view.
+
+### Appearance
+
+- Bind materials to geometry with `HAS_MATERIAL`. The object plane only fills where geometry has
+  none, and is the only option for a placement.
+- `HAS_COLOR` can start from geometry or from an object, and `ord` says which. Without it, the
+  color lands on an unrelated element.
+- Resolve inherited, by-layer appearance yourself. Land the layer's material on the layer node and
+  on each inheriting object's own geometry.
+
+### Topology
+
+- Emit an edge only when both ends are objects you sent. Resolve cross-object links in a second
+  pass against your key map.
+- `ord` is an ordinal on ordered relations and a scope tag on `CONNECTS_TO`. Read the catalog.
+- `HOSTED_ON` runs hosted to host. Ownership (`SUBELEMENT`) wins over hosting when both apply.
+- Never reuse a retired relation id, and never invent one.
+
+### Provenance and column binding
+
+- Address parquet columns through the generated constants for your language. A spec column
+  insertion must be a compile or import error, not a silent row shift. If your parquet library has
+  no schema object, add an arity assertion yourself.
+- Stamp `schema_version` as the spec's semver string from the generated constant, pin the spec by
+  commit, and write real `produced_by` and `producer_version` values. Leave the SDK columns null when
+  you use none.
+- Treat a dropped row as a failed publish. Count rows written, not rows attempted.
+
+<Tip>
+  Every Speckle producer builds against the spec's generated constants and runs its validator in CI.
+  If you are building a producer, contact Speckle support for access to the spec package and
+  validator rather than transcribing tables from this page.
+</Tip>
+
+## Suggested build order
+
+<Steps>
+  <Step title="Authenticate and check capability">
+    Use a personal access token or your own OAuth flow. Check the ingestion permission on the model,
+    then open an ingestion and confirm the reserved version id is present. The outcome is a server
+    you know accepts bundles.
+  </Step>
+  <Step title="Write a one-object bundle and validate it">
+    One object, one mesh, one container, a default scene view, and a correct `meta` row. Run the
+    spec validator on the directory. The outcome is a bundle that passes before any upload.
+  </Step>
+  <Step title="Publish it end to end">
+    Sign, upload, complete, then wait for `success`. Open the version in the web app. The outcome is
+    a version you can see, with the publishing client attributed correctly.
+  </Step>
+  <Step title="Map identity and properties">
+    Stable `applicationId` per placement, root scalars, type-level parameters, a policy for arrays.
+    The outcome is a property store that filters and aggregates the way your users expect.
+  </Step>
+  <Step title="Add geometry and appearance">
+    SGEO encoding for each primitive you support, solids beside meshes, materials on geometry,
+    by-layer resolution. The outcome is a model that renders with the right appearance.
+  </Step>
+  <Step title="Add instancing and topology">
+    Definitions, placements, member suppression, then hosting, containment, and connectivity in a
+    second pass. The outcome is a model Speckle Intelligence can answer questions about.
+  </Step>
+  <Step title="Harden the publish">
+    Throttled progress, cooperative cancellation inside the upload, failure reporting on every exit,
+    geometry sharding, and retries with backoff on transient errors. The outcome is a producer that
+    survives large models and unreliable networks.
+  </Step>
+</Steps>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can I keep publishing the old object graph?">
+    For now, yes. Upgraded servers accept it with deprecation warnings and convert it to a bundle
+    before the version appears, because thousands of existing integrations depend on that path. It
+    is not the path to build new work on: the server stores the graph and then converts it, and that
+    support will end. No removal date is set, and one will be announced before it is. A deployment
+    set up as 2026.9-only already rejects it with `LEGACY_SEND_UNSUPPORTED`. Treat that as the wrong
+    rail, not a transient error. See [Publish through model
+    ingestions](/developers/migration/publish-through-ingestions).
+  </Accordion>
+</AccordionGroup>
