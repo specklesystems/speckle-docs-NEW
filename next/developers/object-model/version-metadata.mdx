@@ -1,0 +1,194 @@
+---
+title: Where version metadata lives in 2026.9
+sidebarTitle: Version metadata
+description: There is no root object in 2026.9 bundle data. What carries a version's identity, source application, units, and model-wide facts instead.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow linked Current documentation for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+If your script starts from `version.referencedObject`, reads `units` off the root object, or
+walks down from it, that script breaks on a 2026.9 version. Bundle data has **no root object**. The
+jobs the root object used to do are split across four places: the version record on the server,
+the model ingestion that publishes it, a one-row provenance stamp inside the bundle, and
+model-scoped properties. This page says where each piece went and what a script reads instead.
+
+In the Current [Data Schema](/developers/data-schema/overview), a version points at one object:
+`version.referencedObject` is the id of the [Root
+Collection](/developers/data-schema/concepts#root-collection), historically called the commit
+object. That object is the entry point for every traversal, and it carries the model-wide facts a
+script reads first: `units`, a `name`, the nested `elements` tree,
+[Proxies](/developers/data-schema/proxy-schema), and [Info](/developers/data-schema/concepts#info)
+such as views and the reference point transform. The version record beside it carries the message,
+source application, author, and creation date.
+
+For how objects relate to each other in 2026.9, see [Relations in
+2026.9](/next/developers/object-model/relations). For the two-store picture, see [Object model in
+2026.9](/next/developers/object-model/overview).
+
+## What the root object carried, and where it lives now
+
+| In the Current model                                               | In 2026.9                                                                                                                                                             | Read it with                                                                        |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Version id, message, author, created date on the version record    | Unchanged shape on the version record. The record exists only after ingestion completes                                                                               | `client.version.get` / `client.Version.Get`                                         |
+| `sourceApplication` on the version record, set by `version.create` | Set when the ingestion opens, from the producer slug and version you give the bundle builder                                                                          | `Version.sourceApplication`                                                         |
+| `referencedObject` is the root object's content hash               | A bundle reference: `bundle.<projectId>.<modelId>.<versionId>`. `Version.schemaVersion` is `3`                                                                        | Dispatch on the `bundle.` prefix. Never fetch it from the objects endpoints         |
+| `units` on the root object                                         | A `units` property on every object. The bundle builder requires a default unit and stamps it per object                                                               | `Model.units` / `Model.Units`, or the object's own `units` property                 |
+| Root `name` and the nested `elements` tree                         | No root node. Grouping containers (subtypes Model, Layer, Collection, Folder, Group) joined to objects by `IN_MODEL` and `IN_COLLECTION`. A scene view picks the tree | [Relations](/next/developers/object-model/relations#containment-and-grouping)       |
+| Proxy lists on the root (materials, levels, groups, instances)     | Typed relations                                                                                                                                                       | [Relations](/next/developers/object-model/relations)                                |
+| Info: views, `referencePointTransform`, analysis results           | Model-scoped properties (`referencePoint.*`, document settings, project information), camera views, and optional structural results                                   | `Model.properties` / `Model.Properties`, `Model.camera_views` / `Model.CameraViews` |
+| `totalChildrenCount` and the `__closure` table                     | The object count is reported when the upload completes. There is no closure table                                                                                     | `Version.totalChildrenCount`                                                        |
+| Not carried                                                        | A `meta` row in the bundle: `schema_version`, `produced_by`, `producer_version`, `sdk_name`, `sdk_version`                                                            | `Model.Meta` (.NET). Scripts rarely need it                                         |
+
+Two rows need more detail because scripts depend on them today.
+
+**The bundle reference is a pointer, not a hash.** On a bundle-only version, `referencedObject`
+names the version, not its content. Resolve the version through the project and version id you
+already hold, then read its data with `receive3` / `Receive3`. The embedded model id is the model
+at creation time and goes stale if the version is later moved.
+
+**Units are per object, not per version.** A bundle can carry more than one unit. The SDK's
+`Model.units` is the first non-empty unit it finds, which is the builder's default on data you
+published yourself. When precision matters, read the object's own `units` property.
+
+## How a publish creates a version
+
+`send3` / `Send3` runs all of this for you. Knowing the sequence explains why the version is not
+queryable the moment the call returns, and where each piece of metadata is set.
+
+<Steps>
+  <Step title="Open a model ingestion">
+    The SDK creates an ingestion on the model, carrying the producer slug and version from your
+    bundle builder and the message from your send options. The outcome is an ingestion with a
+    reserved version id.
+  </Step>
+  <Step title="Build the bundle">
+    The builder writes its parquet files, named by the reserved version id, and stamps the `meta`
+    row with the spec version and producer. The outcome is a complete bundle on local disk.
+  </Step>
+  <Step title="Upload the files">
+    Each file goes to storage through a presigned upload. The outcome is every file stored under the
+    version id.
+  </Step>
+  <Step title="Complete the upload">
+    The SDK completes the ingestion with the bundle reference and the object count. The outcome is
+    the server creating the version in one step, with `referencedObject` set to the bundle reference
+    and `schemaVersion` set to `3`.
+  </Step>
+  <Step title="Wait for the version">
+    `send3` returns the reserved id immediately. Poll the ingestion, or call `WaitForVersion` in
+    .NET, before you query, link, or receive it. The outcome is a version that answers queries and
+    fires `version_created`.
+  </Step>
+</Steps>
+
+`account`, `project_id` / `projectId`, and `model_id` / `modelId` are already in scope.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from specklepy.api import operations
+    from specklepy.bundle import BundleBuilder, Producer, SendOptions
+
+    builder = BundleBuilder(Producer(slug="my-script", version="1.0"), units="m")
+    # add objects, containers, levels, and relations on the builder
+
+    result = operations.send3(
+        account, project_id, model_id, builder, SendOptions(message="Nightly export")
+    )
+    print(result.version_id, result.bundle_reference)
+    ```
+
+  </Tab>
+  <Tab title=".NET">
+    ```csharp
+    var producer = new SpeckleApplication
+    {
+        HostApplication = "My script",
+        HostApplicationVersion = "1.0",
+        Slug = "my-script",
+        SpeckleVersion = "2026.9",
+    };
+    using var builder = new BundleBuilder(producer, units: "m");
+    // add objects, containers, levels, and relations on the builder
+
+    var sent = await SpeckleBootstrap.Operations.Send3(
+        account, projectId, modelId, builder, new SendOptions(Message: "Nightly export"), ct
+    );
+    var version = await SpeckleBootstrap.Operations.WaitForVersion(account, sent, cancellationToken: ct);
+    ```
+
+  </Tab>
+</Tabs>
+
+<Note>
+  `version.create` / `Version.Create` still exist for legacy object graphs, and they too return a
+  reserved id now. See [Publish through model
+  ingestions](/developers/migration/publish-through-ingestions) for that path.
+</Note>
+
+<Tip>
+  Automate functions publish the same way. `CreateNewVersionInProject` accepts a bundle builder and
+  returns the reserved version id.
+</Tip>
+
+## Read version metadata from a script
+
+Read the **version record** for identity and provenance: `message`, `sourceApplication`,
+`authorUser`, `createdAt`, `schemaVersion`, and `referencedObject`. This is the same query you run
+today.
+
+Read **model-wide facts** from the received `Model`, not from a root object. `units` gives the
+default unit. `properties` holds the model-scoped rows: the reference point (`referencePoint.kind`,
+`referencePoint.transform`, `referencePoint.units`) and any document settings or project information
+the connector published. `camera_views` holds saved cameras.
+
+<Warning>
+  Legacy `receive` / `Receive2` on a bundle-only version returns a compatibility projection. Its
+  root is a `Collection` named `Received model` with the constant id `artifact-root`, carrying
+  `units`, `version = 4`, and rebuilt proxy lists. That root is built when you receive, not stored
+  in the bundle. Do not key on its id, and do not read a message or source application from it.
+</Warning>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Is there a root object I can start traversing from?">
+    No. Start from the version and receive it as a `Model`, then key objects by `applicationId` and
+    follow relations. A container with subtype `Model` exists as the `IN_MODEL` target, but it is a
+    grouping tier for federated source files, not a root, and it carries only a name.
+  </Accordion>
+  <Accordion title="Why is Version.schemaVersion 3 when the bundle says schema_version 1.x?">
+    They are different numbers. `Version.schemaVersion` is the server's storage-shape flag: `3`
+    means the version is served as a bundle, `null` means a legacy object graph.
+    `meta.schema_version` inside the bundle is the semver of the bundle format the producer wrote
+    against. Neither moves when the other does.
+  </Accordion>
+  <Accordion title="What happens if my script fetches referencedObject from the objects endpoint?">
+    It gets a 404 with a `BUNDLE_REFERENCE_NOT_FOUND` body. That is the contract, not empty data.
+    Dispatch on the `bundle.` prefix and receive the version through the SDK instead.
+  </Accordion>
+  <Accordion title="Where do I put model-wide facts when I publish?">
+    Add them as model-scoped properties on the bundle builder, not on an object. That is the home
+    for document settings, project information, and a reference point. Units go on the builder, or
+    on an individual object when it differs from the default.
+  </Accordion>
+</AccordionGroup>
