@@ -51,7 +51,9 @@ function parseRenames(glossaryMd) {
 
 /** Strip fenced code blocks and inline `code spans` so identifiers don't false-positive. */
 function stripCode(mdx) {
-  return mdx.replace(/```[\s\S]*?```/g, '').replace(/`[^`]*`/g, '')
+  return mdx
+    .replace(/```[\s\S]*?```/g, (m) => m.replace(/[^\n]/g, ''))
+    .replace(/`[^`]*`/g, (m) => m.replace(/[^\n]/g, ''))
 }
 
 function findMdxFiles(dir, out = []) {
