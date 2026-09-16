@@ -19,7 +19,7 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
 
-Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow linked Current documentation for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
 
 </Visibility>
 
@@ -33,16 +33,16 @@ assumes the model from [Building integrations in 2026.9](/next/developers/buildi
 
 ## Tell the two formats apart
 
-Any version you are asked to load may still be a legacy object graph. Read the version record
+Any version you are asked to load may still be an object graph from 2026.8 or earlier. Read the version record
 first.
 
-| Field                      | Legacy object graph            | 2026.9 bundle                              |
+| Field                      | 2026.8 and earlier             | 2026.9 bundle                              |
 | -------------------------- | ------------------------------ | ------------------------------------------ |
 | `Version.schemaVersion`    | `null`                         | `3`                                        |
 | `Version.referencedObject` | A content hash                 | `bundle.<projectId>.<modelId>.<versionId>` |
 | Where the data is          | The objects endpoints, as JSON | The artifacts endpoint, as parquet files   |
 
-Dispatch on the `bundle.` prefix. Keep your legacy reader for the first shape, or refuse it with a
+Dispatch on the `bundle.` prefix. Keep your existing reader for the first shape, or refuse it with a
 clear message the way the Archicad connector does. Never derive storage paths from the triple in the
 reference; resolve the version through the project and version ids you already hold.
 
@@ -276,9 +276,9 @@ The bundle tells you its own vocabulary. Read it, and apply these rules in order
 
 <AccordionGroup>
   <Accordion title="What happens if the artifacts listing returns 404?">
-    Either the version is a legacy object graph, the bundle has not been produced yet, or your token
-    cannot read the project. Check `schemaVersion` on the version record first, then the ingestion
-    status if the version is new.
+    Either the version is an object graph from 2026.8 or earlier, the bundle has not been produced
+    yet, or your token cannot read the project. Check `schemaVersion` on the version record first,
+    then the ingestion status if the version is new.
   </Accordion>
   <Accordion title="Can I read properties without downloading geometry?">
     Yes. Geometry is the bulk of a bundle and lives in its own shards. Download the `eav` and

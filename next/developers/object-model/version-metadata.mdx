@@ -19,7 +19,7 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
 
-Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow linked Current documentation for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
 
 </Visibility>
 
@@ -31,7 +31,7 @@ jobs the root object used to do are split across four places: the version record
 the model ingestion that publishes it, a one-row provenance stamp inside the bundle, and
 model-scoped properties. This page says where each piece went and what a script reads instead.
 
-In the Current [Data Schema](/developers/data-schema/overview), a version points at one object:
+Before 2026.9, as the [Data Schema](/developers/data-schema/overview) describes, a version points at one object:
 `version.referencedObject` is the id of the [Root
 Collection](/developers/data-schema/concepts#root-collection), historically called the commit
 object. That object is the entry point for every traversal, and it carries the model-wide facts a
@@ -39,7 +39,7 @@ script reads first: `units`, a `name`, the nested `elements` tree,
 [Proxies](/developers/data-schema/proxy-schema), and [Info](/developers/data-schema/concepts#info)
 such as views and the reference point transform. The version record beside it carries the message,
 source application, author, and creation date. [Versions and the root
-object](/developers/data-schema/version-root-object) covers that Current split in full.
+object](/developers/data-schema/version-root-object) covers that split for 2026.8 and earlier in full.
 
 For how objects relate to each other in 2026.9, see [Relations in
 2026.9](/next/developers/object-model/relations). For the two-store picture, see [Object model in
@@ -47,7 +47,7 @@ For how objects relate to each other in 2026.9, see [Relations in
 
 ## What the root object carried, and where it lives now
 
-| In the Current model                                               | In 2026.9                                                                                                                                                             | Read it with                                                                        |
+| Before 2026.9                                                      | In 2026.9                                                                                                                                                             | Read it with                                                                        |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Version id, message, author, created date on the version record    | Unchanged shape on the version record. The record exists only after ingestion completes                                                                               | `client.version.get` / `client.Version.Get`                                         |
 | `sourceApplication` on the version record, set by `version.create` | Set when the ingestion opens, from the producer slug and version you give the bundle builder                                                                          | `Version.sourceApplication`                                                         |
@@ -141,8 +141,8 @@ queryable the moment the call returns, and where each piece of metadata is set.
 </Tabs>
 
 <Note>
-  `version.create` / `Version.Create` still exist for legacy object graphs, and they too return a
-  reserved id now. See [Publish through model
+  `version.create` / `Version.Create` still exist for object graphs from 2026.8 and earlier, and
+  they too return a reserved id now. See [Publish through model
   ingestions](/developers/migration/publish-through-ingestions) for that path.
 </Note>
 
@@ -179,7 +179,7 @@ the connector published. `camera_views` holds saved cameras.
   </Accordion>
   <Accordion title="Why is Version.schemaVersion 3 when the bundle says schema_version 1.x?">
     They are different numbers. `Version.schemaVersion` is the server's storage-shape flag: `3`
-    means the version is served as a bundle, `null` means a legacy object graph.
+    means the version is served as a bundle, `null` means an object graph from 2026.8 or earlier.
     `meta.schema_version` inside the bundle is the semver of the bundle format the producer wrote
     against. Neither moves when the other does.
   </Accordion>

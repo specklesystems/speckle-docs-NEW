@@ -19,7 +19,7 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
 
-Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow linked Current documentation for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
 
 </Visibility>
 
@@ -30,7 +30,7 @@ a fixed header and a per-primitive body. Get the header wrong and consumers reje
 checksum. If you only consume geometry, you either decode SGEO from the bundle's geometry table or
 stream the **viewer `.dat`** that the server builds from it. You never write the `.dat`.
 
-In the Current [Geometry Schema](/developers/data-schema/geometry-schema), geometry is a list of
+Before 2026.9, as the [Geometry Schema](/developers/data-schema/geometry-schema) describes, geometry is a list of
 `displayValue` objects in JSON on each DataObject. In 2026.9 it is a table of blobs keyed by a
 geometry key, attached to objects through relations. This page covers the blob format, how the table
 is laid out, and what the `.dat` is for. For which relations attach geometry to what, see [Display
@@ -104,15 +104,15 @@ Conventions that every encoder follows:
 
 The mesh body is the one every producer needs.
 
-| Order | Field        | Type             | Notes                                                    |
-| ----- | ------------ | ---------------- | -------------------------------------------------------- |
-| 1     | vertex count | u32              | Number of vertices, so a third of the coordinate count   |
-| 2     | face count   | u32              | Length of the face list                                  |
-| 3     | vertices     | f64 × 3n         | x, y, z per vertex                                       |
-| 4     | faces        | i32 × face count | The same flattened face list as the Current `Mesh.faces` |
-| 5     | normals      | f64 × 3n         | Only with `HasNormals`, padded to 8 bytes first          |
-| 6     | uvs          | f64 × 2n         | Only with `HasUvs`, padded to 8 bytes first              |
-| 7     | colors       | i32 × n          | Only with `HasColors`                                    |
+| Order | Field        | Type             | Notes                                                              |
+| ----- | ------------ | ---------------- | ------------------------------------------------------------------ |
+| 1     | vertex count | u32              | Number of vertices, so a third of the coordinate count             |
+| 2     | face count   | u32              | Length of the face list                                            |
+| 3     | vertices     | f64 × 3n         | x, y, z per vertex                                                 |
+| 4     | faces        | i32 × face count | The same flattened face list as `Mesh.faces` in 2026.8 and earlier |
+| 5     | normals      | f64 × 3n         | Only with `HasNormals`, padded to 8 bytes first                    |
+| 6     | uvs          | f64 × 2n         | Only with `HasUvs`, padded to 8 bytes first                        |
+| 7     | colors       | i32 × n          | Only with `HasColors`                                              |
 
 Curves follow one rule: the viewer has no NURBS evaluator, so a curve body leads with the display
 polyline it renders and trails with the analytical definition (degree, points, weights, knots). A
