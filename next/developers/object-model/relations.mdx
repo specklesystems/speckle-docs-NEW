@@ -90,6 +90,20 @@ These are new as a queryable graph. Today's schema does not give you a Proxy equ
 `CONNECTS_TO` is directed in the store. Neighborhood queries used by the product treat it as a
 one-hop connection in either direction.
 
+### Display geometry
+
+An object's own geometry is a relation too, not a `displayValue` array on the object.
+
+| Relation     | From → to         | Replaces in the Current model                                       | When you use it                                                                                                            |
+| ------------ | ----------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `DISPLAY`    | object → geometry | `displayValue` meshes on the object                                 | The object's own render mesh (walls, in-place elements). Instanced objects use `DISPLAY_INSTANCE` instead                  |
+| `SOLID`      | object → geometry | The host solid (for example a Rhino Brep) beside its `displayValue` | A true solid body where the host has one (Rhino, Civil 3D). Reach for it when you need the body, not the tessellated shell |
+| `CENTERLINE` | object → geometry | `baseCurve` / `baseLine` on the object                              | The axis a duct, pipe, conduit, or framing member follows. Routing, length take-off, clash lines, and single-line drawings |
+
+`DISPLAY` is what renders. `SOLID` and `CENTERLINE` are additional shapes for consumers that need
+the body or the axis. Do not draw every object-to-geometry relation, or the centerline appears
+through the middle of the duct.
+
 ### Materials and appearance
 
 | Relation              | From → to            | Replaces in the Current model                         |
