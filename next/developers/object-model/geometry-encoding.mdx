@@ -1,0 +1,188 @@
+---
+title: Geometry encoding in 2026.9
+sidebarTitle: Geometry encoding
+description: SGEO, the binary geometry a producer writes into a bundle, and the viewer .dat the server builds from it.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+If you write geometry into a bundle yourself, you encode it as **SGEO**, a small binary format with
+a fixed header and a per-primitive body. Get the header wrong and consumers reject the blob on its
+checksum. If you only consume geometry, you either decode SGEO from the bundle's geometry table or
+stream the **viewer `.dat`** that the server builds from it. You never write the `.dat`.
+
+Before 2026.9, as the [Geometry Schema](/developers/data-schema/geometry-schema) describes, geometry is a list of
+`displayValue` objects in JSON on each DataObject. In 2026.9 it is a table of blobs keyed by a
+geometry key, attached to objects through relations. This page covers the blob format, how the table
+is laid out, and what the `.dat` is for. For which relations attach geometry to what, see [Display
+geometry](/next/developers/object-model/relations#display-geometry).
+
+## Where geometry lives in a bundle
+
+The geometry table is `{versionId}.geometries.parquet`, sharded into `{versionId}.geometries.{n}.parquet`
+files once the current shard holds 1536 MiB of uncompressed content. Shard zero keeps the canonical
+name, so a small model has one file and a reader always globs all shards.
+
+Each row holds one blob, its dense integer key, and an id that is the SHA-256 of the blob bytes.
+Because every producer encodes SGEO identically, the same mesh from any host gets the same id, and
+readers deduplicate on it. A row also records its encoding: display meshes and centerlines are
+SGEO, while a `SOLID` row carries the host's own bytes, such as a 3dm body, with a type label.
+
+Nothing in the geometry table says which object a blob belongs to. That is a relation: `DISPLAY`,
+`SOLID`, or `CENTERLINE` from the object, or `DEFINES` from a definition node whose placements
+reuse the blob. Each of those keeps its own ordinal per object, so an object's first display mesh is
+ordinal zero whether or not a solid was written before it.
+
+## The SGEO header
+
+Every blob starts with 16 bytes, little-endian.
+
+| Offset | Size | Field          | Value                                                                  |
+| ------ | ---- | -------------- | ---------------------------------------------------------------------- |
+| 0x00   | 4    | magic          | `SGEO`                                                                 |
+| 0x04   | 1    | version        | `1`                                                                    |
+| 0x05   | 1    | primitive type | Code from the table below                                              |
+| 0x06   | 2    | flags          | Bitfield from the table below                                          |
+| 0x08   | 2    | units code     | `mm` 1, `cm` 2, `m` 3, `km` 4, `in` 5, `ft` 6, `yd` 7, `mi` 8, other 0 |
+| 0x0A   | 2    | reserved       | `0`                                                                    |
+| 0x0C   | 4    | crc            | CRC-32 (IEEE, polynomial `0xEDB88320`) of the body bytes only          |
+| 0x10   |      | body           | Per primitive type                                                     |
+
+Conventions that every encoder follows:
+
+- The body starts 8-byte aligned at `0x10`, and every array of doubles stays 8-aligned. Pairs of
+  32-bit scalars are padded to keep it so.
+- Doubles are IEEE-754 binary64. Face indices and colors are signed 32-bit integers.
+- Derived values such as length, area, volume, bounding box, and arc radius are not stored.
+  Readers recompute them.
+- One unit per blob. Sub-objects inside a composite lose their own units.
+
+| Code | Primitive | Code | Primitive |
+| ---- | --------- | ---- | --------- |
+| 0    | Mesh      | 7    | Points    |
+| 1    | Line      | 8    | Ellipse   |
+| 2    | Polyline  | 9    | Spiral    |
+| 3    | Polycurve | 10   | Box       |
+| 4    | Curve     | 11   | Region    |
+| 5    | Arc       | 12   | Text      |
+| 6    | Circle    |      |           |
+
+| Bit | Flag           | Applies to                    |
+| --- | -------------- | ----------------------------- |
+| 0   | Quantized      | Reserved, must be 0 in v1     |
+| 1   | Closed         | Polyline, curve, polycurve    |
+| 2   | Rational       | Curve has non-uniform weights |
+| 3   | Periodic       | Curve                         |
+| 4   | HasNormals     | Mesh                          |
+| 5   | HasUvs         | Mesh                          |
+| 6   | HasColors      | Mesh, points                  |
+| 7   | HasSizes       | Points                        |
+| 8   | HasTrimDomain  | Ellipse                       |
+| 9   | ScreenOriented | Text                          |
+| 10  | HasMaxWidth    | Text                          |
+
+## Bodies
+
+The mesh body is the one every producer needs.
+
+| Order | Field        | Type             | Notes                                                              |
+| ----- | ------------ | ---------------- | ------------------------------------------------------------------ |
+| 1     | vertex count | u32              | Number of vertices, so a third of the coordinate count             |
+| 2     | face count   | u32              | Length of the face list                                            |
+| 3     | vertices     | f64 × 3n         | x, y, z per vertex                                                 |
+| 4     | faces        | i32 × face count | The same flattened face list as `Mesh.faces` in 2026.8 and earlier |
+| 5     | normals      | f64 × 3n         | Only with `HasNormals`, padded to 8 bytes first                    |
+| 6     | uvs          | f64 × 2n         | Only with `HasUvs`, padded to 8 bytes first                        |
+| 7     | colors       | i32 × n          | Only with `HasColors`                                              |
+
+Curves follow one rule: the viewer has no NURBS evaluator, so a curve body leads with the display
+polyline it renders and trails with the analytical definition (degree, points, weights, knots). A
+polycurve or region nests each segment as its own SGEO blob, prefixed by its length and padded to
+8 bytes. Arcs, circles, and ellipses are stored analytically. Points and point clouds store
+coordinates plus optional colors and sizes.
+
+<Tip>
+  Treat the SDK encoders as the byte-exact reference for every body: `SgeoEncoder` in Speckle.Sdk
+  and `sgeo.py` in specklepy. Both ship decoders and round-trip tests you can port.
+</Tip>
+
+<Warning>
+  The CRC covers the body only, and the geometry id covers the whole blob including the CRC. A
+  producer that computes either over the wrong span produces blobs that decode nowhere and never
+  deduplicate against anyone else's.
+</Warning>
+
+## The viewer `.dat`
+
+After the upload completes, the server builds `{versionId}.viewer.dat` from the bundle and appends
+it to the version's artifact list. The version is not visible until that build finishes. The WebGPU
+viewer downloads only the `.dat`, never the parquet files.
+
+The `.dat` is one self-contained binary: a geometry region of chunk-encoded meshes and lines, an
+index region of fixed-order sections (meta, primitives, chunks, placements, materials, colors), and
+a 128-byte trailer that maps the file. Its current format expands reusable definitions into
+placements and gives each occurrence a realization id, which is what lets the viewer select one
+instance of a repeated object. That identity exists only in the `.dat`. The bundle keeps the compact
+authored graph.
+
+<Note>
+  The `.dat` is an internal artifact of the viewer and the server. Its layout can change without a
+  bundle spec change. Do not parse it, and do not write one.
+</Note>
+
+## Read geometry from a script
+
+Receive the version as a `Model` through `receive3` / `Receive3`. The SDK decodes SGEO into the
+mesh and curve types you already use and exposes them per object. If you read the parquet files
+directly through the artifacts endpoint, decode the blobs with the SDK decoder or a port of it, and
+read every geometry shard.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="I am not using an SDK. How do I decode the geometry?">
+    Read the parquet geometry table, not the `.dat`. Download every geometry shard from the
+    artifacts listing and open the files with any parquet library. Each row's blob starts with the
+    16-byte header on this page: check the magic, read the primitive type and unit code, and verify
+    the CRC-32 over the body. Then parse the body for that primitive, starting with the mesh layout
+    above. Port the decoder from `sgeo.py` in specklepy or `SgeoDecoder` in Speckle.Sdk rather than
+    writing one from the tables alone; both are short and tested. The `.dat` is the viewer's own
+    build of the same geometry and is not readable by anything else.
+  </Accordion>
+  <Accordion title="Is the .dat open source? Can I use it outside the Speckle viewer?">
+    No. The `.dat` is built by the server and read only by the Speckle viewer. Its layout is not
+    published, it can change without a bundle spec change, and it carries viewer-specific
+    realization ids that mean nothing elsewhere. There is nothing to license because there is
+    nothing to build against. The portable geometry is the bundle itself: SGEO blobs in the parquet
+    geometry table, with open-source decoders in specklepy and Speckle.Sdk. To show a model, embed
+    the Speckle viewer rather than reading its artifact.
+  </Accordion>
+  <Accordion title="Can I send only a solid and skip the display mesh?">
+    No. The solid is the host's own format and only a matching host can read it. Every consumer,
+    including the viewer, renders the SGEO display mesh. Ship both.
+  </Accordion>
+  <Accordion title="What happens if a primitive has no SGEO type?">
+    Skip that primitive, keep the owning object, and report the skip. If nothing renderable remains
+    and there is no solid, mark the object as failed in your results so the report matches the
+    bundle.
+  </Accordion>
+</AccordionGroup>

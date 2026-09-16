@@ -1,7 +1,7 @@
 ---
-title: Building integrations notes in 2026.9
-sidebarTitle: Building integrations
-description: 2026.9 notes for custom connectors and integrations are not on this preview yet.
+title: Building integrations in 2026.9
+sidebarTitle: Overview
+description: The language-neutral model behind every 2026.9 producer and consumer. The bundle, the bundle builder, and where publish and load go from here.
 contextual:
   options: []
 docs_version: '2026.9'
@@ -19,16 +19,207 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 
 Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
 
-Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow linked Current documentation for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
 
 </Visibility>
 
 <NextPreviewBanner />
 
-2026.9 developer notes for custom connectors and integrations are not on this preview yet. Use
-[Building integrations](/developers/building-integrations) until those notes land.
+If you connect a host application or a service to Speckle with your own code rather than a Speckle
+SDK, 2026.9 changes what you write and read. There is no root object to serialize and no object
+graph to walk. A version is a **bundle**, a set of parquet files, and a **model ingestion** is how
+the server turns your upload into a version. This page introduces that model and points to the two
+flows built on it. It is the 2026.9 successor of [Data model and build
+order](/developers/connectivity/data-and-build).
+
+<Warning>
+  These pages are for people who build connectors, sync services, and other producers or consumers.
+  If you write scripts with a Speckle SDK, the SDK applies every rule here for you. Start from the
+  [.NET](/next/developers/sdks/dotnet/breaking-changes) or
+  [Python](/next/developers/sdks/python/breaking-changes) 2026.9 pages instead.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Publish" icon="upload" href="/next/developers/building-integrations/publish">
+    Open an ingestion, write and upload a bundle, and wait for the version. The wire sequence, the
+    correctness rules, and a build order.
+  </Card>
+  <Card title="Load" icon="download" href="/next/developers/building-integrations/load">
+    List a version's artifacts, download the files you need, and rebuild objects, geometry,
+    instances, grouping, and appearance from the bundle.
+  </Card>
+</CardGroup>
+
+Decide **publish only** or **publish and load** for your host before you start, the same way as
+today. See [Publish and load](/developers/connectivity/integration-depth).
+
+## What changes
+
+| Concern                     | Before 2026.9                                                        | In 2026.9                                                                                                                                            |
+| --------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What you write              | One root object with nested `elements`, serialized as JSON objects   | A bundle: parquet files for objects, properties, geometry, and a graph of nodes and relations                                                        |
+| Object identity             | Content hash per object, plus a `__closure` table on the root        | `applicationId` per object. Objects, geometry, and nodes get dense integer keys that are local to one bundle                                         |
+| Hierarchy and shared assets | Nested `elements` and Proxy arrays on the root                       | Grouping containers, structural nodes, and typed [relations](/next/developers/object-model/relations)                                                |
+| Geometry                    | `displayValue` objects in JSON                                       | SGEO binary blobs in a sharded geometry table                                                                                                        |
+| How a version is created    | Upload objects, then call create-version with the root id            | Open an ingestion, upload the bundle, complete it. The server creates the version                                                                    |
+| When the version exists     | When create-version returns                                          | When the ingestion reaches `success`. Completing the upload is not enough                                                                            |
+| Version metadata            | Message and source application on the create call, units on the root | Source application on the ingestion, message on completion, units per object. See [Version metadata](/next/developers/object-model/version-metadata) |
+
+## What a bundle builder is
+
+Every Speckle producer has a component that plays the role the SDKs call a **bundle builder**. In
+specklepy and Speckle.Sdk it is `BundleBuilder`. The Archicad connector implements the same role in
+C++ without an SDK. It is the producer-side model of a version, and it has four jobs.
+
+- **Intern identities into dense integer keys.** Objects are keyed by `applicationId`. Geometry is
+  keyed by a value you derive from the owning object, such as `wall-1:g0`. Structural nodes such as
+  definitions, instances, materials, colors, levels, and grouping containers are keyed by whatever
+  stable key your host gives them. Each of the three key spaces counts from zero on its own. A
+  relation's type is what says which space each end refers to.
+- **Record typed relations.** Every link is one row of `(relation, source, target, ord)`. Membership,
+  hosting, connectivity, appearance, and instancing are all relations, never nested fields.
+- **Stream rows to parquet as you add them.** Geometry is encoded on the spot and flushed in row
+  groups, so memory does not grow with the model.
+- **Stamp provenance.** The builder writes the `meta` row and the self-describing catalogs from
+  generated spec constants, never from literals you typed in.
+
+The builder's behaviour is the contract, whichever language you write it in:
+
+- **Get-or-add is interning.** Asking for a key that already exists returns the same handle and
+  writes nothing. Asking for it again with different attributes is an error. One key means one
+  node.
+- **Add is append.** Geometry, model properties, results, and camera views append a row on every
+  call.
+- **Edges cannot be retracted.** A single-valued relation is write-once. Decide before you write.
+- **Units and producer are required up front.** The default unit is stamped on every object, and the
+  producer slug and version go into `meta` and onto the ingestion.
+- **A default scene view is injected** when you declare none, grouping by `IN_COLLECTION`.
+- **Build once, then rename.** The builder writes files under a temporary stem and renames them to
+  the reserved version id once the ingestion hands it out.
+
+## What a bundle contains
+
+A bundle is a flat set of files sharing one stem, the version id, with no manifest file. Consumers
+know the filenames from the spec and discover the stem from the `meta` file.
+
+| File                                        | Family   | Required  | Holds                                                                                      |
+| ------------------------------------------- | -------- | --------- | ------------------------------------------------------------------------------------------ |
+| `{id}.eav.objects.parquet`                  | eav      | Yes       | Object identity: `applicationId` to object key                                             |
+| `{id}.eav.paths.parquet`                    | eav      | Yes       | Interned property paths                                                                    |
+| `{id}.eav.eav.parquet`                      | eav      | Yes       | One row per object, path, and value                                                        |
+| `{id}.eav.types.parquet` and two siblings   | eav      | Ship them | Type-level properties and the object-to-type link. Write them even when empty              |
+| `{id}.eav.model.parquet`                    | eav      | No        | Model-scoped properties such as the reference point. Omit the file when you have no rows   |
+| `{id}.eav.structural_results.parquet`       | eav      | No        | Analysis results. Omit when empty                                                          |
+| `{id}.eav.property_set_definitions.parquet` | eav      | No        | Authored property set schemas. Omit when empty                                             |
+| `{id}.geometries.parquet` and shards        | geometry | Yes       | SGEO blobs keyed by geometry key. Overflow shards are `{id}.geometries.{n}.parquet`        |
+| `{id}.envelope.nodes.parquet`               | envelope | Yes       | Definitions, instances, materials, colors, levels, containers, with fixed columns per kind |
+| `{id}.envelope.relations.parquet`           | envelope | Yes       | `(rel, src, dst, ord)` rows                                                                |
+| `{id}.envelope.rel_types.parquet`           | envelope | Yes       | Catalog of relation types and their namespaces, copied from the spec                       |
+| `{id}.envelope.node_kinds.parquet`          | envelope | Yes       | Catalog of node kinds, copied from the spec                                                |
+| `{id}.envelope.meta.parquet`                | envelope | Yes       | One row: `schema_version`, `produced_by`, `producer_version`, `sdk_name`, `sdk_version`    |
+| `{id}.envelope.scene_views.parquet`         | envelope | No        | Grouping projections the viewer offers                                                     |
+| `{id}.envelope.camera_views.parquet`        | envelope | No        | Saved cameras                                                                              |
+
+Two files you do not write:
+
+- **The viewer `.dat`.** The server builds `{id}.viewer.dat` from your bundle after completion. That
+  build is part of why the version is not visible the moment the upload completes.
+- **A manifest or index.** The `meta` file is the anchor. Everything else is found by name.
 
 <Note>
-  Connector update dates for people who publish and load in a design tool are under [Connectors in
-  2026.9](/next/connectors/overview). This page is for people who build connectors.
+  Optional files are feature-detected by presence. An empty optional table is a bug, not a
+  placeholder. The three type tables are the exception: the viewer needs all three present to build
+  its property view, so write them even when they hold no rows.
 </Note>
+
+## Relations you do not need, and relations you add
+
+Two questions come up as soon as a team maps its own domain onto the relational layer. Both have a
+short answer.
+
+**You do not have to emit every relation type.** The catalog describes what Speckle can carry, not
+what every model must contain. A producer for a host with no levels, no instances, or no MEP
+systems emits none of those relations, and a consumer treats the absence as "not in this model",
+never as an error. Emit what your domain has and nothing else.
+
+**You can add your own links, with the same guarantee interoperability has always had: none.** The
+relation catalog is Speckle's. Its numbers are reserved or retired on purpose, the validator rejects
+a relations file that uses a number outside the catalog, and every Speckle consumer ignores edges
+it does not know. Custom links therefore go in your own parquet file, uploaded with the bundle under
+the same version id, keyed by `applicationId` so they survive across versions. Speckle stores and
+lists that file and never reads it. The viewer, Speckle Intelligence, and the SDK receive path will
+not see those links, and a receiving application supports them only if you wrote that support. Say
+so in your own documentation.
+
+Before you add a file, check which of these three shapes your case is. Most turn out to be the
+first two.
+
+- **A relation Speckle already has.** A structural "supports" link, a duct run, a pipe network:
+  `CONNECTS_TO` with a scope, `IN_SYSTEM`, or `SUBELEMENT` usually carries it, and then every
+  consumer understands it. Read the [relation catalog](/next/developers/object-model/relations)
+  first.
+- **A grouping, not a link.** A classification hierarchy, a cost breakdown, a zone scheme: put the
+  code on each object as a property and declare a scene view over that property path. The viewer
+  then offers your hierarchy as a tree without any new relation.
+- **A link to something outside the model.** An issue, a clash, a record in an asset register: when
+  the other end is not an object in the bundle, an id on the object as a property is the portable
+  form. Use a custom edge file only when both ends are objects in the same bundle.
+
+<Tip>
+  If a link is general to a discipline rather than to your tool, propose it on the [Speckle
+  community forum](https://speckle.community) with the two node kinds it joins and an example model.
+  Reserved catalog numbers exist so that new relations can be added for everyone, and a relation in
+  the catalog is the only kind every consumer will understand.
+</Tip>
+
+## Open-source producers to learn from
+
+Every Speckle connector is open source. Read them as worked examples of the publish and load rules, in the
+language closest to yours. The SDKs are the reference builders; the non-SDK producers show the same
+contract implemented from scratch.
+
+| Repository                                                                             | Language   | Hosts                                                                                                               | How it publishes in 2026.9                                                     | Read it for                                                                |
+| -------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| [speckle-sharp-sdk](https://github.com/specklesystems/speckle-sharp-sdk)               | C#         | Any                                                                                                                 | The reference bundle builder and artifact pipeline under `Speckle.Sdk.Bundles` | The builder contract, sharding, progress and cancellation plumbing         |
+| [specklepy](https://github.com/specklesystems/specklepy)                               | Python     | Any                                                                                                                 | The reference bundle builder under `specklepy.bundle`, with the `bundle` extra | A compact builder, the SGEO encoder, the upload client                     |
+| [speckle-archicad](https://github.com/specklesystems/speckle-archicad)                 | C++        | Archicad                                                                                                            | Its own parquet writer and ingestion client. No Speckle SDK                    | The complete non-SDK producer: column binding, EAV rules, SGEO, upload     |
+| [speckle-sketchup](https://github.com/specklesystems/speckle-sketchup)                 | Ruby       | SketchUp                                                                                                            | Its own envelope writer and ingestion client. No Speckle SDK                   | A non-SDK producer in a dynamic language                                   |
+| [speckle-blender](https://github.com/specklesystems/speckle-blender)                   | Python     | Blender                                                                                                             | specklepy's bundle builder                                                     | Instancing, per-object geometry keys, world-space display geometry         |
+| [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors) | C#         | Revit, Rhino, Grasshopper, AutoCAD, Civil 3D, Plant 3D, ETABS, SAP2000, Tekla Structures, Tekla Structural Designer | Speckle.Sdk's bundle builder and the same v2 upload rail                       | Reference points, by-layer materials, type-level properties, linked models |
+| [speckle-powerbi](https://github.com/specklesystems/speckle-powerbi)                   | TypeScript | Power BI                                                                                                            | Load only                                                                      | Reading versions and properties without producing                          |
+
+The user interface is separate from publishing. The shared connector UI,
+[speckle-connectors-dui](https://github.com/specklesystems/speckle-connectors-dui) (TypeScript), is
+what the .NET desktop connectors, Archicad, and SketchUp embed. Using it is optional. It is worth
+reading for two things: the bindings show the read and write interactions a host has to expose,
+including how the UI follows an ingestion until the version exists, and reusing it keeps the
+experience familiar to people who already use other Speckle connectors. Blender ships its own native
+panels instead. Grasshopper has no UI at all and splits publish and load into components.
+
+Navisworks has no 2026.9 desktop connector. Large NWC and NWD files go through [direct
+uploads](/connectors/direct-uploads/introduction), where a server-side converter produces the
+bundle. Older archived repositories such as the QGIS, Unity, and Excel connectors publish the
+object graph of 2026.8 and earlier and are not a pattern for 2026.9.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Is the bundle spec open source?">
+    The vocabulary is, the repository is not. The generated catalog, column layouts, and schema
+    version ship under Apache-2.0 in four public repositories: specklepy (Python), Speckle.Sdk
+    (compiled into the NuGet package), the Archicad connector (C++ headers), and the SketchUp
+    connector (Ruby). The spec's source, the reasoning behind each relation, its validator, and its
+    conformance fixtures live in a private repository today. Build against one of the public copies
+    and record which one. To validate, use the server loop on the [Publish
+    page](/next/developers/building-integrations/publish#rules-that-decide-whether-your-bundle-is-correct).
+    To propose a relation, use the [community forum](https://speckle.community).
+  </Accordion>
+  <Accordion title="What happens if my host has no levels, materials, or instances?">
+    Emit nothing for them. An absent relation means "not in this model". Consumers must never treat
+    a missing relation type as an error.
+  </Accordion>
+  <Accordion title="Where do units go if there is no root object?">
+    On every object as a root scalar, on every instance node, in every SGEO header, and per property
+    row where a value has a unit. There is no bundle-wide unit.
+  </Accordion>
+</AccordionGroup>
