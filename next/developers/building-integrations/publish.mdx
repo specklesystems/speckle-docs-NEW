@@ -39,8 +39,7 @@ Speckle producer follows this sequence.
   <Step title="Open a model ingestion">
     Call the ingestion create mutation with the model, the source application slug and version, a
     progress message, and an idle timeout. The outcome is an ingestion id and a reserved version id.
-    If the response has no version id, the server predates 2026.9. Stop; there is no fallback on
-    this rail.
+    If the response has no version id, the server predates 2026.9. Stop; this path has no fallback.
   </Step>
   <Step title="Build the bundle under that version id">
     Run your conversion and write the files with the reserved id as their stem. The outcome is a
@@ -50,8 +49,9 @@ Speckle producer follows this sequence.
     Post the list of bare filenames to the sign endpoint. The outcome is one presigned URL per file.
   </Step>
   <Step title="Upload each file">
-    Put each file to its URL with no extra headers, and keep the returned ETag exactly as received.
-    The outcome is every file in storage and an ETag per filename.
+    Put each file to its URL, adding only the headers the sign response asked for, and keep the
+    returned ETag exactly as received. The outcome is every file in storage and an ETag per
+    filename.
   </Step>
   <Step title="Complete the upload">
     Post the ETags, the bundle reference as the root id, the object count, and the version message.
@@ -60,7 +60,8 @@ Speckle producer follows this sequence.
   </Step>
   <Step title="Wait for the ingestion to finish">
     Subscribe to ingestion updates or poll until the status is terminal. The outcome on `success` is
-    a version that answers queries, has a viewer `.dat`, and fires `version_created`.
+    a version that answers queries, has a viewer `.dat`, and arrives as `CREATED` on the
+    `projectVersionsUpdated` subscription.
   </Step>
 </Steps>
 
@@ -95,7 +96,8 @@ non-SDK producer makes, numbered to match the steps.
       }
     }
 
-    # On any failure: close the ingestion. failWithCancel and failWithInvalid have the same shape.
+    # On any failure: close the ingestion. failWithInvalid takes ModelIngestionInvalidInput
+    # (validationMessage) and failWithCancel takes ModelIngestionCancelledInput (cancellationMessage).
     mutation IngestionFailWithError($input: ModelIngestionFailedInput!) {
       projectMutations {
         modelIngestionMutations {
@@ -147,16 +149,16 @@ non-SDK producer makes, numbered to match the steps.
     # 3. Sign. Bare filenames only, no paths.
     POST /api/v2/projects/{projectId}/modelingestion/{ingestionId}/uploads/sign
     Authorization: Bearer <token>
-    apollographql-client-name: my-producer
     apollographql-client-version: 1.0
     Content-Type: application/json
 
     { "files": ["<versionId>.envelope.meta.parquet", "<versionId>.eav.objects.parquet", "..."] }
 
-    200 { "uploads": { "<name>": { "url": "https://...", "key": "..." } } }
+    200 { "uploads": { "<name>": { "url": "https://...", "key": "...", "additionalRequestHeaders": { } } } }
 
-    # 4. Upload. One PUT per file, no Authorization header, no extra headers.
+    # 4. Upload. One PUT per file, no Authorization header. Send additionalRequestHeaders when present.
     PUT <presigned url>
+    <additionalRequestHeaders, if any>
     <file bytes>
 
     200  ETag: "<etag>"
@@ -164,7 +166,6 @@ non-SDK producer makes, numbered to match the steps.
     # 5. Complete. ETags verbatim, quotes included.
     POST /api/v2/projects/{projectId}/modelingestion/{ingestionId}/uploads/complete
     Authorization: Bearer <token>
-    apollographql-client-name: my-producer
     apollographql-client-version: 1.0
     Content-Type: application/json
 
@@ -175,7 +176,7 @@ non-SDK producer makes, numbered to match the steps.
       "message": "Nightly export"
     }
 
-    200 { "versionId": "<versionId>" }
+    200 { "versionId": "<versionId>", "files": ["<name>", "..."] }
     ```
 
   </Tab>
@@ -228,14 +229,15 @@ non-SDK producer makes, numbered to match the steps.
 </Note>
 
 <Tip>
-  Send the `apollographql-client-name` and `apollographql-client-version` headers on the sign and
-  complete calls. The server reads the publishing client from those headers. Send nothing extra on
-  the presigned puts, which accept only the headers that were signed.
+  Send the `apollographql-client-version` header on the sign and complete calls. The server records
+  it on the version for analytics. The publishing application itself comes from the source
+  application slug and version you gave when opening the ingestion, not from a header.
 </Tip>
 
 <Tip>
-  Files above a few hundred megabytes can use the multipart endpoints under the same ingestion path
-  (`uploads/multipart/start`, `complete`, and `abort`) instead of one put per file.
+  A single presigned put is limited to 5 GB on S3-compatible storage. Larger files use the multipart
+  endpoints under the same ingestion path (`uploads/multipart/start`, `complete`, and `abort`)
+  instead of one put per file.
 </Tip>
 
 Progress and cancellation run through the same ingestion. Report progress on a throttle, with at
@@ -395,9 +397,9 @@ an SDK, and check for unknown relations and decode errors.
     For now, yes. Upgraded servers accept it with deprecation warnings and convert it to a bundle
     before the version appears, because thousands of existing integrations depend on that path. It
     is not the path to build new work on: the server stores the graph and then converts it, and that
-    support will end. No removal date is set, and one will be announced before it is. A deployment
-    set up as 2026.9-only already rejects it with `LEGACY_SEND_UNSUPPORTED`. Treat that as the wrong
-    rail, not a transient error. See [Publish through model
+    support will end. No removal date is set, and one will be announced before it is. A server
+    without legacy-send support rejects it with `LEGACY_SEND_UNSUPPORTED`. Treat that as the wrong
+    publish path, not a transient error. See [Publish through model
     ingestions](/developers/migration/publish-through-ingestions).
   </Accordion>
 </AccordionGroup>
