@@ -195,6 +195,24 @@ separate. Until they ship in these docs, use supported SDK accessors and the
     setting and can be a core or finish face. A point-placed MEP fitting (elbow, tee, cross) has no
     location curve, so it emits one `CENTERLINE` segment per connector, ordered by connector.
   </Accordion>
+  <Accordion title="Can I express a solid modelling feature tree with relations?">
+    No, and that is not the intent. Relations describe how finished objects relate: containment,
+    hosting, connectivity, appearance, instancing. They do not describe how an object was made, and
+    nothing in Speckle rebuilds geometry from a recipe. What you can carry: the exact body through
+    `SOLID` in the host's own format, feature parameters as properties, and ownership through
+    `SUBELEMENT`. A dependency order can travel in your own edge file, which no Speckle consumer
+    reads. Exchanging modelling history would need operation node kinds in the catalog and a
+    modelling kernel on the receiving side. Neither exists today.
+  </Accordion>
+  <Accordion title="Can I describe an assembly and its parts with relations?">
+    Yes, as a resolved structure. Parts are objects. A sub-assembly owns its parts through
+    `SUBELEMENT`, or joins them through `IN_ASSEMBLY` when membership is the point. A part used
+    many times is one definition placed by instances, each with its own transform, and a repeated
+    sub-assembly is a nested definition. Part-to-part contact is `CONNECTS_TO`, and exact bodies
+    ride `SOLID`. What does not travel is the constraint system: mates such as coincident or
+    concentric, degrees of freedom, and the solver that positions parts from them. You publish the
+    positions those constraints produced, not the constraints.
+  </Accordion>
   <Accordion title="Can I extend the relation topologies for my tools?">
     Yes. Store custom edges in your own parquet files, not in the relation files Speckle SDKs
     generate — rewriting those files mismatches on the next republish, and you own whatever you add.
