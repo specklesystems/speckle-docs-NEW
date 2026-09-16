@@ -40,7 +40,7 @@ The 2026.9 compatibility line consists of:
 
 | Component                         | Version         | Notes                                                                                                                                      |
 | --------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| speckle-server                    | **2026.9.3**    | Deploy this version, not 2026.9.0 (its publish was incomplete). Includes the migration worker image at the same tag                        |
+| speckle-server                    | **2026.9.4**    | Deploy this version, not 2026.9.0 (its publish was incomplete). Includes the migration worker image at the same tag                        |
 | speckle-converters                | **2026.9.0**    | New component: the conversion runner Job image, `ghcr.io/specklesystems/speckle-converters`. Pin the exact tag, never `latest`             |
 | speckle-automate                  | 2026.9.0        | Execution engine release                                                                                                                   |
 | speckle-intelligence (dashboards) | 2026.9.0        | Dashboards app and Helm chart                                                                                                              |
@@ -68,12 +68,12 @@ The 2026.9 compatibility line consists of:
   <Step title="Confirm the migration token secret exists">
     The key `bundle_migration_token_secret` in your main server secret is what lets publishes from
     pre-2026.9 clients complete. You added it during the 2026.8 upgrade; the key should still appear
-    in the secret's data. A 2026.9.3 server without it starts, logs a warning, and rejects every
-    such publish with `LEGACY_SEND_UNSUPPORTED`.
+    in the secret's data. A 2026.9.3 or later server without it starts, logs a warning, and rejects
+    every such publish with `LEGACY_SEND_UNSUPPORTED`.
   </Step>
   <Step title="Mirror the new image (private registries)">
     Add `ghcr.io/specklesystems/speckle-converters:2026.9.0` to your registry, and keep
-    `speckle-bundle-migration-service` mirrored at the server tag (`2026.9.3`). Both tags should
+    `speckle-bundle-migration-service` mirrored at the server tag (`2026.9.4`). Both tags should
     pull from your registry before you continue.
   </Step>
   <Step title="Provision the conversion node pool">
@@ -203,7 +203,7 @@ This is the required step for file imports to work at all.
     matching the excerpt below.
   </Step>
   <Step title="Upgrade the release and verify">
-    Upgrade to chart 2026.9.3. With `helm_test_enabled` on, `helm test` runs a conversion canary
+    Upgrade to chart 2026.9.4. With `helm_test_enabled` on, `helm test` runs a conversion canary
     that proves the whole launch path, including the image pull. Then upload a file through the web
     app: it should convert and open in the viewer.
   </Step>
@@ -226,23 +226,44 @@ conversionRunner:
 
 With the runner on, the server accepts these upload formats and advertises
 them to the web app and connectors: `ifc`, `rvt`, `nwd`, `nwc`, `dwg`, `dgn`,
-`skp`, `3dm`, `obj`, `step`, `stp`. The list is fixed by the server; there is
-no per-format switch.
+`skp`, `step`, `stp`. The list is fixed by the server; there is no per-format
+switch. `3dm` and `obj` are the exception. They stay off until you turn on
+Rhino conversion.
 
-`3dm` and `obj` convert through the runner's Rhino leg, which runs Rhino under
+### Rhino conversion for 3dm and obj
+
+`3dm` and `obj` convert through Rhino itself, which the runner runs under
 McNeel's core-hour billing. The token is yours to supply, not Speckle's:
 generate a core-hour billing auth token in the
 [McNeel Licenses Portal](https://www.rhino3d.com/licenses) under your own
-Rhino account or team. To convert those formats, put the token in a Secret
-and name it in `conversionRunner.rhinoToken` (`secretName`, key
-`rhino_token` by default). The token reaches each Job as a plain environment
-variable, readable by anyone with pod read access in the conversion
-namespace; the chart's Role grants that only to the server and objects
-service accounts.
+Rhino account or team.
+
+Rhino conversion is off by default. The server then does not advertise `3dm`
+and `obj`, rejects uploads and syncs of them as unsupported, and needs no token.
+Turning it on is a pair of values you set together. Put the token in a Secret
+and name it in `conversionRunner.rhinoToken` (`secretName`, key `rhino_token`
+by default), and set `featureFlags.rhinoConversionEnabled: true`:
+
+```yaml
+featureFlags:
+  rhinoConversionEnabled: true
+
+conversionRunner:
+  rhinoToken:
+    secretName: 'rhino-token'
+    secretKey: 'rhino_token'
+```
+
+With the flag on and no token, `3dm` and `obj` uploads fail fast with a
+configuration error instead of launching a Job. The token reaches each Job as
+a plain environment variable, readable by anyone with pod read access in the
+conversion namespace; the chart's Role grants that only to the server and
+objects service accounts.
 
 <Warning>
-  The server accepts `3dm` and `obj` uploads whether or not a Rhino token is configured. Without
-  one, those uploads fail fast with a configuration error instead of launching a Job.
+  Deployments that already convert `3dm` and `obj` on chart 2026.9.3 or earlier must add
+  `featureFlags.rhinoConversionEnabled: true` next to their existing `conversionRunner.rhinoToken`
+  when moving to 2026.9.4. Without the flag, the server silently stops accepting those two formats.
 </Warning>
 
 ## What changes at 2026.9
@@ -313,5 +334,10 @@ service accounts.
     The installed connector keeps working against 2026.9, but it is deprecated and receives no
     updates. Publishing nwd files by upload or ACC sync converts them server-side through the
     conversion runner instead.
+  </Accordion>
+  <Accordion title="IFC uploads work, but 3dm and obj are rejected as unsupported. Why?">
+    Rhino conversion is off. From chart 2026.9.4 those two formats need
+    `featureFlags.rhinoConversionEnabled: true` next to the Rhino token. A token on its own no
+    longer enables them. See [Rhino conversion for 3dm and obj](#rhino-conversion-for-3dm-and-obj).
   </Accordion>
 </AccordionGroup>
