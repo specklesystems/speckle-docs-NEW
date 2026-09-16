@@ -83,7 +83,9 @@ function main() {
   }
   const files = findMdxFiles(nextDir)
 
-  console.log(`Checking ${files.length} next/ page(s) against ${renames.length} glossary rename(s).\n`)
+  console.log(
+    `Checking ${files.length} next/ page(s) against ${renames.length} glossary rename(s).\n`
+  )
 
   let hits = 0
   for (const file of files) {

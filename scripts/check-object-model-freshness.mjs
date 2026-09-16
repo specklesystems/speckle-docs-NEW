@@ -85,7 +85,9 @@ function main() {
     }
     for (const m of missing) {
       anyMissing = true
-      console.log(`  missing: ${m.repo}/${m.path} (checkout not found at ${checkoutRoot}/${m.repo}, or the file moved)`)
+      console.log(
+        `  missing: ${m.repo}/${m.path} (checkout not found at ${checkoutRoot}/${m.repo}, or the file moved)`
+      )
     }
     console.log()
   }
