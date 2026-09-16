@@ -161,14 +161,12 @@ read every geometry shard.
 
 <AccordionGroup>
   <Accordion title="I am not using an SDK. How do I decode the geometry?">
-    Read the parquet geometry table, not the `.dat`. Download every `{versionId}
-    .geometries*.parquet` shard from the artifacts listing and open them with any parquet library.
-    Each row's blob starts with the 16-byte header on this page: check the magic, read the primitive
-    type and unit code, and verify the CRC-32 over the body. Then parse the body for that primitive,
-    starting with the mesh layout above. Port the decoder from `sgeo.py` in specklepy or
-    `SgeoDecoder` in Speckle.Sdk rather than writing one from the tables alone; both are short and
-    have round-trip tests. Attach each blob to its object through the `DISPLAY`, `SOLID`, or
-    `CENTERLINE` relation, and to a definition through `DEFINES`. The `.dat` is the viewer's own
+    Read the parquet geometry table, not the `.dat`. Download every geometry shard from the
+    artifacts listing and open the files with any parquet library. Each row's blob starts with the
+    16-byte header on this page: check the magic, read the primitive type and unit code, and verify
+    the CRC-32 over the body. Then parse the body for that primitive, starting with the mesh layout
+    above. Port the decoder from `sgeo.py` in specklepy or `SgeoDecoder` in Speckle.Sdk rather than
+    writing one from the tables alone; both are short and tested. The `.dat` is the viewer's own
     build of the same geometry and is not readable by anything else.
   </Accordion>
   <Accordion title="Can I send only a solid and skip the display mesh?">
