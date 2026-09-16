@@ -1,7 +1,7 @@
 ---
-title: Building integrations notes in 2026.9
+title: Building integrations in 2026.9
 sidebarTitle: Building integrations
-description: 2026.9 notes for custom connectors and integrations are not on this preview yet.
+description: What a producer writes and sends to create a 2026.9 version, in any language. The bundle, the bundle builder's rules, and the ingestion sequence.
 contextual:
   options: []
 docs_version: '2026.9'
@@ -25,10 +25,344 @@ Authoritative Speckle 2026.9 documentation for the topic covered here. For Speck
 
 <NextPreviewBanner />
 
-2026.9 developer notes for custom connectors and integrations are not on this preview yet. Use
-[Building integrations](/developers/building-integrations) until those notes land.
+If you publish to Speckle from your own code rather than through a Speckle SDK, 2026.9 changes
+what you write and how a version comes to exist. You no longer serialize a root object and ask the
+server to create a version for it. You write a **bundle**, a set of parquet files, and you drive a
+**model ingestion** that the server turns into a version. This page is the language-neutral
+contract for that: what a bundle builder does, what the files contain, the wire sequence, and the
+rules that decide whether your bundle is correct. It is the 2026.9 successor of [Data model and
+build order](/developers/connectivity/data-and-build).
+
+<Warning>
+  This page is for people who build connectors, sync services, and other producers. If you write
+  scripts with a Speckle SDK, the SDK's bundle builder applies every rule below for you. Start from
+  the [.NET](/next/developers/sdks/dotnet/breaking-changes) or
+  [Python](/next/developers/sdks/python/breaking-changes) 2026.9 pages instead.
+</Warning>
+
+## What changes for a producer
+
+| Concern                     | Today                                                                | In 2026.9                                                                                                                                            |
+| --------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What you write              | One root object with nested `elements`, serialized as JSON objects   | A bundle: parquet files for objects, properties, geometry, and a graph of nodes and relations                                                        |
+| Object identity             | Content hash per object, plus a `__closure` table on the root        | `applicationId` per object. Objects, geometry, and nodes get dense integer keys that are local to one bundle                                         |
+| Hierarchy and shared assets | Nested `elements` and Proxy arrays on the root                       | Grouping containers, structural nodes, and typed [relations](/next/developers/object-model/relations)                                                |
+| Geometry                    | `displayValue` objects in JSON                                       | SGEO binary blobs in a sharded geometry table                                                                                                        |
+| How a version is created    | Upload objects, then call create-version with the root id            | Open an ingestion, upload the bundle, complete it. The server creates the version                                                                    |
+| When the version exists     | When create-version returns                                          | When the ingestion reaches `success`. Completing the upload is not enough                                                                            |
+| Version metadata            | Message and source application on the create call, units on the root | Source application on the ingestion, message on completion, units per object. See [Version metadata](/next/developers/object-model/version-metadata) |
+
+## What a bundle builder is
+
+Every Speckle producer has a component that plays the role the SDKs call a **bundle builder**. In
+specklepy and Speckle.Sdk it is `BundleBuilder`. The Archicad connector implements the same role in
+C++ without an SDK. It is the producer-side model of a version, and it has four jobs.
+
+- **Intern identities into dense integer keys.** Objects are keyed by `applicationId`. Geometry is
+  keyed by a value you derive from the owning object, such as `wall-1:g0`. Structural nodes such as
+  definitions, instances, materials, colors, levels, and grouping containers are keyed by whatever
+  stable key your host gives them. Each of the three key spaces counts from zero on its own. A
+  relation's type is what says which space each end refers to.
+- **Record typed relations.** Every link is one row of `(relation, source, target, ord)`. Membership,
+  hosting, connectivity, appearance, and instancing are all relations, never nested fields.
+- **Stream rows to parquet as you add them.** Geometry is encoded on the spot and flushed in row
+  groups, so memory does not grow with the model.
+- **Stamp provenance.** The builder writes the `meta` row and the self-describing catalogs from
+  generated spec constants, never from literals you typed in.
+
+The builder's behaviour is the contract, whichever language you write it in:
+
+- **Get-or-add is interning.** Asking for a key that already exists returns the same handle and
+  writes nothing. Asking for it again with different attributes is an error. One key means one
+  node.
+- **Add is append.** Geometry, model properties, results, and camera views append a row on every
+  call.
+- **Edges cannot be retracted.** A single-valued relation is write-once. Decide before you write.
+- **Units and producer are required up front.** The default unit is stamped on every object, and the
+  producer slug and version go into `meta` and onto the ingestion.
+- **A default scene view is injected** when you declare none, grouping by `IN_COLLECTION`.
+- **Build once, then rename.** The builder writes files under a temporary stem and renames them to
+  the reserved version id once the ingestion hands it out.
+
+## What a bundle contains
+
+A bundle is a flat set of files sharing one stem, the version id, with no manifest file. Consumers
+know the filenames from the spec and discover the stem from the `meta` file.
+
+| File                                        | Family   | Required  | Holds                                                                                      |
+| ------------------------------------------- | -------- | --------- | ------------------------------------------------------------------------------------------ |
+| `{id}.eav.objects.parquet`                  | eav      | Yes       | Object identity: `applicationId` to object key                                             |
+| `{id}.eav.paths.parquet`                    | eav      | Yes       | Interned property paths                                                                    |
+| `{id}.eav.eav.parquet`                      | eav      | Yes       | One row per object, path, and value                                                        |
+| `{id}.eav.types.parquet` and two siblings   | eav      | Ship them | Type-level properties and the object-to-type link. Write them even when empty              |
+| `{id}.eav.model.parquet`                    | eav      | No        | Model-scoped properties such as the reference point. Omit the file when you have no rows   |
+| `{id}.eav.structural_results.parquet`       | eav      | No        | Analysis results. Omit when empty                                                          |
+| `{id}.eav.property_set_definitions.parquet` | eav      | No        | Authored property set schemas. Omit when empty                                             |
+| `{id}.geometries.parquet` and shards        | geometry | Yes       | SGEO blobs keyed by geometry key. Overflow shards are `{id}.geometries.{n}.parquet`        |
+| `{id}.envelope.nodes.parquet`               | envelope | Yes       | Definitions, instances, materials, colors, levels, containers, with fixed columns per kind |
+| `{id}.envelope.relations.parquet`           | envelope | Yes       | `(rel, src, dst, ord)` rows                                                                |
+| `{id}.envelope.rel_types.parquet`           | envelope | Yes       | Catalog of relation types and their namespaces, copied from the spec                       |
+| `{id}.envelope.node_kinds.parquet`          | envelope | Yes       | Catalog of node kinds, copied from the spec                                                |
+| `{id}.envelope.meta.parquet`                | envelope | Yes       | One row: `schema_version`, `produced_by`, `producer_version`, `sdk_name`, `sdk_version`    |
+| `{id}.envelope.scene_views.parquet`         | envelope | No        | Grouping projections the viewer offers                                                     |
+| `{id}.envelope.camera_views.parquet`        | envelope | No        | Saved cameras                                                                              |
+
+Two files you do not write:
+
+- **The viewer `.dat`.** The server builds `{id}.viewer.dat` from your bundle after completion. That
+  build is part of why the version is not visible the moment the upload completes.
+- **A manifest or index.** The `meta` file is the anchor. Everything else is found by name.
 
 <Note>
-  Connector update dates for people who publish and load in a design tool are under [Connectors in
-  2026.9](/next/connectors/overview). This page is for people who build connectors.
+  Optional files are feature-detected by presence. An empty optional table is a bug, not a
+  placeholder. The three type tables are the exception: the viewer needs all three present to build
+  its property view, so write them even when they hold no rows.
 </Note>
+
+## How a publish creates a version
+
+The version id is allocated before any bytes move, and the version is born on the server. Every
+Speckle producer follows this sequence.
+
+<Steps>
+  <Step title="Open a model ingestion">
+    Call the ingestion create mutation with the model, the source application slug and version, a
+    progress message, and an idle timeout. The outcome is an ingestion id and a reserved version id.
+    If the response has no version id, the server predates 2026.9. Stop; there is no fallback on
+    this rail.
+  </Step>
+  <Step title="Build the bundle under that version id">
+    Run your conversion and write the files with the reserved id as their stem. The outcome is a
+    complete bundle on local disk that you can validate before anything is uploaded.
+  </Step>
+  <Step title="Sign the uploads">
+    Post the list of bare filenames to the sign endpoint. The outcome is one presigned URL per file.
+  </Step>
+  <Step title="Upload each file">
+    Put each file to its URL with no extra headers, and keep the returned ETag exactly as received.
+    The outcome is every file in storage and an ETag per filename.
+  </Step>
+  <Step title="Complete the upload">
+    Post the ETags, the bundle reference as the root id, the object count, and the version message.
+    The outcome is the server accepting the bundle and starting ingestion. The response echoes the
+    version id.
+  </Step>
+  <Step title="Wait for the ingestion to finish">
+    Subscribe to ingestion updates or poll until the status is terminal. The outcome on `success` is
+    a version that answers queries, has a viewer `.dat`, and fires `version_created`.
+  </Step>
+</Steps>
+
+```text Endpoints
+GraphQL  projectMutations.modelIngestionMutations.create
+         → { id, versionId }
+POST     /api/v2/projects/{projectId}/modelingestion/{ingestionId}/uploads/sign
+         { "files": ["<id>.envelope.meta.parquet", ...] }
+         → { "uploads": { "<name>": { "url": "...", "key": "..." } } }
+PUT      <presigned url>            one per file, response header ETag
+POST     /api/v2/projects/{projectId}/modelingestion/{ingestionId}/uploads/complete
+         { "etags": { "<name>": "\"<etag>\"" }, "rootId": "bundle.<projectId>.<modelId>.<versionId>",
+           "totalChildrenCount": <objects>, "message": "..." }
+         → { "versionId": "..." }
+GraphQL  subscription projectModelIngestionUpdated(input: { projectId, ingestionReference: { ingestionId } })
+```
+
+<Note>
+  Forward the ETag byte for byte. Object storage wraps it in double quotes and the complete endpoint
+  compares against that exact value. Stripping the quotes fails the publish with an ETag mismatch
+  that looks like a server fault.
+</Note>
+
+<Note>
+  Close the ingestion on every exit. Report `failWithError`, `failWithInvalid`, or `failWithCancel`
+  through the ingestion mutations, using a request that cannot itself be cancelled. An ingestion you
+  leave open sits until the idle timeout fires.
+</Note>
+
+<Tip>
+  Send the `apollographql-client-name` and `apollographql-client-version` headers on the sign and
+  complete calls. The server reads the publishing client from those headers. Send nothing extra on
+  the presigned puts, which accept only the headers that were signed.
+</Tip>
+
+<Tip>
+  Files above a few hundred megabytes can use the multipart endpoints under the same ingestion path
+  (`uploads/multipart/start`, `complete`, and `abort`) instead of one put per file.
+</Tip>
+
+Progress and cancellation run through the same ingestion. Report progress on a throttle, with at
+most one update in flight, and never let a failed report fail the publish. The idle timeout is an
+idle clock, reset by each report, so a long conversion must keep reporting. Cancellation is
+cooperative in both directions: check your own cancel signal per object and per file, and watch
+`cancellationRequested` on every ingestion response.
+
+## Rules that decide whether your bundle is correct
+
+The server checks only that every file arrived with a matching ETag. Correctness is checked by the
+bundle spec's validator before upload and by consumers after. These are the rules producers most
+often get wrong.
+
+### Identity
+
+- `applicationId` must be stable across publishes and unique per placement. A linked file placed
+  twice needs a per-placement suffix, or its objects and their topology collide.
+- Key geometry on the placed object, never on a shared source block. Two objects sharing one mesh
+  describe different world-space geometry.
+- Derive geometry and definition keys from content, quantized, not from random ids. Random keys make
+  material bindings fragile and defeat definition deduplication.
+- An object with no properties, no geometry, and no relations is noise. Do not intern it.
+
+### Properties
+
+- One value per row: exactly one of the string, number, or boolean columns is set. Numbers must be
+  finite.
+- Paths are dotted. Nesting is rebuilt from the path, never stored as a blob.
+- Stamp the root scalars on every object: `speckle_type`, `name`, `units`, and the host's own
+  `type`.
+- Parameters shared by a type go to the type tables once, linked from each object, not repeated
+  per object.
+- Decide a policy for multi-valued properties. The reference walk drops arrays; joining them is a
+  valid alternative when your host emits them.
+
+### Geometry
+
+- Write the SGEO header exactly: magic, version, primitive type, flags, the spec's unit code, and a
+  CRC32 over the body, all little-endian. Consumers verify the checksum.
+- `DISPLAY`, `SOLID`, and `CENTERLINE` each keep their own ordinal counter per object.
+- Ship the solid beside the display mesh, not instead of it. Foreign hosts read the mesh.
+- `CENTERLINE` is never a render edge. A consumer that drew every geometry an object owns would
+  draw the axis through the duct.
+- Shard the geometry table at 1536 MiB of uncompressed content. Shard zero keeps the canonical name.
+  Readers glob all shards.
+
+### Instancing
+
+- A definition owns its geometry once. Each placement is an instance node with a transform of 16
+  row-major doubles and its own units.
+- When you convert transform units, scale only the translation column. Scaling all sixteen values
+  resizes the instance.
+- Definition members get no render edge. They keep an object row for properties and membership, and
+  join back through `DEFINES_MEMBER` and `PLACES`. A member with a render edge draws twice.
+- Create definition nodes before you walk placements, so a placement never references a nameless
+  definition.
+
+### Grouping
+
+- Membership is an edge (`IN_COLLECTION`, `IN_MODEL`, `IN_GROUP`, `IN_SYSTEM`). Nesting of
+  containers is a parent reference on the container node. Do not conflate them.
+- Containers are one node kind with a subtype (Layer, Collection, Folder, Model, Group, MEP System,
+  Network). Key them by full path so two branches with the same leaf name stay distinct.
+- The tree a viewer shows is a scene view: a recipe of tiers, some relations and some property
+  paths. Declare one, or accept the default over `IN_COLLECTION`.
+- Emit no container that would end up empty in the view.
+
+### Appearance
+
+- Bind materials to geometry with `HAS_MATERIAL`. The object plane only fills where geometry has
+  none, and is the only option for a placement.
+- `HAS_COLOR` can start from geometry or from an object, and `ord` says which. Without it, the
+  color lands on an unrelated element.
+- Resolve inherited, by-layer appearance yourself. Land the layer's material on the layer node and
+  on each inheriting object's own geometry.
+
+### Topology
+
+- Emit an edge only when both ends are objects you sent. Resolve cross-object links in a second
+  pass against your key map.
+- `ord` is an ordinal on ordered relations and a scope tag on `CONNECTS_TO`. Read the catalog.
+- `HOSTED_ON` runs hosted to host. Ownership (`SUBELEMENT`) wins over hosting when both apply.
+- Never reuse a retired relation id, and never invent one.
+
+### Provenance and column binding
+
+- Address parquet columns through the generated constants for your language. A spec column
+  insertion must be a compile or import error, not a silent row shift. If your parquet library has
+  no schema object, add an arity assertion yourself.
+- Stamp `schema_version` as the spec's semver string from the generated constant, pin the spec by
+  commit, and write real `produced_by` and `producer_version` values. Leave the SDK columns null when
+  you use none.
+- Treat a dropped row as a failed publish. Count rows written, not rows attempted.
+
+<Tip>
+  Every Speckle producer builds against the spec's generated constants and runs its validator in CI.
+  If you are building a producer, contact Speckle support for access to the spec package and
+  validator rather than transcribing tables from this page.
+</Tip>
+
+## Suggested build order
+
+<Steps>
+  <Step title="Authenticate and check capability">
+    Use a personal access token or your own OAuth flow. Check the ingestion permission on the model,
+    then open an ingestion and confirm the reserved version id is present. The outcome is a server
+    you know accepts bundles.
+  </Step>
+  <Step title="Write a one-object bundle and validate it">
+    One object, one mesh, one container, a default scene view, and a correct `meta` row. Run the
+    spec validator on the directory. The outcome is a bundle that passes before any upload.
+  </Step>
+  <Step title="Publish it end to end">
+    Sign, upload, complete, then wait for `success`. Open the version in the web app. The outcome is
+    a version you can see, with the publishing client attributed correctly.
+  </Step>
+  <Step title="Map identity and properties">
+    Stable `applicationId` per placement, root scalars, type-level parameters, a policy for arrays.
+    The outcome is a property store that filters and aggregates the way your users expect.
+  </Step>
+  <Step title="Add geometry and appearance">
+    SGEO encoding for each primitive you support, solids beside meshes, materials on geometry,
+    by-layer resolution. The outcome is a model that renders with the right appearance.
+  </Step>
+  <Step title="Add instancing and topology">
+    Definitions, placements, member suppression, then hosting, containment, and connectivity in a
+    second pass. The outcome is a model Speckle Intelligence can answer questions about.
+  </Step>
+  <Step title="Harden the publish">
+    Throttled progress, cooperative cancellation inside the upload, failure reporting on every exit,
+    geometry sharding, and retries with backoff on transient errors. The outcome is a producer that
+    survives large models and unreliable networks.
+  </Step>
+</Steps>
+
+## Reference producers
+
+Read these as worked examples of the rules above. Each is a different language and a different
+host.
+
+- [Speckle.Sdk](https://github.com/specklesystems/speckle-sharp-sdk), the .NET bundle builder and
+  artifact pipeline under `Speckle.Sdk.Bundles`.
+- [specklepy](https://github.com/specklesystems/specklepy), the Python bundle builder under
+  `specklepy.bundle`, with the `bundle` extra.
+- [speckle-archicad](https://github.com/specklesystems/speckle-archicad), a C++ producer that writes
+  parquet and drives the ingestion with no Speckle SDK.
+- [speckle-blender](https://github.com/specklesystems/speckle-blender), a Python producer built on
+  specklepy, with instancing and per-object geometry keys worth reading.
+- [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors), the .NET
+  desktop connectors, with the reference-point and by-layer material handling.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can I keep publishing the old object graph?">
+    On upgraded servers, yes, with deprecation warnings and no removal date. The server converts it
+    to a bundle before the version appears. A deployment set up as 2026.9-only rejects it with
+    `LEGACY_SEND_UNSUPPORTED`. Treat that as the wrong rail, not a transient error. See [Publish
+    through model ingestions](/developers/migration/publish-through-ingestions).
+  </Accordion>
+  <Accordion title="Do I have to write the viewer .dat?">
+    No. The server builds it from your bundle after completion. Write the parquet files only.
+  </Accordion>
+  <Accordion title="What happens if my host has no levels, materials, or instances?">
+    Emit nothing for them. An absent relation means "not in this model". Consumers must never treat
+    a missing relation type as an error.
+  </Accordion>
+  <Accordion title="Why does completing the upload return a version id that I cannot query?">
+    The id was reserved when the ingestion opened. The version record is created when ingestion
+    finishes, which includes building the viewer `.dat`. Wait for the terminal status before you
+    link, query, or receive it.
+  </Accordion>
+  <Accordion title="Where do units go if there is no root object?">
+    On every object as a root scalar, on every instance node, in every SGEO header, and per property
+    row where a value has a unit. There is no bundle-wide unit.
+  </Accordion>
+</AccordionGroup>
