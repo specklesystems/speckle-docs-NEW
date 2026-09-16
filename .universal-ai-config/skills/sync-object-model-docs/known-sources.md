@@ -47,22 +47,95 @@ Tracked by `scripts/check-object-model-freshness.mjs` against
 `scripts/object-model-freshness-manifest.json`, which pins the sha256 of
 each source file above as of the last verification.
 
-**Known gap**: the two pages also assert server-side contract detail (REST
-error codes such as `BUNDLE_REFERENCE_NOT_FOUND` and
-`LEGACY_SEND_UNSUPPORTED`, the `version_created` event, exact GraphQL
-mutation shapes) that lives in `speckle-server-internal` and is **not yet**
-in the freshness manifest — that repo hasn't been read for this. Add it as
-a new manifest entry (or a note against the existing ones) once someone
-does that research pass, rather than assuming it's covered.
+The two pages' server-side claims (REST error codes, the version-created
+signal, GraphQL mutation shapes, `.dat` gating) were verified against
+`speckle-server-internal` on 2026-09-16 — see the next section.
 
-## SGEO geometry encoding — not yet tracked
+## Server-side ingestion contract — tracked (Tier B)
 
-`next/developers/object-model/geometry-encoding.mdx` exists (referenced
-from `publish.mdx`'s Geometry rules: SGEO header format, checksum, sharding
-at 1536 MiB). Ground truth is presumably `speckle-bundle-spec` (the SGEO
-header spec) and possibly `speckle-converters` (writers). Nobody has done
-the research pass to confirm exact source files yet — do that before adding
-a manifest entry, don't guess at paths.
+Covers the wire detail on `publish.mdx` (GraphQL + REST tabs, Notes and
+Tips, the legacy-send FAQ) and the server-side claims on
+`version-metadata.mdx` (`BUNDLE_REFERENCE_NOT_FOUND`, `schemaVersion = 3`,
+the version-created signal). Ground truth is `speckle-server-internal`,
+`packages/server/`:
+
+- `assets/modelingestion/typedefs/modelingestion.graphql` — the mutation
+  paths (`projectMutations.modelIngestionMutations.*`), all five input
+  types (`Create`, `Update`, `Failed`, `Invalid`, `Cancelled` — the last
+  three are distinct shapes), statuses, the
+  `projectModelIngestionUpdated` subscription, `versionId` reserved at
+  create.
+- `modules/data/rest/upload.ts` — v2 `uploads/sign` and `uploads/complete`
+  (paths, body schemas, ETag equality, `additionalRequestHeaders`
+  passthrough, `.dat` gating). `download.ts` beside it is the artifacts
+  endpoint; `multipartUpload.ts` the multipart start/complete/abort trio
+  (rationale: the 5 GB single-PUT ceiling).
+- `modules/data/services/envelopeVersion.ts` — the version is born at
+  complete: reserved id, `objectId` = bundle reference, `schemaVersion`
+  `3`, `sourceApplication` from the ingestion's `sourceData`.
+- `modules/data/domain/errors.ts` (`LEGACY_SEND_UNSUPPORTED`, 422, raised
+  when `isLegacySendSupported()` is false — i.e. no bundle migration
+  configured) and `modules/core/rest/bundleReferenceNotFound.ts`
+  (`BUNDLE_REFERENCE_NOT_FOUND`, 404, code in the `error` field).
+- `modules/core/domain/commits/events.ts` + `assets/core/typedefs/
+  modelsAndVersions.graphql` — the version-created signal. **There is no
+  `version_created`.** Internal event `versions.created`; GraphQL
+  subscription `projectVersionsUpdated` with type `CREATED`; webhook
+  trigger `commit_create`. The pages now name the subscription.
+- `modules/shared/middleware/index.ts` — the only client-header read.
+  `apollographql-client-version` is analytics-only;
+  `apollographql-client-name` is never read. The publishing application
+  comes from `sourceData.sourceApplicationSlug`/`Version`, not headers.
+
+Things the pages say that the server does **not** enforce (they're spec or
+producer rules, don't go looking for server code): `meta.produced_by` /
+`producer_version` being real values; the 1536 MiB shard cap.
+
+Caveat recorded in the manifest note: at verification time the
+`speckle-server-internal` worktree was dirty on branch `jbr/fea-504-…`, and
+the `message` key on the `uploads/complete` body that `publish.mdx`
+documents was **uncommitted** there. `upload.ts` and `envelopeVersion.ts`
+are pinned from that worktree.
+
+## SGEO geometry encoding and the viewer `.dat` — tracked (Tier B)
+
+`next/developers/object-model/geometry-encoding.mdx`. Verified 2026-09-16;
+every header/body/flag/code table on the page matched source byte-for-byte.
+Ground truth, by repo:
+
+- `speckle-bundle-spec`: `spec/bundle-spec.sql` — the `geometries` table
+  (`geometryIndex`, `content`, `id`, `type`), the shard scheme
+  (`bundle_files` row for `{base}.geometries*.parquet`), and the
+  `DISPLAY` / `SOLID` / `DEFINES` / `CENTERLINE` rels with their `ord`
+  semantics. Note `DEFINES.ord` is the definition's member ordinal, not a
+  per-object counter — only `DISPLAY`/`SOLID`/`CENTERLINE` have those.
+- `speckle-sharp-sdk`: `src/Speckle.Sdk/Objects/Utils/SgeoFormat.cs`
+  (header, codes, flags, CRC), `SgeoEncoder.cs` (bodies; pad-to-8 before
+  normals and uvs, none before colors; nested polycurve/region segments
+  behind a `u32` length + reserved `u32`), `SgeoDecoder.cs`. These live in
+  the `Speckle.Sdk` project but under namespace `Speckle.Objects.Utils`.
+  `src/Speckle.Sdk.Parquet/Pipelines/Send/Artifacts/
+  GeometriesParquetWriter.cs` — SHA-256 over the whole blob, the `type`
+  column (lowercase primitive name for SGEO rows, host label like `3dm`
+  for solids), `DEFAULT_SHARD_MB = 1536` rolled *before* a blob would
+  exceed it. `src/Speckle.Sdk/Bundles/BundleHandles.cs` — the three
+  0-based ordinal counters. Round-trip and cross-language parity tests in
+  `tests/Speckle.Objects.Tests.Unit/Geometry/Sgeo*.cs`.
+- `specklepy`: `src/specklepy/bundle/sgeo.py`, `geometries_writer.py` —
+  identical contract; `tests/bundle/test_sgeo.py`.
+- Viewer `.dat`: builder is **datgen** in `speckle-converters/datgen/`
+  (the server orchestrates it as a job; there is no in-server builder).
+  Layout in `speckle-viewer-webgpu/.claude/DAT_FORMAT.md` (geometry region,
+  index region with **seven** sections — meta, primitives, chunks,
+  placements, materials, colors, realizations — 128-byte trailer);
+  realization identity in `speckle-converters/docs/
+  dat-v3-realization-contract.md`; the visibility gate (no version row
+  until `{versionId}.viewer.dat` is in the artifact list) in
+  `speckle-server-internal/packages/server/modules/data/services/
+  pendingVersion.ts`. The `.dat` is internal; the page deliberately does
+  not document its bytes.
+
+Tracked by the freshness manifest entry for `geometry-encoding.mdx`.
 
 ## General rule for adding a new Tier B entry
 
