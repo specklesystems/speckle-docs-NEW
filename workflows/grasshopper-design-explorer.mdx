@@ -1,7 +1,7 @@
 ---
 title: 'Compare parametric design options from Grasshopper'
 sidebarTitle: 'Design Explorer'
-description: 'Mark Data Objects as design options, attach numeric properties, publish to Speckle, and explore all variants side-by-side in a dashboard with 3D views and a parallel coordinates chart.'
+description: 'Publish Grasshopper design options and compare their geometry and numeric properties in a dashboard.'
 docs_status: changed
 changes_in_version: '2026.9'
 changes_from: '2026-09'
@@ -21,7 +21,9 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
 
 </Visibility>
 
-Use this guide when a Grasshopper script produces multiple versions of the same design — different heights, configurations, densities, or any other parameter — and each version has numeric properties you want to compare. It covers marking Data Objects as design options, structuring metrics, publishing to Speckle, and reading results in a dashboard.
+Compare the geometry and numeric properties of Grasshopper design options in one dashboard.
+Mark each variant as a design option, publish it to Speckle, and use Design Explorer to compare
+heights, costs, performance scores, or other metrics.
 
 <Note>
   This guide assumes familiarity with the **Data Object** and **Send** components in Grasshopper. If
@@ -33,65 +35,70 @@ Use this guide when a Grasshopper script produces multiple versions of the same 
 ## Tag design options in Grasshopper
 
 <Steps>
-  <Step title="Create a Data Object for each design variant">
+  <Step title="Create a Data Object per variant">
     Use a **Data Object** component for each variant. Connect the variant's geometry to the **Geometries** input and set a descriptive **Name** (e.g. `"Option A"`, `"Variant · H2.0 · N4"`).
 
     Each variant appears as a named object on the canvas.
 
   </Step>
-  <Step title="Mark the Data Object as a design option">
+  <Step title="Mark each object as a design option">
     Right-click the **Data Object** component and select **Mark as Design Option**.
 
     The component displays a **Design Option** label to confirm it is enabled.
-
-    <Note>
-      This sets the `isDesignOption` flag on the object automatically. Data Objects without this flag are ignored by the widget.
-    </Note>
-
-    <Frame>
-      <img src="/images/workflows/design-explorer-mark-as-design-option.png" alt="Grasshopper Data Object component right-click menu showing Mark as Design Option" />
-    </Frame>
 
   </Step>
   <Step title="Add numeric properties as performance metrics">
     In the **Properties** input, add numeric values that describe each variant's performance or characteristics. Properties shared across **all** design option objects become the chart axes — any property present on some options but not others is excluded from the parallel coordinates chart.
 
-    Group related values under a parent key. The widget flattens nested properties using `::` as a separator and uses the last segment as the axis label.
-
-    For example, this structure:
-
-    ```
-    cost
-      material: 42000
-      fabrication: 8500
-    performance
-      score: 87
-      efficiency: 0.74
-    geometry
-      height_m: 2.0
-      panel_count: 4
-    ```
-
-    produces chart axes labelled **material**, **fabrication**, **score**, **efficiency**, **height_m**, and **panel_count**. Keep leaf names short — they appear as axis labels and in the properties panel.
+    Use short property names so the chart axes are easy to read.
 
     The component preview shows all property keys and values alongside the Design Option label.
 
   </Step>
 </Steps>
 
+<Frame>
+  <img
+    src="/images/workflows/design-explorer-mark-as-design-option.png"
+    alt="Grasshopper Data Object component right-click menu showing Mark as Design Option"
+  />
+</Frame>
+
+### Name and group numeric properties
+
+Group related values under a parent key. The chart uses the last part of each property path as its axis label.
+
+For example, this structure:
+
+```
+cost
+  material: 42000
+  fabrication: 8500
+performance
+  score: 87
+  efficiency: 0.74
+geometry
+  height_m: 2.0
+  panel_count: 4
+```
+
+produces chart axes labelled **material**, **fabrication**, **score**, **efficiency**, **height_m**, and **panel_count**. Keep leaf names short — they appear as axis labels and in the properties panel.
+
 ## Publish to Speckle
 
 <Steps>
-  <Step title="Connect the list to a Send component">
+  <Step title="Connect the Send component">
     Connect the merged list to a **Send** component. Set the project and a model name that reflects the study (e.g. `facade-study`, `tower-options`).
 
     The Send component preview shows the correct object count.
 
   </Step>
-  <Step title="Publish and verify">
-    Click **Publish**. Open the model in the Speckle web viewer and confirm each variant appears as a separate selectable object with its properties visible in the properties panel.
-
-    All variants are published and ready to connect to a dashboard.
+  <Step title="Publish the design options">
+    Click **Publish**. The options are uploaded to the selected model.
+  </Step>
+  <Step title="Verify the published options">
+    Open the model in the Speckle web viewer. Confirm each variant is a separate selectable object
+    with its properties visible in the properties panel.
 
   </Step>
 </Steps>
@@ -105,12 +112,10 @@ Use this guide when a Grasshopper script produces multiple versions of the same 
     The dashboard editor opens with the widget panel visible on the left.
 
   </Step>
-  <Step title="Drag a Design Explorer widget onto the canvas">
+  <Step title="Add the Design Explorer widget">
     In the widget panel, open the **Grasshopper** group and drag a **Design Explorer** widget onto the canvas.
 
     An empty Design Explorer widget appears on the canvas.
-
-    {/* IMAGE: Widget sidebar showing Grasshopper group with Design Explorer widget */}
 
   </Step>
   <Step title="Connect to your Grasshopper model">
@@ -118,10 +123,12 @@ Use this guide when a Grasshopper script produces multiple versions of the same 
 
     The widget loads and displays a thumbnail card for each design option.
 
-    {/* IMAGE: Design Explorer widget showing thumbnail grid after connecting a model */}
-
   </Step>
 </Steps>
+
+{/* IMAGE_PLACEHOLDER: Widget sidebar showing Grasshopper group with Design Explorer widget */}
+
+{/* IMAGE_PLACEHOLDER: Design Explorer widget showing thumbnail grid after connecting a model */}
 
 ## Read the results
 
@@ -170,30 +177,33 @@ Click the option name in the header bar to return to the grid.
   <Accordion title="Why does the widget say 'Design Explorer requires a Grasshopper data source'?">
     The widget checks the source application of the connected model and expects Grasshopper.
     Re-publish the model from Grasshopper, or connect a data source that was. If you are producing
-    design options from somewhere else, see [Under the hood](#under-the-hood).
+    design options from somewhere else, see [Programmatic design options](#advanced-create-design-options-programmatically).
   </Accordion>
   <Accordion title="Why does the widget say 'No design options found'?">
     Check that each Data Object has been marked as a design option via the right-click menu (**Mark
     as Design Option**). Also confirm the objects are at the top level of the model, not nested
     inside Collections.
   </Accordion>
-  <Accordion title="Why are some of my properties missing from the chart?">
-    Only properties that are present on **all** design option objects appear as chart axes. If a
-    property is missing on even one object, it is excluded. Check that every Data Object has the
-    same set of numeric property keys.
-  </Accordion>
+
   <Accordion title="What happens to thumbnails when I reload the page?">
     Thumbnails are recaptured from the live model on each load. They are not stored between
     sessions. Cards are interactive immediately; thumbnails fill in progressively in the background.
   </Accordion>
+  <Accordion title="Does a Design Explorer widget count toward the 3D viewer widget limit?">
+    Yes. Design Explorer holds a browser 3D rendering context like the Model Viewer and Dual viewer
+    widgets, so it counts toward your dashboard's 3D viewer widget limit. See [Is there a limit to
+    how many 3D viewer widgets I can
+    add?](/analytics/dashboards/layout#is-there-a-limit-to-how-many-3d-viewer-widgets-i-can-add) for
+    details.
+  </Accordion>
 </AccordionGroup>
 
-## Under the hood
+## Advanced: create design options programmatically
 
 <AccordionGroup>
   <Accordion title="What does 'Mark as Design Option' actually do?">
-    Nothing exotic — it writes a property. The menu item sets a boolean at the dotted path
-    `DesignOption.isDesignOption` on the Data Object, which lands on the wire as:
+    The menu item sets a boolean at the property path
+    `DesignOption.isDesignOption` on the Data Object, which is published as:
 
     ```json
     "properties": {
@@ -209,8 +219,8 @@ Click the option name in the header bar to return to the grid.
   </Accordion>
 
   <Accordion title="Can I produce design options from Python or another connector?">
-    Not officially — but nothing about the marker is Grasshopper-specific, and the only thing
-    stopping you is a source-application check on the widget.
+    This is unsupported. The widget requires a Grasshopper source application, even when another
+    tool produces objects with the same marker.
 
     Build the Data Objects with the marker in their properties, then set the version's
     source application so the widget accepts the model:
@@ -241,15 +251,13 @@ Click the option name in the header bar to return to the grid.
 
     - The widget isolates the marked object itself, not its children. All geometry for a variant
       must sit on that object's `displayValue`.
-    - Every marked object needs the same numeric property keys, or the odd ones out are dropped
+    - Every marked object needs the same numeric property keys, or properties missing from any object are excluded
       from the chart.
 
     <Warning>
-      This is unsupported and misreports how the version was produced. It works, but treat it as a
-      hack rather than an integration: the source-application check may be relaxed or replaced, and
-      this workaround will not be preserved deliberately. If you are relying on it, say so on the
-      [forum](https://speckle.community) — a real use case is what would justify supporting design
-      options outside Grasshopper properly.
+      This workaround misreports the source application and may stop working in a future release.
+      Contact [Speckle support](https://speckle.community/help) if you need supported design-option
+      publishing from another application.
     </Warning>
 
   </Accordion>

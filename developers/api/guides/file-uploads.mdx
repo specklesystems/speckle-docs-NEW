@@ -1,16 +1,14 @@
 ---
-title: Uploading IFC and Other Files to Speckle
-sidebarTitle: Uploading Files
+title: Upload IFC and other files to Speckle
+sidebarTitle: Upload files
 description: Guide to uploading IFC, DWG, OBJ, and other file types using GraphQL mutations
 ---
 
-There is no dedicated REST endpoint for uploading IFC, DWG, OBJ, or any other file types.
+Upload a supported file and create a model version using GraphQL and an HTTP upload to blob
+storage. This guide covers requesting an upload URL, uploading the file, starting conversion,
+and checking the result.
 
-The supported programmatic workflow is a hybrid GraphQL + REST (or S3) flow.
-
-This section documents the entire mechanism so developers do not have to reverse engineer the server.
-
-## Pre-requisites
+## Prerequisites
 
 - A personal access token with the `streams:write` scope
 - A Speckle project, where you have a `Can edit` role
@@ -20,7 +18,7 @@ This section documents the entire mechanism so developers do not have to reverse
   web app.
 </Info>
 
-For all GraphQL mutations, make sure to send the token in as a request header named `Authorization`:
+For all GraphQL mutations, send the token in a request header named `Authorization`:
 
 ```bash
 Authorization: Bearer YOUR_TOKEN
@@ -61,7 +59,7 @@ Important notes:
 
 ## Step 1: Generate an upload URL
 
-We start by notifying the Speckle Server of our intent to upload a file. The server responds with a URL, which we will use to upload the file in a subsequent step, and an unique ID for the expected file.
+Request an upload URL from Speckle Server. The response contains the URL and a unique ID for the file.
 
 **POST** `/graphql`
 
@@ -97,7 +95,7 @@ Response example:
     "fileUploadMutations": {
       "generateUploadUrl": {
         "url": "https://your-s3-endpoint.example.org/presigned-upload-url",
-        "fileId": "file-id-to-use-in-step-3"
+        "fileId": "file-id-to-use-in-step-4"
       }
     }
   }
@@ -125,7 +123,7 @@ Body:
 Important:
 
 - Blob storage returns an ETag in the headers of the response.
-- The ETag is an unique identifier for the uploaded file content, which Speckle uses to verify the file integrity before ingesting the file.
+- The ETag is a unique identifier for the uploaded file content, which Speckle uses to verify the file integrity before ingesting the file.
 - The ETag is required for the final step.
 
 Example curl:
@@ -247,9 +245,9 @@ Response example:
 
 Your file is now in the ingestion pipeline. Once ingested, a new Version will appear under the referenced Model.
 
-## Step 5: Getting the ingestion status
+## Step 5: Check the ingestion status
 
-Once the ingestion has been started, the file ingestion job receives an ingestion id from `fileUploadMutations.startFileIngestion.id`. This id can be used to get the status of the file ingestion job.
+Use the ID returned by `fileUploadMutations.startFileIngestion.id` to check progress. A successful result includes the new version ID; a failed result includes the error reason.
 
 **POST** `/graphql`
 
@@ -328,12 +326,24 @@ In case of an error, the error response would look like:
 ## What developers need to know
 
 <AccordionGroup>
-  <Accordion title="File formats supported">
-    For [app.speckle.systems](https://app.speckle.systems): IFC, RVT, NWC, NWD, DWG, DXF, OBJ, STL,
+  <Accordion title="Which file formats can I upload?">
+    <Warning>
+      **2026.9 changes upload format support.** STL, DXF, and several other formats are no longer
+      accepted by the default upload path. These formats remain supported for direct uploads in
+      **legacy/compatibility mode**. See [2026.9 upload format changes and compatibility
+      options](/next/connectors/file-uploads#breaking-change-supported-file-formats).
+    </Warning>
+
+    Before 2026.9, [app.speckle.systems](https://app.speckle.systems) supports IFC, RVT, NWC, NWD, DWG, DXF, OBJ, STL,
     3DM, and others — see [Supported Formats](/connectors/overview#supported-formats).
 
-    Open-source self-hosted servers support IFC only. Extended formats are also available on Speckle
-    Enterprise Server — see [File imports (conversion runner)](/developers/server/deployment/enterprise-license#file-imports-conversion-runner).
+    Open-source self-hosted servers support IFC only.
+
+    <Note>
+      Extended formats on self-hosted deployments require Speckle Enterprise Server and a
+      [license key](/developers/server/deployment/enterprise-license#license-key). See [File imports
+      setup](/developers/server/deployment/enterprise-license#file-imports-conversion-runner).
+    </Note>
 
   </Accordion>
 
@@ -345,24 +355,15 @@ In case of an error, the error response would look like:
 </Accordion>
 
   <Accordion title="Where did the StartFileImport mutation go?">
-    Gone, not just deprecated. `startFileImport` is replaced by
+    `startFileImport` has been removed. Use
     `fileUploadMutations.startFileIngestion`, which gives more granular status updates and real-time
     subscription updates, with ingestion queries shared across file import and other Speckle
     integrations. As of the 2026.9 server release (1 September 2026), calling `startFileImport`
-    fails outright with a 400 error (`UNSUPPORTED_FILE_TYPE`) rather than falling back to the old
-    behavior — there's no compatibility window for this one.
+    fails with a 400 error (`UNSUPPORTED_FILE_TYPE`) rather than falling back to the old
+    behavior — there is no compatibility period for this mutation.
 
     Update your code to use `fileUploadMutations.startFileIngestion` and the ingestion status
     queries in this guide.
-
-  </Accordion>
-
-  <Accordion title="Why is this not REST?">
-    Because:
-
-    - Files should go direct to blob storage for performance and scale.
-    - GraphQL mutations model "actions" better than REST for asynchronous workflows.
-    - GraphQL subscriptions allow real-time updates on the ingestion status, which is not possible with REST.
 
   </Accordion>
 
