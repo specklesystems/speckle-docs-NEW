@@ -1,0 +1,217 @@
+{
+  "_comment": "Tier B sources for next/developers/object-model pages: concepts with no speckle-bundle-spec-generated catalog to diff against (see the sync-object-model-docs skill). Each entry pins the sha256 of a source file as of the last time an agent actually read it and drew a conclusion from it. check-object-model-freshness.mjs re-hashes these sibling-checkout files and flags any that changed, so a stale conclusion gets re-verified instead of silently rotting. Update the hash (and the note, if the fact changed) whenever you re-verify or the source moves.",
+  "entries": [
+    {
+      "docsPage": "next/developers/object-model/version-metadata.mdx",
+      "concept": "What replaced the Commit object (root-object metadata split: version record, ingestion, meta row, model-scoped properties)",
+      "verifiedAt": "2026-09-16",
+      "note": "Already documented in full on this page (see the 'What the root object carried, and where it lives now' table and FAQ) — this manifest entry exists to catch drift against the page's SDK/spec-side claims, not to flag a gap. Sources below confirm the SDK-side publish sequence (Ingestion.Create pre-allocates the version id, meta row shape, SetProducer) and the meta table DDL. The page's server-side claims (BUNDLE_REFERENCE_NOT_FOUND, the version-created signal, Version.schemaVersion = 3, the bundle reference format) are covered by the 'Server-side ingestion contract' entry on publish.mdx, which lists the speckle-server-internal sources.",
+      "sources": [
+        {
+          "repo": "atlas",
+          "path": "glossary.md",
+          "sha256": "99824e7ad278874d15a8e4e2b39d90c7e6cb47ab2d49e14713180ebb8b818c1f",
+          "why": "Canonical renames (version was commit), the bundle reference format, and the Version.schemaVersion vs meta.schema_version distinction"
+        },
+        {
+          "repo": "speckle-bundle-spec",
+          "path": "spec/bundle-spec.sql",
+          "sha256": "45c91980085c4342fab7a5b099cc71343c04d54b45eca62b9349b2826dcb2f73",
+          "why": "The meta table DDL (schema_version, produced_by, producer_version, sdk_name, sdk_version, migrated_from_schema_version) — search for 'CREATE TABLE meta'"
+        },
+        {
+          "repo": "speckle-sharp-sdk",
+          "path": "src/Speckle.Sdk/Bundles/BundleSender.cs",
+          "sha256": "3e560978726acd2b7ad87862cf65299f52891f8848d2e4afe012132f6c705032",
+          "why": ".NET publish sequence: Ingestion.Create pre-allocates the version id, upload, WaitForVersionAsync -> Version.Get"
+        },
+        {
+          "repo": "speckle-sharp-sdk",
+          "path": "src/Speckle.Sdk.Parquet/Pipelines/Send/Artifacts/EnvelopeWriter.cs",
+          "sha256": "8e64722538601b6f91985fde54d9ea07d44a9755c9f6574df1b1c1131ea3efa5",
+          "why": "meta table's field-by-field doc comment on EnvelopeWriter's class summary"
+        },
+        {
+          "repo": "speckle-sharp-sdk",
+          "path": "src/Speckle.Sdk/Objects/Utils/ObjectsArtifactPipeline.cs",
+          "sha256": "52b0335f22a78d77cadf4aff6eefac1d81fed01b3495ce29aa5667e0e52ade27",
+          "why": "SetProducer(...) — 'Required before Complete: every bundle names its producer'"
+        },
+        {
+          "repo": "specklepy",
+          "path": "src/specklepy/bundle/send.py",
+          "sha256": "b195b9915dfb06b03ec0b570f8f3f727da15c450d135782f5930bb86d43288df",
+          "why": "Python publish sequence — confirms parity with BundleSender.cs (ModelIngestionCreateInput, get_reserved_version_id, ArtifactPipeline)"
+        },
+        {
+          "repo": "specklepy",
+          "path": "src/specklepy/bundle/envelope_writer.py",
+          "sha256": "918187cd37df552e293969027b96b8f24f4fecc7744cbd17a8afdb982e7c73b8",
+          "why": "Confirms the meta schema fields are identical to the .NET EnvelopeWriter"
+        }
+      ]
+    },
+    {
+      "docsPage": "next/developers/building-integrations/publish.mdx",
+      "concept": "The ingestion publish sequence (create -> build -> sign -> upload -> complete -> wait) and bundle-correctness rules",
+      "verifiedAt": "2026-09-16",
+      "note": "SDK-side sequence and its parity between .NET and Python matches this page's Steps + code tabs. The REST/GraphQL wire detail on the same page is verified separately by the 'Server-side ingestion contract' entry below.",
+      "sources": [
+        {
+          "repo": "speckle-sharp-sdk",
+          "path": "src/Speckle.Sdk/Bundles/BundleSender.cs",
+          "sha256": "3e560978726acd2b7ad87862cf65299f52891f8848d2e4afe012132f6c705032",
+          "why": ".NET side of the sequence this page's Steps block and .NET code tab describe"
+        },
+        {
+          "repo": "specklepy",
+          "path": "src/specklepy/bundle/send.py",
+          "sha256": "b195b9915dfb06b03ec0b570f8f3f727da15c450d135782f5930bb86d43288df",
+          "why": "Python side of the same sequence — confirms the page's Python code tab matches current send.py"
+        }
+      ]
+    },
+    {
+      "docsPage": "next/developers/building-integrations/publish.mdx",
+      "concept": "Server-side ingestion contract (GraphQL ingestion mutations and inputs, REST sign/complete, ETag and additionalRequestHeaders handling, LEGACY_SEND_UNSUPPORTED and BUNDLE_REFERENCE_NOT_FOUND, the projectVersionsUpdated CREATED signal, viewer .dat gating, artifacts endpoint, multipart threshold)",
+      "verifiedAt": "2026-09-16",
+      "note": "Also grounds version-metadata.mdx's server-side claims. Verified 2026-09-16 against speckle-server-internal on branch jbr/fea-504-grasshopper-publish-versionmessage-is-not-shown-on-the-model with a DIRTY worktree: upload.ts and envelopeVersion.ts were hashed from the worktree and include the uncommitted `message` field on the uploads/complete body that publish.mdx documents. If the freshness check flags those two files, first check whether that change merged (hash moves but the docs stay right) or was dropped (the `message` key on the page is then wrong). Facts corrected on the pages during this pass: the version-created signal is the projectVersionsUpdated subscription (type CREATED; internal event versions.created; webhook commit_create) — there is no version_created; apollographql-client-name is never read by the server and apollographql-client-version is analytics-only, the publishing app comes from the ingestion's sourceData; the sign response may carry additionalRequestHeaders the PUT must send (always on Azure); failWithInvalid/failWithCancel have distinct input types; multipart is for files over the 5 GB single-PUT ceiling; LEGACY_SEND_UNSUPPORTED is a 422 raised when the server has no legacy-send support (isLegacySendSupported), not a named '2026.9-only' setting. Not server-enforced (spec/consumer rules only): meta.produced_by/producer_version, the 1536 MiB shard cap.",
+      "sources": [
+        {
+          "repo": "speckle-server-internal",
+          "path": "packages/server/assets/modelingestion/typedefs/modelingestion.graphql",
+          "sha256": "dd309fc50240587f060f2a3f9e6582632d3b8c55843c24c575c2e653083af525",
+          "why": "Mutation.projectMutations.modelIngestionMutations.* field paths, ModelIngestionCreateInput/UpdateInput/FailedInput/InvalidInput/CancelledInput, statuses, the projectModelIngestionUpdated subscription, versionId reserved at create"
+        },
+        {
+          "repo": "speckle-server-internal",
+          "path": "packages/server/modules/data/rest/upload.ts",
+          "sha256": "c992e058ab0cce8340a4c3f5c1026728faace8ea4f0c8842b2bd1ad851d03e2f",
+          "why": "v2 uploads/sign and uploads/complete: exact paths, body schemas (files; etags, rootId, totalChildrenCount, message), ETag equality check, additionalRequestHeaders passthrough, .dat gating branch, complete response { versionId, files }"
+        },
+        {
+          "repo": "speckle-server-internal",
+          "path": "packages/server/modules/data/services/envelopeVersion.ts",
+          "sha256": "dff9f98ae1dae3fc7489d8f76372aa653e5ee43146d2551dd2b9455e0a8e68bc",
+          "why": "The version is created at complete with the reserved id, objectId = bundle reference, schemaVersion = 3, sourceApplication from sourceData; ENVELOPE_VERSION_MISSING_DAT if the .dat is absent"
+        },
+        {
+          "repo": "speckle-server-internal",
+          "path": "packages/server/modules/data/rest/download.ts",
+          "sha256": "ce4434b835bd063446bdb056eabfb76cc09faf8f6a21c0555f685306e7502252",
+          "why": "GET /api/v2/projects/:projectId/models/:modelId/versions/:versionId/artifacts (and /models/:modelId/artifacts for latest): presigned URL per artifact file"
+        },
+        {
+          "repo": "speckle-server-internal",
+          "path": "packages/server/modules/data/rest/multipartUpload.ts",
+          "sha256": "51ad99b46c4b6b014cc2c97bb652bf64c253c21a09e1650438401065091ec6ad",
+          "why": "uploads/multipart/start|complete|abort paths and the 5 GB single-PUT rationale"
+        },
+        {
+          "repo": "speckle-server-internal",
+          "path": "packages/server/modules/data/domain/errors.ts",
+          "sha256": "004192eb4d79830e3750686f8ce355690ee02f1c445868fcab4dc57d4ca59706",
+          "why": "LEGACY_SEND_UNSUPPORTED (422) and ENVELOPE_VERSION_MISSING_DAT error definitions"
+        },
+        {
+          "repo": "speckle-server-internal",
+          "path": "packages/server/modules/core/rest/bundleReferenceNotFound.ts",
+          "sha256": "33654e7b53904018bedbdbfdc51f048637a9677a4b3bf2b05eccd598ceaa918e",
+          "why": "BUNDLE_REFERENCE_NOT_FOUND: 404 with { error, message, objectIds, upgrade, docsUrl } on the objects endpoints"
+        },
+        {
+          "repo": "speckle-server-internal",
+          "path": "packages/server/modules/core/domain/commits/events.ts",
+          "sha256": "b5d32790c8cbd16a3ebb568c191ab1350fb2b6acc6dc2601f8303688af51bdc6",
+          "why": "Internal event name versions.created and the clientAppVersion field — refutes 'version_created'"
+        },
+        {
+          "repo": "speckle-server-internal",
+          "path": "packages/server/assets/core/typedefs/modelsAndVersions.graphql",
+          "sha256": "bd88619b75edb7d72394c651e5f0d22fe4dd7b80e2fb0c0f5875dc22fb51acf1",
+          "why": "projectVersionsUpdated subscription and ProjectVersionsUpdatedMessageType.CREATED — the reader-facing version-created signal"
+        },
+        {
+          "repo": "speckle-server-internal",
+          "path": "packages/server/modules/modelingestion/graph/resolvers/modelIngestion.ts",
+          "sha256": "6aeb64fc44fc147efbd51135dec9104cad6d403f58b7f263e86f06bb817ea634",
+          "why": "create/updateProgress/fail*/requestCancellation behaviour, 300 s default idle timeout, canCreate/canUpdate auth checks"
+        },
+        {
+          "repo": "speckle-server-internal",
+          "path": "packages/server/modules/shared/middleware/index.ts",
+          "sha256": "c7b3effb3775e1c229b93c3b098526e0867ab65c510b48fa75ce97ece0e41b5c",
+          "why": "The only client-header read: apollographql-client-version, analytics-only; apollographql-client-name is never read"
+        }
+      ]
+    },
+    {
+      "docsPage": "next/developers/object-model/geometry-encoding.mdx",
+      "concept": "SGEO geometry encoding (geometries table row shape and sharding, 16-byte header, primitive codes, flag bits, body layouts, CRC and id spans, encoder/decoder names) and the viewer .dat (name, gating, layout, realizations)",
+      "verifiedAt": "2026-09-16",
+      "note": "Verified 2026-09-16 across speckle-bundle-spec, speckle-sharp-sdk, specklepy, speckle-viewer-webgpu, speckle-converters and speckle-server-internal. Header, units codes, primitive codes 0-12, flag bits 0-10, mesh body order (pad-to-8 before normals and uvs, none before colors), curve display-polyline-then-NURBS, whole-blob SHA-256 id, CRC over body only: all confirmed byte-for-byte in SgeoFormat.cs/SgeoEncoder.cs and sgeo.py. Facts corrected on the page during this pass: the geometries `type` column holds the lowercase primitive name (mesh, line, ...) for SGEO rows and the host label (3dm) for SOLID rows, not an 'encoding'; DEFINES ord is the definition's member ordinal (shared with DEFINES_MEMBER/DEFINES_INSTANCE), only DISPLAY/SOLID/CENTERLINE have per-object counters; nested polycurve/region segments sit behind an 8-byte prefix (u32 length + reserved u32); the .dat index has seven sections ending in realizations; the shard roll happens before a blob would exceed 1536 MiB. Nuance kept out of reader copy: the .dat builder is datgen, shipped in the speckle-converters image and orchestrated by the server as a job (speckle-converters/datgen/README.md); .NET SgeoEncoder/SgeoDecoder live in the Speckle.Sdk project under namespace Speckle.Objects.Utils.",
+      "sources": [
+        {
+          "repo": "speckle-bundle-spec",
+          "path": "spec/bundle-spec.sql",
+          "sha256": "45c91980085c4342fab7a5b099cc71343c04d54b45eca62b9349b2826dcb2f73",
+          "why": "geometries table DDL (geometryIndex, content, id, type), shard scheme, DISPLAY/SOLID/DEFINES/CENTERLINE rel catalog with ord semantics"
+        },
+        {
+          "repo": "speckle-sharp-sdk",
+          "path": "src/Speckle.Sdk/Objects/Utils/SgeoFormat.cs",
+          "sha256": "1738a20850b503eeb2c8394ba8a54b047988b896157029f1f3479aebd83ef481",
+          "why": "Header contract: offsets, version, primitive codes, flag bits, CRC-32 polynomial, alignment conventions"
+        },
+        {
+          "repo": "speckle-sharp-sdk",
+          "path": "src/Speckle.Sdk/Objects/Utils/SgeoEncoder.cs",
+          "sha256": "8dc0806276ed8d9d658bf6961703cd33b7bab6683eb93b2e4854b46600bb0859",
+          "why": "Byte-exact body layouts: mesh order and padding, curve display-then-NURBS, nested polycurve/region blobs with 8-byte prefix"
+        },
+        {
+          "repo": "speckle-sharp-sdk",
+          "path": "src/Speckle.Sdk.Parquet/Pipelines/Send/Artifacts/GeometriesParquetWriter.cs",
+          "sha256": "50fb4db106776082b61cff00ca51c3c58cfcc92a06f0f2ecf2c98b4fe14012c1",
+          "why": "Row shape, SHA-256 over the whole blob, type column values, DEFAULT_SHARD_MB = 1536 and the roll-before-exceed rule"
+        },
+        {
+          "repo": "speckle-sharp-sdk",
+          "path": "src/Speckle.Sdk/Bundles/BundleHandles.cs",
+          "sha256": "0ebab945a28d83c9aa2719cf7dc36d8ca09dc6eeae68e4fee9cc8a25a6a8d982",
+          "why": "Separate 0-based ordinal counters for DISPLAY/SOLID/CENTERLINE and the raw-solid type label"
+        },
+        {
+          "repo": "specklepy",
+          "path": "src/specklepy/bundle/sgeo.py",
+          "sha256": "6b281334e4301e4cb0f52fb27881ccd4b50b8f0ac733f2b9f18ec1d1a3766abf",
+          "why": "Python encoder/decoder: header docstring, unit codes, whole-blob hash rule, mesh padding parity note"
+        },
+        {
+          "repo": "specklepy",
+          "path": "src/specklepy/bundle/geometries_writer.py",
+          "sha256": "b6fb91f3a2404dece45c3f87e734f12e4bc54f73748af8c133b4685549cf34f6",
+          "why": "Python-side type labels and shard cap — cross-language parity of the table contract"
+        },
+        {
+          "repo": "speckle-viewer-webgpu",
+          "path": ".claude/DAT_FORMAT.md",
+          "sha256": "b2e3c5446b7ee8296655baf15196b23544ef072ded38992fc971f585ab54feb6",
+          "why": "The .dat byte contract: geometry and index regions, 128-byte trailer, the seven index sections in order"
+        },
+        {
+          "repo": "speckle-converters",
+          "path": "docs/dat-v3-realization-contract.md",
+          "sha256": "82f03817d8e672b7f9dc022ba6ae26dbaba3740facc3c4e6595c471b3a8ff611",
+          "why": "Realization identity: definitions expanded into placements, ids exist only in the .dat"
+        },
+        {
+          "repo": "speckle-server-internal",
+          "path": "packages/server/modules/data/services/pendingVersion.ts",
+          "sha256": "695a214d3acd1c13b934a4e5136cc3dc763e99dcfe8036d3f4b9001d91c83d2f",
+          "why": "Version-visibility gate: no version row until the artifact list contains {versionId}.viewer.dat"
+        }
+      ]
+    }
+  ]
+}
