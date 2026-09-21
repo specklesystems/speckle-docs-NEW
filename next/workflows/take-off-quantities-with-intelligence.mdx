@@ -1,0 +1,132 @@
+---
+title: Take off quantities and cost with Speckle Intelligence
+sidebarTitle: Quantity & cost takeoff
+description: Ask Chat for a quantity takeoff and a priced estimate straight from the model, using your own rate card, instead of building a takeoff dashboard by hand.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow linked Current documentation for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+A quantity takeoff and a priced estimate are usually two separate jobs: count elements in a
+dashboard or export, then take that export somewhere else to apply rates. This page asks for both
+in one conversation — a takeoff by category, priced against your own rate card, with anything it
+can't price flagged instead of guessed.
+
+<Note>
+  Speckle Intelligence Chat is available when your workspace plan includes it. On a self-hosted
+  server, it is available only on Speckle Enterprise Server. For deployment setup, see [Enterprise
+  license — Intelligence](/developers/server/deployment/enterprise-license#optional-intelligence).
+</Note>
+
+<Info>
+  This is the Chat-driven route. For a dashboard you can pin, share, and keep open on a screen
+  instead of asking for it each time, build a [quantity takeoff
+  dashboard](/analytics/dashboards/common-workflows#run-a-quantity-takeoff) instead — the two
+  approaches read the same published data.
+</Info>
+
+## What this workflow does
+
+- **Take off** — count and total elements by category, level, or any other property, without
+  building the breakdown in a dashboard first.
+- **Price** — apply your own unit rates and cost codes instead of a generic estimate.
+- **Flag gaps** — call out anything with no matching rate, rather than inventing a number.
+- **Reuse** — pin the rate card once so every future takeoff on any project uses this year's
+  prices.
+
+## Walkthrough
+
+<Steps>
+  <Step title="Pin your rate card as Knowledge">
+    In workspace **Settings → Skills**, create a skill and pin your rate card (a spreadsheet, or a
+    live warehouse table if finance keeps it there) as
+    [Knowledge](/next/analytics/intelligence-skills#what-you-can-attach). Write the unit rates and
+    cost codes into the skill's instructions in your own language — elemental, package, or
+    whatever your commercial team already calls them. See [Reuse organisation playbooks with
+    Intelligence skills](/next/analytics/intelligence-skills).
+  </Step>
+  <Step title="Ask for the takeoff">
+    In Chat, arm the skill with `/skill-name` and ask in plain language:
+
+    > Give me a material takeoff, priced against our rate card.
+
+    Intelligence reads quantities from the published model — the same [connected, queryable
+    data](/next/analytics/intelligence#how-it-works) it uses for any other question — and matches
+    each line against the pinned rate card.
+
+  </Step>
+  <Step title="Read the breakdown">
+    The reply groups quantities the way your skill's instructions say to — by category, level, or
+    package — with each line priced. Anything without a matching rate is called out separately
+    instead of estimated, so a missing row is visible rather than silently averaged away.
+  </Step>
+  <Step title="Ask a what-if question">
+    Keep going in the same conversation:
+
+    > What's the impact on cost if steel goes up by 15%?
+
+    Intelligence recalculates from the same quantities and the same pinned rates, so the answer
+    reflects your actual take-off, not a generic assumption.
+
+  </Step>
+</Steps>
+
+## Share it beyond the chat
+
+Save the conversation as a [Report](/next/analytics/reports) if you want a shareable artefact —
+the takeoff and its pricing stay live against the bound version rather than frozen at the moment
+you asked. For a takeoff someone will keep open and re-filter by level or category on a screen,
+use the dashboard route in [Run a quantity takeoff](/analytics/dashboards/common-workflows#run-a-quantity-takeoff)
+instead; **Element table** there also exports straight to CSV.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Does it use my company's units and rounding?">
+    Only if you say so. Put your unit and rounding conventions in the skill's instructions —
+    Intelligence does not know your commercial team's conventions unless you tell it once, in the
+    skill.
+  </Accordion>
+  <Accordion title="What happens if an element has no matching rate?">
+    It gets flagged as unmatched rather than priced by guesswork. Write that behaviour into the
+    skill explicitly (see the [cost, carbon, and quantities skill
+    catalogue](/next/analytics/intelligence-skills#cost-carbon-and-quantities)) if you want the flag
+    to use a specific phrase your commercial team recognises.
+  </Accordion>
+  <Accordion title="Does this need a version in the new 2026.9 data format?">
+    Yes. Like every other Intelligence query, a takeoff needs a version in the new data format.
+    Versions still in the old format cannot be queried. See [Speckle's data model is
+    changing](/workspaces/data-model-migration).
+  </Accordion>
+  <Accordion title="Can I get the same breakdown without a rate card?">
+    Yes — just ask for the takeoff without pricing, for example "give me a material takeoff" or
+    "give me a report of quantities by category and level." Pricing only kicks in once you've pinned
+    a rate card in a skill.
+  </Accordion>
+</AccordionGroup>
+
+## See also
+
+- [Ask questions about your models with Speckle Intelligence](/next/analytics/intelligence)
+- [Reuse organisation playbooks with Intelligence skills](/next/analytics/intelligence-skills)
+- [Create and share Intelligence Reports](/next/analytics/reports)
+- [Run a quantity takeoff](/analytics/dashboards/common-workflows#run-a-quantity-takeoff) — the
+  dashboard-based route
