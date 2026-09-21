@@ -79,6 +79,17 @@ yet.
   in the function before attaching a result to it.
 </Warning>
 
+## Results stored before a model was migrated
+
+A run that finished before its model moved to the 2026.9 format stored its results against the
+content-hashed `id`. Migration doesn't carry that hash into the migrated data: objects are
+identified by `applicationId` only, and an object that had no `applicationId` is keyed as
+`spk:` followed by its old hash. The stored results are kept as they were, but the ids inside
+them no longer match any object in the migrated model.
+
+Runs made after migration don't have this problem, because they key results by `applicationId`.
+Re-run the automation against the migrated version to get results that line up with its objects.
+
 ## What to do today
 
 <Steps>
