@@ -36,10 +36,10 @@ in [Who's affected](/developers/migration/data-model-migration#whos-affected). A
 </Note>
 
 <Warning>
-  What isn't there yet is a way to see those results. Neither the results indicator in the product
-  UI nor a documented API covers a model in the 2026.9 format right now. If you're troubleshooting a
-  run that appears to have succeeded but produced nothing visible, this is why — it isn't a sign the
-  run failed.
+  The results indicator in the product UI and a documented API don't cover a model in the 2026.9
+  format right now. The Dashboards Automate results widget is the way to see them. If you're
+  troubleshooting a run that appears to have succeeded but produced nothing visible in the viewer,
+  this is why — it isn't a sign the run failed.
 </Warning>
 
 ## What's missing
@@ -59,9 +59,24 @@ tracked separately; an undocumented internal path exists there but carries no st
 guarantee — see [Data Validation](/next/analytics/data-validation/overview) if that's what you're
 looking for.)
 
+## Results in dashboards
+
+Dashboards include an **Automate results** widget that shows a version's automation runs and the
+results each function recorded, and isolates the objects a result refers to in the dashboard's
+3D view. It reads a result's object ids and matches them to objects in the model by
+`applicationId`, so it works for the same reason [new runs
+do](/next/developers/automate/attaching-results#results-stored-before-a-model-was-migrated) and
+not for results stored against a content-hashed `id` before the model was migrated.
+
+{/* IMAGE_PLACEHOLDER: Dashboards — Automate results widget listing a run's results as cards, with the affected objects isolated in the 3D view. */}
+
 ## What to do meanwhile
 
 <Steps>
+  <Step title="Add the Automate results widget to a dashboard">
+    Add the widget to a dashboard on the project and pick the model and version. It lists the runs
+    and their results, and selecting a result isolates its objects in the 3D view.
+  </Step>
   <Step title="Keep the workspace on compatibility mode">
     If you need to see results for a model that would otherwise land in the 2026.9 format —
     through ACC sync or drag-and-drop upload — ask us to switch the workspace into compatibility
@@ -88,8 +103,8 @@ looking for.)
     missing for 2026.9-format models — the run itself, and what it produced, aren't affected.
   </Accordion>
   <Accordion title="Is there any way to get the results out right now?">
-    Not for a model already in the 2026.9 format. The only current option is compatibility mode,
-    which keeps new data in the format the existing viewer and dashboard support, so results stay
+    Yes, through the Dashboards Automate results widget. The other option is compatibility mode,
+    which keeps new data in the format the existing viewer supports, so the results icon stays
     visible the normal way.
   </Accordion>
   <Accordion title="When will this be fixed?">
