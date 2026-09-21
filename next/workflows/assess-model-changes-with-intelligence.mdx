@@ -1,0 +1,150 @@
+---
+title: Assess model changes with Speckle Intelligence
+sidebarTitle: Compare versions with Intelligence
+description: A worked example — ask Chat what changed between two versions, read the report, then filter and colour the model by how significant each change is.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow linked Current documentation for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+The dedicated diff view is gone in 2026.9 — see [Compare Versions](/3d-viewer/compare-versions).
+In its place, Speckle Intelligence can detect what changed between two versions, explain it in
+plain language, and — because Chat can also drive the viewer — colour the model by how
+significant each change is. This page walks through one real conversation end to end, from the
+first question to a scene coloured by change severity, so you know what to expect and can reuse
+the pattern on your own models.
+
+<Note>
+  Speckle Intelligence Chat is available when your workspace plan includes it. On a self-hosted
+  server, it is available only on Speckle Enterprise Server. For deployment setup, see [Enterprise
+  license — Intelligence](/developers/server/deployment/enterprise-license#optional-intelligence).
+</Note>
+
+## What this workflow does
+
+- **Detect** — find the two versions to compare and diff them, without you opening a versions
+  panel or clicking a diff button.
+- **Report** — explain what changed in plain language: scale first, then the categories that
+  carried the change.
+- **Assess impact** — score changed elements by how significant the change is, not just
+  changed-or-not.
+- **Visualise** — colour the model by that score so the impact is visible, not just written down.
+
+## Walkthrough
+
+<Steps>
+  <Step title="Ask what changed">
+    In Chat or the viewer sparkle, ask a plain question — no version pickers, no diff button:
+
+    > What is the most significant change between the last two versions of the model?
+
+    Intelligence lists the model's version history, attaches the previous version alongside the
+    one you have open, and runs a diff between them. You do not see those as separate steps; they
+    happen as part of answering the question.
+
+  </Step>
+  <Step title="Read the report">
+    The reply is a written summary, not a raw diff dump — scale first, then the categories that
+    carried the change, in order of significance. On one structural model, the answer read:
+
+    > The most significant change is a structural steel re-specification that swept through the
+    > model. Scale: 6,598 elements modified, 119 added, 105 removed across 66 levels — only ~60%
+    > of the model was left untouched. Structural Framing (3,873 modifications) shows beam
+    > families replaced en masse, with cross-sections cleared and rebuilt and the material grade
+    > upgraded (Steel 43-275 → Steel 345 MPa). Structural Columns (135) and Structural Connections
+    > (376 modified, 61 added, 22 removed) shifted to match. Walls (1,753 modified) look like a
+    > secondary effect of the structural resizing rather than an independent edit.
+
+    Intelligence reads this from the live model — the same [connected, queryable
+    data](/next/analytics/intelligence#how-it-works) Chat uses for any other question — not from a
+    static export or a change log someone maintained by hand.
+
+  </Step>
+  <Step title="Ask the follow-up in the same plain language">
+    Keep going the way you would with a colleague:
+
+    > Filter to just those elements and colour them by how significant.
+
+    You do not have to define "significant" or set a threshold. Intelligence scores each changed
+    element by how many of its properties moved, buckets that into tiers, and applies a filter and
+    colour-by in the viewer you are already looking at — the same [Filters
+    panel](/next/3d-viewer/introduction#filter-and-color) documented for manual use.
+
+  </Step>
+  <Step title="Read the result and keep drilling in">
+    The reply names the tiers it chose and what landed in each one:
+
+    > 🔴 Major (9+ params changed) — 1,757 elements, the deepest re-specs. 🟠 Moderate (5–8 params)
+    > — 2,587 elements. 🟡 Minor (1–4 params) — 2,254 elements. 🟢 Added — 119 new elements.
+
+    The scene is now filtered to only the changed elements, coloured by tier, so the heaviest
+    re-specification is visually obvious without you building that filter by hand. From here you
+    can ask to isolate one tier, break it down by level, or start a new question — the filter
+    stays until you clear it or ask for something that replaces it.
+
+  </Step>
+</Steps>
+
+## Turn this into a skill
+
+If your team asks this shape of question often — after every structural issue, before every
+coordination meeting — save the pattern instead of retyping it. [Save the chat as a
+skill](/next/analytics/intelligence-skills#save-a-chat-as-a-skill) once the conversation behaves
+the way you want, or write the significance tiers and vocabulary into a skill by hand so every
+comparison uses the same thresholds and the same added/omitted/revised language. See [Reuse
+organisation playbooks with Intelligence skills](/next/analytics/intelligence-skills).
+
+You can also save the conversation as a [Report](/next/analytics/reports) if you want a shareable
+artefact rather than a one-off chat — bind the two versions as source aliases and the comparison
+becomes something you or a teammate can reopen without re-asking Intelligence.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do I need to pick the two versions myself?">
+    No. Ask about "the last two versions", or name one if you want an older baseline — for example
+    "compare this to the version from before the coordination meeting." Intelligence finds and
+    attaches the versions it needs.
+  </Accordion>
+  <Accordion title="What counts as 'significant'?">
+    Not fixed. In this example Intelligence scored elements by how many properties changed and split
+    them into rough tiers. Ask it to explain its thresholds, or tell it to weight geometry changes
+    over parameter-only changes, if you want a different definition of significant for your project.
+  </Accordion>
+  <Accordion title="Does this need a version in the new 2026.9 data format?">
+    Yes. Like every other Intelligence query, comparing versions needs both versions in the new data
+    format. Versions still in the old format cannot be queried. See [Speckle's data model is
+    changing](/workspaces/data-model-migration).
+  </Accordion>
+  <Accordion title="Can I run this exact walkthrough on my own model?">
+    Yes — the questions on this page are plain language, not a script. Ask them in Chat or the
+    viewer sparkle on any project with at least two versions in the new data format.
+  </Accordion>
+</AccordionGroup>
+
+## See also
+
+- [Ask questions about your models with Speckle Intelligence](/next/analytics/intelligence)
+- [Create and share Intelligence Reports](/next/analytics/reports)
+- [Reuse organisation playbooks with Intelligence skills](/next/analytics/intelligence-skills)
+- [Compare Versions](/3d-viewer/compare-versions) — the deprecated Current-viewer diff view this
+  replaces
+- [3D viewer in 2026.9](/next/3d-viewer/introduction)
