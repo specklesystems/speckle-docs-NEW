@@ -16,18 +16,18 @@ widgets allow visual customisation such as labels and margins in their settings.
 drag widget edges or corners to resize. Use **Section** widgets to group parts of the
 dashboard and improve navigation.
 
-**Change Data Source** retargets a data widget to another model that is already mounted on
+**Change Data Source** connects a data widget to another model already loaded on
 the dashboard, and keeps the widget’s property bindings, filters, and chart options. Use
 it when you have tuned an analysis on scheme A and want the same setup on scheme B without
 rebuilding the widget.
 
-- **Model Viewer** and **Dual viewer** are excluded — they own their mounts. Change models
+- **Model Viewer** and **Dual viewer** are excluded — their models are managed separately. Change models
   or versions on the viewer itself, or
   [re-pin the version](/analytics/intelligence-dashboards#change-a-pinned-version) from the
   Sources sidebar.
 - Property paths and filter rules that do not exist on the new source are kept and flagged,
   not deleted. An empty chart often means the path is missing on the new source, not that
-  the widget was wiped.
+  the widget lost its settings.
 - Switching back usually restores those rules once the property exists again.
 
 To remove a widget in editor mode, select the widget (click it), then open the menu (⋮) in
@@ -39,14 +39,17 @@ Layout, widget positions, filter state, and pinned versions are saved with the d
 <Steps>
   <Step title="Add sections to group areas">
     Drag **Section** from the widget panel onto the canvas to group areas (e.g. "Takeoff",
-    "Validation"). Add widgets inside each section.
-    {/* IMAGE: Dashboard with Section widgets grouping areas */}
+    "Validation"). Add widgets inside each section so related content appears together.
   </Step>
-  <Step title="Resize widgets">Drag widget edges or corners to resize.</Step>
+  <Step title="Resize widgets">
+    Drag a widget edge or corner until its content fits. The widget displays at the new size.
+  </Step>
   <Step title="Reorder widgets">
     Drag widgets by the header to reorder. Layout and filter state are saved with the dashboard.
   </Step>
 </Steps>
+
+{/* IMAGE_PLACEHOLDER: Dashboard with Section widgets grouping areas */}
 
 <AccordionGroup>
   <Accordion title="Can I duplicate a widget?">
@@ -54,8 +57,23 @@ Layout, widget positions, filter state, and pinned versions are saved with the d
     **Duplicate**. A copy of the widget is added to the canvas with the same settings.
   </Accordion>
   <Accordion title="Is there a limit to how many widgets I can add?">
-    There's no hard limit, but dashboard performance may decrease with very large numbers of
-    widgets.
+    There's no hard limit for most widgets, but dashboard performance may decrease with very large
+    numbers of widgets. **3D viewer widgets are the exception** — see "Is there a limit to how many
+    3D viewer widgets I can add?" below.
+  </Accordion>
+  <Accordion title="Is there a limit to how many 3D viewer widgets I can add?">
+    Yes. Widgets that render a 3D viewer or map each use one or more browser rendering contexts —
+    even an empty one with no model assigned yet. Browsers cap how many a page can hold open at once
+    (typically 16); once a dashboard reaches that limit, adding another such widget is blocked. This
+    is a browser-level limit, not a Speckle setting. Remove widgets you're not using to stay under
+    it.
+  </Accordion>
+  <Accordion title="Why do some of my viewer or map widgets show a broken-image icon instead of loading?">
+    This usually means the dashboard already has more 3D viewer or map widgets than your browser
+    allows open at once, for example on a dashboard created before the limit was enforced. Adding a
+    widget is blocked once you're at the limit, but opening a dashboard that's already over it still
+    loads every widget, so the extras fail instead. Remove the widgets you don't need and reload the
+    dashboard to fix it.
   </Accordion>
   <Accordion title="Can I lock a widget or the layout?">
     Yes. Select the widget, open the menu (⋮) in the widget sidebar, and choose **Lock widget**. A
@@ -80,8 +98,10 @@ Layout, widget positions, filter state, and pinned versions are saved with the d
     prior results.
   </Accordion>
   <Accordion title="How many models can I add to one dashboard?">
-    There are no hard limits, but see "Why is my dashboard slow?"—large numbers of models or widgets
-    can affect performance.
+    There are no hard limits on data sources themselves, but see "Why is my dashboard slow?"—large
+    numbers of models or widgets can affect performance. If those models are shown in 3D viewer
+    widgets rather than just charts and tables, see "Is there a limit to how many 3D viewer widgets
+    I can add?" above.
   </Accordion>
   <Accordion title="Which applications have extra widgets?">
     Revit, Tekla, CAD, and other connectors may expose additional widgets in the widget panel (e.g.
@@ -95,10 +115,11 @@ Layout, widget positions, filter state, and pinned versions are saved with the d
   </Accordion>
   <Accordion title="If I pin a version, does the dashboard ever change?">
     A pinned version stays fixed until you change it. From the **Sources** sidebar you can [re-pin
-    or unpin](/analytics/intelligence-dashboards#change-a-pinned-version) a mounted model without
-    creating a new data source — widgets keep their bindings to the same source id. The change saves
-    the dashboard immediately. Charts and tables recompute against the new version’s properties;
-    paths that only existed on the old version go empty until you rebind them.
+    or unpin](/analytics/intelligence-dashboards#change-a-pinned-version) a loaded model without
+    creating a new data source — widgets stay connected to that data source. The change saves the
+    dashboard immediately. Charts and tables recompute against the new version’s properties; paths
+    that only existed on the old version show no values until you select a property from the new
+    version.
   </Accordion>
   <Accordion title="Can I compare more than two versions at once?">
     Yes. You can add multiple Model Viewer widgets or use widgets that support multiple data sources
@@ -130,8 +151,8 @@ themes.
 
 On **Dashboard Themes**, use **Generate random theme**, **Theme from image** (samples
 colors from a local image; the image is not uploaded), or **New theme from current**
-(forks the active palette). Project and workspace sections offer **New theme from
-current** when you have permission. To customize a built-in, select it, fork into a
+(copies the active palette). Project and workspace sections offer **New theme from
+current** when you have permission. To customize a built-in, select it, create a copy in the appropriate
 scope, then edit the copy.
 
 Click a custom theme once to apply it. Click the same theme again to show edit, delete,
@@ -151,23 +172,7 @@ is not saved with the dashboard or into the theme.
 See [this video](/analytics/intelligence-dashboards#how-to-color-code-and-change-color-themes)
 for instructions on how to apply color coding and change the theme.
 
-<AccordionGroup>
-  <Accordion title="Why can't I edit a built-in theme?">
-    Built-in themes are read-only. Select the built-in, then use **New theme from current** on
-    Dashboard, Project, or Workspace Themes to fork a custom copy you can edit.
-  </Accordion>
-  <Accordion title="Who can change project or workspace themes?">
-    Project themes need project owner or workspace admin. Workspace themes need workspace admin.
-    Anyone with dashboard edit access can create and edit dashboard themes, and can copy a shared
-    theme onto the dashboard before editing the copy.
-  </Accordion>
-  <Accordion title="Does Color mode change the saved theme?">
-    No. Color mode only remaps colors in your browser for accessibility. Other viewers still see the
-    theme's stored colors unless they set Color mode themselves.
-  </Accordion>
-</AccordionGroup>
-
-## Related
+## Related guides
 
 - [Sharing](/analytics/dashboards/sharing) — presentation mode, share links, and
   scenarios
