@@ -9,10 +9,10 @@ the sidebar. For concepts and widget choices, see [Dashboards](/analytics/intell
 widget to add? See [Choosing the right widget](/analytics/intelligence-dashboards#choosing-the-right-widget) on the
 Overview.
 
-## Sub-guide: Validation widgets
+## Choose validation widgets
 
 Use [Validation Widgets in Dashboards](/analytics/dashboards/validation-widgets)
-as a focused sub-guide when you need to choose between dashboard-based validation
+to choose between dashboard-based validation
 widgets and checks-and-standards Data Validation.
 
 ## Run a quantity takeoff
@@ -20,33 +20,40 @@ widgets and checks-and-standards Data Validation.
 **When to use:** One model; you need element counts and optional area or length totals (e.g. for cost or schedule).
 
 <Steps>
-  <Step title="Add a Model Viewer and select your model">
+  <Step title="Load your model">
     Drag **Model Viewer** onto the canvas. Select your project and model; pin a version if you need
     a specific state.
-    {/* IMAGE: Dashboard with Model Viewer and project/model selected */}
   </Step>
   <Step title="Add Element count for total elements">
     Drag **Element count** onto the canvas. It shows the total count; use page-level filters to
-    slice by level, category, or family.
+    filter by level, category, or family.
   </Step>
-  <Step title="Add Total property value or Count by property for breakdowns">
+  <Step title="Add a breakdown widget">
     Add **Total property value** for area/length sums or **Count by property** for counts by
     Category, Type, or Family (Revit: **Categories**, **Types**, **Families**). On Total widgets,
     open **Settings** and set **Aggregation** to Sum, Average, Min, Max, or Median. Use **Rounding**
     and, for area properties, **Display unit** if you need a different area unit on the chart.
   </Step>
-  <Step title="Use page-level filters to slice">
+  <Step title="Filter the dashboard">
     Click a value in any chart or table to filter the whole dashboard (e.g. one level, one
     category).
-    {/* IMAGE: Filter chips at top and chart/table with value clicked */}
   </Step>
-  <Step title="Optionally add Element table to browse or export">
+  <Step title="Browse elements in a table">
     Add **Element table** to see rows; customise columns, filter, and sort. Filter state is saved
     with the dashboard.
   </Step>
 </Steps>
 
+{/* IMAGE_PLACEHOLDER: Dashboard with Model Viewer and project/model selected */}
+
+{/* IMAGE_PLACEHOLDER: Filter chips at top and chart/table with value clicked */}
+
 Outcome: Counts and breakdowns tied to the 3D model; filter state saved with the dashboard.
+
+<Tip>
+  On 2026.9, you can ask for a priced takeoff in plain language instead — see [Take off quantities
+  and cost with Speckle Intelligence](/next/workflows/take-off-quantities-with-intelligence).
+</Tip>
 
 ## Show each element's share of the whole
 
@@ -59,7 +66,7 @@ This uses two [calculated fields](/analytics/dashboards/calculated-fields): an
 total.
 
 <Steps>
-  <Step title="Add a Model Viewer and load your model">
+  <Step title="Load your model">
     Drag **Model Viewer** onto the canvas and select the project and model. Apply any page-level
     filters you want the “whole” to respect.
   </Step>
@@ -85,20 +92,21 @@ Aggregate value is the same on every element — that is expected; the Arithmeti
 is what varies per element.
 
 <Tip>
-  Prefer this Aggregate + Arithmetic pattern for shares. Putting an **All data** or **Current view**
-  Aggregate field into a **Ratio** widget can inflate the number — see [Things to watch out
-  for](/analytics/dashboards/calculated-fields#things-to-watch-out-for). For “X per Y” intensity
-  figures from two models (for example power load per m² of room), use [Dashboard
-  constants](/analytics/dashboards/calculated-fields#dashboard-constants) instead. If areas are in
-  the wrong unit first, add a **Unit conversion** field and use that as the source for both the
-  Aggregate and the Arithmetic bindings.
+  Use Aggregate + Arithmetic for shares. An **All data** or **Current view** Aggregate field in a
+  **Ratio** widget can inflate the result. See [Things to watch out
+  for](/analytics/dashboards/calculated-fields#things-to-watch-out-for).
 </Tip>
 
-## Show an X-per-Y number from two models
+For comparisons between two models, use [Dashboard constants](/analytics/dashboards/calculated-fields#dashboard-constants).
+To correct area units, create a **Unit conversion** field and use it in both calculations.
+
+<div id="show-an-x-per-y-number-from-two-models" />
+
+## Compare totals from two models
 
 **When to use:** You want one intensity figure that mixes two models — for example power
 load per square metre of IT room, desks per floor area, or people per workplace — and
-you want that figure to stay put when someone clicks filters on the charts.
+you want that figure to remain fixed when someone filters the charts.
 
 This uses [dashboard constants](/analytics/dashboards/calculated-fields#dashboard-constants)
 in **Calculated Fields** (Aggregate → **Population** → **Dashboard constant**).
@@ -108,7 +116,7 @@ in **Calculated Fields** (Aggregate → **Population** → **Dashboard constant*
     Add a Model Viewer for each model so both appear on the dashboard — for example an equipment or
     rack model and a rooms or architecture model.
   </Step>
-  <Step title="Create one constant for each side of the comparison">
+  <Step title="Create the comparison constants">
     Open **Calculated Fields**, create an **Aggregate** field, and set **Population** to **Dashboard
     constant**. Example: Sum of rack IT load from one model, and Sum of IT room area from the other.
     Pick a property that belongs to the model you mean, so the other model does not get mixed in by
@@ -120,7 +128,7 @@ in **Calculated Fields** (Aggregate → **Population** → **Dashboard constant*
   </Step>
 </Steps>
 
-Outcome: One clear intensity figure such as load per m². It does not jump around when
+Outcome: One clear intensity figure such as load per m². It does not change when
 people filter the dashboard. For limits and safer Ratio patterns, see
 [Dashboard constants](/analytics/dashboards/calculated-fields#dashboard-constants).
 
@@ -129,7 +137,7 @@ people filter the dashboard. For limits and safer Ratio patterns, see
 **When to use:** You want to see what changed between two versions (e.g. before/after a design round).
 
 <Steps>
-  <Step title="Add a Dual viewer or two Model Viewers">
+  <Step title="Load both model versions">
     Add a **Dual viewer** and load both versions (first model / second model), or add two **Model
     Viewer** widgets and select the same project/model with different versions (pin each to a
     version).
@@ -138,7 +146,7 @@ people filter the dashboard. For limits and safer Ratio patterns, see
     Add **Element count** or **Total property value** (or **Count by property**). In the widget's
     data source setting, select both viewers and choose **Compare** mode.
   </Step>
-  <Step title="Optionally sync the camera">
+  <Step title="Synchronize the cameras">
     If you have two viewers side by side, turn on **Sync camera** in each viewer's sidebar so
     pan/zoom stays aligned.
   </Step>
@@ -152,7 +160,7 @@ Outcome: Side-by-side or compared counts and totals so you can see what changed 
 tabulate only your design schemes (for example several Grasshopper-generated options).
 
 <Steps>
-  <Step title="Load site and schemes in one Model Viewer">
+  <Step title="Load the site and design schemes">
     Drag **Model Viewer** onto the canvas. Load your site model, then use **Add model** in the
     sidebar **Models** panel to add each design scheme.
   </Step>
@@ -160,7 +168,7 @@ tabulate only your design schemes (for example several Grasshopper-generated opt
     Open the **⋯** menu on the site model row and choose **Use as context model**. The site stays
     visible when you filter the schemes in the viewer.
   </Step>
-  <Step title="Connect widgets to scheme data sources only">
+  <Step title="Connect widgets to design schemes">
     Add charts or tables (for example **Element count** or **Count by property**). In each widget's
     data source setting, select only the design scheme data sources—not the site model.
   </Step>
@@ -178,9 +186,8 @@ connect to analysis widgets.
 **When to use:** Multiple projects or models; you want combined totals or differences across them.
 
 <Steps>
-  <Step title="Add a Model Viewer per project or key model">
+  <Step title="Load the projects or models">
     Add a **Model Viewer** for each project (or key model) and select project/model for each.
-    {/* IMAGE: Dashboard with multiple Model Viewers or data source selector */}
   </Step>
   <Step title="Add widgets that support multiple data sources">
     Add **Element count** or **Count by property** and connect them to several viewers (use the
@@ -190,7 +197,7 @@ connect to analysis widgets.
     Use **Aggregate** mode to see combined totals across models; use **Compare** mode to see
     differences.
   </Step>
-  <Step title="Use Sections to group by project or metric">
+  <Step title="Group widgets with sections">
     Add **Section** widgets to group areas (e.g. by project or by metric).
   </Step>
   <Step title="Share the dashboard">
@@ -199,7 +206,15 @@ connect to analysis widgets.
   </Step>
 </Steps>
 
+{/* IMAGE_PLACEHOLDER: Dashboard with multiple Model Viewers or data source selector */}
+
 Outcome: One dashboard for portfolio-level counts and comparisons; stakeholders see the same view.
+
+<Tip>
+  On 2026.9, if you want to compare one project against a benchmark library rather than watch
+  several live projects at once, see [Benchmark a project against your portfolio with Speckle
+  Intelligence](/next/workflows/benchmark-against-your-portfolio-with-intelligence).
+</Tip>
 
 ## Run a quick validation check
 
@@ -207,7 +222,7 @@ Outcome: One dashboard for portfolio-level counts and comparisons; stakeholders 
 pass/fail in the dashboard.
 
 <Steps>
-  <Step title="Add a Model Viewer and load your model">
+  <Step title="Load your model">
     Drag **Model Viewer** onto the canvas and select project and model.
   </Step>
   <Step title="Add Property checker">
@@ -218,7 +233,7 @@ pass/fail in the dashboard.
     The widget shows pass/fail counts. Use the widget option to colorize the 3D viewer so you can
     see which elements pass or fail.
   </Step>
-  <Step title="For full rulesets, use Model Validation">
+  <Step title="Add a reusable ruleset">
     For many rules or reusable rulesets, add **Model Validation** and define or import a ruleset.
     See [Data Validation](/analytics/data-validation/overview).
   </Step>
@@ -233,7 +248,7 @@ colorization in the viewer.
 or flag them (e.g. auditing families, pre-upgrade checks).
 
 <Steps>
-  <Step title="Add Model structure or Families (Revit) or Count by property">
+  <Step title="Add a model breakdown widget">
     Load the model(s). Use **Model structure** or **Families** (Revit) or **Count by property** to
     see family/category/type.
   </Step>
@@ -243,16 +258,15 @@ or flag them (e.g. auditing families, pre-upgrade checks).
   <Step title="Use Matches pattern in a filter">
     Add a filter with **Matches pattern** (e.g. family name `*ProblemFamily*` or `%ProblemFamily%`)
     to find matches.
-    {/* IMAGE: Filter UI with Matches pattern operator and wildcard value */}
   </Step>
-  <Step title="For reusable rules, use Property checker or Model Validation">
+  <Step title="Save a reusable validation rule">
     To flag this family in future, add **Property checker** or **Model Validation** and define a
     rule. See [Data Validation](/analytics/data-validation/overview).
   </Step>
-  <Step title="Optionally pin the dashboard version">
-    Pin the model version so the result is reproducible.
-  </Step>
+  <Step title="Pin the model version">Pin the model version so the result is reproducible.</Step>
 </Steps>
+
+{/* IMAGE_PLACEHOLDER: Filter UI with Matches pattern operator and wildcard value */}
 
 Outcome: List or count of models/elements using that family; path to validation if you want rules.
 
@@ -268,7 +282,7 @@ need maths, unit changes, or simple groups (and no spreadsheet), skip the table 
 create a calculated field of another type instead.
 
 <Steps>
-  <Step title="Add a Model Viewer and load your model">
+  <Step title="Load your model">
     Drag **Model Viewer** onto the canvas and select the project and model.
   </Step>
   <Step title="Create a Map lookup calculated field">
@@ -286,7 +300,7 @@ create a calculated field of another type instead.
     Use the calculated field in a filter, or colour the viewer by it, so stakeholders see the
     friendly labels rather than the codes.
   </Step>
-  <Step title="Optionally add more calculated fields">
+  <Step title="Add further calculated fields">
     Need areas in another unit for filters or further maths? Add a **Unit conversion** field, then
     build on it. For chart labels only, use widget **Display unit** instead (see [Aggregation and
     numeric display](/analytics/intelligence-dashboards#aggregation-and-numeric-display)). Need
@@ -314,7 +328,7 @@ pick up the new rows when the dashboard reloads the data.
     mode** — view mode and shared mode are the same read-only experience. See
     [Sharing](/analytics/dashboards/sharing) for share links and presentation mode.
   </Step>
-  <Step title="Optionally embed elsewhere">
+  <Step title="Embed the dashboard">
     You can embed dashboards in Notion, Miro, and other tools. For step-by-step guides, see
     [Tutorials](https://speckle.systems/tutorials) (filter by **Dashboards & Insights**).
   </Step>
@@ -332,22 +346,28 @@ Models do not need geographic metadata.
 dashboard site location. It is not the same as marking a model as a
 [context model](/analytics/intelligence-dashboards#context-models) in the Model Viewer.
 
+<Note>
+  This workflow adds a Model Viewer, Context, and optionally Map to the same dashboard — each uses
+  one or more browser rendering contexts. On a dashboard that already has several viewer or map
+  widgets, you can hit your browser's limit. See [3D viewer widget
+  limit](/analytics/dashboards/layout#is-there-a-limit-to-how-many-3d-viewer-widgets-i-can-add).
+</Note>
+
 <Steps>
-  <Step title="Add a Model Viewer and load your model">
+  <Step title="Load your model">
     Drag **Model Viewer** onto the canvas and select your project and model. Context reuses geometry
     from an existing viewer on the dashboard when one is available.
   </Step>
   <Step title="Add Context">
     Drag **Context** from **Presentation** onto the canvas. The widget panel shows a **Beta** badge.
-    {/* IMAGE: Context widget showing model on pitched 3D map */}
   </Step>
   <Step title="Set the dashboard site location">
     In the Context sidebar, open **Site** and enter latitude and longitude (optional elevation and
-    rotation). Apply commits placement. The site location is owned by the dashboard — you do not
-    need geographic data on the model. You can also author Site from a **Map** widget; both share
-    the same site.
+    rotation). Select **Apply** to save the placement. The site location is owned by the dashboard —
+    you do not need geographic data on the model. You can also set the site from a **Map** widget;
+    both share the same site.
   </Step>
-  <Step title="Optionally add a Map for pins">
+  <Step title="Add a map for location pins">
     Drag **Map** from **Presentation** if you want a lighter map with location bookmarks only (no
     Speckle geometry). Search for a place, then add, rename, or remove pins from Locations.
   </Step>
@@ -356,25 +376,25 @@ dashboard site location. It is not the same as marking a model as a
     color by**, and **Include nested objects** (same idea as Model Viewer). Save a starting
     viewpoint with **Focus** or Camera → Save current. Use the bulldozer control to hide basemap
     buildings that overlap the model; set **Building clearance** and optionally **Show clearance
-    boundary**. **Clip model to ground** hides Speckle geometry below the map deck (on by default).
+    boundary**. **Clip model to ground** hides Speckle geometry below the map surface (on by
+    default).
   </Step>
 </Steps>
+
+{/* IMAGE_PLACEHOLDER: Context widget showing model on pitched 3D map */}
 
 Outcome: Context shows your Speckle model on a pitched 3D map at the dashboard site. Map (if
 used) shows site markers and optional pins only.
 
-<Info>
-  The **Map** widget alone does not draw Speckle geometry — only the site marker and location pins.
-  **Context** is the path for seeing the model on a map. The Model Viewer stays in local
-  coordinates; Context handles the 3D-on-map view. Context can also keep its own Locations bookmarks
-  and a saved starting camera.
-</Info>
+The **Map** widget shows site markers and location pins. Use **Context** to show model geometry
+on the map. The Model Viewer keeps its local coordinates. Context also saves location bookmarks
+and a starting camera position.
 
-<Tip>
-  Context is **beta**. Treat it as evolving — not for production-critical dashboards. Map tiles need
-  an internet connection; OpenFreeMap attribution stays visible. Deleting Map or Context widgets
-  does not clear the dashboard site location.
-</Tip>
+<Warning>Context is beta. Avoid relying on it for production-critical dashboards.</Warning>
+
+Map tiles require an internet connection, and OpenFreeMap attribution stays visible. Deleting a
+Map or Context widget does not clear the dashboard site location.
+
 ## See also
 
 - [Filters](/analytics/dashboards/filters) — Filter levels, operators, and colorizing the model

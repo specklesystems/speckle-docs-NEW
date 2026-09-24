@@ -38,19 +38,22 @@ geometry](/next/developers/object-model/relations#display-geometry).
 
 ## Where geometry lives in a bundle
 
-The geometry table is `{versionId}.geometries.parquet`, sharded into `{versionId}.geometries.{n}.parquet`
-files once the current shard holds 1536 MiB of uncompressed content. Shard zero keeps the canonical
-name, so a small model has one file and a reader always globs all shards.
+The geometry table is `{versionId}.geometries.parquet`. The writer starts a new shard,
+`{versionId}.geometries.{n}.parquet`, before a blob would push the current one past 1536 MiB of
+uncompressed content. Shard zero keeps the canonical name, so a small model has one file and a
+reader always globs all shards.
 
 Each row holds one blob, its dense integer key, and an id that is the SHA-256 of the blob bytes.
 Because every producer encodes SGEO identically, the same mesh from any host gets the same id, and
-readers deduplicate on it. A row also records its encoding: display meshes and centerlines are
-SGEO, while a `SOLID` row carries the host's own bytes, such as a 3dm body, with a type label.
+readers deduplicate on it. A row also carries a `type` label: the SGEO primitive name (`mesh`,
+`line`, `curve`, and so on) for display meshes and centerlines, or the host format, such as `3dm`,
+for a `SOLID` row that carries the host's own bytes.
 
 Nothing in the geometry table says which object a blob belongs to. That is a relation: `DISPLAY`,
 `SOLID`, or `CENTERLINE` from the object, or `DEFINES` from a definition node whose placements
-reuse the blob. Each of those keeps its own ordinal per object, so an object's first display mesh is
-ordinal zero whether or not a solid was written before it.
+reuse the blob. `DISPLAY`, `SOLID`, and `CENTERLINE` each keep their own ordinal per object, so an
+object's first display mesh is ordinal zero whether or not a solid was written before it. `DEFINES`
+uses the definition's member ordinal instead, shared with `DEFINES_MEMBER` and `DEFINES_INSTANCE`.
 
 ## The SGEO header
 
@@ -116,13 +119,14 @@ The mesh body is the one every producer needs.
 
 Curves follow one rule: the viewer has no NURBS evaluator, so a curve body leads with the display
 polyline it renders and trails with the analytical definition (degree, points, weights, knots). A
-polycurve or region nests each segment as its own SGEO blob, prefixed by its length and padded to
-8 bytes. Arcs, circles, and ellipses are stored analytically. Points and point clouds store
-coordinates plus optional colors and sizes.
+polycurve or region nests each segment as its own SGEO blob behind an 8-byte prefix (a `u32` length
+and a reserved `u32`), padded to 8 bytes. Arcs, circles, and ellipses are stored analytically.
+Points and point clouds store coordinates plus optional colors and sizes.
 
 <Tip>
   Treat the SDK encoders as the byte-exact reference for every body: `SgeoEncoder` in Speckle.Sdk
-  and `sgeo.py` in specklepy. Both ship decoders and round-trip tests you can port.
+  (namespace `Speckle.Objects.Utils`) and `sgeo.py` in specklepy. Both ship decoders and round-trip
+  tests you can port.
 </Tip>
 
 <Warning>
@@ -138,11 +142,11 @@ it to the version's artifact list. The version is not visible until that build f
 viewer downloads only the `.dat`, never the parquet files.
 
 The `.dat` is one self-contained binary: a geometry region of chunk-encoded meshes and lines, an
-index region of fixed-order sections (meta, primitives, chunks, placements, materials, colors), and
-a 128-byte trailer that maps the file. Its current format expands reusable definitions into
-placements and gives each occurrence a realization id, which is what lets the viewer select one
-instance of a repeated object. That identity exists only in the `.dat`. The bundle keeps the compact
-authored graph.
+index region of fixed-order sections (meta, primitives, chunks, placements, materials, colors,
+realizations), and a 128-byte trailer that maps the file. Its current format expands reusable
+definitions into placements and gives each occurrence a realization id, which is what lets the
+viewer select one instance of a repeated object. That identity exists only in the `.dat`. The
+bundle keeps the compact authored graph.
 
 <Note>
   The `.dat` is an internal artifact of the viewer and the server. Its layout can change without a
@@ -153,8 +157,9 @@ authored graph.
 
 Receive the version as a `Model` through `receive3` / `Receive3`. The SDK decodes SGEO into the
 mesh and curve types you already use and exposes them per object. If you read the parquet files
-directly through the artifacts endpoint, decode the blobs with the SDK decoder or a port of it, and
-read every geometry shard.
+directly through the artifacts endpoint
+(`GET /api/v2/projects/{projectId}/models/{modelId}/versions/{versionId}/artifacts`, one presigned
+URL per file), decode the blobs with the SDK decoder or a port of it, and read every geometry shard.
 
 ## FAQ
 

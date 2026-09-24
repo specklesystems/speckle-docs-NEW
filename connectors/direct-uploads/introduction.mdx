@@ -40,7 +40,7 @@ Upload files directly when you:
   differ by format and by route.
 </Warning>
 
-This matters beyond visual fidelity. [Intelligence dashboards](/analytics/intelligence-dashboards), [Data Validation](/analytics/data-validation/overview), Power BI and any querying you build on model data all read the published objects and their properties. If some models in a project arrive by upload and others by connector, those tools are comparing unlike data — counts, groupings and validation results can differ for what is nominally the same source file.
+These differences affect analysis. [Intelligence dashboards](/analytics/intelligence-dashboards), [Data Validation](/analytics/data-validation/overview), Power BI and any querying you build on model data all read the published objects and their properties. If some models in a project arrive by upload and others by connector, counts, groupings, and validation results can differ for the same source file.
 
 Choose one route per project and stay with it, and be explicit about which route produced any figures you report.
 
@@ -51,46 +51,48 @@ The two routes serve different purposes. Uploads read a file, so they cover form
 <Info>**Upload limits:** Maximum file size is **2 GB** for all plans and formats.</Info>
 
 <Warning>
-  If your file is in a cloud-synced folder (for example Google Drive, OneDrive,
-  Dropbox, or iCloud Drive), make sure the file is fully downloaded to local
-  disk before you upload.
-
-Some cloud clients show placeholder files before full local sync is complete.
-In that case, Speckle can read the file faster than the cloud client can
-finish downloading it, which can cause upload failures.
-
+  Fully download files from cloud-synced folders before uploading. Placeholder files from Google
+  Drive, OneDrive, Dropbox, or iCloud Drive can cause an upload to fail.
 </Warning>
 
 <Steps>
   <Step title="Create a project">
-    Select the option to upload a file.
-
-    <Frame>
-      ![Upload file option](/images/files/file-upload.png)
-    </Frame>
+    Create or open your project and select the file upload option. The upload dialog opens.
 
   </Step>
   <Step title="Add your file">
     Drag and drop your file into the project. Speckle creates a new model with the file name.
 
-    <Frame>
-      ![File uploading progress](/images/files/file-uploading.png)
-    </Frame>
-
   </Step>
   <Step title="Upload new versions">
-    To upload updated versions, select the dropdown menu on the model.
-
-    <Frame>
-      ![Upload new version option](/images/files/file-new_version.png)
-    </Frame>
+    To upload an updated file, open the model’s dropdown menu and select the upload option.
+    The uploaded file creates a new version of that model.
 
   </Step>
 </Steps>
 
+<Frame>
+  <img src="/images/files/file-upload.png" alt="Upload file option" />
+</Frame>
+
+<Frame>
+  <img src="/images/files/file-uploading.png" alt="File uploading progress" />
+</Frame>
+
+<Frame>
+  <img src="/images/files/file-new_version.png" alt="Upload new version option" />
+</Frame>
+
 ## Supported file formats
 
-Speckle supports the following file formats:
+<Warning>
+  **2026.9 changes upload format support.** STL and several formats in the table below are no longer
+  accepted by the default upload path. These formats remain supported for direct uploads in
+  **legacy/compatibility mode**. See [2026.9 upload format changes and compatibility
+  options](/next/connectors/file-uploads#breaking-change-supported-file-formats).
+</Warning>
+
+The format table and format-specific guidance below describe uploads before 2026.9.
 
 <Note>
   If your Autodesk (or other) software can export a Navisworks Cache file (`.nwc`) or a Navisworks
@@ -103,9 +105,8 @@ Speckle supports the following file formats:
 </Note>
 
 <Note>
-  Navisworks online parsing works up to the **2 GB** upload limit. ACC sync of NWC and NWD files has
-  been tested to **6 GB**. A publish around **200 MB** is still advised from the 2026.8 desktop
-  connector. See [Navisworks in 2026.9](/next/connectors/navisworks/introduction).
+  Navisworks file uploads support the **2 GB** upload limit. For ACC sync and desktop publishing
+  guidance, see [Navisworks in 2026.9](/next/connectors/navisworks/introduction).
 </Note>
 
 | Format                        | Extension | Status |
@@ -135,9 +136,9 @@ Speckle supports the following file formats:
 
 <CoordinationWorkflowRevit />
 
-### Unit Conversion
+### Unit conversion
 
-For several file formats, the Unit system of the source file will be automatically detected and preserved when sending through Speckle.
+Speckle detects and preserves the source units for these formats:
 
 - IFC ✔︎
 - 3dm ✔︎
@@ -162,24 +163,18 @@ IFC files are converted to Speckle format with support for attributes, property 
 
 <Info>**Supported versions:** IFC2x3, IFC4, IFC4x1, IFC4x2, IFC4x3</Info>
 
-<Check>
-  Features:
+Supported data:
 
 - Element and element type attributes
 - Property sets
 - Element quantities
 - **IFCSpaces** are published as volumetric geometry
 
-</Check>
-
-<Info>
-  Known limitations:
+Known limitations:
 
 - IFC2x2_FINAL and Release Candidate versions aren't supported
 - Alternative formats such as XML, ZIP, and databases aren't supported
 - 2D types like IfcAnnotation aren't currently supported
-
-</Info>
 
 ### Rhino (3DM)
 
@@ -190,13 +185,10 @@ Rhino files maintain geometry and layer structure when uploaded.
   connector](/connectors/rhino) instead.
 </Note>
 
-<Info>
-  Known limitations:
+Known limitations:
 
 - Rhino 9 files aren't supported
 - Dynamic text isn't supported
-
-</Info>
 
 ### SketchUp (SKP)
 
@@ -207,13 +199,10 @@ SketchUp models are converted with geometry and basic organization preserved.
   instead.
 </Note>
 
-<Info>
-  Known limitations:
+Known limitations:
 
 - Attributes aren't imported
 - Dynamic components may not transfer correctly
-
-</Info>
 
 ### DWG and DXF
 
@@ -224,24 +213,18 @@ Upload AutoCAD drawing files directly.
   connector](/connectors/autocad) instead.
 </Note>
 
-<Info>
-  Known limitations:
+Known limitations:
 
 - Large files may take longer to process
 - Dynamic text isn't supported
-
-</Info>
 
 ### Wavefront (OBJ)
 
 OBJ files are converted with geometry preserved.
 
-<Info>
-  Known limitations:
+Known limitations:
 
 - Materials aren't supported
-
-</Info>
 
 ## FAQ
 
@@ -257,17 +240,15 @@ OBJ files are converted with geometry preserved.
     3. Select **Download** next to the version you want.
 
   </Accordion>
-  <Accordion title="My file is too large to upload">
-    The limits on file uploads are currently **1000MB** for all plans and all formats.
-  </Accordion>
+
   <Accordion title="Why is my file stuck processing?">
-    We use a queue system to process files, so it can take awhile to generate the Speckle model after you upload your file. If you do not see your model after a long time, this may be caused by faulty items inside your file. Please report your problem in our [Community Forum](https://speckle.community/c/help) and include the following information:
+    Uploaded files wait in a processing queue. If processing does not complete, contact [Speckle support](https://speckle.community/c/help) with:
 
     - Your file type and version
     - Your failed file
 
   </Accordion>
   <Accordion title="Will you support additional formats?">
-    We're always looking to expand format support. Let us know which formats you'd like to see in future releases.
+    Request a format on the [Speckle forum](https://speckle.community). Include a sample file and describe the workflow it would support.
   </Accordion>
 </AccordionGroup>

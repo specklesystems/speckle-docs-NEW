@@ -1,0 +1,115 @@
+---
+title: Viewing Automate results in 2026.9
+sidebarTitle: Viewing results
+description: Why the results doughnut icon is missing for models in the 2026.9 data model, and what to do meanwhile.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+Automate still runs your functions against models in the 2026.9 data model, exactly as described
+in [Who's affected](/developers/migration/data-model-migration#whos-affected). A run against a
+2026.9-format model completes, and its results are recorded, the same as any other run.
+
+<Note>
+  This page is about seeing results in the product UI. If your function calls
+  `AttachResultToObjects` or `attach_result_to_objects` inside the run itself, see [Attaching
+  results in 2026.9](/next/developers/automate/attaching-results) for that separate caveat.
+</Note>
+
+<Warning>
+  The results indicator in the product UI and a documented API don't cover a model in the 2026.9
+  format right now. The Dashboards Automate results widget is the way to see them. If you're
+  troubleshooting a run that appears to have succeeded but produced nothing visible in the viewer,
+  this is why — it isn't a sign the run failed.
+</Warning>
+
+## What's missing
+
+For a model still in the current (pre-2026.9) data model, results show up exactly as described in
+[Viewing Automation Results](/developers/automate/viewing-results): a doughnut icon in the 3D
+viewer and in the project model list, both opening the same results summary.
+
+For a model in the 2026.9 data model, that icon does not appear in either place. This isn't
+specific to any one function or trigger — it applies to any 2026.9-format model with a completed
+run.
+
+There's also no documented, supported API to read the results back as a substitute. Automate
+functions can write results during a run, but nothing on this site currently documents a query for
+reading them back afterwards. (The equivalent gap for Data Validation checks specifically is
+tracked separately; an undocumented internal path exists there but carries no stability
+guarantee — see [Data Validation](/next/analytics/data-validation/overview) if that's what you're
+looking for.)
+
+## Results in dashboards
+
+Dashboards include an **Automate results** widget that shows a version's automation runs and the
+results each function recorded, and isolates the objects a result refers to in the dashboard's
+3D view. It reads a result's object ids and matches them to objects in the model by
+`applicationId`, so it works for the same reason [new runs
+do](/next/developers/automate/attaching-results#results-stored-before-a-model-was-migrated) and
+not for results stored against a content-hashed `id` before the model was migrated.
+
+{/* IMAGE_PLACEHOLDER: Dashboards — Automate results widget listing a run's results as cards, with the affected objects isolated in the 3D view. */}
+
+## What to do meanwhile
+
+<Steps>
+  <Step title="Add the Automate results widget to a dashboard">
+    Add the widget to a dashboard on the project and pick the model and version. It lists the runs
+    and their results, and selecting a result isolates its objects in the 3D view.
+  </Step>
+  <Step title="Keep the workspace on compatibility mode">
+    If you need to see results for a model that would otherwise land in the 2026.9 format —
+    through ACC sync or drag-and-drop upload — ask us to switch the workspace into compatibility
+    mode. It keeps that data in the format the current viewer and dashboard already render
+    correctly. See [Data model migration for
+    workspaces](/workspaces/data-model-migration).
+
+    <Warning>
+      Compatibility mode is a bridge, not a fix. It's available only until **1 November 2026**.
+    </Warning>
+
+  </Step>
+  <Step title="Confirm the run actually completed">
+    Check the automation's run history from project **Settings → Automations** rather than looking
+    for the results icon. A completed run with no visible icon is this limitation, not a failure.
+  </Step>
+</Steps>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Did my automation actually run if I can't see the results?">
+    Yes, if the run history shows it completed. The results icon and any API read path are what's
+    missing for 2026.9-format models — the run itself, and what it produced, aren't affected.
+  </Accordion>
+  <Accordion title="Is there any way to get the results out right now?">
+    Yes, through the Dashboards Automate results widget. The other option is compatibility mode,
+    which keeps new data in the format the existing viewer supports, so the results icon stays
+    visible the normal way.
+  </Accordion>
+  <Accordion title="When will this be fixed?">
+    No committed date yet. It depends on the same underlying frontend work covering the 2026.9 data
+    model more broadly — see [Viewer developer notes in
+    2026.9](/next/developers/viewer/introduction) for the closest thing to a timeline.
+  </Accordion>
+</AccordionGroup>
