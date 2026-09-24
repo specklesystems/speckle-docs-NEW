@@ -318,29 +318,29 @@ You don't build references by hand. The serializer writes one whenever you **det
 <CodeGroup>
 
 ```python specklepy
-shared = Base()
-shared.name = "SharedBracket"
-shared.material = "steel"
+spec = Base()
+spec.name = "Type A glazing unit"
+spec.uValue = 1.2
 
-# "@" marks the property detached; add_detachable_attrs({"sharedComponent"})
+# "@" marks the property detached; add_detachable_attrs({"specification"})
 # does the same for a property you don't want to prefix.
-child_1["@sharedComponent"] = shared
-child_2["@sharedComponent"] = shared
+element_a["@specification"] = spec
+element_b["@specification"] = spec
 
 operations.send(base=root, transports=[server_transport])
 ```
 
 ```csharp .NET
-var shared = new Base { ["name"] = "SharedBracket", ["material"] = "steel" };
+var spec = new Base { ["name"] = "Type A glazing unit", ["uValue"] = 1.2 };
 
 // "@" marks the property detached, as in specklepy.
-child1["@sharedComponent"] = shared;
-child2["@sharedComponent"] = shared;
+elementA["@specification"] = spec;
+elementB["@specification"] = spec;
 ```
 
 </CodeGroup>
 
-`SharedBracket` is stored once, both children carry a reference to it, and `operations.receive` resolves each one back to the full object.
+The specification object is stored once, both elements carry a reference to it, and `operations.receive` resolves each one back to the full object.
 
 <Note>
   specklepy has no `ObjectReference` class — `ObjectReference` is the .NET type name. In Python,
