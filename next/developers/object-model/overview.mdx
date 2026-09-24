@@ -42,6 +42,12 @@ compatibility shim. No `RenderMaterial`, `Level`, `Group`, `Definition`, `Instan
 `InstanceDefinitionProxy` object exists in the format. Everything a Proxy used to carry is now
 either a row in the columnar property store or an edge in the relational layer.
 
+Detached references go with them. Before 2026.9, assigning one object to a detached property on
+several parents stored it once and left a `{"speckle_type": "reference", "referencedId": ...}`
+pointer in each, resolved through the parent's `__closure`. A bundle has neither: there is no
+closure, and no reference object type. An object that several others need is an edge in the
+relational layer, and a value that several objects share is one row each in the property store.
+
 <Note>
   Standard connectors, SDKs, and APIs keep working with published data. This page matters if your
   script assumes the nested object graph or unpacks Proxies itself, rather than going through
