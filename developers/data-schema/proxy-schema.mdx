@@ -313,7 +313,7 @@ Unlike proxies, which reference by `applicationId` and are stored at root level,
 
 #### How references get created
 
-You don't construct references by hand. The serializer emits them when you **detach** a property, and it records the referenced `id` in the parent's `__closure` at the same time — which is what lets the object be found again on receive. Assign the same object to a detached property on several parents and it is stored once and referenced from each:
+You don't build references by hand. The serializer writes one whenever you **detach** a property, and at the same time records the referenced `id` in the parent's `__closure`. That closure entry is what lets the object be found again on receive. Assign the same object to a detached property on several parents, and it is stored once and referenced from each:
 
 <CodeGroup>
 
@@ -349,9 +349,9 @@ child2["@sharedComponent"] = shared;
 
 #### References in the 3D viewer
 
-A reference is a pointer, and the viewer's selection panel shows it as one. Select an object whose property holds a reference and that property renders as the stub itself — `referencedId`, `speckle_type`, `closure` — not the referenced object's properties inlined. To read those, select the referenced object, which appears in the model tree in its own right.
+A reference is a pointer, and the viewer's selection panel shows it as one. Select an object whose property holds a reference, and that property lists the reference's own fields — `referencedId`, `speckle_type`, `closure` — not the referenced object's properties. To read those, select the referenced object, which appears in the model tree in its own right.
 
-If you want a value to be legible on each object in the viewer, set it on each object. References deduplicate storage; they don't propagate properties for display.
+So if you want a value visible on every object in the viewer, set it on every object. References save storage; they do not copy properties onto the objects that point at them.
 
 ### InstanceProxy
 
