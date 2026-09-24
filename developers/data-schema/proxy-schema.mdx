@@ -295,7 +295,7 @@ In addition to proxies, Speckle supports direct reference objects that point to 
 
 ### ObjectReference
 
-`ObjectReference` (deprecated as `Speckle.Core.Models.ObjectReference`, current type is `reference`) is a non-proxy reference object that directly references another object by its `id`:
+A reference (`speckle_type: "reference"`; the .NET class is `Speckle.Sdk.Models.ObjectReference`, formerly `Speckle.Core.Models.ObjectReference`) is a non-proxy reference object that points at another object by its `id`:
 
 ```json
 {
@@ -309,7 +309,49 @@ Fields:
 - **`referencedId`** (required) - The object `id` (hash) of the referenced object
 - **`closure`** (optional) - Dictionary mapping closure information
 
-Unlike proxies which reference by `applicationId` and are stored at root level, `ObjectReference` references by `id` and can appear anywhere in the object graph.
+Unlike proxies, which reference by `applicationId` and are stored at root level, a reference points by `id` and can appear anywhere in the object graph.
+
+#### How references get created
+
+You don't build references by hand. The serializer writes one whenever you **detach** a property, and at the same time records the referenced `id` in the parent's `__closure`. That closure entry is what lets the object be found again on receive. Assign the same object to a detached property on several parents, and it is stored once and referenced from each:
+
+<CodeGroup>
+
+```python specklepy
+shared = Base()
+shared.name = "SharedBracket"
+shared.material = "steel"
+
+# "@" marks the property detached; add_detachable_attrs({"sharedComponent"})
+# does the same for a property you don't want to prefix.
+child_1["@sharedComponent"] = shared
+child_2["@sharedComponent"] = shared
+
+operations.send(base=root, transports=[server_transport])
+```
+
+```csharp .NET
+var shared = new Base { ["name"] = "SharedBracket", ["material"] = "steel" };
+
+// "@" marks the property detached, as in specklepy.
+child1["@sharedComponent"] = shared;
+child2["@sharedComponent"] = shared;
+```
+
+</CodeGroup>
+
+`SharedBracket` is stored once, both children carry a reference to it, and `operations.receive` resolves each one back to the full object.
+
+<Note>
+  specklepy has no `ObjectReference` class — `ObjectReference` is the .NET type name. In Python,
+  detach the property as above rather than building a reference object yourself.
+</Note>
+
+#### References in the 3D viewer
+
+A reference is a pointer, and the viewer's selection panel shows it as one. Select an object whose property holds a reference, and that property lists the reference's own fields — `referencedId`, `speckle_type`, `closure` — not the referenced object's properties. To read those, select the referenced object, which appears in the model tree in its own right.
+
+So if you want a value visible on every object in the viewer, set it on every object. References save storage; they do not copy properties onto the objects that point at them.
 
 ### InstanceProxy
 
