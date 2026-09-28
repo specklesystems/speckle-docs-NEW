@@ -123,7 +123,15 @@ async function load(): Promise<void> {
   if (bundleUrl) return await loadLocal(bundleUrl)
 
   const { ref, token } = readForm()
-  const version = await fetchVersionRecord(ref, token)
+  if (!token) say('no token — requesting anonymously, which only reads public projects')
+
+  // A blank token is a real choice, not a missing one, so the failure has to say
+  // which it was: an anonymous lookup of a private project returns no project at
+  // all, which otherwise reads as a mistyped id.
+  const version = await fetchVersionRecord(ref, token).catch((error: unknown) => {
+    const message = (error as Error).message
+    throw token ? error : new Error(`${message} — private projects need a personal access token`)
+  })
   say(`version ${version.id} · schemaVersion ${String(version.schemaVersion)}`)
 
   if (!isBundleVersion(version)) {
