@@ -28,6 +28,30 @@ cd /opt/speckle/
 ```
 
 </Step>
+<Step title="Create Object Storage Config">
+
+Speckle stores files and 3D data in S3-compatible object storage. This guide uses
+[Garage](https://garagehq.deuxfleurs.fr/), which needs a small config file. Create
+`garage.toml` next to the compose file:
+
+```toml
+metadata_dir = "/data/meta"
+data_dir = "/data/blocks"
+db_engine = "sqlite"
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+# replace with your own: `openssl rand -hex 32`
+rpc_secret = "5a3e2c6d8f0b1e4a7c9d2f5b8e1a4c7d0f3b6e9a2c5d8f1b4e7a0c3d6f9b2e5a"
+
+[s3_api]
+s3_region = "us-east-1"
+api_bind_addr = "[::]:9000"
+root_domain = ".s3.garage.localhost"
+```
+
+</Step>
 <Step title="Create Docker Compose File">
 
 Create a file named `docker-compose.yml` with the following content:
@@ -53,14 +77,19 @@ services:
     volumes:
       - ./redis-data:/data
 
-  minio:
-    image: 'pgsty/silo:RELEASE.2026-09-16T00-00-00Z'
-    command: server /data --console-address ":9001"
+  garage:
+    image: 'dxflrs/garage:v2.4.1'
+    command: /garage server --single-node --default-access-key --default-bucket
     restart: always
+    environment:
+      GARAGE_DEFAULT_ACCESS_KEY: 'minioadmin'
+      GARAGE_DEFAULT_SECRET_KEY: 'minioadminminioadmin'
+      GARAGE_DEFAULT_BUCKET: 'speckle-server'
     ports:
       - '127.0.0.1:9000:9000'
     volumes:
-      - ./minio-data:/data
+      - ./garage.toml:/etc/garage.toml:ro
+      - ./garage-data:/data
 
   speckle-ingress:
     image: speckle/speckle-docker-compose-ingress:latest
@@ -86,7 +115,7 @@ services:
     depends_on:
       - postgres
       - redis
-      - minio
+      - garage
     environment:
       CANONICAL_URL: 'http://127.0.0.1'
       SESSION_SECRET: 'your-secret-key-here'
@@ -100,10 +129,10 @@ services:
       # Required on public Speckle Server releases so IFC jobs are queued for ifc-import-service
       FF_NEXT_GEN_FILE_IMPORTER_ENABLED: 'true'
       REDIS_URL: 'redis://redis'
-      S3_ENDPOINT: 'http://minio:9000'
+      S3_ENDPOINT: 'http://garage:9000'
       S3_PUBLIC_ENDPOINT: 'http://127.0.0.1:9000'
       S3_ACCESS_KEY: 'minioadmin'
-      S3_SECRET_KEY: 'minioadmin'
+      S3_SECRET_KEY: 'minioadminminioadmin'
       S3_BUCKET: 'speckle-server'
       FRONTEND_ORIGIN: 'http://127.0.0.1'
       EMAIL: 'true'
@@ -155,7 +184,6 @@ docker compose up -d
 Once running, access your Speckle server at:
 
 - **Frontend**: `http://your-server-ip`
-- **MinIO Console**: `http://your-server-ip:9001` (credentials: `minioadmin`/`minioadmin`)
 
 ## Next Steps
 
