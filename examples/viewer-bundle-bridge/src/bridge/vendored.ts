@@ -1,11 +1,347 @@
-/*
- * Vendored verbatim from the Speckle viewer package (Apache-2.0):
- * packages/viewer/src/modules/loaders/Speckle/decodeSgeo.ts
+/* eslint-disable */
+/**
+ * VENDORED CODE — do not read for understanding, do not edit here.
  *
- * It is vendored rather than imported because it postdates
- * @speckle/viewer@2.31.14 and is not in any published package. Re-copy it from
- * the viewer source when the format gains primitives. Do not edit it here.
+ * Two files from elsewhere in the Speckle stack, copied because neither is on
+ * public npm. Both are mechanical: a generated catalog and a binary decoder.
+ * Everything a reader of this sample needs to understand is in the other files
+ * beside this one.
+ *
+ * To refresh either, replace its section wholesale from the source named in its
+ * banner. Do not hand-merge.
  */
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 1 — bundle spec catalog
+// Source: speckle-bundle-spec, generated/ts/bundleSpec.ts @ commit 82ae2e97
+// Schema 1.2.0. Regenerated there from spec/bundle-spec.sql, never by hand.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const SCHEMA_VERSION = '1.2.0' as const
+
+/** Live relation ids. */
+export const Rel = {
+  DISPLAY: 1,
+  SOLID: 2,
+  SUBELEMENT: 3,
+  DEFINES: 4,
+  HAS_MATERIAL: 5,
+  HAS_COLOR: 6,
+  ON_LEVEL: 7,
+  DISPLAY_INSTANCE: 8,
+  DEFINES_INSTANCE: 9,
+  IN_COLLECTION: 10,
+  IN_MODEL: 11,
+  IN_ROOM: 12,
+  IN_SYSTEM: 14,
+  IN_GROUP: 17,
+  IN_ASSEMBLY: 18,
+  CONNECTS_TO: 21,
+  HOSTED_ON: 22,
+  BOUNDS: 23,
+  PLACES: 24,
+  DEFINES_MEMBER: 25,
+  OBJECT_HAS_MATERIAL: 26,
+  OBJECT_HAS_COLOR: 27,
+  NODE_HAS_MATERIAL: 28,
+  NODE_HAS_COLOR: 29,
+  CENTERLINE: 30
+} as const
+export type RelName = keyof typeof Rel
+
+/** Live node-kind ids. */
+export const NodeKind = {
+  DEFINITION: 1,
+  INSTANCE: 2,
+  MATERIAL: 3,
+  COLOR: 4,
+  LEVEL: 5,
+  CONTAINER: 7
+} as const
+export type NodeKindName = keyof typeof NodeKind
+
+export type RelTypeMeta = {
+  id: number
+  name: string
+  srcNs: string | null
+  dstNs: string | null
+  status: 'live' | 'reserved' | 'retired'
+  ordSemantics: string | null
+}
+/** Full catalog incl. reserved/retired (retired kept so ids are never reused). */
+export const REL_TYPES: readonly RelTypeMeta[] = [
+  {
+    id: 1,
+    name: 'DISPLAY',
+    srcNs: 'object',
+    dstNs: 'geometry',
+    status: 'live',
+    ordSemantics: 'ordinal'
+  },
+  {
+    id: 2,
+    name: 'SOLID',
+    srcNs: 'object',
+    dstNs: 'geometry',
+    status: 'live',
+    ordSemantics: 'ordinal'
+  },
+  {
+    id: 3,
+    name: 'SUBELEMENT',
+    srcNs: 'object',
+    dstNs: 'object',
+    status: 'live',
+    ordSemantics: 'ordinal'
+  },
+  {
+    id: 4,
+    name: 'DEFINES',
+    srcNs: 'node',
+    dstNs: 'geometry',
+    status: 'live',
+    ordSemantics: 'ordinal'
+  },
+  {
+    id: 5,
+    name: 'HAS_MATERIAL',
+    srcNs: 'geometry',
+    dstNs: 'node',
+    status: 'live',
+    ordSemantics: null
+  },
+  {
+    id: 6,
+    name: 'HAS_COLOR',
+    srcNs: 'geometry',
+    dstNs: 'node',
+    status: 'live',
+    ordSemantics: null
+  },
+  { id: 7, name: 'ON_LEVEL', srcNs: 'object', dstNs: 'node', status: 'live', ordSemantics: null },
+  {
+    id: 8,
+    name: 'DISPLAY_INSTANCE',
+    srcNs: 'object',
+    dstNs: 'node',
+    status: 'live',
+    ordSemantics: 'ordinal'
+  },
+  {
+    id: 9,
+    name: 'DEFINES_INSTANCE',
+    srcNs: 'node',
+    dstNs: 'node',
+    status: 'live',
+    ordSemantics: 'ordinal'
+  },
+  {
+    id: 10,
+    name: 'IN_COLLECTION',
+    srcNs: 'object',
+    dstNs: 'node',
+    status: 'live',
+    ordSemantics: null
+  },
+  { id: 11, name: 'IN_MODEL', srcNs: 'object', dstNs: 'node', status: 'live', ordSemantics: null },
+  { id: 12, name: 'IN_ROOM', srcNs: 'object', dstNs: 'object', status: 'live', ordSemantics: null },
+  { id: 13, name: 'IN_SPACE', srcNs: null, dstNs: null, status: 'retired', ordSemantics: null },
+  { id: 14, name: 'IN_SYSTEM', srcNs: 'object', dstNs: 'node', status: 'live', ordSemantics: null },
+  { id: 15, name: 'IN_NETWORK', srcNs: null, dstNs: null, status: 'retired', ordSemantics: null },
+  { id: 16, name: 'IN_LINE', srcNs: null, dstNs: null, status: 'retired', ordSemantics: null },
+  { id: 17, name: 'IN_GROUP', srcNs: 'object', dstNs: 'node', status: 'live', ordSemantics: null },
+  {
+    id: 18,
+    name: 'IN_ASSEMBLY',
+    srcNs: 'object',
+    dstNs: 'object',
+    status: 'live',
+    ordSemantics: 'ordinal'
+  },
+  {
+    id: 19,
+    name: 'IN_SUBASSEMBLY',
+    srcNs: null,
+    dstNs: null,
+    status: 'retired',
+    ordSemantics: null
+  },
+  { id: 20, name: 'XREF', srcNs: null, dstNs: null, status: 'retired', ordSemantics: null },
+  {
+    id: 21,
+    name: 'CONNECTS_TO',
+    srcNs: 'object',
+    dstNs: 'object',
+    status: 'live',
+    ordSemantics: 'scope'
+  },
+  {
+    id: 22,
+    name: 'HOSTED_ON',
+    srcNs: 'object',
+    dstNs: 'object',
+    status: 'live',
+    ordSemantics: null
+  },
+  { id: 23, name: 'BOUNDS', srcNs: 'object', dstNs: 'object', status: 'live', ordSemantics: null },
+  { id: 24, name: 'PLACES', srcNs: 'object', dstNs: 'node', status: 'live', ordSemantics: null },
+  {
+    id: 25,
+    name: 'DEFINES_MEMBER',
+    srcNs: 'node',
+    dstNs: 'object',
+    status: 'live',
+    ordSemantics: 'ordinal'
+  },
+  {
+    id: 26,
+    name: 'OBJECT_HAS_MATERIAL',
+    srcNs: 'object',
+    dstNs: 'node',
+    status: 'live',
+    ordSemantics: null
+  },
+  {
+    id: 27,
+    name: 'OBJECT_HAS_COLOR',
+    srcNs: 'object',
+    dstNs: 'node',
+    status: 'live',
+    ordSemantics: null
+  },
+  {
+    id: 28,
+    name: 'NODE_HAS_MATERIAL',
+    srcNs: 'node',
+    dstNs: 'node',
+    status: 'live',
+    ordSemantics: null
+  },
+  {
+    id: 29,
+    name: 'NODE_HAS_COLOR',
+    srcNs: 'node',
+    dstNs: 'node',
+    status: 'live',
+    ordSemantics: null
+  },
+  {
+    id: 30,
+    name: 'CENTERLINE',
+    srcNs: 'object',
+    dstNs: 'geometry',
+    status: 'live',
+    ordSemantics: 'ordinal'
+  }
+]
+
+/** Logical table → column names, generated from the DDL. */
+export const TABLES = {
+  camera_views: [
+    'view',
+    'name',
+    'is_default',
+    'ord',
+    'pos_x',
+    'pos_y',
+    'pos_z',
+    'forward_x',
+    'forward_y',
+    'forward_z',
+    'up_x',
+    'up_y',
+    'up_z',
+    'target_x',
+    'target_y',
+    'target_z',
+    'units',
+    'is_ortho',
+    'fov',
+    'lens_mm',
+    'ortho_height',
+    'aspect',
+    'near',
+    'far'
+  ],
+  eav: [
+    'object_index',
+    'path_index',
+    'value_string',
+    'value_double',
+    'value_boolean',
+    'unit',
+    'internal_definition_name'
+  ],
+  geometries: ['geometryIndex', 'content', 'id', 'type'],
+  model: ['path', 'value_string', 'value_double', 'value_boolean', 'unit'],
+  nodes: [
+    'id',
+    'kind',
+    'name',
+    'def_ref',
+    'transform',
+    'units',
+    'subtype',
+    'argb',
+    'opacity',
+    'metalness',
+    'roughness',
+    'emissive',
+    'ior',
+    'elevation',
+    'gh_topology'
+  ],
+  object_type: ['object_index', 'type_index'],
+  objects: ['object_index', 'application_id'],
+  paths: ['path_index', 'path'],
+  property_set_definitions: [
+    'set_name',
+    'set_key',
+    'set_description',
+    'field_name',
+    'field_bucket_id',
+    'data_type',
+    'default_string',
+    'default_double',
+    'default_boolean',
+    'unit',
+    'description',
+    'applies_to'
+  ],
+  relations: ['rel', 'src', 'dst', 'ord'],
+  scene_views: ['view', 'name', 'is_default', 'ord', 'source', 'ref'],
+  structural_results: [
+    'object_index',
+    'element_name',
+    'location',
+    'result_type',
+    'load_case',
+    'component',
+    'position_label',
+    'station',
+    'step',
+    'value',
+    'value_text'
+  ],
+  type_eav: [
+    'type_index',
+    'path_index',
+    'value_string',
+    'value_double',
+    'value_boolean',
+    'unit',
+    'internal_definition_name'
+  ],
+  types: ['type_index', 'type_key']
+} as const
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 2 — SGEO decoder
+// Source: the Speckle viewer (Apache-2.0),
+// packages/viewer/src/modules/loaders/Speckle/decodeSgeo.ts
+// Postdates @speckle/viewer@2.31.14, which is why it is copied rather than
+// imported. Re-copy it from the viewer when the format gains primitives.
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Stage-0 SGEO decoder (viewer side).
@@ -275,13 +611,7 @@ function readPlane(dv: DataView, off: number): SgeoPlane {
 }
 
 /** Sample point on a plane at radius/angle: origin + r·(cosθ·xdir + sinθ·ydir). */
-function planePoint(
-  p: SgeoPlane,
-  rx: number,
-  ry: number,
-  t: number,
-  out: number[]
-): void {
+function planePoint(p: SgeoPlane, rx: number, ry: number, t: number, out: number[]): void {
   const c = Math.cos(t)
   const s = Math.sin(t)
   out.push(
@@ -481,9 +811,7 @@ export function decodeSgeo(bytes: Uint8Array): DecodedGeometry {
     case SgeoPrimitiveType.Polycurve: {
       const p = tessellateCurve(bytes, header)
       // empty tessellation (e.g. a degenerate segment) ⇒ nothing to render
-      return p.value.length >= 6
-        ? { kind: 'polyline', ...p }
-        : { kind: 'unsupported', header }
+      return p.value.length >= 6 ? { kind: 'polyline', ...p } : { kind: 'unsupported', header }
     }
     case SgeoPrimitiveType.Text:
       return { kind: 'text', ...decodeSgeoText(bytes) }

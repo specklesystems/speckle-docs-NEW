@@ -1,7 +1,7 @@
 import { parquetReadObjects } from 'hyparquet'
 import { compressors } from 'hyparquet-compressors'
 import type { BundleTable, DownloadedBundle } from './artifacts.js'
-import { Rel } from './bundleSpec.js'
+import { Rel } from './vendored.js'
 
 // ── parquet ─────────────────────────────────────────────────────────────────
 
@@ -448,26 +448,56 @@ export function parseTransform(transform: string | undefined): number[] | undefi
 }
 
 /**
- * Everything the bundle knows about one object, keyed the way a viewer selection
+ * Everything the bridge shows about one object, keyed the way a viewer selection
  * hands it to you. This is the round trip the bridge is really about: an
  * `applicationId` out of the viewer, the producer's own data back.
+ *
+ * The two counts are kept apart because the type-level rows live in a different
+ * table, and a merge that silently found none of them looks identical to one that
+ * worked.
  */
-export function propertiesOf(bundle: Bundle, applicationId: string): Record<string, unknown> {
-  const key = bundle.objectKeyByAppId.get(applicationId)
-  if (key === undefined) return {}
-  const typeKey = bundle.typeIndexByObject.get(key)
-  const typeLevel = typeKey === undefined ? {} : bundle.typeProperties.nested(typeKey, 'properties')
-  return mergeProperties(typeLevel, bundle.properties.nested(key, 'properties'))
+export interface ObjectProperties {
+  /** Root scalars, which sit beside `properties.*` rather than under it. */
+  scalars: Record<string, PropValue>
+  /** Type-level rows with the object's own overlaid, flattened to leaf keys. */
+  values: [string, string][]
+  instanceCount: number
+  typeCount: number
 }
 
-/** The root scalars sit beside `properties.*`, not under it. */
-export function scalarsOf(bundle: Bundle, applicationId: string): Record<string, PropValue> {
+export function objectProperties(bundle: Bundle, applicationId: string): ObjectProperties {
   const key = bundle.objectKeyByAppId.get(applicationId)
-  if (key === undefined) return {}
-  const out: Record<string, PropValue> = {}
+  if (key === undefined) {
+    return { scalars: {}, values: [], instanceCount: 0, typeCount: 0 }
+  }
+
+  const scalars: Record<string, PropValue> = {}
   for (const path of ['name', 'speckle_type', 'type', 'units', 'category', 'level']) {
     const value = bundle.properties.get(key, path)
-    if (value !== undefined) out[path] = value
+    if (value !== undefined) scalars[path] = value
   }
-  return out
+
+  const instance = bundle.properties.nested(key, 'properties')
+  const typeKey = bundle.typeIndexByObject.get(key)
+  const typeLevel = typeKey === undefined ? {} : bundle.typeProperties.nested(typeKey, 'properties')
+
+  return {
+    scalars,
+    values: leaves(mergeProperties(typeLevel, instance)),
+    instanceCount: leaves(instance).length,
+    typeCount: leaves(typeLevel).length
+  }
+}
+
+/** Leaf key and value only: the dotted path above it is noise in a panel. */
+function leaves(value: Record<string, unknown>): [string, string][] {
+  const rows: [string, string][] = []
+  for (const [key, child] of Object.entries(value)) {
+    if (child && typeof child === 'object' && !Array.isArray(child)) {
+      rows.push(...leaves(child as Record<string, unknown>))
+    } else {
+      rows.push([key, String(child)])
+    }
+  }
+  return rows
 }

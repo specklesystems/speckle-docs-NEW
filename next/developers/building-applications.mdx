@@ -54,6 +54,24 @@ take depends on whether you render.
   [Python](/next/developers/sdks/python/breaking-changes) 2026.9 pages.
 </Note>
 
+## My app writes data
+
+Publishing is the harder half. A 2026.9 version is a bundle built and uploaded through an
+ingestion, and there is no published JavaScript bundle builder — `@speckle/objectsender`
+writes object graphs, and .NET and Python are the only SDKs that build bundles today.
+
+That leaves three honest options, in the order most teams should consider them:
+
+| Option                                 | When it fits                                                                     |
+| -------------------------------------- | -------------------------------------------------------------------------------- |
+| Publish from .NET or Python instead    | The writing half can move process or language                                    |
+| Implement the bundle contract yourself | You must stay in JavaScript, and can carry a parquet writer and the SGEO encoder |
+| Ask for compatibility mode             | You need time, and your consumers still read object graphs                       |
+
+The wire sequence, the correctness rules and a build order are in [Publish a bundle from your
+own code](/next/developers/building-integrations/publish). Read it before choosing the second
+option: it is a real piece of work, and unlike the read path there is no worked sample.
+
 ## Why there is no drop-in object-graph loader
 
 If your app is built on `@speckle/objectloader` or `@speckle/objectloader2`, the natural ask

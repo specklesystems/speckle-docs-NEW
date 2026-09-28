@@ -7,9 +7,8 @@
  * because an app that only draws pays nothing for data it never reads.
  */
 
-import { decodeSgeo, SgeoPrimitiveType, type DecodedGeometry } from './decodeSgeo.js'
 import { mergeProperties, parseTransform, type Bundle, type BundleNode } from './bundleReader.js'
-import { NodeKind } from './bundleSpec.js'
+import { decodeSgeo, NodeKind, SgeoPrimitiveType, type DecodedGeometry } from './vendored.js'
 
 /**
  * The shape `@speckle/objectloader2` and the viewer's converter expect. `id` is

@@ -1,4 +1,7 @@
-import { propertiesOf, scalarsOf, type Bundle } from './bridge/bundleReader.js'
+import { objectProperties, type Bundle } from './bridge/bundleReader.js'
+
+/** Enough to show the lookup worked, not enough to be a property browser. */
+const SHOWN = 6
 
 /**
  * Click an object, see what the producer published about it.
@@ -6,7 +9,7 @@ import { propertiesOf, scalarsOf, type Bundle } from './bridge/bundleReader.js'
  * The lookup goes to the bundle, not to the object the viewer is holding. That is
  * the round trip the bridge is really for: the viewer hands back an
  * `applicationId`, and the bundle's own eav tables answer to it — including the
- * type-level rows, which live in a different table and are merged in here.
+ * type-level rows, which live in a separate table and are merged in here.
  *
  * It also means an object the projection drew as an instance proxy, carrying no
  * properties of its own, still has everything its producer wrote about it.
@@ -27,30 +30,30 @@ export class PropertiesHud {
   show(applicationId: string | undefined): void {
     if (!this.bundle || !applicationId) return this.clear()
 
-    const scalars = scalarsOf(this.bundle, applicationId)
-    const groups = group(propertiesOf(this.bundle, applicationId))
+    const { scalars, values, instanceCount, typeCount } = objectProperties(
+      this.bundle,
+      applicationId
+    )
+    const name = String(scalars.name ?? applicationId)
 
-    if (!Object.keys(scalars).length && !groups.size) {
-      this.element.innerHTML =
-        `<h3>${escape(applicationId)}</h3>` +
-        `<p class="hud-empty">Nothing in the bundle for this applicationId.</p>`
-      this.element.hidden = false
-      return
-    }
-
-    const properties = [...groups]
-      .map(([path, rows]) => (path ? `<h4>${escape(path)}</h4>` : '') + section(rows))
-      .join('')
-
-    this.element.innerHTML =
-      `<h3>${escape(String(scalars.name ?? applicationId))}</h3>` +
-      `<p class="hud-id">${escape(applicationId)}</p>` +
-      section(
+    const head =
+      `<h3>${escape(name)}</h3><p class="hud-id">${escape(applicationId)}</p>` +
+      rows(
         Object.entries(scalars)
-          .filter(([key]) => key !== 'name')
+          .filter(([key]) => key !== 'name' && key !== 'speckle_type')
           .map(([key, value]) => [key, String(value)])
-      ) +
-      properties
+      )
+
+    const total = instanceCount + typeCount
+    const body = total
+      ? `<p class="hud-count">${total} properties · ${instanceCount} instance · ${typeCount} type</p>` +
+        rows(values.slice(0, SHOWN)) +
+        (values.length > SHOWN
+          ? `<p class="hud-count">and ${values.length - SHOWN} more in the bundle</p>`
+          : '')
+      : '<p class="hud-count">No properties in the bundle for this object.</p>'
+
+    this.element.innerHTML = head + body
     this.element.hidden = false
   }
 
@@ -60,33 +63,9 @@ export class PropertiesHud {
   }
 }
 
-/**
- * Group leaves under the path that holds them. A Revit object nests four deep, so
- * repeating `Parameters.Type Parameters.Analytical Properties.` on every row buries
- * the part that differs.
- */
-function group(value: Record<string, unknown>): Map<string, [string, string][]> {
-  const groups = new Map<string, [string, string][]>()
-
-  const walk = (node: Record<string, unknown>, path: string): void => {
-    for (const [key, child] of Object.entries(node)) {
-      if (child && typeof child === 'object' && !Array.isArray(child)) {
-        walk(child as Record<string, unknown>, path ? `${path}.${key}` : key)
-      } else {
-        const rows = groups.get(path)
-        if (rows) rows.push([key, String(child)])
-        else groups.set(path, [[key, String(child)]])
-      }
-    }
-  }
-
-  walk(value, '')
-  return groups
-}
-
-function section(rows: [string, string][]): string {
-  if (!rows.length) return ''
-  return `<dl>${rows
+function rows(entries: [string, string][]): string {
+  if (!entries.length) return ''
+  return `<dl>${entries
     .map(([key, value]) => `<dt>${escape(key)}</dt><dd>${escape(value)}</dd>`)
     .join('')}</dl>`
 }

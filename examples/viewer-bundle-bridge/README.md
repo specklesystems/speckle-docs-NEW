@@ -70,10 +70,13 @@ web app does not:
   `SelectionExtension` and `CameraController`, a drag rectangle, and a world-tree walk that
   projects render-view bounds to the screen.
 
-Selecting anything fills a properties HUD. The lookup goes to the bundle rather than to the
-object the viewer is holding: the viewer hands back an `applicationId` and the bundle's own
-eav tables answer to it. That is the round trip the bridge is really for, and it works even
-for objects the projection drew as instance proxies, which carry no properties of their own.
+Selecting anything fills a small properties panel: the object's scalars, a count of instance
+against type-level rows, and the first few values. The lookup goes to the bundle rather than
+to the object the viewer is holding — the viewer hands back an `applicationId` and the
+bundle's own eav tables answer to it. That is the round trip the bridge is really for, and it
+works even for objects the projection drew as instance proxies, which carry no properties of
+their own. It stops at a handful of values on purpose; it is a demonstration, not a property
+browser.
 
 That is the point. If an extension written from scratch against public Viewer API works on a
 bundle that came through the bridge, the Viewer 2 API surface works on 2026.9 data — not
@@ -88,8 +91,7 @@ values, because that is what the projection sets `id` to.
 | `src/bridge/bundleReader.ts` | Parquet and eav tables to dense-keyed maps and relations |
 | `src/bridge/projection.ts`   | Bundle to `Base` objects: what the viewer converts       |
 | `src/bridge/bundleLoader.ts` | The `SpeckleLoader` subclass and the end-to-end load     |
-| `src/bridge/decodeSgeo.ts`   | Vendored SGEO decoder — do not edit                      |
-| `src/bridge/bundleSpec.ts`   | Vendored relation and node-kind catalog — do not edit    |
+| `src/bridge/vendored.ts`     | Copied-in spec catalog and SGEO decoder — do not edit    |
 | `src/boxSelect.ts`           | A custom extension, to show the Viewer 2 API still works |
 | `src/propertiesHud.ts`       | Selection to the producer's own properties               |
 | `src/main.ts`                | The mini app                                             |
@@ -118,13 +120,14 @@ code](https://docs.speckle.systems/next/developers/building-integrations/load).
 
 ## Vendored files
 
-Two files are copied from elsewhere in the stack rather than installed, because
-neither is on public npm. Do not edit them here; re-copy them from source.
+`src/bridge/vendored.ts` holds two files copied from elsewhere in the stack, because
+neither is on public npm. Neither is meant to be read for understanding or edited here —
+refresh a section wholesale from its source rather than hand-merging.
 
-| File                       | Source                                                                                      | Pin                                 |
-| -------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `src/bridge/decodeSgeo.ts` | The Speckle viewer's SGEO decoder (Apache-2.0)                                              | Postdates `@speckle/viewer@2.31.14` |
-| `src/bridge/bundleSpec.ts` | [speckle-bundle-spec](https://github.com/specklesystems/speckle-bundle-spec) `generated/ts` | Schema 1.2.0, commit `82ae2e97`     |
+| Section | Source                                                                                      | Pin                                 |
+| ------- | ------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Catalog | [speckle-bundle-spec](https://github.com/specklesystems/speckle-bundle-spec) `generated/ts` | Schema 1.2.0, commit `82ae2e97`     |
+| Decoder | The Speckle viewer's SGEO decoder (Apache-2.0)                                              | Postdates `@speckle/viewer@2.31.14` |
 
 ## What this sample is not
 
