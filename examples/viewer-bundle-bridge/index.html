@@ -152,6 +152,23 @@
     </style>
   </head>
   <body>
+    <!--
+      Opened from disk, the module below never runs: `/src/main.ts` resolves to the
+      filesystem root and browsers refuse ES modules over file:. The buttons would
+      then do nothing at all, with nothing in the console to explain it. A classic
+      inline script still runs here, so say so.
+    -->
+    <script>
+      if (location.protocol === 'file:') {
+        document.documentElement.innerHTML =
+          '<body style="font:16px/1.6 system-ui;padding:40px;max-width:40em">' +
+          '<h1>Serve this over HTTP</h1><p>This is a Vite app, so opening ' +
+          '<code>index.html</code> from disk cannot work. Run it instead:</p>' +
+          '<pre style="background:#f5f5f5;padding:12px;border-radius:6px">pnpm install\npnpm dev</pre>' +
+          '<p>Then open the <code>http://localhost:…</code> address it prints.</p></body>'
+      }
+    </script>
+
     <aside>
       <h1>Bundle bridge</h1>
       <p class="lede">Load a 2026.9 bundle into the published Speckle Viewer.</p>

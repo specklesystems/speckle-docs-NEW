@@ -45,6 +45,9 @@ pnpm install
 pnpm dev
 ```
 
+Open the `http://localhost:…` address it prints. Opening `index.html` from disk cannot
+work — it is a Vite app, and browsers refuse ES modules over `file:`.
+
 With [mise](https://mise.jdx.dev), `mise run install` and `mise run dev` do the same thing
 and pin Node and pnpm to the versions this was verified against. mise is optional — the
 sample needs only Node and pnpm.
