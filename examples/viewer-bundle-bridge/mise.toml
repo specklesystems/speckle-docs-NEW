@@ -1,0 +1,30 @@
+# The sample is standalone: its own pnpm root, its own tool pins. It inherits
+# nothing from the docs repo around it, so it copies out cleanly.
+#
+# mise is a convenience for working on the sample inside the Speckle stack. The
+# sample itself needs only Node and pnpm, and `pnpm install && pnpm dev` stays the
+# documented path for anyone copying it into their own app.
+
+[tools]
+node = "22.17.1"
+pnpm = "10.30.3"
+
+[tasks.install]
+description = "Install the sample's dependencies"
+run = "pnpm install"
+
+[tasks.dev]
+description = "Run the mini viewer app"
+run = "pnpm dev"
+
+[tasks.typecheck]
+description = "Typecheck against the pinned Speckle packages"
+run = "pnpm typecheck"
+
+[tasks.build]
+description = "Production build"
+run = "pnpm build"
+
+[tasks.check]
+description = "Typecheck and build — what to run before touching the projections"
+depends = ["typecheck", "build"]

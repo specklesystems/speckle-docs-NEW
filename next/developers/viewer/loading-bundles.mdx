@@ -1,0 +1,401 @@
+---
+title: Load a 2026.9 bundle in your Viewer app
+sidebarTitle: Loading bundles
+description: Sample code and a step-by-step path for rendering 2026.9 bundle versions with the published Viewer package, without waiting for a new package release.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+If your app imports `@speckle/viewer` and loads Speckle data itself, a 2026.9 version
+gives it nothing to draw: the version's data is a [bundle](/next/developers/building-integrations)
+of parquet files, and the objects endpoints return 404. This page is the bridge. You add
+about a dozen files to your own app, keep the same two published packages you already
+depend on, and the viewer renders bundles.
+
+Nothing is patched and nothing new is published. You read the bundle, project it onto the
+object shape the viewer already converts, and hand those objects to the loader.
+
+<Warning>
+  This is sample code, not a package: it is not versioned and it is not supported the way a release
+  is. Copy it into your app and own the copy.
+</Warning>
+
+## Check whether this affects you
+
+Read a version record before assuming either shape.
+
+| Field                      | 2026.8 and earlier             | 2026.9 bundle                              |
+| -------------------------- | ------------------------------ | ------------------------------------------ |
+| `Version.schemaVersion`    | `null`                         | `3`                                        |
+| `Version.referencedObject` | A content hash                 | `bundle.<projectId>.<modelId>.<versionId>` |
+| Where the data is          | The objects endpoints, as JSON | The artifacts endpoint, as parquet files   |
+
+You need this page if your app constructs a viewer and a loader itself. You do not need it
+if you embed the hosted web viewer in an iframe, or if you only read data through the
+GraphQL or REST API.
+
+<Note>
+  Compatibility mode keeps a workspace's data in the object-graph format until the mode ends. See
+  [Compatibility mode](/next/it-admin/compatibility-mode).
+</Note>
+
+## What the bridge does
+
+1. Reads the version record and dispatches on its shape.
+2. Lists the version's artifacts and downloads the parquet tables it needs.
+3. Decodes SGEO geometry.
+4. Projects the bundle onto `Base` objects, with collection, material, colour and instance
+   proxies.
+5. Hands those objects to `ObjectLoader2Factory.createFromObjects` through a
+   `SpeckleLoader` subclass.
+
+Everything after that is untouched public API. Extensions, filtering, selection, queries,
+camera and view modes all behave as they do today, because by the time the viewer sees your
+data it is the same kind of object tree it always converted.
+
+The worked sample, including a mini viewer app that loads both shapes of version, is
+[examples/viewer-bundle-bridge](https://github.com/specklesystems/speckle-docs-new/tree/main/examples/viewer-bundle-bridge).
+It lives in the docs repo, so take that directory on its own rather than cloning the rest:
+
+```bash
+git clone --filter=blob:none --sparse --depth 1 \
+  https://github.com/specklesystems/speckle-docs-new.git
+cd speckle-docs-new
+git sparse-checkout set examples/viewer-bundle-bridge
+```
+
+## What the bridge costs you
+
+That last sentence is the trade. The bridge reconstitutes the object graph 2026.9 retires:
+it reads the whole bundle, builds `Base` objects in memory, and hands them to the converter
+that has always run. So it inherits the load time and memory profile you have today, and it
+gives up most of what the bundle format exists to enable — streaming reads, sharded geometry
+fetched on demand, dense integer keys, properties queried without materialising objects, and
+the server-built viewer artifact.
+
+<Warning>
+  2026.9 raises the performance ceiling well above what this bridge can reach. Reaching it needs a
+  viewer built for the format, not a projection back onto the shape it replaced.
+</Warning>
+
+Read the bridge as what keeps your app working across the format change, not as where it
+should stay. It is at its best on models of the size you render well today; it will not make
+a model that is slow now fast, and on very large models it can be worse than the object graph
+was, because the whole bundle is read before anything draws.
+
+## 1. Pin both packages exactly
+
+Pin `@speckle/viewer` and `@speckle/objectloader2` to the same version, with no carets. The
+bridge depends on internals of neither, but it does depend on `initObjectLoader` being
+overridable and on `createFromObjects` existing, and a range would let a future release move
+either.
+
+```json package.json
+{
+  "dependencies": {
+    "@speckle/objectloader2": "2.31.14",
+    "@speckle/viewer": "2.31.14"
+  }
+}
+```
+
+You should see both packages resolve to exactly `2.31.14` in your lockfile.
+
+## 2. Add a parquet reader and a zstd codec
+
+A bundle is parquet, and the files are zstd-compressed. Both dependencies go in **your**
+`package.json`, not in a Speckle package.
+
+```bash
+pnpm add hyparquet hyparquet-compressors
+```
+
+<Warning>
+  Read the geometry table with UTF-8 decoding turned **off**. The `content` column is a byte array
+  with no string logical type, and a reader that decodes every byte array as UTF-8 by default will
+  mangle every SGEO blob — silently, with no error and no geometry.
+</Warning>
+
+You should see a parquet read return rows whose `content` values are byte arrays, not
+strings.
+
+<Warning>
+  Find the tables by matching the end of each file name, never by building it from the version id. A
+  bundle's files share a stem, but that stem is not always the version — a Revit upload lists as
+  `acme-b-zz-m3-wa-ar.rvt.envelope.nodes.parquet`, with only the viewer's own artifacts named after
+  the version.
+</Warning>
+
+## 3. Drop in the projection
+
+Copy `src/bridge/` from the sample into your app. `projectBundle` turns the bundle into the
+object shape the viewer already converts: a collection tree, one object per `applicationId`
+carrying its display geometry, and instance, material and colour proxies.
+
+Rendering is unconditional: geometry, nested instances, grouping, and the full material and
+colour precedence from the geometry up through the object to its container. Two things cost
+extra reads, so they are options rather than defaults:
+
+```ts
+projectBundle(bundle, { properties: true, referencePoint: true })
+```
+
+`properties` merges each object's instance and type-level rows — the type rows live in their
+own table, and without that merge most Revit type parameters are simply absent. `referencePoint`
+carries the model's datum onto the root. An app that only draws leaves both off and never
+downloads the eav tables at all.
+
+<Tip>
+  Solids, centrelines and the scene-view tree are carried by the bundle and read by none of this.
+  Add what your app needs rather than assuming its absence is a bug — the rules for every table and
+  relation are in [Load a bundle in your own code](/next/developers/building-integrations/load).
+</Tip>
+
+You should see `projectBundle` return a root object whose `elements` hold your objects.
+
+## 4. Swap the loader
+
+Both shapes of version end at `viewer.loadObject`. The only difference is which loader gets
+there, so dispatch on `schemaVersion` and keep your existing path intact.
+
+Assume `viewer`, the project, model and version ids, and a token are already in scope.
+
+<Tabs>
+  <Tab title="Prior to 2026.9">
+    ```ts Prior to 2026.9
+    const loader = new SpeckleLoader(viewer.getWorldTree(), objectUrl, token)
+    await viewer.loadObject(loader, true)
+    ```
+  </Tab>
+  <Tab title="2026.9">
+    ```ts 2026.9
+    const { loader } = await loadBundleVersion({
+      tree: viewer.getWorldTree(),
+      ref: { serverUrl, projectId, modelId, versionId },
+      token,
+      project: projectBundle
+    })
+    await viewer.loadObject(loader, true)
+    ```
+  </Tab>
+</Tabs>
+
+The subclass itself is short, because everything asynchronous happens before construction.
+The base class passes `resourceData` through to `initObjectLoader`, which is how the
+projected objects reach the override before any subclass field exists — the same route
+`SpeckleOfflineLoader` takes.
+
+```ts bundleLoader.ts
+export class BundleLoader extends SpeckleLoader {
+  constructor(targetTree: WorldTree, resource: string, root: BaseObject) {
+    super(targetTree, resource, undefined, undefined, root)
+  }
+
+  protected initObjectLoader(
+    _resource: string,
+    _authToken?: string,
+    _enableCaching?: boolean,
+    resourceData?: unknown
+  ): ObjectLoader2 {
+    const root = resourceData as BaseObject | undefined
+    if (!root) throw new Error('BundleLoader was constructed without a projected root')
+    return ObjectLoader2Factory.createFromObjects([root])
+  }
+}
+```
+
+You should see the model render, and `viewer.getWorldTree()` report nodes.
+
+Your own extensions need no changes. They are created the same way, see the same world tree,
+and resolve the same ids. The sample proves that with two the Speckle web app never runs:
+`ExplodeExtension`, which ships with the viewer, and a box select written from scratch —
+
+```ts extensions/boxSelect.ts
+export class BoxSelectExtension extends Extension {
+  get inject(): Array<typeof SelectionExtension | typeof CameraController> {
+    return [SelectionExtension, CameraController]
+  }
+
+  private idsInside(rect: Rect): string[] {
+    const camera = this.viewer.getRenderer().renderingCamera
+    const ids = new Set<string>()
+    this.viewer.getWorldTree().walk((node: TreeNode) => {
+      const aabb = node.model.renderView?.aabb
+      if (aabb && inside(project(centre(aabb), camera), rect)) {
+        ids.add(String(node.model.raw.applicationId))
+      }
+      return true
+    })
+    return [...ids]
+  }
+}
+```
+
+If an extension written from scratch against public API works on bridged data, the Viewer 2
+surface works on 2026.9 data generally — not only the paths Speckle exercises.
+
+<Tip>
+  Read render views across every node, not only `atomic` ones, and expect some to have no bounds.
+  Render views hang off the nested geometry nodes, so a walk that checks atomic nodes alone finds
+  nothing on a model that renders perfectly well.
+</Tip>
+
+## 5. Rekey your interactions to applicationId
+
+Everything above is copy-paste. This step is your app's own data model, and skipping it is
+what makes a load look successful while your saved state silently matches nothing.
+
+Before 2026.9, a Speckle object's identity was a content hash, stable across versions of the
+same unchanged element and usable as a durable key. In a bundle there is no hash. **The
+object's identity is `applicationId`** — the id the authoring application gave the element.
+The bridge sets `id` to `applicationId` on every object, so the ids the viewer hands you in
+selection events, queries and filtering state are `applicationId` values.
+
+What that changes:
+
+- **Anything you persisted keyed by object id needs a migration or a rekey.** Saved
+  selections, comment anchors, your own annotations, cached per-object state. A stored
+  content hash will not match anything in a bundle.
+- **`applicationId` is stable across versions in a way hashes were not.** An element that
+  moved still carries the same `applicationId`, where its hash changed. For most apps this
+  is better: your per-object state survives a republish.
+- **Synthetic ids are per-bundle.** Anything the projection mints rather than reads —
+  containers (`coll-7`), definitions (`def-3`), materials (`mat-0`) — is local to one bundle
+  and will differ in the next version. Never persist those.
+- **Duplicate `applicationId` values are possible.** Producers are asked for stable unique
+  ids and mostly deliver them, but a host with no stable id per element can repeat one.
+  Decide whether last-wins or a reported conflict is right for your app.
+
+<Tip>
+  If your app already keys on `applicationId` because it cross-references a host model, this step is
+  a no-op and you are most of the way done.
+</Tip>
+
+You should see selection in your app resolve to the same objects it did before, keyed by
+`applicationId`.
+
+## What does not come across
+
+A bundle carries far more than the projection reads, and more than the published viewer can
+draw. None of these raise an error, so check the list against what your app promises.
+
+**Relations.** The catalog is in [Relations](/next/developers/object-model/relations). The
+projection reads DISPLAY, DEFINES, HAS_MATERIAL, HAS_COLOR, DISPLAY_INSTANCE,
+DEFINES_INSTANCE, IN_COLLECTION and the object and node appearance relations. Everything else
+is carried and unread: solids, centrelines, scene views, levels, rooms, systems, groups,
+assemblies, connectivity and hosting. Those rows are in the bundle and available to you —
+nothing in the sample reads them into the tree.
+
+**Geometry.** Meshes, lines, polylines and the tessellated curve family render. Text,
+points, boxes and regions decode but are not converted. The sample counts what it skipped and
+prints the tally, so a model that is mostly annotation looks empty for a stated reason.
+
+**Vocabulary you do not know.** Read columns by name and tolerate columns you do not know, and
+treat a relation id or node kind your reader does not recognise as skip-and-report rather than
+an error. A producer newer than your copy of the bridge is normal, and the sample surfaces
+those ids for you.
+
+<Warning>
+  Do not gate a load on `meta.schema_version`. It is provenance, not a compatibility switch, and the
+  spec adds columns without moving it.
+</Warning>
+
+The sample is verified against `@speckle/viewer@2.31.14`, `@speckle/objectloader2@2.31.14`
+and bundle spec 1.2.0, as of September 2026. Check those pins before assuming a behaviour
+still holds.
+
+## Viewer concepts that still apply
+
+The bridge changes where data comes from, not how the viewer works. The loader and tree
+documentation still applies:
+
+<CardGroup cols={2}>
+  <Card title="Loaders" icon="download" href="/developers/viewer/loaders">
+    What a loader is and where it sits in a load.
+  </Card>
+  <Card title="Loader API" icon="code" href="/developers/viewer/loader-api">
+    The abstract `Loader` contract the subclass implements.
+  </Card>
+  <Card title="World tree API" icon="sitemap" href="/developers/viewer/world-tree-api">
+    What the converter builds, and how to query it.
+  </Card>
+  <Card
+    title="Compatibility"
+    icon="clock-rotate-left"
+    href="/developers/viewer/migration-guide-compatibility"
+  >
+    Earlier viewer migrations, for context on what changed before.
+  </Card>
+</CardGroup>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Why is there no published package for this?">
+    Publishing it would make a third implementation of the receive fidelity contract that Speckle
+    then has to keep in step with the .NET and Python SDKs. Sample code you own is honest about what
+    it is: a worked example of documented rules, dated, in your app, under your control.
+  </Accordion>
+  <Accordion title="Can I skip downloading geometry?">
+    Yes — pass `includeGeometry: false` and the geometry shards, which are the bulk of a bundle, are
+    never fetched. The projection here renders, so that leaves it with nothing to draw; it is useful
+    once you extend the projection to read the eav tables.
+  </Accordion>
+  <Accordion title="Can it use my browser session instead of a token?">
+    Not from another origin. Your app cannot read Speckle's auth cookie — that is the origin model —
+    and sending the request with `credentials: 'include'` does not help either, because the cookie
+    is `SameSite=Lax` and so never rides a cross-site fetch. Use a token. A public project needs
+    none at all: send no `Authorization` header rather than an empty one, which is rejected.
+  </Accordion>
+  <Accordion title="Do I still need @speckle/objectloader2?">
+    Yes, and you keep the same version. The bridge uses `ObjectLoader2Factory.createFromObjects`
+    instead of `createFromUrl`, which is why no request goes to the objects endpoints.
+  </Accordion>
+  <Accordion title="What happens if the artifacts listing returns 404?">
+    Either the version is an object graph from 2026.8 or earlier, the bundle has not been produced
+    yet, or your token cannot read the project. Check `schemaVersion` on the version record first,
+    then the ingestion status if the version is new.
+  </Accordion>
+  <Accordion title="My app reads object graphs with objectloader2 and never touches the Viewer. What do I do?">
+    Read the bundle directly rather than bridging to an object graph. Start from [Building
+    applications](/next/developers/building-applications), which points at the load mechanics for
+    data-only apps.
+  </Accordion>
+  <Accordion title="The console logs “Consumable applicationId … could not be found”.">
+    A nested instance — a definition placed inside another definition — logs this once per nested
+    placement. The converter looks the node up after the parent definition has already consumed it.
+    The tree is still correct: the nested definition expands and renders under its transform. What
+    it does skip is the container-colour fallback for that nested placement.
+  </Accordion>
+  <Accordion title="Two objects share an applicationId and one of them vanishes.">
+    Give every object you mint a distinct id. The converter counts definition members by
+    `applicationId` and stops as soon as its count is met, so a duplicate consumes another member's
+    slot and that member is dropped. This is why the sample suffixes definition geometry rather than
+    reusing its carrier's id.
+  </Accordion>
+  <Accordion title="The model renders but everything is at the origin, stacked.">
+    Instance placement is not being applied. Check that your projection emits an `InstanceProxy` per
+    `DISPLAY_INSTANCE` edge with the instance node's transform, and that objects carrying a
+    definition member's properties are not also drawn — a carrier with geometry draws twice, once
+    untransformed at the origin.
+  </Accordion>
+</AccordionGroup>
