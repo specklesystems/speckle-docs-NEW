@@ -53,64 +53,54 @@ Then enter a server URL, project, model and version id, and a personal access
 token. The app loads either shape of version: a bundle through the bridge, an
 object graph from 2026.8 and earlier through `SpeckleLoader` as before.
 
-The app creates `CameraController`, `SelectionExtension` and a custom
-`ApplicationIdAuditExtension` — an ordinary extension with an injected dependency, a viewer
-event listener and a world-tree walk. It is there to show that once the loader has run,
-nothing downstream knows the data came from a bundle.
-
 To load a bundle directory you already have, serve it over HTTP with a `files.json` listing
 its file names beside it, then open `?bundle=<url>`. That path skips the version lookup and
 takes the same projection and loader a live version does.
 
-To look at a bundle on disk without a browser or a server at all:
+## Extensions, on purpose
 
-```bash
-pnpm inspect ./some-downloaded-bundle
-```
+Alongside `CameraController` and `SelectionExtension`, the app runs two things the Speckle
+web app does not:
 
-That prints the tables it read, the relation ids it did not recognise, what each
-projection produced, and which SGEO primitives it skipped.
+- **`ExplodeExtension`**, which ships with the viewer and the web app never creates.
+- **`BoxSelectExtension`** in `src/boxSelect.ts`, written here from scratch: an injected
+  `SelectionExtension` and `CameraController`, a drag rectangle, and a world-tree walk that
+  projects render-view bounds to the screen.
+
+That is the point. If an extension written from scratch against public Viewer API works on a
+bundle that came through the bridge, the Viewer 2 API surface works on 2026.9 data — not
+just the paths Speckle itself exercises. The ids box select reports are `applicationId`
+values, because that is what the projection sets `id` to.
 
 ## Layout
 
-| Path                                            | What it is                                             |
-| ----------------------------------------------- | ------------------------------------------------------ |
-| `src/bridge/artifacts.ts`                       | Version record, artifacts listing, downloads           |
-| `src/bridge/parquet.ts`                         | Parquet reads, including the zstd codec                |
-| `src/bridge/propertyTable.ts`                   | The eav tables as a lookup, with dotted paths rebuilt  |
-| `src/bridge/bundleReader.ts`                    | Parquet to dense-keyed tables and grouped relations    |
-| `src/bridge/decodeSgeo.ts`                      | Vendored SGEO decoder — do not edit                    |
-| `src/bridge/sgeoToSpeckle.ts`                   | Decoded primitives to `Objects.Geometry.*`             |
-| `src/bridge/projection-viewer-compatibility.ts` | **Path 1**: render only                                |
-| `src/bridge/projection-full.ts`                 | **Path 2**: properties, solids, complete carriage      |
-| `src/bridge/bundleLoader.ts`                    | The `SpeckleLoader` subclass and the end-to-end load   |
-| `src/bridge/bundleSpec.ts`                      | Vendored relation and node-kind catalog — do not edit  |
-| `src/applicationIdAudit.ts`                     | A custom extension, to show nothing downstream changes |
-| `src/main.ts`                                   | The mini app                                           |
-| `mise.toml`                                     | Optional: pins Node and pnpm, wraps the scripts        |
+| Path                                            | What it is                                               |
+| ----------------------------------------------- | -------------------------------------------------------- |
+| `src/bridge/artifacts.ts`                       | Version record, artifacts listing, downloads             |
+| `src/bridge/parquet.ts`                         | Parquet reads, including the zstd codec                  |
+| `src/bridge/propertyTable.ts`                   | The eav tables as a lookup, for object names             |
+| `src/bridge/bundleReader.ts`                    | Parquet to dense-keyed tables and grouped relations      |
+| `src/bridge/decodeSgeo.ts`                      | Vendored SGEO decoder — do not edit                      |
+| `src/bridge/sgeoToSpeckle.ts`                   | Decoded primitives to `Objects.Geometry.*`               |
+| `src/bridge/projection-viewer-compatibility.ts` | Bundle to `Base` objects: what the viewer converts       |
+| `src/bridge/bundleLoader.ts`                    | The `SpeckleLoader` subclass and the end-to-end load     |
+| `src/bridge/bundleSpec.ts`                      | Vendored relation and node-kind catalog — do not edit    |
+| `src/boxSelect.ts`                              | A custom extension, to show the Viewer 2 API still works |
+| `src/main.ts`                                   | The mini app                                             |
+| `mise.toml`                                     | Optional: pins Node and pnpm, wraps the scripts          |
 
-## Pick a projection
+## What the projection covers
 
-Both projections produce the same kind of object tree. Path 1 draws; path 2 draws
-and carries the data.
+It renders. It reads DISPLAY (1), DEFINES (4), HAS_MATERIAL (5), HAS_COLOR (6),
+DISPLAY_INSTANCE (8), DEFINES_INSTANCE (9) and IN_COLLECTION (10), and produces geometry,
+nested instances, materials, colours and a collection tree. Objects carry `applicationId`
+and a name.
 
-|                                         | Path 1 — viewer compatibility | Path 2 — full                      |
-| --------------------------------------- | ----------------------------- | ---------------------------------- |
-| Geometry, instances, materials, colours | Yes                           | Yes                                |
-| Object properties                       | No                            | Instance and type-level, merged    |
-| Solids preference                       | No                            | Optional, display mesh as fallback |
-| Objects with no geometry                | Dropped                       | Carried                            |
-| Reference point                         | No                            | Yes                                |
-| Relations read                          | 1, 4, 5, 6, 8, 9, 10          | those plus 2, 26–30                |
-
-Path 1 is the default in `src/main.ts`. To switch, change one import:
-
-```ts
-import { projectBundle } from './bridge/projection-full.js'
-```
-
-The two files keep the same function names in the same order on purpose. A fix to
-one is mechanical to apply to the other — keep them that way.
+It deliberately stops there. Object properties, solids, the appearance precedence on rels
+26–29, centrelines and the reference point are all in the bundle and none of them are read,
+because rendering does not need them and every line here is a line you own once you copy it.
+If your app reads data as well as drawing it, the rules for the rest are in [Load a bundle in
+your own code](https://docs.speckle.systems/next/developers/building-integrations/load).
 
 ## Vendored files
 
@@ -138,5 +128,6 @@ neither is on public npm. Do not edit them here; re-copy them from source.
   ceiling 2026.9 raises.
 
 Verified against `@speckle/viewer@2.31.14`, `@speckle/objectloader2@2.31.14` and
-bundle spec 1.2.0, as of September 2026: a bundle fixture loads, renders, expands
-nested instances under their transforms, and resolves selection by `applicationId`.
+bundle spec 1.2.0, as of September 2026: a bundle fixture loads, renders on WebGL,
+expands nested instances under their transforms, and both extensions run against it —
+box select returns `applicationId` values for the objects inside the rectangle.

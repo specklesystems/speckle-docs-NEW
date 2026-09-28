@@ -4,38 +4,148 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Speckle bundle bridge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <style>
+      /* Tokens taken from speckle.systems: Inter and DM Mono, #136CFF, 6px radii. */
+      :root {
+        --blue: #136cff;
+        --ink: #404040;
+        --muted: #737373;
+        --border: #e8eef4;
+        --surface: #f5f5f5;
+        --sans:
+          Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        --mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
-        font:
-          14px/1.4 system-ui,
-          sans-serif;
         display: grid;
-        grid-template-columns: 320px 1fr;
+        grid-template-columns: 340px 1fr;
         height: 100vh;
+        font-family: var(--sans);
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--ink);
+        background: #fff;
       }
+
       aside {
-        padding: 16px;
+        padding: 24px;
         overflow: auto;
-        border-right: 1px solid #ddd;
+        border-right: 1px solid var(--border);
       }
+
+      h1 {
+        margin: 0 0 4px;
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        margin: 28px 0 12px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .lede {
+        margin: 0 0 20px;
+        color: var(--muted);
+      }
+
       label {
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--muted);
       }
-      input {
+
+      input[type='text'],
+      input[type='password'] {
+        display: block;
         width: 100%;
-        box-sizing: border-box;
-        padding: 6px;
+        margin-top: 4px;
+        padding: 8px 10px;
+        font: inherit;
+        font-size: 13px;
+        color: var(--ink);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #fff;
       }
+
+      input:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 1px;
+      }
+
+      input[type='range'] {
+        width: 100%;
+        margin-top: 6px;
+        accent-color: var(--blue);
+      }
+
+      .toggle {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 13px;
+        color: var(--ink);
+      }
+
+      .toggle input {
+        accent-color: var(--blue);
+      }
+
       button {
-        padding: 8px 12px;
+        width: 100%;
+        padding: 10px 16px;
+        font-family: var(--sans);
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+        background: var(--blue);
+        border: 0;
+        border-radius: 6px;
+        cursor: pointer;
       }
+
+      button:hover {
+        filter: brightness(0.94);
+      }
+
       pre {
+        margin: 20px 0 0;
+        padding: 12px;
+        font-family: var(--mono);
+        font-size: 11px;
+        line-height: 1.6;
+        color: var(--muted);
         white-space: pre-wrap;
-        background: #f6f6f6;
-        padding: 8px;
+        background: var(--surface);
+        border-radius: 6px;
       }
+
+      pre:empty {
+        display: none;
+      }
+
       #viewer {
         position: relative;
       }
@@ -44,14 +154,31 @@
   <body>
     <aside>
       <h1>Bundle bridge</h1>
-      <form id="load-form">
-        <label>Server URL <input name="serverUrl" value="https://app.speckle.systems" /></label>
-        <label>Project id <input name="projectId" /></label>
-        <label>Model id <input name="modelId" /></label>
-        <label>Version id <input name="versionId" /></label>
+      <p class="lede">Load a 2026.9 bundle into the published Speckle Viewer.</p>
+
+      <!-- Guarantees no native submit, even before the module has loaded. -->
+      <form id="load-form" onsubmit="return false">
+        <label>
+          Server URL
+          <input name="serverUrl" type="text" value="https://app.speckle.systems" />
+        </label>
+        <label>Project id <input name="projectId" type="text" /></label>
+        <label>Model id <input name="modelId" type="text" /></label>
+        <label>Version id <input name="versionId" type="text" /></label>
         <label>Personal access token <input name="token" type="password" /></label>
         <button type="submit">Load</button>
       </form>
+
+      <h2>Viewer 2 extensions</h2>
+      <label>
+        Explode
+        <input id="explode" type="range" min="0" max="1" step="0.01" value="0" />
+      </label>
+      <label class="toggle">
+        <input id="box-select" type="checkbox" />
+        Box select (drag)
+      </label>
+
       <pre id="status"></pre>
     </aside>
     <div id="viewer"></div>

@@ -10,9 +10,11 @@
 import {
   CameraController,
   DefaultViewerParams,
+  ExplodeExtension,
   SelectionExtension,
   SpeckleLoader,
-  Viewer
+  Viewer,
+  type TreeNode
 } from '@speckle/viewer'
 import {
   fetchVersionRecord,
@@ -21,28 +23,47 @@ import {
   type VersionRef
 } from './bridge/artifacts.js'
 import { loadBundleFiles, loadBundleVersion } from './bridge/bundleLoader.js'
-import { ApplicationIdAuditExtension } from './applicationIdAudit.js'
-
-// Swap this import for './bridge/projection-full.js' when your app reads properties.
 import { projectBundle } from './bridge/projection-viewer-compatibility.js'
+import { BoxSelectExtension } from './boxSelect.js'
 
 const container = document.getElementById('viewer') as HTMLDivElement
 const form = document.getElementById('load-form') as HTMLFormElement
 const status = document.getElementById('status') as HTMLPreElement
-
-const viewer = new Viewer(container, { ...DefaultViewerParams, verbose: false })
-await viewer.init()
-viewer.createExtension(CameraController)
-viewer.createExtension(SelectionExtension)
-
-// An ordinary custom extension, created the same way as the built-in ones.
-const audit = viewer.createExtension(ApplicationIdAuditExtension)
+const explode = document.getElementById('explode') as HTMLInputElement
+const boxToggle = document.getElementById('box-select') as HTMLInputElement
 
 function say(message: string): void {
   status.textContent = `${status.textContent ?? ''}${message}\n`
 }
 
-audit.reportSelectionTo((ids) => say(`selected: ${ids}`))
+// Attached before the viewer finishes initialising: a click made during startup is
+// handled here and waits, rather than submitting the form natively and reloading
+// the page.
+form.addEventListener('submit', (event) => {
+  event.preventDefault()
+  load().catch((error: unknown) => say(`error: ${(error as Error).message}`))
+})
+
+const viewer = new Viewer(container, { ...DefaultViewerParams, verbose: false })
+
+const ready = viewer.init().then(() => {
+  viewer.createExtension(CameraController)
+  viewer.createExtension(SelectionExtension)
+
+  // Neither of these is used by the Speckle web app: one ships with the viewer, one
+  // is written here. Both work on bundle data, which is the claim worth testing.
+  const exploder = viewer.createExtension(ExplodeExtension)
+  const boxSelect = viewer.createExtension(BoxSelectExtension)
+
+  boxSelect.reportSelectionTo((ids) =>
+    say(ids.length ? `box selected: ${ids.join(', ')}` : 'box selected: nothing')
+  )
+  explode.addEventListener('input', () => exploder.setExplode(Number(explode.value)))
+  boxToggle.addEventListener('change', () => {
+    boxSelect.enabled = boxToggle.checked
+    say(boxToggle.checked ? 'box select on — drag to select' : 'box select off')
+  })
+})
 
 function readForm(): { ref: VersionRef; token: string } {
   const data = new FormData(form)
@@ -65,10 +86,18 @@ function reportBundle(report: { skipped: Map<string, number> }, unknown: number[
   if (unknown.length) say(`unknown relation ids: ${unknown.join(', ')}`)
 }
 
-function reportAudit(): void {
-  const { nodes, objects, withGeometry, sampleIds } = audit.audit()
+/** What actually arrived. Render views hang off nested geometry nodes, not atomic ones. */
+function reportTree(): void {
+  let nodes = 0
+  let objects = 0
+  let withGeometry = 0
+  viewer.getWorldTree().walk((node: TreeNode) => {
+    nodes++
+    if (node.model.renderView) withGeometry++
+    if (node.model.atomic) objects++
+    return true
+  })
   say(`tree: ${nodes} nodes, ${objects} objects, ${withGeometry} with geometry`)
-  if (sampleIds.length) say(`applicationIds: ${sampleIds.join(', ')}`)
 }
 
 async function loadLocal(bundleUrl: string): Promise<void> {
@@ -82,12 +111,13 @@ async function loadLocal(bundleUrl: string): Promise<void> {
   })
   await viewer.loadObject(loader, true)
   reportBundle(report, unknownRelations)
-  reportAudit()
+  reportTree()
   say('done')
 }
 
 async function load(): Promise<void> {
   status.textContent = ''
+  await ready
 
   const bundleUrl = new URLSearchParams(window.location.search).get('bundle')
   if (bundleUrl) return await loadLocal(bundleUrl)
@@ -101,7 +131,7 @@ async function load(): Promise<void> {
     const objectUrl = `${ref.serverUrl}/streams/${ref.projectId}/objects/${version.referencedObject ?? ''}`
     const loader = new SpeckleLoader(viewer.getWorldTree(), objectUrl, token)
     await viewer.loadObject(loader, true)
-    reportAudit()
+    reportTree()
     say('done')
     return
   }
@@ -115,11 +145,6 @@ async function load(): Promise<void> {
   })
   await viewer.loadObject(loader, true)
   reportBundle(report, unknownRelations)
-  reportAudit()
+  reportTree()
   say('done')
 }
-
-form.addEventListener('submit', (event) => {
-  event.preventDefault()
-  load().catch((error: unknown) => say(`error: ${(error as Error).message}`))
-})

@@ -138,25 +138,22 @@ pnpm add hyparquet hyparquet-compressors
 You should see a parquet read return rows whose `content` values are byte arrays, not
 strings.
 
-## 3. Drop in one of the two projections
+## 3. Drop in the projection
 
-Copy `src/bridge/` from the sample into your app. It contains two projections; take one.
+Copy `src/bridge/` from the sample into your app. `projectBundle` turns the bundle into the
+object shape the viewer already converts: a collection tree, one object per `applicationId`
+carrying its display geometry, and instance, material and colour proxies.
 
-|                                         | Path 1 — viewer compatibility | Path 2 — full                          |
-| --------------------------------------- | ----------------------------- | -------------------------------------- |
-| Geometry, instances, materials, colours | Yes                           | Yes                                    |
-| Object properties                       | No                            | Instance and type-level, merged        |
-| Solids preference                       | No                            | Optional, display mesh as the fallback |
-| Objects with no geometry                | Dropped                       | Carried                                |
-| Reference point                         | No                            | Yes                                    |
-| Relations read                          | 1, 4, 5, 6, 8, 9, 10          | those plus 2, 26–30                    |
+It reads the relations rendering needs — DISPLAY, DEFINES, HAS_MATERIAL, HAS_COLOR,
+DISPLAY_INSTANCE, DEFINES_INSTANCE and IN_COLLECTION — and nothing else. Object properties,
+solids, the appearance precedence on rels 26–29 and the reference point are all in the
+bundle and all unread, because drawing does not need them.
 
-Start from path 1 if your app draws models. Take path 2 if it also reads properties — for a
-data panel, a filter over parameters, a takeoff. Path 2 covers path 1 completely, so moving
-up later is one import.
-
-The two files keep the same function names in the same order deliberately. Keep them that
-way, and a projection fix stays mechanical to apply twice.
+<Tip>
+  If your app reads data as well as drawing it, add what you need rather than reaching for a bigger
+  projection. The rules for every table and relation are in [Load a bundle in your own
+  code](/next/developers/building-integrations/load), and the projection is the place to apply them.
+</Tip>
 
 You should see `projectBundle` return a root object whose `elements` hold your objects.
 
@@ -213,33 +210,38 @@ export class BundleLoader extends SpeckleLoader {
 
 You should see the model render, and `viewer.getWorldTree()` report nodes.
 
-Your own extensions need no changes. They are created the same way, they see the same world
-tree, and they resolve the same ids — the sample ships one that walks the tree and reports
-what it found, to make that concrete:
+Your own extensions need no changes. They are created the same way, see the same world tree,
+and resolve the same ids. The sample proves that with two the Speckle web app never runs:
+`ExplodeExtension`, which ships with the viewer, and a box select written from scratch —
 
-```ts applicationIdAudit.ts
-export class ApplicationIdAuditExtension extends Extension {
-  get inject(): Array<typeof SelectionExtension> {
-    return [SelectionExtension]
+```ts boxSelect.ts
+export class BoxSelectExtension extends Extension {
+  get inject(): Array<typeof SelectionExtension | typeof CameraController> {
+    return [SelectionExtension, CameraController]
   }
 
-  audit(): AuditSummary {
-    const summary = { nodes: 0, objects: 0, withGeometry: 0 }
+  private idsInside(rect: Rect): string[] {
+    const camera = this.viewer.getRenderer().renderingCamera
+    const ids = new Set<string>()
     this.viewer.getWorldTree().walk((node: TreeNode) => {
-      summary.nodes++
-      if (node.model.renderView) summary.withGeometry++
-      if (node.model.atomic) summary.objects++
+      const aabb = node.model.renderView?.aabb
+      if (aabb && inside(project(centre(aabb), camera), rect)) {
+        ids.add(String(node.model.raw.applicationId))
+      }
       return true
     })
-    return summary
+    return [...ids]
   }
 }
 ```
 
+If an extension written from scratch against public API works on bridged data, the Viewer 2
+surface works on 2026.9 data generally — not only the paths Speckle exercises.
+
 <Tip>
-  Count render views across every node, not only `atomic` ones. Render views hang off the nested
-  geometry nodes, so an audit that checks atomic nodes alone reports zero geometry on a model that
-  renders perfectly well.
+  Read render views across every node, not only `atomic` ones, and expect some to have no bounds.
+  Render views hang off the nested geometry nodes, so a walk that checks atomic nodes alone finds
+  nothing on a model that renders perfectly well.
 </Tip>
 
 ## 5. Rekey your interactions to applicationId
@@ -278,15 +280,19 @@ You should see selection in your app resolve to the same objects it did before, 
 
 ## What does not come across
 
-A bundle carries more than either projection reads, and more than the published viewer can
+A bundle carries far more than the projection reads, and more than the published viewer can
 draw. None of these raise an error, so check the list against what your app promises.
 
-**Relations.** The catalog is in [Relations](/next/developers/object-model/relations).
-Path 1 reads DISPLAY, DEFINES, HAS_MATERIAL, HAS_COLOR, DISPLAY_INSTANCE, DEFINES_INSTANCE
-and IN_COLLECTION. Path 2 adds SOLID, PLACES, DEFINES_MEMBER, the object and node appearance
-relations, and CENTERLINE. Neither builds a scene-view tree, levels, rooms, systems, groups,
-assemblies, connectivity or hosting — those rows are in the bundle and available to you, but
-nothing in the sample reads them into the tree.
+**Relations.** The catalog is in [Relations](/next/developers/object-model/relations). The
+projection reads DISPLAY, DEFINES, HAS_MATERIAL, HAS_COLOR, DISPLAY_INSTANCE,
+DEFINES_INSTANCE and IN_COLLECTION. Everything else is carried and unread: solids,
+centrelines, the object and node appearance relations, scene views, levels, rooms, systems,
+groups, assemblies, connectivity and hosting. Those rows are in the bundle and available to
+you — nothing in the sample reads them into the tree.
+
+**Properties.** Objects arrive with `applicationId` and a name, and an empty `properties`.
+The eav tables, the type-level merge and the model-scoped rows are all unread. That is a
+deliberate floor, not an oversight: add what your app needs.
 
 **Geometry.** Meshes, lines, polylines and the tessellated curve family render. Text,
 points, boxes and regions decode but are not converted. The sample counts what it skipped and
@@ -338,9 +344,10 @@ documentation still applies:
     then has to keep in step with the .NET and Python SDKs. Sample code you own is honest about what
     it is: a worked example of documented rules, dated, in your app, under your control.
   </Accordion>
-  <Accordion title="Can I load properties without downloading geometry?">
-    Yes. Geometry is the bulk of a bundle and lives in its own shards. Pass `includeGeometry: false`
-    and only the eav and envelope tables download. You get properties with nothing to draw.
+  <Accordion title="Can I skip downloading geometry?">
+    Yes — pass `includeGeometry: false` and the geometry shards, which are the bulk of a bundle, are
+    never fetched. The projection here renders, so that leaves it with nothing to draw; it is useful
+    once you extend the projection to read the eav tables.
   </Accordion>
   <Accordion title="Do I still need @speckle/objectloader2?">
     Yes, and you keep the same version. The bridge uses `ObjectLoader2Factory.createFromObjects`

@@ -26,38 +26,20 @@ export interface ArtifactFile {
 }
 
 /**
- * The tables this bridge reads. `meta`, `rel_types` and `node_kinds` are the
- * catalogs the bundle describes itself with; read them before trusting any id.
+ * The tables this bridge reads to render. A bundle carries more — type-level
+ * properties, model-scoped properties, scene views, and the `rel_types` and
+ * `node_kinds` catalogs. This sample takes its vocabulary from the pinned copy of
+ * the spec in bundleSpec.ts instead, and downloads nothing it does not read.
  */
-export type BundleTable =
-  | 'objects'
-  | 'paths'
-  | 'eav'
-  | 'types'
-  | 'type_eav'
-  | 'object_type'
-  | 'model'
-  | 'nodes'
-  | 'relations'
-  | 'rel_types'
-  | 'node_kinds'
-  | 'meta'
-  | 'scene_views'
+export type BundleTable = 'objects' | 'paths' | 'eav' | 'nodes' | 'relations' | 'meta'
 
 const TABLE_SUFFIX: Record<BundleTable, string> = {
   objects: '.eav.objects.parquet',
   paths: '.eav.paths.parquet',
   eav: '.eav.eav.parquet',
-  types: '.eav.types.parquet',
-  type_eav: '.eav.type_eav.parquet',
-  object_type: '.eav.object_type.parquet',
-  model: '.eav.model.parquet',
   nodes: '.envelope.nodes.parquet',
   relations: '.envelope.relations.parquet',
-  rel_types: '.envelope.rel_types.parquet',
-  node_kinds: '.envelope.node_kinds.parquet',
-  meta: '.envelope.meta.parquet',
-  scene_views: '.envelope.scene_views.parquet'
+  meta: '.envelope.meta.parquet'
 }
 
 const GEOMETRY_SHARD = /\.geometries(\.\d+)?\.parquet$/
