@@ -356,6 +356,12 @@ documentation still applies:
     never fetched. The projection here renders, so that leaves it with nothing to draw; it is useful
     once you extend the projection to read the eav tables.
   </Accordion>
+  <Accordion title="Can it use my browser session instead of a token?">
+    Not from another origin. Your app cannot read Speckle's auth cookie — that is the origin model —
+    and sending the request with `credentials: 'include'` does not help either, because the cookie
+    is `SameSite=Lax` and so never rides a cross-site fetch. Use a token. A public project needs
+    none at all: send no `Authorization` header rather than an empty one, which is rejected.
+  </Accordion>
   <Accordion title="Do I still need @speckle/objectloader2?">
     Yes, and you keep the same version. The bridge uses `ObjectLoader2Factory.createFromObjects`
     instead of `createFromUrl`, which is why no request goes to the objects endpoints.
