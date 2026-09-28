@@ -26,17 +26,29 @@ export interface ArtifactFile {
 }
 
 /**
- * The tables this bridge reads to render. A bundle carries more — type-level
- * properties, model-scoped properties, scene views, and the `rel_types` and
+ * The tables this bridge reads. A bundle carries more — scene views, camera views,
+ * structural results, property set definitions, and the `rel_types` and
  * `node_kinds` catalogs. This sample takes its vocabulary from the pinned copy of
  * the spec in bundleSpec.ts instead, and downloads nothing it does not read.
  */
-export type BundleTable = 'objects' | 'paths' | 'eav' | 'nodes' | 'relations' | 'meta'
+export type BundleTable =
+  | 'objects'
+  | 'paths'
+  | 'eav'
+  | 'type_eav'
+  | 'object_type'
+  | 'model'
+  | 'nodes'
+  | 'relations'
+  | 'meta'
 
 const TABLE_SUFFIX: Record<BundleTable, string> = {
   objects: '.eav.objects.parquet',
   paths: '.eav.paths.parquet',
   eav: '.eav.eav.parquet',
+  type_eav: '.eav.type_eav.parquet',
+  object_type: '.eav.object_type.parquet',
+  model: '.eav.model.parquet',
   nodes: '.envelope.nodes.parquet',
   relations: '.envelope.relations.parquet',
   meta: '.envelope.meta.parquet'

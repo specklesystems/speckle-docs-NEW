@@ -8,9 +8,13 @@ import {
   type ArtifactFile,
   type VersionRef
 } from './artifacts.js'
-import type { BaseObject } from './baseTypes.js'
-import { readBundle } from './bundleReader.js'
-import type { GeometryReport } from './sgeoToSpeckle.js'
+import { readBundle, type Bundle } from './bundleReader.js'
+import {
+  projectBundle,
+  type BaseObject,
+  type GeometryReport,
+  type ProjectionOptions
+} from './projection.js'
 
 /**
  * A loader for an already-projected bundle. Everything asynchronous happens before
@@ -45,26 +49,26 @@ export interface LoadedBundle {
   report: GeometryReport
   /** Relation ids the reader did not know. Report them; never fail on them. */
   unknownRelations: number[]
+  /**
+   * Kept so the app can go from a viewer selection back to the producer's own
+   * tables by `applicationId`, rather than only reading what the projection chose
+   * to copy onto the objects.
+   */
+  bundle: Bundle
 }
-
-export type Projector<TOptions> = (
-  bundle: Awaited<ReturnType<typeof readBundle>>,
-  options?: TOptions
-) => { root: BaseObject; report: GeometryReport }
 
 /**
  * The whole load, end to end: version record, artifacts, parquet, projection,
- * loader. Pass whichever projection you dropped in.
+ * loader.
  */
-export async function loadBundleVersion<TOptions>(params: {
+export async function loadBundleVersion(params: {
   tree: WorldTree
   ref: VersionRef
-  token: string
-  project: Projector<TOptions>
-  projectionOptions?: TOptions
+  token?: string
+  projection?: ProjectionOptions
   includeGeometry?: boolean
 }): Promise<LoadedBundle> {
-  const { tree, ref, token, project } = params
+  const { tree, ref, token } = params
 
   const version = await fetchVersionRecord(ref, token)
   if (!isBundleVersion(version)) {
@@ -83,23 +87,23 @@ export async function loadBundleVersion<TOptions>(params: {
  * loader. Split out so a bundle you already have — downloaded, or served from disk
  * through `listLocalBundle` — takes the same path a live version does.
  */
-export async function loadBundleFiles<TOptions>(params: {
+export async function loadBundleFiles(params: {
   tree: WorldTree
   files: ArtifactFile[]
   resource: string
-  project: Projector<TOptions>
-  projectionOptions?: TOptions
+  projection?: ProjectionOptions
   includeGeometry?: boolean
 }): Promise<LoadedBundle> {
   const downloaded = await downloadBundle(params.files, {
     includeGeometry: params.includeGeometry ?? true
   })
   const bundle = await readBundle(downloaded)
-  const { root, report } = params.project(bundle, params.projectionOptions)
+  const { root, report } = projectBundle(bundle, params.projection)
 
   return {
     loader: new BundleLoader(params.tree, params.resource, root),
     report,
-    unknownRelations: [...bundle.relations.unknownRels]
+    unknownRelations: [...bundle.relations.unknownRels],
+    bundle
   }
 }

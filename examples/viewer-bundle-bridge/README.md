@@ -70,6 +70,11 @@ web app does not:
   `SelectionExtension` and `CameraController`, a drag rectangle, and a world-tree walk that
   projects render-view bounds to the screen.
 
+Selecting anything fills a properties HUD. The lookup goes to the bundle rather than to the
+object the viewer is holding: the viewer hands back an `applicationId` and the bundle's own
+eav tables answer to it. That is the round trip the bridge is really for, and it works even
+for objects the projection drew as instance proxies, which carry no properties of their own.
+
 That is the point. If an extension written from scratch against public Viewer API works on a
 bundle that came through the bridge, the Viewer 2 API surface works on 2026.9 data — not
 just the paths Speckle itself exercises. The ids box select reports are `applicationId`
@@ -77,33 +82,39 @@ values, because that is what the projection sets `id` to.
 
 ## Layout
 
-| Path                                            | What it is                                               |
-| ----------------------------------------------- | -------------------------------------------------------- |
-| `src/bridge/artifacts.ts`                       | Version record, artifacts listing, downloads             |
-| `src/bridge/parquet.ts`                         | Parquet reads, including the zstd codec                  |
-| `src/bridge/propertyTable.ts`                   | The eav tables as a lookup, for object names             |
-| `src/bridge/bundleReader.ts`                    | Parquet to dense-keyed tables and grouped relations      |
-| `src/bridge/decodeSgeo.ts`                      | Vendored SGEO decoder — do not edit                      |
-| `src/bridge/sgeoToSpeckle.ts`                   | Decoded primitives to `Objects.Geometry.*`               |
-| `src/bridge/projection-viewer-compatibility.ts` | Bundle to `Base` objects: what the viewer converts       |
-| `src/bridge/bundleLoader.ts`                    | The `SpeckleLoader` subclass and the end-to-end load     |
-| `src/bridge/bundleSpec.ts`                      | Vendored relation and node-kind catalog — do not edit    |
-| `src/boxSelect.ts`                              | A custom extension, to show the Viewer 2 API still works |
-| `src/main.ts`                                   | The mini app                                             |
-| `mise.toml`                                     | Optional: pins Node and pnpm, wraps the scripts          |
+| Path                         | What it is                                               |
+| ---------------------------- | -------------------------------------------------------- |
+| `src/bridge/artifacts.ts`    | Version record, artifacts listing, downloads             |
+| `src/bridge/bundleReader.ts` | Parquet and eav tables to dense-keyed maps and relations |
+| `src/bridge/projection.ts`   | Bundle to `Base` objects: what the viewer converts       |
+| `src/bridge/bundleLoader.ts` | The `SpeckleLoader` subclass and the end-to-end load     |
+| `src/bridge/decodeSgeo.ts`   | Vendored SGEO decoder — do not edit                      |
+| `src/bridge/bundleSpec.ts`   | Vendored relation and node-kind catalog — do not edit    |
+| `src/boxSelect.ts`           | A custom extension, to show the Viewer 2 API still works |
+| `src/propertiesHud.ts`       | Selection to the producer's own properties               |
+| `src/main.ts`                | The mini app                                             |
+| `mise.toml`                  | Optional: pins Node and pnpm, wraps the scripts          |
 
 ## What the projection covers
 
-It renders. It reads DISPLAY (1), DEFINES (4), HAS_MATERIAL (5), HAS_COLOR (6),
-DISPLAY_INSTANCE (8), DEFINES_INSTANCE (9) and IN_COLLECTION (10), and produces geometry,
-nested instances, materials, colours and a collection tree. Objects carry `applicationId`
-and a name.
+Rendering is unconditional: geometry, nested instances, grouping, and the full material and
+colour precedence from the geometry up through the object to its container — rels 1, 4, 5, 6,
+8, 9, 10 and 26–29.
 
-It deliberately stops there. Object properties, solids, the appearance precedence on rels
-26–29, centrelines and the reference point are all in the bundle and none of them are read,
-because rendering does not need them and every line here is a line you own once you copy it.
-If your app reads data as well as drawing it, the rules for the rest are in [Load a bundle in
-your own code](https://docs.speckle.systems/next/developers/building-integrations/load).
+Two things cost extra reads, so they are options:
+
+```ts
+projectBundle(bundle, { properties: true, referencePoint: true })
+```
+
+`properties` merges each object's instance and type-level rows. The type rows live in their
+own table, and without that merge most Revit type parameters are absent — which is what the
+HUD would show you. `referencePoint` carries the model's datum onto the root. An app that only
+draws leaves both off and never downloads the eav tables.
+
+Solids, centrelines and the scene-view tree are carried by the bundle and read by none of
+this. The rules for them are in [Load a bundle in your own
+code](https://docs.speckle.systems/next/developers/building-integrations/load).
 
 ## Vendored files
 

@@ -151,15 +151,23 @@ Copy `src/bridge/` from the sample into your app. `projectBundle` turns the bund
 object shape the viewer already converts: a collection tree, one object per `applicationId`
 carrying its display geometry, and instance, material and colour proxies.
 
-It reads the relations rendering needs — DISPLAY, DEFINES, HAS_MATERIAL, HAS_COLOR,
-DISPLAY_INSTANCE, DEFINES_INSTANCE and IN_COLLECTION — and nothing else. Object properties,
-solids, the appearance precedence on rels 26–29 and the reference point are all in the
-bundle and all unread, because drawing does not need them.
+Rendering is unconditional: geometry, nested instances, grouping, and the full material and
+colour precedence from the geometry up through the object to its container. Two things cost
+extra reads, so they are options rather than defaults:
+
+```ts
+projectBundle(bundle, { properties: true, referencePoint: true })
+```
+
+`properties` merges each object's instance and type-level rows — the type rows live in their
+own table, and without that merge most Revit type parameters are simply absent. `referencePoint`
+carries the model's datum onto the root. An app that only draws leaves both off and never
+downloads the eav tables at all.
 
 <Tip>
-  If your app reads data as well as drawing it, add what you need rather than reaching for a bigger
-  projection. The rules for every table and relation are in [Load a bundle in your own
-  code](/next/developers/building-integrations/load), and the projection is the place to apply them.
+  Solids, centrelines and the scene-view tree are carried by the bundle and read by none of this.
+  Add what your app needs rather than assuming its absence is a bug — the rules for every table and
+  relation are in [Load a bundle in your own code](/next/developers/building-integrations/load).
 </Tip>
 
 You should see `projectBundle` return a root object whose `elements` hold your objects.
@@ -292,14 +300,10 @@ draw. None of these raise an error, so check the list against what your app prom
 
 **Relations.** The catalog is in [Relations](/next/developers/object-model/relations). The
 projection reads DISPLAY, DEFINES, HAS_MATERIAL, HAS_COLOR, DISPLAY_INSTANCE,
-DEFINES_INSTANCE and IN_COLLECTION. Everything else is carried and unread: solids,
-centrelines, the object and node appearance relations, scene views, levels, rooms, systems,
-groups, assemblies, connectivity and hosting. Those rows are in the bundle and available to
-you — nothing in the sample reads them into the tree.
-
-**Properties.** Objects arrive with `applicationId` and a name, and an empty `properties`.
-The eav tables, the type-level merge and the model-scoped rows are all unread. That is a
-deliberate floor, not an oversight: add what your app needs.
+DEFINES_INSTANCE, IN_COLLECTION and the object and node appearance relations. Everything else
+is carried and unread: solids, centrelines, scene views, levels, rooms, systems, groups,
+assemblies, connectivity and hosting. Those rows are in the bundle and available to you —
+nothing in the sample reads them into the tree.
 
 **Geometry.** Meshes, lines, polylines and the tessellated curve family render. Text,
 points, boxes and regions decode but are not converted. The sample counts what it skipped and

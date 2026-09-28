@@ -14,6 +14,7 @@ import {
   SelectionExtension,
   SpeckleLoader,
   Viewer,
+  ViewerEvent,
   type TreeNode
 } from '@speckle/viewer'
 import {
@@ -23,14 +24,20 @@ import {
   type VersionRef
 } from './bridge/artifacts.js'
 import { loadBundleFiles, loadBundleVersion } from './bridge/bundleLoader.js'
-import { projectBundle } from './bridge/projection-viewer-compatibility.js'
+import type { ProjectionOptions } from './bridge/projection.js'
 import { BoxSelectExtension } from './boxSelect.js'
+import { PropertiesHud } from './propertiesHud.js'
+
+// The HUD reads properties, so the projection has to carry them. An app that only
+// draws leaves this off and never pays for the eav tables.
+const PROJECTION: ProjectionOptions = { properties: true, referencePoint: true }
 
 const container = document.getElementById('viewer') as HTMLDivElement
 const form = document.getElementById('load-form') as HTMLFormElement
 const status = document.getElementById('status') as HTMLPreElement
 const explode = document.getElementById('explode') as HTMLInputElement
 const boxToggle = document.getElementById('box-select') as HTMLInputElement
+const hud = new PropertiesHud(document.getElementById('hud') as HTMLElement)
 
 function say(message: string): void {
   status.textContent = `${status.textContent ?? ''}${message}\n`
@@ -55,9 +62,14 @@ const ready = viewer.init().then(() => {
   const exploder = viewer.createExtension(ExplodeExtension)
   const boxSelect = viewer.createExtension(BoxSelectExtension)
 
-  boxSelect.reportSelectionTo((ids) =>
-    say(ids.length ? `box selected: ${ids.join(', ')}` : 'box selected: nothing')
-  )
+  boxSelect.reportSelectionTo((ids) => {
+    say(ids.length ? `box selected: ${ids.length} objects` : 'box selected: nothing')
+    hud.show(ids[0])
+  })
+
+  viewer.on(ViewerEvent.ObjectClicked, (event) => {
+    hud.show(event?.hits[0]?.node?.model?.raw?.applicationId as string | undefined)
+  })
   explode.addEventListener('input', () => exploder.setExplode(Number(explode.value)))
   boxToggle.addEventListener('change', () => {
     boxSelect.enabled = boxToggle.checked
@@ -103,13 +115,14 @@ function reportTree(): void {
 async function loadLocal(bundleUrl: string): Promise<void> {
   say(`local bundle at ${bundleUrl}`)
   const files = await listLocalBundle(bundleUrl)
-  const { loader, report, unknownRelations } = await loadBundleFiles({
+  const { loader, report, unknownRelations, bundle } = await loadBundleFiles({
     tree: viewer.getWorldTree(),
     files,
     resource: bundleUrl,
-    project: projectBundle
+    projection: PROJECTION
   })
   await viewer.loadObject(loader, true)
+  hud.attach(bundle)
   reportBundle(report, unknownRelations)
   reportTree()
   say('done')
@@ -117,6 +130,7 @@ async function loadLocal(bundleUrl: string): Promise<void> {
 
 async function load(): Promise<void> {
   status.textContent = ''
+  hud.clear()
   await ready
 
   const bundleUrl = new URLSearchParams(window.location.search).get('bundle')
@@ -145,13 +159,14 @@ async function load(): Promise<void> {
   }
 
   say('bundle — loading through the bridge')
-  const { loader, report, unknownRelations } = await loadBundleVersion({
+  const { loader, report, unknownRelations, bundle } = await loadBundleVersion({
     tree: viewer.getWorldTree(),
     ref,
     token,
-    project: projectBundle
+    projection: PROJECTION
   })
   await viewer.loadObject(loader, true)
+  hud.attach(bundle)
   reportBundle(report, unknownRelations)
   reportTree()
   say('done')
