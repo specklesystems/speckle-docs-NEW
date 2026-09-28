@@ -12,7 +12,7 @@ import { BoxSelectExtension } from './boxSelect.js'
 const SHOWN = 6
 
 /**
- * Click an object, see what the producer published about it.
+ * Click or box select, see what the producer published about it.
  *
  * The lookup goes to the bundle, not to the object the viewer is holding. That is
  * the round trip the bridge is really for: the viewer hands back an
@@ -33,6 +33,9 @@ export class PropertiesHudExtension extends Extension {
 
   private readonly element: HTMLElement
   private bundle?: Bundle
+  private ids: string[] = []
+  private index = 0
+  private unpublished = 0
 
   constructor(
     viewer: IViewer,
@@ -46,51 +49,99 @@ export class PropertiesHudExtension extends Extension {
     this.element.hidden = true
     this.viewer.getContainer().appendChild(this.element)
 
-    this.viewer.on(ViewerEvent.ObjectClicked, (event: SelectionEvent | null) => {
-      this.show(event?.hits[0]?.node?.model?.raw?.applicationId as string | undefined)
+    // Delegated, because every render replaces the pager's buttons.
+    this.element.addEventListener('click', (event) => {
+      const step = (event.target as HTMLElement).dataset?.step
+      if (step) this.step(Number(step))
     })
-    this.boxSelect.reportSelectionTo((ids) => this.show(ids[0]))
+
+    this.viewer.on(ViewerEvent.ObjectClicked, (event: SelectionEvent | null) => {
+      const id = event?.hits[0]?.node?.model?.raw?.applicationId as string | undefined
+      this.show(id ? [id] : [])
+    })
+    this.boxSelect.reportSelectionTo((ids) => this.show(ids))
   }
 
   /** Called once per load: the tables every later lookup reads. */
   attach(bundle: Bundle): void {
     this.bundle = bundle
-    this.clear()
+    this.show([])
   }
 
-  show(applicationId: string | undefined): void {
-    if (!this.bundle || !applicationId) return this.clear()
+  /**
+   * Keep only ids the producer actually published. The projection mints synthetic
+   * ids for definition geometry that has no owning object (`def-geo-…`), and those
+   * are selectable but answer to nothing in the eav tables — paging through them
+   * would offer a page that can only say "nothing here".
+   */
+  show(ids: string[]): void {
+    const known = this.bundle
+    this.ids = known ? ids.filter((id) => known.objectKeyByAppId.has(id)) : []
+    this.unpublished = ids.length - this.ids.length
+    this.index = 0
+    this.render()
+  }
+
+  clear(): void {
+    this.show([])
+  }
+
+  private step(by: number): void {
+    if (!this.ids.length) return
+    // Wrap, so paging a long selection never dead-ends at either edge.
+    this.index = (this.index + by + this.ids.length) % this.ids.length
+    this.render()
+  }
+
+  private render(): void {
+    const applicationId = this.ids[this.index]
+    if (!this.bundle || !applicationId) {
+      this.element.hidden = true
+      this.element.innerHTML = ''
+      return
+    }
 
     const { scalars, values, instanceCount, typeCount } = objectProperties(
       this.bundle,
       applicationId
     )
-    const name = String(scalars.name ?? applicationId)
+    const total = instanceCount + typeCount
 
-    const head =
-      `<h3>${escape(name)}</h3><p class="hud-id">${escape(applicationId)}</p>` +
+    this.element.innerHTML =
+      this.pager() +
+      `<h3>${escape(String(scalars.name ?? applicationId))}</h3>` +
+      `<p class="hud-id">${escape(applicationId)}</p>` +
       rows(
         Object.entries(scalars)
           .filter(([key]) => key !== 'name' && key !== 'speckle_type')
           .map(([key, value]) => [key, String(value)])
-      )
-
-    const total = instanceCount + typeCount
-    const body = total
-      ? `<p class="hud-count">${total} properties · ${instanceCount} instance · ${typeCount} type</p>` +
-        rows(values.slice(0, SHOWN)) +
-        (values.length > SHOWN
-          ? `<p class="hud-count">and ${values.length - SHOWN} more in the bundle</p>`
-          : '')
-      : '<p class="hud-count">No properties in the bundle for this object.</p>'
-
-    this.element.innerHTML = head + body
+      ) +
+      (total
+        ? `<p class="hud-count">${total} properties · ${instanceCount} instance · ${typeCount} type</p>` +
+          rows(values.slice(0, SHOWN)) +
+          (values.length > SHOWN
+            ? `<p class="hud-count">and ${values.length - SHOWN} more in the bundle</p>`
+            : '')
+        : '<p class="hud-count">No properties in the bundle for this object.</p>')
     this.element.hidden = false
   }
 
-  clear(): void {
-    this.element.hidden = true
-    this.element.innerHTML = ''
+  /** Only earns its space when the selection holds more than one object. */
+  private pager(): string {
+    if (this.ids.length < 2) return ''
+    // The viewer's count and this one differ on an instanced model, and the gap is
+    // worth naming rather than leaving as an apparent miscount.
+    const skipped = this.unpublished
+      ? `<p class="hud-count">${this.unpublished} more drawn from instance definitions, which publish no properties of their own</p>`
+      : ''
+    return (
+      `<div class="hud-pager">` +
+      `<button type="button" data-step="-1" aria-label="Previous object">‹</button>` +
+      `<span>${this.index + 1} of ${this.ids.length}</span>` +
+      `<button type="button" data-step="1" aria-label="Next object">›</button>` +
+      `</div>` +
+      skipped
+    )
   }
 }
 

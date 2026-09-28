@@ -74,7 +74,10 @@ web app does not:
   and it listens for selection itself.
 
 Selecting anything fills the properties panel: the object's scalars, a count of instance
-against type-level rows, and the first few values. The lookup goes to the bundle rather than
+against type-level rows, and the first few values. Box select a thousand objects and it pages
+through them one at a time, skipping the ones drawn from instance definitions — those are
+selectable but publish no properties of their own, and the panel says how many it left out
+rather than quietly disagreeing with the selection count. The lookup goes to the bundle rather than
 to the object the viewer is holding — the viewer hands back an `applicationId` and the
 bundle's own eav tables answer to it. That is the round trip the bridge is really for, and it
 works even for objects the projection drew as instance proxies, which carry no properties of
