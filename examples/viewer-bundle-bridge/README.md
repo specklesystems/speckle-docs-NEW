@@ -66,11 +66,14 @@ Alongside `CameraController` and `SelectionExtension`, the app runs two things t
 web app does not:
 
 - **`ExplodeExtension`**, which ships with the viewer and the web app never creates.
-- **`BoxSelectExtension`** in `src/boxSelect.ts`, written here from scratch: an injected
-  `SelectionExtension` and `CameraController`, a drag rectangle, and a world-tree walk that
-  projects render-view bounds to the screen.
+- **`BoxSelectExtension`**, written here from scratch: an injected `SelectionExtension` and
+  `CameraController`, a drag rectangle, and a world-tree walk that projects render-view bounds
+  to the screen.
+- **`PropertiesHudExtension`**, which injects both of the above and owns its own panel. It
+  composes rather than being wired up by the app: the app creates it and hands it a bundle,
+  and it listens for selection itself.
 
-Selecting anything fills a small properties panel: the object's scalars, a count of instance
+Selecting anything fills the properties panel: the object's scalars, a count of instance
 against type-level rows, and the first few values. The lookup goes to the bundle rather than
 to the object the viewer is holding — the viewer hands back an `applicationId` and the
 bundle's own eav tables answer to it. That is the round trip the bridge is really for, and it
@@ -85,17 +88,17 @@ values, because that is what the projection sets `id` to.
 
 ## Layout
 
-| Path                         | What it is                                               |
-| ---------------------------- | -------------------------------------------------------- |
-| `src/bridge/artifacts.ts`    | Version record, artifacts listing, downloads             |
-| `src/bridge/bundleReader.ts` | Parquet and eav tables to dense-keyed maps and relations |
-| `src/bridge/projection.ts`   | Bundle to `Base` objects: what the viewer converts       |
-| `src/bridge/bundleLoader.ts` | The `SpeckleLoader` subclass and the end-to-end load     |
-| `src/bridge/vendored.ts`     | Copied-in spec catalog and SGEO decoder — do not edit    |
-| `src/boxSelect.ts`           | A custom extension, to show the Viewer 2 API still works |
-| `src/propertiesHud.ts`       | Selection to the producer's own properties               |
-| `src/main.ts`                | The mini app                                             |
-| `mise.toml`                  | Optional: pins Node and pnpm, wraps the scripts          |
+| Path                              | What it is                                                   |
+| --------------------------------- | ------------------------------------------------------------ |
+| `src/bridge/artifacts.ts`         | Version record, artifacts listing, downloads                 |
+| `src/bridge/bundleReader.ts`      | Parquet and eav tables to dense-keyed maps and relations     |
+| `src/bridge/projection.ts`        | Bundle to `Base` objects: what the viewer converts           |
+| `src/bridge/bundleLoader.ts`      | The `SpeckleLoader` subclass and the end-to-end load         |
+| `src/bridge/vendored.ts`          | Copied-in spec catalog and SGEO decoder — do not edit        |
+| `src/extensions/boxSelect.ts`     | Custom extension: drag a rectangle to select                 |
+| `src/extensions/propertiesHud.ts` | Custom extension: selection to the producer's own properties |
+| `src/main.ts`                     | The mini app                                                 |
+| `mise.toml`                       | Optional: pins Node and pnpm, wraps the scripts              |
 
 ## What the projection covers
 

@@ -24,7 +24,7 @@ export class BoxSelectExtension extends Extension {
 
   private box?: HTMLDivElement
   private origin?: { x: number; y: number }
-  private onSelected?: (ids: string[]) => void
+  private readonly listeners: ((ids: string[]) => void)[] = []
 
   constructor(
     viewer: IViewer,
@@ -50,8 +50,9 @@ export class BoxSelectExtension extends Extension {
     this.camera.enabled = !value
   }
 
+  /** More than one listener: the status line and the properties panel both want these. */
   reportSelectionTo(listener: (ids: string[]) => void): void {
-    this.onSelected = listener
+    this.listeners.push(listener)
   }
 
   private onPointerDown = (event: PointerEvent): void => {
@@ -88,7 +89,7 @@ export class BoxSelectExtension extends Extension {
       bottom: Math.max(y, event.clientY)
     })
     this.selection.selectObjects(ids)
-    this.onSelected?.(ids)
+    for (const listener of this.listeners) listener(ids)
   }
 
   /**

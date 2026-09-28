@@ -1,4 +1,12 @@
-import { objectProperties, type Bundle } from './bridge/bundleReader.js'
+import {
+  Extension,
+  SelectionExtension,
+  ViewerEvent,
+  type IViewer,
+  type SelectionEvent
+} from '@speckle/viewer'
+import { objectProperties, type Bundle } from '../bridge/bundleReader.js'
+import { BoxSelectExtension } from './boxSelect.js'
 
 /** Enough to show the lookup worked, not enough to be a property browser. */
 const SHOWN = 6
@@ -13,12 +21,35 @@ const SHOWN = 6
  *
  * It also means an object the projection drew as an instance proxy, carrying no
  * properties of its own, still has everything its producer wrote about it.
+ *
+ * Written as an extension so it composes the way the others do: it injects the
+ * selection it reads and the box select it also listens to, and owns its own panel
+ * rather than being wired up from the app.
  */
-export class PropertiesHud {
+export class PropertiesHudExtension extends Extension {
+  get inject(): Array<typeof SelectionExtension | typeof BoxSelectExtension> {
+    return [SelectionExtension, BoxSelectExtension]
+  }
+
+  private readonly element: HTMLElement
   private bundle?: Bundle
 
-  constructor(private readonly element: HTMLElement) {
-    this.clear()
+  constructor(
+    viewer: IViewer,
+    protected selection: SelectionExtension,
+    protected boxSelect: BoxSelectExtension
+  ) {
+    super(viewer, selection, boxSelect)
+
+    this.element = document.createElement('aside')
+    this.element.id = 'hud'
+    this.element.hidden = true
+    this.viewer.getContainer().appendChild(this.element)
+
+    this.viewer.on(ViewerEvent.ObjectClicked, (event: SelectionEvent | null) => {
+      this.show(event?.hits[0]?.node?.model?.raw?.applicationId as string | undefined)
+    })
+    this.boxSelect.reportSelectionTo((ids) => this.show(ids[0]))
   }
 
   /** Called once per load: the tables every later lookup reads. */

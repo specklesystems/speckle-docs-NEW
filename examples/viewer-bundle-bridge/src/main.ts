@@ -14,7 +14,6 @@ import {
   SelectionExtension,
   SpeckleLoader,
   Viewer,
-  ViewerEvent,
   type TreeNode
 } from '@speckle/viewer'
 import {
@@ -25,8 +24,8 @@ import {
 } from './bridge/artifacts.js'
 import { loadBundleFiles, loadBundleVersion } from './bridge/bundleLoader.js'
 import type { ProjectionOptions } from './bridge/projection.js'
-import { BoxSelectExtension } from './boxSelect.js'
-import { PropertiesHud } from './propertiesHud.js'
+import { BoxSelectExtension } from './extensions/boxSelect.js'
+import { PropertiesHudExtension } from './extensions/propertiesHud.js'
 
 // The HUD reads properties, so the projection has to carry them. An app that only
 // draws leaves this off and never pays for the eav tables.
@@ -37,7 +36,6 @@ const form = document.getElementById('load-form') as HTMLFormElement
 const status = document.getElementById('status') as HTMLPreElement
 const explode = document.getElementById('explode') as HTMLInputElement
 const boxToggle = document.getElementById('box-select') as HTMLInputElement
-const hud = new PropertiesHud(document.getElementById('hud') as HTMLElement)
 
 function say(message: string): void {
   status.textContent = `${status.textContent ?? ''}${message}\n`
@@ -52,6 +50,7 @@ form.addEventListener('submit', (event) => {
 })
 
 const viewer = new Viewer(container, { ...DefaultViewerParams, verbose: false })
+let hud: PropertiesHudExtension | undefined
 
 const ready = viewer.init().then(() => {
   viewer.createExtension(CameraController)
@@ -61,15 +60,12 @@ const ready = viewer.init().then(() => {
   // is written here. Both work on bundle data, which is the claim worth testing.
   const exploder = viewer.createExtension(ExplodeExtension)
   const boxSelect = viewer.createExtension(BoxSelectExtension)
+  // Injects the two above and listens to them itself; the app only feeds it a bundle.
+  hud = viewer.createExtension(PropertiesHudExtension)
 
-  boxSelect.reportSelectionTo((ids) => {
+  boxSelect.reportSelectionTo((ids) =>
     say(ids.length ? `box selected: ${ids.length} objects` : 'box selected: nothing')
-    hud.show(ids[0])
-  })
-
-  viewer.on(ViewerEvent.ObjectClicked, (event) => {
-    hud.show(event?.hits[0]?.node?.model?.raw?.applicationId as string | undefined)
-  })
+  )
   explode.addEventListener('input', () => exploder.setExplode(Number(explode.value)))
   boxToggle.addEventListener('change', () => {
     boxSelect.enabled = boxToggle.checked
@@ -122,7 +118,7 @@ async function loadLocal(bundleUrl: string): Promise<void> {
     projection: PROJECTION
   })
   await viewer.loadObject(loader, true)
-  hud.attach(bundle)
+  hud?.attach(bundle)
   reportBundle(report, unknownRelations)
   reportTree()
   say('done')
@@ -130,7 +126,7 @@ async function loadLocal(bundleUrl: string): Promise<void> {
 
 async function load(): Promise<void> {
   status.textContent = ''
-  hud.clear()
+  hud?.clear()
   await ready
   // Loading again otherwise adds a second copy of the model to the same tree.
   await viewer.unloadAll()
@@ -168,7 +164,7 @@ async function load(): Promise<void> {
     projection: PROJECTION
   })
   await viewer.loadObject(loader, true)
-  hud.attach(bundle)
+  hud?.attach(bundle)
   reportBundle(report, unknownRelations)
   reportTree()
   say('done')
