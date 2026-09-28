@@ -20,6 +20,21 @@ The step-by-step guide is
 Everything after step 5 — extensions, filtering, selection, camera — is untouched
 public viewer API.
 
+## Get just this directory
+
+The docs repo is mostly prose and screenshots. Sparse checkout takes this directory
+without the rest of it.
+
+```bash
+git clone --filter=blob:none --sparse --depth 1 \
+  https://github.com/specklesystems/speckle-docs-new.git
+cd speckle-docs-new
+git sparse-checkout set examples/viewer-bundle-bridge
+cd examples/viewer-bundle-bridge
+```
+
+You get this directory plus the repo's root-level files, which cone mode always includes.
+
 ## Run it
 
 Install from inside this directory. The sample is its own pnpm root, so it does not share a
@@ -29,6 +44,10 @@ store with the docs repo around it and copies out cleanly.
 pnpm install
 pnpm dev
 ```
+
+With [mise](https://mise.jdx.dev), `mise run install` and `mise run dev` do the same thing
+and pin Node and pnpm to the versions this was verified against. mise is optional — the
+sample needs only Node and pnpm.
 
 Then enter a server URL, project, model and version id, and a personal access
 token. The app loads either shape of version: a bundle through the bridge, an
@@ -68,6 +87,7 @@ projection produced, and which SGEO primitives it skipped.
 | `src/bridge/bundleSpec.ts`                      | Vendored relation and node-kind catalog — do not edit  |
 | `src/applicationIdAudit.ts`                     | A custom extension, to show nothing downstream changes |
 | `src/main.ts`                                   | The mini app                                           |
+| `mise.toml`                                     | Optional: pins Node and pnpm, wraps the scripts        |
 
 ## Pick a projection
 
