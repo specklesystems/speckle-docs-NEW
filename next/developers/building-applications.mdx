@@ -1,0 +1,92 @@
+---
+title: Building applications on 2026.9
+sidebarTitle: Building applications
+description: Where to start if you build an app that reads Speckle data rather than a connector — viewer apps, data-only apps, and why there is no drop-in replacement for the object-graph loaders.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+This page is for people building an **application on top of Speckle data** — a dashboard, an
+internal tool, a web app, a service that reacts to versions. Not a connector: you are not
+publishing from a host application, you are reading what others published.
+
+In 2026.9 a version's data is a [bundle](/next/developers/building-integrations) of parquet
+files rather than an object graph, and that changes how your app gets at it. Which door you
+take depends on whether you render.
+
+<CardGroup cols={2}>
+  <Card title="My app renders models" icon="cube" href="/next/developers/viewer/loading-bundles">
+    You import `@speckle/viewer`. Bridge the bundle to the object shape the viewer converts, with
+    sample code you copy into your app.
+  </Card>
+  <Card
+    title="My app only reads data"
+    icon="table"
+    href="/next/developers/building-integrations/load"
+  >
+    You read properties, quantities or geometry without the viewer. Read the bundle directly — the
+    load mechanics are the same ones every non-SDK consumer uses.
+  </Card>
+</CardGroup>
+
+<Note>
+  Writing scripts with a Speckle SDK instead? The SDK applies every bundle rule for you. Start from
+  the [.NET](/next/developers/sdks/dotnet/breaking-changes) or
+  [Python](/next/developers/sdks/python/breaking-changes) 2026.9 pages.
+</Note>
+
+## Why there is no drop-in object-graph loader
+
+If your app is built on `@speckle/objectloader` or `@speckle/objectloader2`, the natural ask
+is a version of those packages that reads bundles and hands you the same object graph —
+`getRootObject()`, `__closure`, `getObjectIterator()`, unchanged. That is not coming, on
+purpose.
+
+Emulating that surface would mean rebuilding the object graph that 2026.9 retires: a third
+implementation of the receive fidelity contract, kept in step with the .NET and Python SDKs
+forever, reconstructing hashes and closures that no longer exist in the data. It would also
+teach new apps a shape the platform is moving away from.
+
+What to do instead depends on what you were using the graph for.
+
+| What you used the object graph for | In 2026.9                                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| Reading properties across objects  | Read the eav tables. Objects are keyed by `applicationId`, properties by dotted path        |
+| Walking hierarchy                  | Read typed relations. Grouping is `IN_COLLECTION` and the scene view, not nested `elements` |
+| Getting geometry to draw           | Decode SGEO from the geometry shards, or bridge to the viewer                               |
+| Object identity across versions    | `applicationId`, not a content hash                                                         |
+
+The mechanics for all four are in [Load a bundle in your own
+code](/next/developers/building-integrations/load). That page is written for any non-SDK
+consumer, which includes you — it is not connector-specific.
+
+<Warning>
+  A loader that fetches `referencedObject` from the objects endpoints gets a 404 on every 2026.9
+  version. Dispatch on `Version.schemaVersion` before you fetch, and keep your existing reader for
+  the older shape.
+</Warning>
+
+## What stays the same
+
+Your Speckle token, the GraphQL API for projects, models and versions, webhooks, permissions
+and sharing are unchanged. So is the shape of the problem: list a version, fetch its data,
+key your app's state to something stable. Only the fetch and the identity changed.

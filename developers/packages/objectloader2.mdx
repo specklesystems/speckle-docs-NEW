@@ -5,16 +5,16 @@ docs_status: impacted
 changes_in_version: '2026.9'
 changes_from: '2026-09'
 next_docs:
-  - /next/developers/viewer/introduction
-change_scope: 'Direct Viewer and object-loader package use is affected by 2026.9 bundle data; replacement package guidance is not yet available'
+  - /next/developers/building-applications
+change_scope: 'This package reads object graphs only; 2026.9 bundle versions are not loadable through it and need the bundle load path'
 ---
 
 <Visibility for="agents">
   Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
 
-Affected guidance: Direct Viewer and object-loader package use is affected by 2026.9 bundle data; replacement package guidance is not yet available.
+Affected guidance: This package reads object graphs only; 2026.9 bundle versions are not loadable through it and need the bundle load path.
 
-For these changes, read [2026.9 guidance](/next/developers/viewer/introduction).
+For these changes, read [2026.9 guidance](/next/developers/building-applications).
 
 For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
 
@@ -27,14 +27,15 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
 **Package:** [@speckle/objectloader2 on npm](https://www.npmjs.com/package/@speckle/objectloader2)
 
 <Warning>
-  Speckle's data model is changing in 2026.9. This package streams and constructs object graphs
-  directly, independent of the Viewer package, so it's likely affected the same way anything built
-  on the Viewer's internals is — as soon as data you load has been converted to the new format.
-  There's no updated version of this package for the 2026.9 format yet. If you depend on this
-  package directly (rather than through the hosted Viewer or GraphQL/REST), see [Who's
-  affected](/developers/migration/data-model-migration#whos-affected) and ask for compatibility mode
-  before **1 November 2026**.
+  This package reads object graphs, so a 2026.9 bundle version is not loadable through it — the
+  objects endpoints return 404. Start from [Building applications in
+  2026.9](/next/developers/building-applications) for the load path to move to.
 </Warning>
+
+<Note>
+  Compatibility mode keeps a workspace's versions in the object-graph format in the meantime. See
+  [Compatibility mode](/next/it-admin/compatibility-mode).
+</Note>
 
 ## Installation
 
@@ -44,15 +45,29 @@ npm install @speckle/objectloader2
 
 ## Quick Start
 
+Loaders are built through `ObjectLoader2Factory`, not constructed directly.
+
 ```typescript
-import { ObjectLoader } from '@speckle/objectloader2'
+import { ObjectLoader2Factory } from '@speckle/objectloader2'
 
-// Initialize loader
-const loader = new ObjectLoader(client, objectId)
+const loader = ObjectLoader2Factory.createFromUrl({
+  serverUrl: 'https://app.speckle.systems',
+  streamId: projectId,
+  objectId,
+  token
+})
 
-// Load object
-const object = await loader.getAndConstructObject()
+const root = await loader.getRootObject()
+
+for await (const object of loader.getObjectIterator()) {
+  // every object in the graph, root first
+}
+
+await loader.disposeAsync()
 ```
+
+`createFromObjects(objects)` and `createFromJSON(json)` build a loader over objects you
+already hold, with `objects[0]` as the root.
 
 ## Features
 
