@@ -49,6 +49,15 @@ export interface DownloadedBundle {
   geometryShards: ArrayBuffer[]
 }
 
+/**
+ * An empty bearer is not the same as no bearer: the server answers `Bearer ` with
+ * 403, so a public project fails for a reader who has not pasted a token. Send the
+ * header only when there is something to send.
+ */
+function bearer(token?: string): Record<string, string> {
+  return token ? { authorization: `Bearer ${token}` } : {}
+}
+
 const VERSION_QUERY = `
   query VersionShape($projectId: String!, $modelId: String!, $versionId: String!) {
     project(id: $projectId) {
@@ -65,12 +74,12 @@ const VERSION_QUERY = `
   }
 `
 
-export async function fetchVersionRecord(ref: VersionRef, token: string): Promise<VersionRecord> {
+export async function fetchVersionRecord(ref: VersionRef, token?: string): Promise<VersionRecord> {
   const response = await fetch(new URL('/graphql', ref.serverUrl), {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      authorization: `Bearer ${token}`
+      ...bearer(token)
     },
     body: JSON.stringify({
       query: VERSION_QUERY,
@@ -103,10 +112,10 @@ export function isBundleVersion(version: VersionRecord): boolean {
   return version.schemaVersion === 3 && (version.referencedObject ?? '').startsWith('bundle.')
 }
 
-export async function listArtifacts(ref: VersionRef, token: string): Promise<ArtifactFile[]> {
+export async function listArtifacts(ref: VersionRef, token?: string): Promise<ArtifactFile[]> {
   const path = `/api/v2/projects/${ref.projectId}/models/${ref.modelId}/versions/${ref.versionId}/artifacts`
   const response = await fetch(new URL(path, ref.serverUrl), {
-    headers: { authorization: `Bearer ${token}` }
+    headers: bearer(token)
   })
   if (!response.ok) {
     throw new Error(`artifacts listing failed: ${response.status} ${response.statusText}`)
@@ -160,6 +169,9 @@ export async function downloadBundle(
       if (includeGeometry) shardFiles.push(file)
       continue
     }
+    // Match the end of the name, never a stem built from the version id: a Revit
+    // upload lists as `acme-b-zz-m3-wa-ar.rvt.envelope.nodes.parquet`, and only the
+    // viewer's own artifacts are named after the version.
     for (const [table, suffix] of Object.entries(TABLE_SUFFIX)) {
       if (file.name.endsWith(suffix)) wanted.push({ table: table as BundleTable, file })
     }

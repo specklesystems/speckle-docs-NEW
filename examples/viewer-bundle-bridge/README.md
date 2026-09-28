@@ -128,6 +128,8 @@ neither is on public npm. Do not edit them here; re-copy them from source.
   ceiling 2026.9 raises.
 
 Verified against `@speckle/viewer@2.31.14`, `@speckle/objectloader2@2.31.14` and
-bundle spec 1.2.0, as of September 2026: a bundle fixture loads, renders on WebGL,
-expands nested instances under their transforms, and both extensions run against it —
-box select returns `applicationId` values for the objects inside the rectangle.
+bundle spec 1.2.0, as of September 2026, on a real Revit model published to
+app.speckle.systems: 4894 objects, 2988 geometries and 3601 instance placements read
+with no unknown relations and no skipped primitives, rendered in the browser with its
+materials, then exploded and box selected — box select returning `applicationId`
+values for the objects inside the rectangle.
