@@ -132,6 +132,8 @@ async function load(): Promise<void> {
   status.textContent = ''
   hud.clear()
   await ready
+  // Loading again otherwise adds a second copy of the model to the same tree.
+  await viewer.unloadAll()
 
   const bundleUrl = new URLSearchParams(window.location.search).get('bundle')
   if (bundleUrl) return await loadLocal(bundleUrl)
