@@ -7,7 +7,16 @@ patches the viewer.
 The step-by-step guide is
 [Load a 2026.9 bundle in the Viewer](https://docs.speckle.systems/next/developers/viewer/loading-bundles).
 
-<img width="1208" height="1121" alt="image" src="https://github.com/user-attachments/assets/2e7c2b94-8b1c-4f39-a4e5-c307623a7df2" />
+<table padding="10" border="0">
+   <tr>
+      <th>Model pre-2026.9</th>
+      <th>Model 2026.9</th>
+   </tr>
+   <tr>
+      <td><img alt="image" src="https://github.com/user-attachments/assets/2e7c2b94-8b1c-4f39-a4e5-c307623a7df2" /></td>
+      <td><img alt="image" src="https://github.com/user-attachments/assets/120a8ae0-9f6e-4ab6-9db9-05877eeeef2a" /></td>
+   </tr>
+</table>
 
 ## What it does
 
