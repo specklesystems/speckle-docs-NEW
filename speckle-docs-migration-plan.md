@@ -324,7 +324,7 @@ The /next/ Visibility blocks stay in place during the migration. Pages are migra
 Self-hosted servers on versions before 2026.9 are addressed in two places:
 
 1. **`it-admin/compatibility-mode`** (created in this migration) — full compatibility mode rules, deadline, how to request. This is the single source of truth for self-hosted operators whose deployment hasn't moved to 2026.9.
-2. **A `<Note>` on affected pages only** — pages where the 2026.9 instruction would be incorrect for a self-hosted server on an older version carry a `<Note>`: "On a self-hosted server running before 2026.9, this step differs. See [Compatibility mode](/it-admin/compatibility-mode)." This `<Note>` is added to: `connectors/file-uploads`, `analytics/intelligence`, `analytics/intelligence-skills`, `analytics/intelligence-rules`, `analytics/reports`, `it-admin/introduction`, and any page whose content is exclusively a 2026.9 behaviour.
+2. **A `<Note>` on affected pages only** — pages where the 2026.9 instruction would be incorrect for a self-hosted server on an older version carry a `<Note>`: "On a self-hosted server running before 2026.9, this step differs. See the Compatibility mode page (`/it-admin/compatibility-mode`)." This `<Note>` is added to: `connectors/file-uploads`, `analytics/intelligence`, `analytics/intelligence-skills`, `analytics/intelligence-rules`, `analytics/reports`, `it-admin/introduction`, and any page whose content is exclusively a 2026.9 behaviour.
 
 **Pages that do NOT get a self-hosted callout:** developer object-model pages, SDK migration pages, building-integrations pages, viewer bundle-loading pages. These address a code-level migration, not a deployment version.
 
