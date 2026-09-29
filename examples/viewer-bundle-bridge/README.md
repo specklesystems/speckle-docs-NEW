@@ -7,6 +7,8 @@ patches the viewer.
 The step-by-step guide is
 [Load a 2026.9 bundle in the Viewer](https://docs.speckle.systems/next/developers/viewer/loading-bundles).
 
+<img width="1208" height="1121" alt="image" src="https://github.com/user-attachments/assets/2e7c2b94-8b1c-4f39-a4e5-c307623a7df2" />
+
 ## What it does
 
 1. Reads the version record and dispatches on its shape.
