@@ -18,10 +18,6 @@ The step-by-step guide is
    </tr>
 </table>
 
-
-
-
-
 ## What it does
 
 1. Reads the version record and dispatches on its shape.
