@@ -69,7 +69,7 @@ A fork taken after the viewer moved to `@speckle/objectloader2` (mid 2025) has b
 | Selection and highlight changes                                                               | Unaffected. Render views are built as before. Stored selections need rekeying (below).                                                                                        |
 | Per-object transform storage, line transforms                                                 | Unaffected. `Line` and `Polyline` arrive as before.                                                                                                                           |
 | A newer three.js than upstream                                                                | Unaffected. The bridge does not import three.js.                                                                                                                              |
-| Retry or failure handling in `@speckle/objectloader2`                                         | Not used. The bridge never calls the objects endpoints. Move that retry to the artifacts listing (see FAQ).                                                                   |
+| Retry or failure handling in `@speckle/objectloader2`                                         | Not used. The bridge never calls the objects endpoints, and a version only appears once its bundle is complete, so there is nothing to retry.                                 |
 
 To place a georeferenced model, pass `referencePoint: true` to `projectBundle`. The model's
 datum lands on the root as `referencePointTransform`. Viewer 2 does not apply it, so read it
@@ -145,10 +145,11 @@ before you treat that as a bug.
     converter changes since early 2026 cover texture coordinates, filter colour inheritance and a
     binary mesh path, none of which the bridge uses.
   </Accordion>
-  <Accordion title="The artifacts listing returns 404 right after an upload.">
-    The bundle has not been produced yet. Retry the listing with capped backoff, the same way you
-    may already retry object downloads. If it still fails, check `schemaVersion` on the version
-    record: `null` means an object graph, which loads the way it always did.
+  <Accordion title="The artifacts listing returns 404.">
+    Check `schemaVersion` on the version record first: `null` means an object graph, which loads the
+    way it always did. A version only appears once its bundle is complete, so a 404 on a version you
+    can see is an access problem, not a timing one. The exception is a version id taken from an
+    ingestion before it finished: wait for the version to appear rather than retrying the listing.
   </Accordion>
   <Accordion title="Does the bridge send texture coordinates?">
     No. Meshes arrive with positions, faces and, where present, vertex colours. The viewer computes
