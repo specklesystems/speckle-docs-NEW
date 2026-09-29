@@ -1,0 +1,158 @@
+---
+title: Bring a forked Viewer app onto 2026.9 bundles
+sidebarTitle: Forked Viewer apps
+description: How the 2026.9 bundle bridge fits an app that runs its own fork of the Viewer package, what carries over unchanged, and which stored state you need to rekey.
+noindex: true
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+<Note>
+  This page is unlisted: it does not appear in the docs navigation, search, or the sitemap. It
+  extends [Load a 2026.9 bundle in your Viewer app](/next/developers/viewer/loading-bundles).
+  Bookmark both.
+</Note>
+
+If your app runs its own fork of `@speckle/viewer`, you can render 2026.9 bundles without
+rebasing the fork or waiting for a new package. The bridge replaces only where objects come
+from. Render pipelines, materials, shaders, selection, camera and transform changes in your fork
+sit below that point and carry over as they are.
+
+What does change is identity. Anything your app stores against a Speckle object id — edits,
+selections, material groupings — needs a new key, and some of the ids the bridge hands you
+last only for one bundle.
+
+## Check your fork has the two hooks
+
+The bridge needs two things from the viewer and object loader. The version pin in the main
+guide does not apply to a fork: these hooks do.
+
+| Hook                                                                             | What the bridge uses it for                        | How to check your fork                                                            |
+| -------------------------------------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `SpeckleLoader` passes its `resourceData` argument through to `initObjectLoader` | Hands the projected objects to the loader override | The `SpeckleLoader` constructor calls `this.initObjectLoader(…, resourceData, …)` |
+| `ObjectLoader2Factory.createFromObjects`                                         | Builds a loader from objects in memory, not a URL  | The factory exports it, and the viewer loads through `@speckle/objectloader2`     |
+
+A fork taken after the viewer moved to `@speckle/objectloader2` (mid 2025) has both.
+
+<Tip>
+  Upstream's `SpeckleOfflineLoader` is still a stub that returns an empty loader. If your fork
+  implemented it with `createFromObjects`, you can pass the projected root to your own offline
+  loader instead of copying `BundleLoader`. The two do the same thing.
+</Tip>
+
+## What carries over
+
+| Change in your fork                                                                           | Effect of the bridge                                                                                                                                                          |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Load-time corrections on `SpeckleLoader` or the geometry converter (offsets, rotation, scale) | Carry over. `BundleLoader` extends `SpeckleLoader`. Placed objects arrive as `InstanceProxy` transforms and become Transform nodes; unplaced meshes carry their own vertices. |
+| A split load lifecycle (start, reload, dispose)                                               | Carries over. Call your own start method where the guide calls `viewer.loadObject`. The objects are in memory, so a reload does not refetch.                                  |
+| Render pipelines, passes, shaders, custom materials                                           | Unaffected.                                                                                                                                                                   |
+| Selection and highlight changes                                                               | Unaffected. Render views are built as before. Stored selections need rekeying (below).                                                                                        |
+| Per-object transform storage, line transforms                                                 | Unaffected. `Line` and `Polyline` arrive as before.                                                                                                                           |
+| A newer three.js than upstream                                                                | Unaffected. The bridge does not import three.js.                                                                                                                              |
+| Retry or failure handling in `@speckle/objectloader2`                                         | Not used. The bridge never calls the objects endpoints, and a version only appears once its bundle is complete, so there is nothing to retry.                                 |
+
+To place a georeferenced model, pass `referencePoint: true` to `projectBundle`. The model's
+datum lands on the root as `referencePointTransform`. Viewer 2 does not apply it, so read it
+and feed it to your own correction.
+
+## Decide how you key stored state
+
+None of these raise an error. A load succeeds and your stored state silently matches
+nothing.
+
+1. **Objects: rekey to `applicationId`.** The bridge sets `id` to `applicationId`. Object
+   graphs from 2026.8 and earlier carry `applicationId` too, so one pass over an old version
+   and its bundle maps every stored hash to its new key. After that, `applicationId` survives
+   republishes where the hash did not.
+2. **Materials and colours: group by name.** A bundle material has a name and render values
+   but no source id. The bridge mints `mat-<n>` and `color-<n>` per bundle, so these ids differ
+   in the next version. Group material slots by name, and by render values (diffuse, opacity,
+   roughness) where names repeat or are missing.
+3. **Instance placements: key on more than the id.** The first placement of an object takes
+   its `applicationId`. Later ones become `<applicationId>-instance-<n>`, numbered in the
+   order the bundle lists them. An edit stored against `-instance-2` can move to another
+   placement if that order changes. Key per-placement state on `applicationId` plus the
+   placement transform.
+4. **Containers and definitions: never persist.** `coll-<n>` and `def-<n>` ids are local to
+   one bundle.
+
+<Warning>
+  Uploads without stable ids — STL, OBJ, and some DWG — can repeat an `applicationId`. The converter
+  drops a definition member when two share one. Check your most common upload types before you
+  rekey.
+</Warning>
+
+## Geometry the bridge does not convert
+
+Meshes, lines and polylines render. Points, text, boxes and regions are decoded but not
+converted, and the sample reports a count of each. A model that is mostly annotation, such as
+a DWG plan, can load with far less on screen than its 2026.8 version. Read the skipped tally
+before you treat that as a bug.
+
+## Verify on your fork
+
+<Steps>
+  <Step title="Load one bundle through your loader">
+    Project a real 2026.9 version and load it through your offline loader or `BundleLoader`. The
+    world tree reports nodes and the model renders.
+  </Step>
+  <Step title="Reload with a changed correction">
+    Start the load, reload it with a different offset, then dispose it. The model moves and no
+    request goes to the objects endpoints.
+  </Step>
+  <Step title="Check placement on a georeferenced model">
+    Load a model that mixes placed and unplaced geometry. It lands where its 2026.8 version landed.
+  </Step>
+  <Step title="Run your fixture suite on a bundle">
+    Dump the projected root to JSON and load it with `createFromJSON`. Your existing assertions pass
+    or fail for a named reason.
+  </Step>
+  <Step title="Count duplicates and skipped geometry">
+    Load one upload of each common type. You have a count of repeated `applicationId` values and of
+    skipped primitives per type.
+  </Step>
+  <Step title="Map one stored change set">
+    Rekey one project's stored state from hashes to `applicationId`. You have a count of entries
+    left unmatched.
+  </Step>
+</Steps>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do I need to rebase my fork first?">
+    No. The bridge relies on the two hooks above, not on recent upstream changes. The upstream
+    converter changes since early 2026 cover texture coordinates, filter colour inheritance and a
+    binary mesh path, none of which the bridge uses.
+  </Accordion>
+  <Accordion title="The artifacts listing returns 404.">
+    Check `schemaVersion` on the version record first: `null` means an object graph, which loads the
+    way it always did. A version only appears once its bundle is complete, so a 404 on a version you
+    can see is an access problem, not a timing one. The exception is a version id taken from an
+    ingestion before it finished: wait for the version to appear rather than retrying the listing.
+  </Accordion>
+  <Accordion title="Does the bridge send texture coordinates?">
+    No. Meshes arrive with positions, faces and, where present, vertex colours. The viewer computes
+    normals. A material that projects its own UVs works unchanged.
+  </Accordion>
+</AccordionGroup>
