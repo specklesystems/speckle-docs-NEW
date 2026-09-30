@@ -1,7 +1,7 @@
 ---
 title: File uploads in 2026.9
 sidebarTitle: File uploads
-description: Changes to file uploads in 2026.9, including supported formats, Tekla Structures support, and legacy/compatibility mode, which ends on 1 November 2026.
+description: Changes to file uploads in 2026.9, including supported formats, Tekla Structures and Vectorworks support, and legacy/compatibility mode, which ends on 1 November 2026.
 contextual:
   options: []
 docs_version: '2026.9'
@@ -27,7 +27,7 @@ Authoritative Speckle 2026.9 documentation for the topic covered here. For Speck
 
 Check your workspace’s upload mode before uploading a file in 2026.9. Some formats require
 legacy/compatibility mode, which ends on **1 November 2026**. Tekla Structures uploads are available
-where enabled.
+where enabled, and Vectorworks (`.vwx`) uploads from 2026.10.
 
 ## Breaking change: supported file formats
 
@@ -57,6 +57,7 @@ Availability depends on the conversion services enabled for your workspace.
 | SketchUp               | .skp                                                                     | Supported           | Supported                 |
 | STEP                   | .step, .stp                                                              | Supported           | Supported                 |
 | MicroStation           | .dgn                                                                     | Supported           | Not supported             |
+| Vectorworks            | .vwx                                                                     | From 2026.10        | Not supported             |
 | Tekla Structures       | .tekla, .db1                                                             | Where enabled       | Not supported             |
 | Other retained formats | .stl, .3mf, .3ds, .amf, .dxf, .x, .e57, .igs, .iges, .fbx, .ply, .sldprt | Not supported       | Supported                 |
 
@@ -72,6 +73,50 @@ Use the complete model folder when uploading a Tekla model to preserve profiles,
   A `.tekla` package contains the model folder and its supporting catalogs. A `.db1` file alone can
   be converted, but missing catalogs can reduce profile, shape, and material fidelity.
 </Tip>
+
+## Additional format: Vectorworks
+
+From 2026.10, upload a Vectorworks file (`.vwx`) to publish it without Vectorworks or its
+connector. The [Vectorworks connector](/connectors/third-party/vectorworks) publishes the objects
+you select; an upload publishes the 3D content of every design layer.
+
+<Note>
+  On a self-hosted server, Vectorworks uploads need the 2026.10 server and converter image. Your
+  server admin can check the [file imports
+  setup](/developers/server/deployment/enterprise-license#file-imports-conversion-runner).
+</Note>
+
+### Files that convert
+
+Speckle reads Vectorworks file versions 210, 214, 217, 223, and 228. These are the internal
+version numbers a file stores, not Vectorworks release years. A file in any other version fails,
+and the message lists the versions Speckle reads.
+
+### What is published
+
+- 3D objects on every design layer, including design layers hidden in the document, grouped by
+  story, layer, and type.
+- Each object's name, type, object properties, and IFC properties. An object whose 3D geometry
+  Speckle cannot read yet still arrives with its properties.
+
+These parts of the document are not published:
+
+- Objects in a class that is hidden in the document.
+- Sheet layers.
+- 2D-only objects, such as callouts, data tags, and section lines.
+
+<Note>
+  Speckle follows the class visibility saved in the file. To include a hidden class, make it visible
+  and save the file before you upload it.
+</Note>
+
+### If a Vectorworks upload fails
+
+| Message                                                  | What to do                                                                         |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Vectorworks file version … is not supported              | Contact Speckle support. Speckle does not read this file version yet.              |
+| This is not a supported Vectorworks document             | Check that the file is a Vectorworks document, not another file renamed to `.vwx`. |
+| This Vectorworks document uses an unsupported byte order | Contact Speckle support.                                                           |
 
 ## Update an affected workflow
 
