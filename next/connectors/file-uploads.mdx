@@ -1,7 +1,7 @@
 ---
 title: File uploads in 2026.9
 sidebarTitle: File uploads
-description: Changes to file uploads in 2026.9, including supported formats, Tekla Structures support, and legacy/compatibility mode, which ends on 1 November 2026.
+description: Changes to file uploads in 2026.9, including supported formats, Tekla Structures and Vectorworks support, and legacy/compatibility mode, which ends on 1 November 2026.
 contextual:
   options: []
 docs_version: '2026.9'
@@ -57,6 +57,7 @@ Availability depends on the conversion services enabled for your workspace.
 | SketchUp               | .skp                                                                     | Supported           | Supported                 |
 | STEP                   | .step, .stp                                                              | Supported           | Supported                 |
 | MicroStation           | .dgn                                                                     | Supported           | Not supported             |
+| Vectorworks            | .vwx                                                                     | Supported           | Not supported             |
 | Tekla Structures       | .tekla, .db1                                                             | Where enabled       | Not supported             |
 | Other retained formats | .stl, .3mf, .3ds, .amf, .dxf, .x, .e57, .igs, .iges, .fbx, .ply, .sldprt | Not supported       | Supported                 |
 
@@ -72,6 +73,45 @@ Use the complete model folder when uploading a Tekla model to preserve profiles,
   A `.tekla` package contains the model folder and its supporting catalogs. A `.db1` file alone can
   be converted, but missing catalogs can reduce profile, shape, and material fidelity.
 </Tip>
+
+## Upload a Vectorworks file
+
+If your design lives in Vectorworks, you can upload the `.vwx` file to publish it without opening
+Vectorworks or installing its connector. For the steps, see
+[Upload a file](/connectors/direct-uploads/introduction#upload-a-file). The
+[Vectorworks connector](/connectors/third-party/vectorworks) publishes the objects you select; an
+upload publishes the 3D content of every design layer.
+
+### Files that convert
+
+Speckle reads files last saved in Vectorworks 2021 through 2026. Files from other releases are not
+supported yet.
+
+### What is published
+
+- 3D objects on every design layer, including design layers hidden in the document, grouped by
+  story, layer, and type.
+- Each object's name, type, object properties, and IFC properties. An object whose 3D geometry
+  Speckle cannot read arrives with its properties and no geometry.
+
+These parts of the document are not published:
+
+- Objects in a class that is hidden in the document.
+- Sheet layers.
+- 2D-only objects, such as callouts, data tags, and section lines.
+
+<Note>
+  Speckle follows the class visibility saved in the file. To include a hidden class, make it visible
+  and save the file before you upload it.
+</Note>
+
+### If a Vectorworks upload fails
+
+| Message                                                  | What to do                                                                         |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Vectorworks file version _number_ is not supported       | Contact Speckle support.                                                           |
+| This is not a supported Vectorworks document             | Check that the file is a Vectorworks document, not another file renamed to `.vwx`. |
+| This Vectorworks document uses an unsupported byte order | Contact Speckle support.                                                           |
 
 ## Update an affected workflow
 
