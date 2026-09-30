@@ -14,7 +14,7 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 - **Tooling:** `pnpm` for every script and dependency (`packageManager` pins the version), Node 22. Tasks live in `mise.toml` (`mise run install|dev|validate|check-links|example-check|agents-sync`).
 - **Checks:** `pnpm check` is the CI gate: Prettier + markdownlint on changed files, `mint validate`, structure (redirects, orphans, framing, assets), broken links, a11y. Pre-commit (Husky) runs Prettier + markdownlint on staged files.
 - **Before a docs PR:** run the `docs-page-review` skill on every written or revised page, then `docs-ci-ready`.
-- **Area docs are not auto-loaded.** Work in an area listed under [Area docs](#area-docs) starts by reading that doc.
+- **Area docs are not auto-loaded.** When a path you read, plan or edit matches a row under [Area docs](#area-docs), load that doc first, however small the task.
 - **Product truth:** document what exists today. When UI labels, operators, plan gates or enums look stale, verify against the product (`../speckle-server-internal`, FE3 = `packages/frontend-3`) before rewriting; multi-page parity audits use the `docs-product-capability-sweep` skill.
 
 ## Audience and voice
@@ -38,7 +38,7 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 - **FAQs:** `<AccordionGroup>` + `<Accordion title="…">`; one question in user language ("How do I…", "What happens if…"), one atomic answer under 120 words; link out when longer; include at least one edge case; delete FAQs that restate the body; order by support-ticket frequency.
 - **Asides:** `<Tip>` optional shortcut, `<Note>` neutral clarification, `<Warning>` data loss, access or irreversible risk. One idea, 1–3 sentences, never a multi-step workflow; place it next to the step or section it names explicitly. Calm, factual tone.
 - **Titles and nav:** task or outcome first, sentence case, ~50–65 characters, one promise (no compound clauses), no version numbers or internal product names unless required. Nav labels short, concrete, recognizable over clever; siblings parallel. H1 matches the title's intent; reader keywords once in H1 and early copy, no stuffing. Quote a frontmatter `title` that is only a number (`title: '2026.9'`): unquoted, Mintlify's PageHeader crashes.
-- **Images:** only when they reduce cognitive load; caption them when the image carries meaning. Not captured yet: `{/* IMAGE_PLACEHOLDER: UI location — what must be visible. */}` at the head of a section introducing new UI, or adjacent to (never inside) instructional Steps. Never fake image files or "screenshot coming soon" copy. Full rules: `docs-image-placeholders` skill.
+- **Images:** only when they reduce cognitive load; caption them when the image carries meaning. Not captured yet: `{/* IMAGE_PLACEHOLDER: UI location — what must be visible. */}` at the head of a section introducing new UI, or adjacent to (never inside) instructional Steps. Skip code-only SDK/API pages, comparison tables, hub pages and shots already marked elsewhere. Never fake image files or "screenshot coming soon" copy. Full rules: `docs-image-placeholders` skill.
 - **Downloads:** Mintlify does not serve notebooks, archives and most non-image files. Keep the file next to the guide and link `https://raw.githubusercontent.com/specklesystems/speckle-docs-new/refs/heads/main/<path-in-repo>`, never a relative path; don't explain the limitation to readers.
 
 ## Content rules
@@ -49,7 +49,7 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 
 ## Area docs
 
-| Doc | Read before |
+| Doc | Load first for |
 |---|---|
 | `docs/agents/next.md` | ANY work under `next/` |
 | `docs/agents/connectors.md` | ANY work under `connectors/` or `next/connectors/` |
