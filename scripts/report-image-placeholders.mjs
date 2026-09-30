@@ -27,7 +27,6 @@ const SKIP_DIRS = [
   'legacy',
   'classic',
   'snippets',
-  '.universal-ai-config',
   '.cursor',
   '.claude'
 ]
