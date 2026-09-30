@@ -6,12 +6,12 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 
 - Pages are `.mdx`, routed by path. `docs.json` is the site config; navigation is `navigation.json` (version **Current**) plus `navigation.next.json` (version **2026.9**, the default, pages under `next/`); redirects in `redirects.json`.
 - User guides: `quickstart/`, `workspaces/`, `3d-viewer/`, `analytics/`, `workflows/`, `connectors/`, `beta/`. Developers: `developers/`. IT admins: `it-admin/`. `classic/` and `legacy/` are frozen redirect-target trees outside the nav: don't expand them.
-- `snippets/` holds reusable MDX fragments, `images/` the assets, `examples/` runnable sample apps (own pnpm root), `scripts/` the CI checks.
+- `snippets/` reusable MDX fragments, `images/` assets, `examples/` runnable sample apps (own pnpm root), `scripts/` CI checks.
 - `README.md` is the human contributor guide; `FRONTMATTER_SCHEMAS.md` defines the 2026.9 frontmatter.
 
 ## Working rules
 
-- **Tooling:** `pnpm` for every script and dependency (`packageManager` pins the version), Node 22. Tasks live in `mise.toml` (`mise run install|dev|validate|check-links|example-check|agents-sync`).
+- **Tooling:** `pnpm` for every script and dependency (`packageManager` pins the version), Node 22. `mise.toml` tasks: `mise run install|dev|validate|check-links|example-check|agents-sync`.
 - **Checks:** `pnpm check` is the CI gate: Prettier + markdownlint on changed files, `mint validate`, structure (redirects, orphans, framing, assets), broken links, a11y. Pre-commit (Husky) runs Prettier + markdownlint on staged files.
 - **Before a docs PR:** run the `docs-page-review` skill on every written or revised page, then `docs-ci-ready`.
 - **Area docs are not auto-loaded.** When a path you read, plan or edit matches a row under [Area docs](#area-docs), load that doc first, however small the task.
@@ -34,10 +34,10 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 ## Page elements (Mintlify)
 
 - Mintlify components over raw HTML/Markdown.
-- **Steps:** `<Steps>`/`<Step>` for linear tasks of 3–7 steps (split longer ones). Titles verb-first, sentence case, ~3–7 words; each step 1–3 sentences ending in an observable outcome; no conditionals (branch into troubleshooting). Nothing complex inside a `<Step>` (Tabs, Accordions, code): put code, asides and placeholders adjacent, or fall back to `###` + an ordered list. Add a "You should see…" check where failure is silent.
+- **Steps:** `<Steps>`/`<Step>` for linear tasks, usually 3–5 steps; past 7, split or link out to a tutorial. Counts are guidelines, never a finding on their own. Titles verb-first, sentence case, ~3–7 words; each step 1–3 sentences ending in an observable outcome; no conditionals (branch into troubleshooting). Nothing complex inside a `<Step>` (Tabs, Accordions, code): put code, asides and placeholders adjacent, or fall back to `###` + an ordered list. Add a "You should see…" check where failure is silent.
 - **FAQs:** `<AccordionGroup>` + `<Accordion title="…">`; one question in user language ("How do I…", "What happens if…"), one atomic answer under 120 words; link out when longer; include at least one edge case; delete FAQs that restate the body; order by support-ticket frequency.
 - **Asides:** `<Tip>` optional shortcut, `<Note>` neutral clarification, `<Warning>` data loss, access or irreversible risk. One idea, 1–3 sentences, never a multi-step workflow; place it next to the step or section it names explicitly. Calm, factual tone.
-- **Titles and nav:** task or outcome first, sentence case, ~50–65 characters, one promise (no compound clauses), no version numbers or internal product names unless required. Nav labels short, concrete, recognizable over clever; siblings parallel. H1 matches the title's intent; reader keywords once in H1 and early copy, no stuffing. Quote a frontmatter `title` that is only a number (`title: '2026.9'`): unquoted, Mintlify's PageHeader crashes.
+- **Titles and nav:** task or outcome first, sentence case, ~50–65 characters, one promise (no compound clauses), no version numbers or internal product names unless required. Nav labels short, concrete, recognizable over clever; siblings parallel. H1 matches the title's intent; reader keywords once in H1 and early copy, no stuffing. Quote a numeric-only frontmatter `title` (`title: '2026.9'`); unquoted, Mintlify's PageHeader crashes.
 - **Images:** only when they reduce cognitive load; caption them when the image carries meaning. Not captured yet: `{/* IMAGE_PLACEHOLDER: UI location — what must be visible. */}` at the head of a section introducing new UI, or adjacent to (never inside) instructional Steps. Skip code-only SDK/API pages, comparison tables, hub pages and shots already marked elsewhere. Never fake image files or "screenshot coming soon" copy. Full rules: `docs-image-placeholders` skill.
 - **Downloads:** Mintlify does not serve notebooks, archives and most non-image files. Keep the file next to the guide and link `https://raw.githubusercontent.com/specklesystems/speckle-docs-new/refs/heads/main/<path-in-repo>`, never a relative path; don't explain the limitation to readers.
 
