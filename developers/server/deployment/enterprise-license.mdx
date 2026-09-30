@@ -468,7 +468,7 @@ Two steps remain outside your cluster before a user can create a sync. An Autode
 
 From 2026.9, [direct uploads](/connectors/direct-uploads/introduction) and CDE syncs convert files in your cluster: the server launches one Kubernetes Job per file from the `speckle-converters` image, on a node pool you provision. The runner is off by default, and the chart cannot responsibly turn it on for you: it needs capacity and objects only you can provide. Without the runner, the server accepts no file uploads at all, including IFC.
 
-With the runner on, the server accepts `ifc`, `rvt`, `nwd`, `nwc`, `dwg`, `dgn`, `skp`, `step` and `stp`, and servers with Vectorworks support also accept `vwx`. The list is fixed by the server; there is no per-format switch. The converter image ships with the licensed ODA SDKs built in, so the ODA-based formats (`rvt`, `nwd`, `nwc`, `dwg`, `dgn`) need no credentials from you. `3dm` and `obj` are the exception. They stay off until you [turn on Rhino conversion](#rhino-conversion-for-3dm-and-obj) with a token you supply.
+With the runner on, the server accepts `ifc`, `rvt`, `nwd`, `nwc`, `dwg`, `dgn`, `skp`, `vwx`, `step` and `stp`. The list is fixed by the server; there is no per-format switch. The converter image ships with the licensed ODA SDKs built in, so the ODA-based formats (`rvt`, `nwd`, `nwc`, `dwg`, `dgn`) need no credentials from you. `3dm` and `obj` are the exception. They stay off until you [turn on Rhino conversion](#rhino-conversion-for-3dm-and-obj) with a token you supply.
 
 #### What the runner needs from you
 
@@ -488,7 +488,7 @@ With the runner on, the server accepts `ifc`, `rvt`, `nwd`, `nwc`, `dwg`, `dgn`,
 
   `<CONVERSION_NAMESPACE>` is the value of `conversionRunner.namespace`, `conversion` by default.
 
-- **The exact converter image pin**: `conversionRunner.converterImage: ghcr.io/specklesystems/speckle-converters:2026.9.0`. Mirroring is optional: if you would rather serve images from your own registry, copy that image into it, point `converterImage` at the mirrored path, and create the pull Secret above with your registry's credentials instead. Run the same `YYYY.M` converter and server line and upgrade both together: they must reference the same bundle format version. Vectorworks (`vwx`) needs a converter image with Vectorworks support. `2026.9.0` has none: a server that accepts `vwx` running against it takes `.vwx` uploads and then fails them. Never run the runner on a mutable `latest` tag, which silently breaks that pairing on the next push.
+- **The exact converter image pin**: `conversionRunner.converterImage: ghcr.io/specklesystems/speckle-converters:2026.9.0`. Mirroring is optional: if you would rather serve images from your own registry, copy that image into it, point `converterImage` at the mirrored path, and create the pull Secret above with your registry's credentials instead. Run the same `YYYY.M` converter and server line and upgrade both together: they must reference the same bundle format version. Vectorworks (`vwx`) needs a converter image with Vectorworks support. `2026.9.0` has none, so against it the server accepts `.vwx` uploads and then fails them. Never run the runner on a mutable `latest` tag, which silently breaks that pairing on the next push.
 
 #### Node pool contract
 
