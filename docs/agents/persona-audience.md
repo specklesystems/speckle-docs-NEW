@@ -8,7 +8,7 @@ The doc-type → reader table and the general voice rules are in `AGENTS.md`. Th
 
 ## Developer Docs Audience Hierarchy
 
-Within **developer docs**, assume the reader is most often a **citizen developer** or **AEC hacker** — not a full-time platform engineer building a maintained host-application integration.
+Within **developer docs**, assume the reader is most often a **citizen developer** or **AEC hacker** — not a full-time platform engineer building a maintained host-application integration. "You" is the developer; the tone is technical and precise.
 
 ### Primary audience (default for SDK and API docs)
 
