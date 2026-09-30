@@ -23,8 +23,7 @@ description = "Typecheck and build the bundle-bridge sample (its own pnpm root)"
 dir = "examples/viewer-bundle-bridge"
 run = ["pnpm install --frozen-lockfile", "pnpm typecheck", "pnpm build"]
 
-[tasks.uac-generate]
-description = "Regenerate universal-ai-config outputs"
-# Skills are pruned first: uac never removes outputs whose template disappeared
-# (atlas/uac/README.md). Scoped to skills so hand-authored files survive.
-run = "pnpm run uac clean --type skills && pnpm run uac generate"
+# Alias for a session started in this repo alone; the atlas root fan-out runs the script directly (ADR-0008).
+[tasks.agents-sync]
+description = "Sync agent config (shared atlas set + agents/) into .claude/skills, .agents/skills, .mcp.json, .codex/config.toml"
+run = 'python3 "${ATLAS_ROOT:-..}/atlas/scripts/sync-agents.py" --repo .'

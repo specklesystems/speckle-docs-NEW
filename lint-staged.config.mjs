@@ -5,23 +5,29 @@
  * Does not run mint validate / links / a11y.
  */
 
+import path from 'node:path'
+
 const prettierGlobs = '*.{md,mdx,js,jsx,mjs,cjs,ts,tsx,json,jsonc,yml,yaml,css}'
 
 /** Paths markdownlint should skip (same idea as scripts/lint-md-changed.sh). */
 function shouldLintMarkdown(file) {
+  // Repo-relative with `/` separators (ENG-10126): lint-staged passes absolute paths, where a
+  // substring match also hits checkout ancestors, e.g. a worktree under .claude/worktrees/.
+  const rel = path.relative(process.cwd(), path.resolve(file)).split(path.sep).join('/')
   const skipPrefixes = [
     'node_modules/',
     '.mintlify/',
     '.cursor/',
     '.claude/',
-    '.github/skills/',
-    '.github/instructions/',
-    '.universal-ai-config/'
+    '.agents/',
+    'AGENTS.md',
+    'agents/',
+    'docs/agents/'
   ]
-  if (skipPrefixes.some((p) => file.startsWith(p) || file.includes(`/${p}`))) {
+  if (skipPrefixes.some((p) => rel.startsWith(p))) {
     return false
   }
-  if (file.includes('/notebooks/') || file.startsWith('notebooks/')) {
+  if (rel.includes('/notebooks/') || rel.startsWith('notebooks/')) {
     return false
   }
   return true
