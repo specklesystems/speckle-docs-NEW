@@ -1,4 +1,4 @@
-# Known sources for object-model facts (Tier B)
+# Known sources for object-model facts read from source
 
 Which repo owns the ground truth for each concept on
 `next/developers/object-model/*` and `publish.mdx` that has no generated
@@ -70,10 +70,6 @@ the version-created signal). Ground truth is `speckle-server-internal`,
 Spec or producer rules the server does **not** enforce (verify them in
 bundle-spec or SDK source): `meta.produced_by` / `producer_version` being
 real values; the 1536 MiB shard cap.
-
-The `message` key on the `uploads/complete` body that `publish.mdx`
-documents was uncommitted on the server at the 2026-09-16 verification (see
-the manifest entry note); confirm it merged before re-pinning `upload.ts`.
 
 ## SGEO geometry encoding and the viewer `.dat`
 

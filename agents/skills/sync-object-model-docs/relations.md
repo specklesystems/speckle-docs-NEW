@@ -7,10 +7,9 @@ JSON as background and write the row in the page's voice.
 
 ## Adding a relation
 
-1. Place it in the `###` section whose relations connect the same kind of
-   things (containment, connectivity, display geometry, materials,
-   instancing), judged by what it connects, not by its id in the spec. A
-   relation that fits none gets a new section only after asking.
+1. Place it in the `###` section whose existing relations connect the same
+   kinds of things, judged by what it connects, not by its id in the spec.
+   A relation that fits no section gets a new one only after asking.
 2. Match the target section's existing columns. The sections carry
    different column sets on purpose; unifying them is a separate, explicit
    change.

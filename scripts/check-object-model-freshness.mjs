@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Tier B freshness check for next/developers/object-model pages.
+ * Freshness check for object-model facts read from sibling-repo source.
  *
  * Facts on these pages with no generated catalog to diff against are
  * conclusions drawn from reading source in sibling repos. This script
@@ -97,7 +97,7 @@ function main() {
   }
 
   if (!anyDrift && !anyMissing) {
-    console.log('\nAll Tier B sources match what the docs were last verified against.')
+    console.log('\nAll pinned sources match what the docs were last verified against.')
     return
   }
 

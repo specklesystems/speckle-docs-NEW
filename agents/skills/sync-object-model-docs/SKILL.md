@@ -1,10 +1,9 @@
 ---
 name: sync-object-model-docs
 description: >-
-  Object-model doc drift: check and update next/developers/object-model/*
-  and next/developers/building-integrations/publish.mdx against
-  speckle-bundle-spec, the SDKs and the server. Use when asked to update or
-  stale-check the 2026.9 object-model docs, or to document a new relation.
+  Object-model doc drift: sync next/developers/object-model/* and
+  building-integrations/publish.mdx with the stack. Use when asked to update
+  or stale-check the 2026.9 object-model docs, or to document a new relation.
 argument-hint: '[optional: concept name, e.g. relations, SGEO, ingestion]'
 ---
 
@@ -12,14 +11,14 @@ argument-hint: '[optional: concept name, e.g. relations, SGEO, ingestion]'
 
 Every fact on these pages has one of two sources:
 
-- **Tier A**: a generated catalog. Relation and node-kind names come from
-  `speckle-bundle-spec/generated/docs-data.json`; diff them, never judge by
-  eye. Renamed terms come from `atlas/glossary.md`.
-- **Tier B**: source read in sibling repos. Everything else (Version,
-  Ingestion, the bundle's `meta` row, SGEO) is a conclusion drawn from
-  reading source, and `known-sources.md` in this folder is the registry of
-  where each conclusion came from. Read the concept's section there before
-  reading any source: the fact, and the page, may already exist.
+- **Diffable**: relation and node-kind names in
+  `speckle-bundle-spec/generated/docs-data.json`, renamed terms in
+  `atlas/glossary.md`. Trust the diff over your reading of the page.
+- **Read from source**: everything else (Version, Ingestion, the bundle's
+  `meta` row, SGEO) is a conclusion drawn from sibling-repo source, and
+  `known-sources.md` in this folder is the registry of where each came
+  from. Read the concept's section there before reading any source: the
+  fact, and the page, may already exist.
 
 The scripts read sibling checkouts through the speckle-atlas root
 (`$ATLAS_ROOT`, default `..`). The only file written outside this repo is
@@ -52,7 +51,7 @@ stands in for the 2026.9 concept; leave it when it names what the reader
 migrates from ("historically called the commit object"). Done when every
 such hit is fixed or classified as a comparison.
 
-## 3. Concepts with no catalog
+## 3. Concepts read from source
 
 ```bash
 pnpm check:object-model-freshness
@@ -70,7 +69,7 @@ For each STALE entry:
    claim made for "the SDKs" holds only when both .NET and Python source
    agree.
 4. Draft the page change in reader vocabulary (translate implementer names;
-   source comments are background, never prose) and show it before writing.
+   source comments are background) and show it before writing.
 5. Re-pin the entry in `scripts/object-model-freshness-manifest.json`
    (every source path, its current sha256 from `git show origin/main:<path>`,
    today's `verifiedAt`) and record what you found in `known-sources.md`.
@@ -82,10 +81,7 @@ conclusion on the page.
 
 ## Before finishing
 
-- `next/` pages follow `docs/agents/next.md` and the content rules in
-  `AGENTS.md` (`2026.9` naming, "Current" only as the selector label).
 - Run [`docs-page-review`](../docs-page-review/SKILL.md) on each edited
   page, then [`docs-ci-ready`](../docs-ci-ready/SKILL.md).
 - In the PR description, record the speckle-bundle-spec `schemaVersion`
-  the relations were checked against and which Tier B entries were
-  re-verified.
+  the relations were checked against and which sources were re-verified.
