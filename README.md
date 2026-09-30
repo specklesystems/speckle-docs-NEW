@@ -2,7 +2,7 @@
 
 This repository contains the official documentation for Speckle. The goal is to make our docs **clear, consistent, and useful** for both new and experienced users.
 
-Canonical doc rules for AI assistants live in `.universal-ai-config/instructions/*.md`. Run `uac generate` to emit tool-specific config (see **Generating universal-ai-config instructions** below).
+Canonical doc rules for AI assistants live in `AGENTS.md` (always on) and the `docs/agents/` docs it lists; agent skills live in `agents/skills/` (see **Agent config** below).
 
 ## Structure & Style
 
@@ -122,34 +122,19 @@ pnpm format
 pnpm lint:md:fix
 ```
 
-### Generating universal-ai-config instructions
+### Agent config
 
-Doc rules for AI assistants (Cursor, Copilot, Claude) are maintained as templates in `.universal-ai-config/instructions/`. To emit tool-specific config (e.g. `.cursor/rules/*.mdc` for Cursor), run:
+`AGENTS.md` is the always-on instruction file, read natively by Claude Code, Codex, Cursor and Grok. Area rules it points to live in `docs/agents/`, repo-local skills in `agents/skills/<name>/SKILL.md`. Edit those sources only.
 
-```bash
-npx universal-ai-config generate
-```
+In the standard layout (this repo cloned inside the [speckle-atlas](https://github.com/specklesystems/speckle-atlas) checkout, or `ATLAS_ROOT` set in `mise.local.toml`), `mise run agents-sync` — also run by the session-start hooks in `.claude/settings.json`, `.codex/hooks.json` and `.omp/extensions/atlas-sync.js` — copies the shared atlas skills and these local skills into the gitignored `.claude/skills/` and `.agents/skills/`, writes `.mcp.json` / `.codex/config.toml`, and refreshes the shared block in `AGENTS.md`. Layout and opt-in MCP servers: `../atlas/agents/README.md`.
 
-Or use the project’s package manager: `pnpm uac generate`, `npm run uac generate`, or `yarn uac generate` (if a `uac` script is defined in `package.json`).
+### Using doc rules in other AI tools
 
-- **All targets (default):** generates for Claude, Copilot, and Cursor.
-- **Specific targets:** `npx universal-ai-config generate -t cursor,claude`
-- **Preview only:** `npx universal-ai-config generate --dry-run`
-- **Clean then generate:** `npx universal-ai-config generate --clean`
+- **ChatGPT / Claude (chat) / Copilot Chat:** Paste the prompt seed below into Custom Instructions or your first message, or attach `AGENTS.md`. Optionally add at the top of the page you’re editing: `<!-- style: mintlify components; FAQs=AccordionGroup; steps=no nested components -->`
 
-Edit only the source templates in `.universal-ai-config/instructions/*.md`; do not edit the generated files by hand.
+**Prompt seed** (paste once per session for tools that don't read `AGENTS.md`):
 
-To generate only the targets you use, add an overrides file (e.g. `universal-ai-config.overrides.config.ts`) in the repo root and set `targets` (and optionally `variables`, `exclude`, etc.). That file is usually gitignored so each developer can choose their own targets without affecting the shared config.
-
-### Using doc rules in AI tools
-
-- **Cursor:** After `uac generate`, rules are in `.cursor/rules/*.mdc` and attach automatically.
-- **ChatGPT / Claude:** Paste the prompt seed below into Custom Instructions or your first message; or attach this README and point to the seed.
-- **Copilot (Chat):** Say “Use the AI authoring prompt seed in README as guidance for all doc edits in this session.” Optionally add at the top of the page you’re editing: `<!-- style: mintlify components; FAQs=AccordionGroup; steps=no nested components -->`
-
-**Prompt seed** (paste once per session for non-Cursor tools):
-
-> You are writing docs for Speckle. Follow the canonical rules in `.universal-ai-config/instructions/` (docs-general, docs-authoring, docs-steps, docs-faqs, docs-asides, docs-versioned-snippets, docs-titles-nav-seo). After `uac generate`, Cursor users get these as `.cursor/rules/*.mdc`; other tools should use this seed or attach README.
+> You are writing docs for Speckle. Follow the canonical rules in `AGENTS.md` and the `docs/agents/` docs it lists for the area you edit.
 >
 > **Global:** Mintlify components only; approachable, precise tone; short, imperative sentences; task-first; show outcomes; keep pages brief; visuals when they clarify; compact FAQ + best practices + 1–3 Tips; no tutorials in core docs; cross-link by user intent.
 >
