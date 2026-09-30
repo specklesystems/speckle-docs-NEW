@@ -122,6 +122,16 @@ pnpm format
 pnpm lint:md:fix
 ```
 
+Object-model drift checks (manual; not in CI because they read sibling checkouts in the speckle-atlas layout, `$ATLAS_ROOT` or `..`):
+
+```bash
+pnpm check:bundle-spec             # relations.mdx names vs speckle-bundle-spec's generated catalog (needs duckdb)
+pnpm check:object-model-freshness  # pinned source files behind object-model facts still match origin/main
+pnpm report:object-model-terms     # legacy glossary terms in next/ prose (not a gate)
+```
+
+All three take `--checkout-root <path>`; the two `check:` scripts take `--warn-only`. The workflow around them is the `sync-object-model-docs` skill.
+
 ### Agent config
 
 `AGENTS.md` is the always-on instruction file, read natively by Claude Code, Codex, Cursor and Grok. Area rules it points to live in `docs/agents/`, repo-local skills in `agents/skills/<name>/SKILL.md`. Edit those sources only.
