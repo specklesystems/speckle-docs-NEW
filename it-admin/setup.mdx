@@ -149,7 +149,7 @@ Allow outbound HTTPS (port 443) connections to:
 | `releases.speckle.dev`       | Connector feed data                       | Connector update checks             |
 | `speckle.community`          | Support forum, community resources        | Support access (optional)           |
 | `www.speckle.systems`        | Connector downloads, documentation        | Connector installation              |
-| `*.digitaloceanspaces.com`   | File storage and uploads                  | File uploads                        |
+| `*.digitaloceanspaces.com`   | File storage and uploads                  | Publishing, loading, file uploads   |
 
 <Note>
   The `dashboards.speckle.systems` domain is hosted on Netlify infrastructure during beta. If you
@@ -178,9 +178,10 @@ WebSocket (for real-time features):
 
 - Allow WebSocket connections (WSS) to `app.speckle.systems` for real-time features in the web application
 
-File uploads:
+File storage:
 
-- File uploads use presigned S3 URLs that are generated dynamically. These are typically served through `app.speckle.systems` or associated CDN endpoints. If you encounter issues with file uploads, ensure `app.speckle.systems` and its associated CDN domains (including `*.digitaloceanspaces.com`) are fully allowlisted.
+- Publishing and loading models, and file uploads, use presigned URLs on `*.digitaloceanspaces.com` (for example `ams3.digitaloceanspaces.com`). Connectors and browsers connect to these hosts directly, not through `app.speckle.systems`. If you encounter issues, ensure `app.speckle.systems` and `*.digitaloceanspaces.com` are fully allowlisted.
+- If your network inspects or re-signs HTTPS traffic (TLS/SSL inspection, common with VPNs and secure web gateways), exclude these domains from inspection. Allowlisting alone is not enough. The usual symptom is that a connector signs in and lists projects, but publishing or loading fails with `certificate verify failed`.
 
 ### Self-hosted servers
 
