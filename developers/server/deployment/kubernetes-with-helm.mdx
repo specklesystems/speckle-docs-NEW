@@ -324,18 +324,21 @@ apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
   name: low-priority
-value: -100
+value: 30
 globalDefault: false
-description: "Low priority (-100) - Non-critical microservices."
+description: "Low priority (30) - Non-critical microservices."
 EOF
 ```
 
-<Frame>
-  <img
-    src="/images/developers/server/kubernetes/18_priority_classes.png"
-    alt="18 priority classes"
-  />
-</Frame>
+You should see all three classes created:
+
+```text
+priorityclass.scheduling.k8s.io/high-priority created
+priorityclass.scheduling.k8s.io/medium-priority created
+priorityclass.scheduling.k8s.io/low-priority created
+```
+
+Keep every class at 0 or above. The cluster autoscaler treats pods below -10 as expendable: it never adds a node for them, and it can remove the node they run on while they are still running.
 
 </Step>
 <Step>
