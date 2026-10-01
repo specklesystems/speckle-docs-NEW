@@ -1,0 +1,131 @@
+---
+title: Benchmark a project against your portfolio with Speckle Intelligence
+sidebarTitle: Portfolio benchmarking
+description: Pin a library of past-project figures as Knowledge so Chat can tell you how the project you're looking at compares, instead of exporting each project by hand to compare them.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow linked Current documentation for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+Chat answers questions about one project at a time — see [Ask questions about your models with
+Speckle Intelligence](/next/analytics/intelligence#where-to-ask). It is not a portal onto every
+project in the workspace. So "how does this compare to our past work" is not something Chat can
+answer from the live model alone — it needs a benchmark to compare against. This page pins that
+benchmark as Knowledge so the comparison happens inside the conversation you're already having,
+instead of a separate export-and-compare step.
+
+<Note>
+  Speckle Intelligence Chat is available when your workspace plan includes it. On a self-hosted
+  server, it is available only on Speckle Enterprise Server. For deployment setup, see [Enterprise
+  license — Intelligence](/developers/server/deployment/enterprise-license#optional-intelligence).
+</Note>
+
+<Info>
+  This pins a static benchmark library for comparison inside Chat. To watch several **live**
+  projects side by side in one view instead — combined totals or a difference view, updating as
+  those projects change — use [Perform portfolio
+  analysis](/analytics/dashboards/common-workflows#perform-portfolio-analysis) in Dashboards.
+</Info>
+
+## What this workflow does
+
+- **Maintain a benchmark library** — a spreadsheet or warehouse table of figures from past
+  projects (steel tonnage, embodied carbon, cost per m², whatever your team tracks).
+- **Ask in project scope** — Chat reads the project you have open plus the pinned library, and
+  compares the two.
+- **Flag outliers** — ask for what's unusual, not just the raw comparison.
+- **Keep the library current** — point Chat at a live warehouse table instead of a static file if
+  the benchmark should update as finance or a data team refreshes it.
+
+## Walkthrough
+
+<Steps>
+  <Step title="Build the benchmark library">
+    Export or maintain a table of the metric you want to benchmark — one row per past project,
+    with the figure your team already tracks (steel tonnage, embodied carbon per m², cost per
+    unit). A spreadsheet is fine to start; a Databricks, Snowflake, or Microsoft Fabric table keeps
+    it current without re-uploading.
+  </Step>
+  <Step title="Pin it as Knowledge on a skill">
+    Create a skill and pin the library as
+    [Knowledge](/next/analytics/intelligence-skills#what-you-can-attach). Tell the skill, in your
+    own language, which column is which project and which is the metric, and how you want the
+    comparison framed — a ratio, a percentile, or a plain "higher/lower than average". See [Reuse
+    organisation playbooks with Intelligence skills](/next/analytics/intelligence-skills).
+  </Step>
+  <Step title="Ask the comparison">
+    Open the project you want to check, arm the skill, and ask:
+
+    > How does this project compare to our past hospital projects on steel tonnage?
+
+    Intelligence reads the current project's data plus the pinned library and answers within that
+    one conversation — you don't export either side by hand.
+
+  </Step>
+  <Step title="Ask for the outlier read, not just the number">
+    Keep going:
+
+    > Is that difference something worth flagging?
+
+    Because the comparison basis is the library you pinned — not a guess — Intelligence can say
+    where this project sits against it, and say so in the vocabulary your skill defined.
+
+  </Step>
+</Steps>
+
+## When you need several live projects in one view
+
+A pinned library is a snapshot — accurate as of when you last updated it. If you want combined
+totals or a difference view across several **live** projects that stays current as those projects
+change, that is a Dashboards job: [Perform portfolio
+analysis](/analytics/dashboards/common-workflows#perform-portfolio-analysis) adds a Model Viewer
+per project and uses **Aggregate** or **Compare** mode across them.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can Chat compare live projects to each other directly, without a pinned library?">
+    Not in one conversation — Chat answers about the project you have open, not several projects at
+    once. Pin a benchmark library so the comparison basis travels with the skill, or use [Perform
+    portfolio analysis](/analytics/dashboards/common-workflows#perform-portfolio-analysis) in
+    Dashboards when you want several live projects in one view instead.
+  </Accordion>
+  <Accordion title="How fresh does the benchmark library need to be?">
+    As fresh as you keep it. A static spreadsheet is a snapshot as of upload. Point the skill's
+    Knowledge at a live warehouse table instead if the benchmark should update automatically.
+  </Accordion>
+  <Accordion title="Does this need a version in the new 2026.9 data format?">
+    The current project does. Comparing versions or reading model relationships needs the new data
+    format. See [Speckle's data model is changing](/workspaces/data-model-migration).
+  </Accordion>
+  <Accordion title="Can I share this comparison with people who don't have Chat access?">
+    Save the conversation as a [Report](/next/analytics/reports) and share it — viewing a saved
+    report does not need the viewer to run their own Chat turn.
+  </Accordion>
+</AccordionGroup>
+
+## See also
+
+- [Ask questions about your models with Speckle Intelligence](/next/analytics/intelligence)
+- [Reuse organisation playbooks with Intelligence skills](/next/analytics/intelligence-skills)
+- [Create and share Intelligence Reports](/next/analytics/reports)
+- [Perform portfolio analysis](/analytics/dashboards/common-workflows#perform-portfolio-analysis)
+  — the live, multi-project dashboard route

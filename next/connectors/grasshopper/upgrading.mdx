@@ -1,0 +1,133 @@
+---
+title: Upgrade Grasshopper to 2026.9
+sidebarTitle: Upgrade
+description: What 2026.9 changes for Grasshopper, and how to move an existing script across.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+Existing scripts keep working. Nothing on your canvas is deleted. This page is the mechanical path
+onto the current Load and Publish nodes.
+
+For publish and load today, see [How to use Speckle for
+Grasshopper](/connectors/grasshopper/grasshopper). For node names, Explore, and extra objects, see
+[Grasshopper in 2026.9](/next/connectors/grasshopper/introduction). To use Explore after you
+switch, see [Explore what an object is connected to](/next/connectors/grasshopper/explore).
+
+<Note>
+  Nothing is removed from your canvas and no wires break. The nodes you already have are renamed and
+  hidden from the ribbon, not deleted.
+</Note>
+
+## When to switch
+
+| If you...                                            | Then...                                              |
+| ---------------------------------------------------- | ---------------------------------------------------- |
+| Have scripts that work and you are not changing them | Nothing to do. Leave them alone.                     |
+| Are building a new script                            | Use the current nodes. The ribbon only offers those. |
+| Want the Explore node                                | Upgrade the script's Load node.                      |
+| Load a version published by an upgraded teammate     | Upgrade the script's Load node.                      |
+
+## Before and after
+
+| On your canvas                           | After you switch                                                                    |
+| ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Load** / **Publish**                   | Unchanged nodes. They support 2026.9 onwards.                                       |
+| **Load (legacy)** / **Publish (legacy)** | Your existing nodes, renamed. They still work, and they are hidden from the ribbon. |
+| **Speckle Data Object**                  | Renamed **Speckle Object**. Same node, same ports.                                  |
+| **Speckle Geometry (legacy)**            | Your existing Speckle Geometry node. It still works, and it is hidden.              |
+| **Speckle Geometry**                     | New. Geometry, colour, and material — no Name or Properties.                        |
+
+The same rename applies to **(Sync) Load** and **(Sync) Publish**.
+
+| Output         | **Load (legacy)**                  | **Load**                     |
+| -------------- | ---------------------------------- | ---------------------------- |
+| **Collection** | Data Objects and geometry          | Speckle Objects and geometry |
+| **Properties** | Model-wide properties              | Model-wide properties        |
+| **Proxies**    | Materials, colours, levels, groups | Not available                |
+
+## How to switch
+
+{/* IMAGE_PLACEHOLDER: Grasshopper canvas — Speckle Model wire moved onto a current Load node; Load (legacy) still on the canvas, unwired. */}
+
+<Steps>
+  <Step title="Add the current Load node">
+    Place a **Load** node from the ribbon and move your Speckle Model wire onto it. You should see
+    the same **Collection** output as before.
+  </Step>
+  <Step title="Reconnect anything downstream">
+    Check that nodes reading that Collection still resolve. Objects come through as **Speckle
+    Objects** rather than Data Objects — the same shape under a new name — so most wires carry
+    straight over.
+  </Step>
+  <Step title="Delete the old node">
+    Remove the **Load (legacy)** node once nothing is wired to it. The definition should now load
+    through the current node only.
+  </Step>
+  <Step title="Repeat for Publish, if your script publishes">
+    Confirm collaborators have upgraded first. Switching Publish affects people who load your model,
+    not just you. If you are not sure, leave Publish on the legacy node and upgrade Load only.
+  </Step>
+</Steps>
+
+{/* IMAGE_PLACEHOLDER: Publish (legacy) node — canvas remark that older connectors can still read versions from this node. */}
+
+<Warning>
+  If your script publishes and then reloads in the same definition, use the current nodes for both.
+  A version created by the current **Publish** node cannot be read by a **Load (legacy)** node.
+</Warning>
+
+## Messages you might see
+
+| Message                                                              | What it means                                                               |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| This Load component is deprecated                                    | You are on a legacy node. Nothing is wrong. Upgrade when convenient.        |
+| This version was published before Speckle 2026.9.0                   | An older version loaded. Grouping and collection paths may differ.          |
+| This version needs the current Load component                        | A legacy node hit a version it cannot fully read. Upgrade the node.         |
+| Versions published by this component can be read by older connectors | A reminder from **Publish (legacy)**. Check collaborators before switching. |
+| The name or properties on the incoming geometry were replaced        | The Speckle Object's name and properties win. Set them on the object.       |
+| Replacing the geometry dropped its properties                        | Swapping a shape does not carry properties across. Use a Speckle Object.    |
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Will my saved scripts break?">
+    No. Nodes are matched by identity, not by name, so renaming them has no effect on your files. No
+    node turns into a placeholder and no wire is dropped.
+  </Accordion>
+  <Accordion title="Why can't I find Load in the ribbon anymore?">
+    You can — it is in the same place it always was. The node named **Load (legacy)** is the hidden
+    one, and the **Load** in the ribbon is the current node.
+  </Accordion>
+  <Accordion title="What happened to the Speckle Data Object node?">
+    It is now called **Speckle Object**. Same node, same ports, same behaviour. It no longer shows a
+    deprecation message on every solve.
+  </Accordion>
+  <Accordion title="Can I copy a legacy node from an old script?">
+    Yes. Copy and paste still works. Replace it with the current node so the script does not carry
+    the older behaviour forward.
+  </Accordion>
+  <Accordion title="Do I have to upgrade Load and Publish together?">
+    No. They are independent. Upgrading Load only is a good first step, because it affects nobody
+    but you.
+  </Accordion>
+</AccordionGroup>

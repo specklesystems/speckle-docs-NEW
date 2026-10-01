@@ -1,0 +1,235 @@
+---
+title: Relations in 2026.9
+sidebarTitle: Relations
+description: Typed containment, connectivity, geometry, systems, and materials — richer than today's Proxies.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+Before 2026.9, as the [Data Schema](/developers/data-schema/overview) describes, overlapping membership is a
+[Proxy](/developers/data-schema/proxy-schema) at the Root Collection: a material, level, group, or
+definition lists `applicationId`s in `objects`. Hierarchy is a tree you walk through
+`Collection.elements`.
+
+2026.9 replaces that reconstruction with an **explicit relational layer**: typed, directed edges
+between objects (and, where needed, structural nodes such as a level, material, or grouping
+container). For the two-store picture, see [Object model in 2026.9](/next/developers/object-model/overview).
+Dates and who must act are on
+[Data model migration for developers](/developers/migration/data-model-migration).
+
+Proxies themselves do not exist in 2026.9 bundle data - there is no `RenderMaterial`, `Level`,
+`Group`, `Definition`, `InstanceProxy`, or `InstanceDefinitionProxy` object anywhere in the format.
+The relation types below are what carries that information instead.
+
+## Why relations exist
+
+Proxies let one object participate in several organizations without copying geometry. They do not
+encode connectivity, hosting, or room occupancy as a graph a consumer can query. 2026.9 keeps the
+"no duplication" rule and makes those links first-class, which is what lets Speckle Intelligence
+answer topology questions instead of only looking up properties on each object.
+
+Rooms and MEP spaces that carry geometry are **objects** in this layer, not grouping nodes. A
+furniture item's room membership is a relation to that room object (`IN_ROOM`), not a Proxy list on
+a container.
+
+## Relation types you will see
+
+{/* IMAGE_PLACEHOLDER: 2026.9 viewer inspector — named relations on a selected object (ON_LEVEL, HOSTED_ON, CONNECTS_TO). */}
+
+Names below are the live vocabulary of the relational layer (the same names the 2026.9 viewer
+inspector uses). A connector emits only the types that exist in the source model. Omit a row from
+your script's assumptions unless that host actually publishes it.
+
+### Containment and grouping
+
+These replace nested `elements` walks and most organisational Proxies.
+
+| Relation        | From → to                            | Replaces, in 2026.8 and earlier                                    | When you use it                                                                                         |
+| --------------- | ------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `SUBELEMENT`    | object → object                      | Nested DataObject `elements` (curtain wall → panels, stair → runs) | Host-to-child ownership the property store cannot encode                                                |
+| `IN_COLLECTION` | object → grouping container          | Collection tree / layer membership                                 | Authored layer, category, or collection membership                                                      |
+| `IN_MODEL`      | object → grouping container          | Source-file / federation grouping                                  | Which source model an object came from                                                                  |
+| `IN_GROUP`      | object → grouping container          | Group Proxy                                                        | Authored groups (for example Rhino or AutoCAD). Distinct from layer                                     |
+| `IN_ROOM`       | object → room object                 | Not a first-class Proxy graph                                      | Spatial occupancy (furniture, door, window → room)                                                      |
+| `IN_ASSEMBLY`   | member object → assembly object      | Host-specific nesting                                              | Fabrication membership (for example Tekla). Distinct from `SUBELEMENT`                                  |
+| `ON_LEVEL`      | object → level                       | Level Proxy                                                        | Level membership                                                                                        |
+| `IN_SYSTEM`     | object → system or network container | System / network grouping                                          | MEP system membership. Derived networks use the same relation; the container subtype distinguishes them |
+
+Grouping containers nest among themselves (a collection tree). That nesting is structural. It is not
+an object-to-object `elements` walk.
+
+### Connectivity
+
+These are new as a queryable graph. Before 2026.9 there is no Proxy equivalent.
+
+| Relation      | From → to       | Meaning                                                                                         |
+| ------------- | --------------- | ----------------------------------------------------------------------------------------------- |
+| `CONNECTS_TO` | object → object | Directed connectivity. Scope distinguishes MEP flow, opening/room adjacency, and unscoped links |
+| `HOSTED_ON`   | object → object | Hosted element → host (door or window → wall). Different from `SUBELEMENT` ownership            |
+| `BOUNDS`      | object → object | Bounding wall → room. Room footprint, not occupancy                                             |
+
+`CONNECTS_TO` is directed in the store. Neighborhood queries used by the product treat it as a
+one-hop connection in either direction.
+
+### Display geometry
+
+An object's own geometry is a relation too, not a `displayValue` array on the object. The blob
+format behind these rows is on [Geometry encoding in
+2026.9](/next/developers/object-model/geometry-encoding).
+
+| Relation     | From → to         | Replaces, in 2026.8 and earlier                                     | When you use it                                                                                                            |
+| ------------ | ----------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `DISPLAY`    | object → geometry | `displayValue` meshes on the object                                 | The object's own render mesh (walls, in-place elements). Instanced objects use `DISPLAY_INSTANCE` instead                  |
+| `SOLID`      | object → geometry | The host solid (for example a Rhino Brep) beside its `displayValue` | A true solid body where the host has one (Rhino, Civil 3D). Reach for it when you need the body, not the tessellated shell |
+| `CENTERLINE` | object → geometry | `baseCurve` / `baseLine` on the object                              | The axis a duct, pipe, conduit, or framing member follows. Routing, length take-off, clash lines, and single-line drawings |
+
+`DISPLAY` is what renders. `SOLID` and `CENTERLINE` are additional shapes for consumers that need
+the body or the axis. Do not draw every object-to-geometry relation, or the centerline appears
+through the middle of the duct.
+
+### Materials and appearance
+
+| Relation              | From → to            | Replaces, in 2026.8 and earlier                       |
+| --------------------- | -------------------- | ----------------------------------------------------- |
+| `HAS_MATERIAL`        | geometry → material  | RenderMaterial Proxy bound to display meshes          |
+| `HAS_COLOR`           | geometry → color     | Display color, kept distinct from material            |
+| `OBJECT_HAS_MATERIAL` | object → material    | Placement / instance paint when the object carries it |
+| `OBJECT_HAS_COLOR`    | object → color       | Object-plane color override                           |
+| `NODE_HAS_MATERIAL`   | container → material | Authored layer or tag material (ByLayer fill)         |
+| `NODE_HAS_COLOR`      | container → color    | Authored layer or tag color (ByLayer default)         |
+
+Material and color are separate on purpose. An object can carry both. Material fills from specific
+to general: geometry `HAS_MATERIAL`, then `OBJECT_HAS_MATERIAL`, then the container's
+`NODE_HAS_MATERIAL`. Color is presentational: `OBJECT_HAS_COLOR` overrides geometry `HAS_COLOR`,
+and `NODE_HAS_COLOR` is the ByLayer default.
+
+### Instancing
+
+The Definition and Instance Proxies of 2026.8 and earlier become structural nodes plus relations.
+
+| Relation           | From → to                    | Replaces, in 2026.8 and earlier                                       |
+| ------------------ | ---------------------------- | --------------------------------------------------------------------- |
+| `DEFINES`          | definition → geometry        | Definition Proxy holding shared geometry                              |
+| `DISPLAY_INSTANCE` | object → instance placement  | Instance that renders with a transform                                |
+| `DEFINES_INSTANCE` | definition → nested instance | Nested instancing inside a definition                                 |
+| `DEFINES_MEMBER`   | definition → member object   | Definition membership on the object plane (geometry and nested alike) |
+| `PLACES`           | member object → instance     | Association without rendering, so member properties stay reachable    |
+
+<Note>
+  `DISPLAY_INSTANCE` is the render root. `PLACES` is the same object-to-instance link without
+  drawing. Do not treat a definition member as a render placement, or it will draw untransformed at
+  the origin.
+</Note>
+
+## What a script should do instead of unpacking Proxies
+
+<Steps>
+  <Step title="Resolve the version">
+    Use the same project, model, and version address you use today. The outcome is the snapshot you
+    intend to read.
+  </Step>
+  <Step title="Identify objects by applicationId">
+    Key source elements by `applicationId`, not by their position in a nested `elements` tree. The
+    outcome is a stable object set across versions. If you are producing data rather than only
+    reading it, this only holds if every placement's `applicationId` is unique — a repeated id
+    resolves to the same object, not a second occurrence.
+  </Step>
+  <Step title="Read the columnar property store">
+    Take attributes from property paths on those objects. See [Columnar property
+    store](/next/developers/object-model/overview#columnar-property-store). The outcome is values
+    you can filter without walking nested `Base` fields.
+  </Step>
+  <Step title="Follow named relations">
+    For membership, hosting, or connectivity, use relation names such as `ON_LEVEL`, `SUBELEMENT`,
+    `CONNECTS_TO`, and `IN_SYSTEM`. The outcome is topology without unpacking a Proxy `objects`
+    array. That join is already the relation.
+  </Step>
+</Steps>
+
+This page does not document SQL, a local query API, or copy-paste SDK calls. Those surfaces are
+separate. Until they ship in these docs, use supported SDK accessors and the
+[developer migration page](/developers/migration/data-model-migration) for breakage and pinning.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Is HOSTED_ON the same as SUBELEMENT?">
+    No. `HOSTED_ON` is placement on a host (a door on a wall). `SUBELEMENT` is ownership (a curtain
+    wall owns its panels). A door is hosted on a wall; it is not a component of the wall.
+  </Accordion>
+  <Accordion title="What happens if my connector never emitted a given relation?">
+    The edge is absent. Scripts should treat a missing relation type as "not in this model," not as
+    a failed receive. Only hosts that have that concept in the source will emit it.
+  </Accordion>
+  <Accordion title="Can I keep walking Collection.elements for hierarchy?">
+    That walk is the tree of 2026.8 and earlier. On 2026.9 data, use `IN_COLLECTION`, `IN_MODEL`, `ON_LEVEL`, and
+    `SUBELEMENT` instead of assuming a nested `elements` graph. See [Object model in
+    2026.9](/next/developers/object-model/overview).
+  </Accordion>
+  <Accordion title="Can I still share one object between parents with a detached reference?">
+    No. Detaching and the `reference` object type belong to the object graph of 2026.8 and earlier;
+    a bundle has no `__closure` to resolve them through. Publish the shared thing as its own object
+    and relate the others to it, or, if what you are sharing is really a value rather than an
+    object, write that value as a property on each object. See [Object model in
+    2026.9](/next/developers/object-model/overview).
+  </Accordion>
+  <Accordion title="Is CENTERLINE always the geometric centre of the element?">
+    No. It is the authored location curve. A Revit wall's location line follows its Location Line
+    setting and can be a core or finish face. A point-placed MEP fitting (elbow, tee, cross) has no
+    location curve, so it emits one `CENTERLINE` segment per connector, ordered by connector.
+  </Accordion>
+  <Accordion title="Can I express a solid modelling feature tree with relations?">
+    No, and that is not the intent. Relations describe how finished objects relate: containment,
+    hosting, connectivity, appearance, instancing. They do not describe how an object was made, and
+    nothing in Speckle rebuilds geometry from a recipe. What you can carry: the exact body through
+    `SOLID` in the host's own format, feature parameters as properties, and ownership through
+    `SUBELEMENT`. A dependency order can travel in your own edge file, which no Speckle consumer
+    reads. Exchanging modelling history would need operation node kinds in the catalog and a
+    modelling kernel on the receiving side. Neither exists today.
+  </Accordion>
+  <Accordion title="Can I describe an assembly and its parts with relations?">
+    Yes, as a resolved structure. Parts are objects. A sub-assembly owns its parts through
+    `SUBELEMENT`, or joins them through `IN_ASSEMBLY` when membership is the point. A part used
+    many times is one definition placed by instances, each with its own transform, and a repeated
+    sub-assembly is a nested definition. Part-to-part contact is `CONNECTS_TO`, and exact bodies
+    ride `SOLID`. What does not travel is the constraint system: mates such as coincident or
+    concentric, degrees of freedom, and the solver that positions parts from them. You publish the
+    positions those constraints produced, not the constraints.
+  </Accordion>
+  <Accordion title="Can I extend the relation topologies for my tools?">
+    Yes. Store custom edges in your own parquet files, not in the relation files Speckle SDKs
+    generate — rewriting those files mismatches on the next republish, and you own whatever you add.
+    Do not mint unused numeric relation type ids from the Speckle catalog; Speckle reserves those
+    numbers for future platform types. Which cases need a custom file, and which are really an
+    existing relation or a property, is on [Building integrations in
+    2026.9](/next/developers/building-integrations#relations-you-do-not-need-and-relations-you-add).
+  </Accordion>
+  <Accordion title="What happens if two objects share the same applicationId?">
+    They are treated as the same object referenced twice, not as two occurrences.
+    `applicationId` is not required on every object, but wherever it is relied on as identity — a
+    `DISPLAY_INSTANCE` or `DEFINES_INSTANCE` placement, a `Flatten().ToDictionary(o =>
+    o.applicationId)` lookup, any join back to a source element — that identity has to be unique
+    for the objects relying on it. A producer that reuses an id across two distinct placements
+    will see the second one silently collapse onto the first: same node, same transform, no error
+    raised.
+  </Accordion>
+</AccordionGroup>

@@ -12,6 +12,10 @@ noindex: true
   migration for workspaces](/workspaces/data-model-migration) instead.
 </Warning>
 
+<Note>
+  For a compact Current versus 2026.9 table, see [Compare Current and 2026.9](/next/whats-new).
+</Note>
+
 ## What's changing
 
 Speckle is introducing a new underlying data model that significantly improves scalability, storage efficiency, and performance. It replaces today's tree-and-Proxy object graph with two things working together: a columnar property store for fast querying and aggregation, and an explicit relational layer describing how elements relate to one another — containment, connectivity, systems, materials — richer than today's Proxies.
@@ -33,19 +37,41 @@ Your desktop and web workflows aren't going anywhere. Publish and view through s
 
 For almost everyone, nothing breaks. Existing connectors, SDKs, and integrations — including Power BI — continue to work with your published data exactly as they do today. Nothing forces the move, and there's nothing to do.
 
-The one area to watch is data that reaches Speckle without going through a connector: **ACC sync** and **drag-and-drop file uploads**. That data auto-migrates to the new format by default. If something downstream — a custom integration, a script, an API consumer — expects the old format and breaks as a result, you can ask us to switch your workspace to **compatibility mode**, which keeps writing in the old format while you update.
+The one area to watch is data that reaches Speckle without going through a connector: **ACC sync** and **drag-and-drop file uploads**. That data auto-migrates to the new format by default. If something downstream — a custom integration, a script, an API consumer — expects the old format and breaks as a result, you can ask us to switch your workspace to **compatibility mode**, which keeps writing in the old format while you update, until it ends on **1 November 2026**.
 
 <Warning>
-  Compatibility mode is a bridge, not a fix. It's available until **1 November 2026** — anything
-  relying on it needs to be migrated off before then.
+  Compatibility mode is a bridge, not a fix. It ends for every workspace on **1 November 2026** —
+  anything relying on it needs to be migrated off before then.
 </Warning>
+
+The other area to watch, separate from ACC sync and drag-and-drop specifically: code that reaches
+into the **open-source Viewer package**'s internals, or into the lower-level
+**`@speckle/objectloader` / `@speckle/objectloader2`** packages it's built on — extending render
+pipelines, forking extensions, reading render views/batches, or streaming and constructing object
+graphs directly. This is a JS/TS-ecosystem exposure specifically — it doesn't affect the .NET or
+Python SDKs. That exposure isn't limited to ACC sync or drag-and-drop uploads — it applies to any
+data your workspace loads that has been converted to the 2026.9 format, including publishes from an
+upgraded connector. There's no updated version of these packages for the new format yet, so if this
+is you, ask for compatibility mode too, and plan to be off it by **1 November 2026**, when it ends.
+See [Viewer developer notes in 2026.9](/next/developers/viewer/introduction) for the routes that
+outlast that date.
+
+**This is not the same as embedding `@speckle/viewer` and driving it through its supported
+extensions and APIs** — selection, filtering, camera control, property queries, and similar —
+whether through the hosted web viewer or your own embedded instance. That usage goes through
+`@speckle/viewer`'s own accessors rather than its internals, so it isn't affected by this exposure,
+and it doesn't need compatibility mode on its own. If you're unsure which side of that line your
+integration is on, [ask us](https://speckle.community/help) rather than requesting compatibility
+mode speculatively.
 
 Everyone else — desktop connector users, SDK/API consumers, custom analytics, and ETL — can carry on as normal.
 
-Speckle Automate functions are worth calling out specifically, since what a function needs to do depends on which connector produced the version it's processing, not on the function's own code:
+Speckle Automate functions are worth calling out specifically, since what a function needs to do depends on the format of the version it's processing, not on the function's own code:
 
-- **Version published by an old connector:** your function keeps working exactly as it does today. Nothing to change.
-- **Version published by a connector that only writes the new bundle format:** your function's SDK dependency needs a version bump before it can read that version. No code change required — just an updated SDK build.
+- **Version still in the current (pre-2026.9) data model:** your function keeps working exactly as it does today. Nothing to change. Older connectors, including the 2026.8 Navisworks connector, write this model at publish time.
+- **Version in the 2026.9 format:** your function's SDK dependency needs a version bump before it can read that version. No code change required — just an updated SDK build. That includes publishes from a 2026.9 connector, uploads after the project uses the new format, and older-connector publishes that the server has already converted.
+
+Speckle may convert a version published by an older connector to the 2026.9 format on the server. That conversion is not guaranteed. Do not assume either shape. Follow this page for the format the version actually has. The durable exception is Navisworks: there is no 2026.9 desktop connector, so new desktop publishes stay on 2026.8. See [Navisworks in 2026.9](/next/connectors/navisworks/introduction).
 
 ## Self-hosted servers
 
@@ -61,27 +87,28 @@ If you're running Speckle's open-source core, you already own your connector dis
 
 ## Migration guidance
 
-Old connectors, old SDKs, and your existing published data aren't on a deprecation clock — they continue working exactly as they do now. ACC sync and drag-and-drop uploads auto-migrate to the new format after the migration; if that breaks something downstream, ask us to switch your workspace into compatibility mode to keep writing the old format while you update.
+Old connectors, old SDKs, and your existing published data aren't on a deprecation clock — they continue working exactly as they do now. Speckle may convert an older-connector publish to the 2026.9 format on the server; treat that as best effort, not a guarantee. ACC sync and drag-and-drop uploads auto-migrate to the new format after the migration; if that breaks something downstream, ask us to switch your workspace into compatibility mode to keep writing the old format while you update. Compatibility mode ends on **1 November 2026**.
 
-If you maintain internal tooling that reads Speckle data more directly than the standard SDK/API surface — something that assumes the shape of the old object model rather than going through supported accessors — and it breaks against the new format, pin your server and connector to **v2026.8**: the last version before this migration converts data to the new model. That buys you time to update the tool without anything breaking in the meantime.
+If you maintain internal tooling that reads Speckle data more directly than the standard SDK/API surface — something that assumes the shape of the old object model rather than going through supported accessors — and it breaks against the new format, pin your server and connector to **2026.8**: the last version before this migration converts data to the new model. That buys you time to update the tool without anything breaking in the meantime.
 
 ## What you should do
 
 <Steps>
   <Step title="Update your connectors">
     Update from **1 September 2026**, no later than **1 November 2026**, when compatibility mode for
-    ACC sync and drag-and-drop goes away. Old connectors keep working either way — updating just
-    means getting there without the bumps, and getting the performance gains sooner.
+    ACC sync and drag-and-drop ends. Old connectors keep working either way — updating just means
+    getting there without the bumps, and getting the performance gains sooner.
   </Step>
   <Step title="Check whether ACC sync or drag-and-drop affects you">
     If your workflow depends on ACC sync or drag-and-drop uploads, and something downstream consumes
     that data directly (a script, a custom Power BI query, an API integration), ask us to switch
-    your workspace into compatibility mode before **1 November 2026**.
+    your workspace into compatibility mode now, and move off it before it ends on **1 November
+    2026**.
   </Step>
   <Step title="Bump your Automate function's SDK, if needed">
     If a function processes a version published by a connector that only writes the new bundle
-    format, bump its SDK dependency. No code change needed — versions from old connectors need
-    nothing done at all.
+    format, bump its SDK dependency. No code change needed. Versions that are still in the current
+    data model need nothing done. Do not assume an older-connector publish was converted.
   </Step>
   <Step title="Pin your self-hosted stack, if applicable">
     If you self-host, pin your current connector-and-server combination rather than updating
@@ -102,17 +129,27 @@ If you maintain internal tooling that reads Speckle data more directly than the 
     what already exists in your projects.
   </Accordion>
   <Accordion title="Does this affect my Speckle Automate functions?">
-    It depends on which connector published the version your function is processing, not on your
-    function's own code. A version from an old connector works with your function exactly as it does
-    today. A version from a connector that only writes the new bundle format needs your function's
-    SDK dependency bumped — no code change, just an updated SDK build.
+    It depends on the format of the version your function is processing, not on your function's own
+    code. A version still in the current data model works exactly as it does today. A version in the
+    2026.9 format needs your function's SDK dependency bumped — no code change, just an updated SDK
+    build. Speckle may convert an older-connector publish on the server; that conversion is not
+    guaranteed. See [Who's affected](#whos-affected).
   </Accordion>
   <Accordion title="What if my integration doesn't fit either 'standard SDK' or 'ACC sync/drag-and-drop'?">
     If you maintain a production integration that reads Speckle data more directly than the standard
-    SDK/API surface, pin to **v2026.8** in the meantime — see [Migration
+    SDK/API surface — reaching into the open-source Viewer package's internals, or into
+    `@speckle/objectloader` / `@speckle/objectloader2`, rather than just embedding the Viewer or
+    reading through GraphQL/REST — pin to **2026.8** in the meantime — see [Migration
     guidance](#migration-guidance) — and reach out via
     [speckle.community/help](https://speckle.community/help) or your Customer Success Advisor so we
     can walk through your specific setup.
+  </Accordion>
+  <Accordion title="I embed @speckle/viewer and use its selection/filtering APIs — do I need compatibility mode?">
+    No, not on that basis alone. Driving `@speckle/viewer` through its supported extensions and APIs
+    — selection, filtering, camera control, property queries — doesn't reach into the package's
+    internals, so it isn't part of this exposure. Compatibility mode is for code that extends render
+    pipelines, forks extensions, or reads render views/batches and object graphs directly. See
+    [Who's affected](#whos-affected).
   </Accordion>
 </AccordionGroup>
 

@@ -86,6 +86,13 @@ if (receivedData["groupProxies"] is IEnumerable<object> groupProxies)
 }
 ```
 
+<Warning>
+  `applicationId` is expected to be unique per object in the received graph. If the sender emitted
+  duplicates, `ToDictionary` throws `ArgumentException: An item with the same key has already been
+  added`. That is a data problem upstream, not a bug in this code - whichever object lost its entry
+  is the tell.
+</Warning>
+
 ## Step-by-Step Explanation
 
 ### Resolving Simple Proxies (Group, Color)
@@ -166,6 +173,12 @@ Prefer root-level property lookup (`receivedData["instanceDefinitionProxies"]`) 
   <Accordion title="InstanceProxy resolved to the wrong object">
     `InstanceProxy.definitionId` matches an `InstanceDefinitionProxy.applicationId`, not `id`. Index
     definitions by `applicationId`.
+  </Accordion>
+  <Accordion title="Two placements collapse into one">
+    If distinct objects - especially `InstanceProxy` placements - end up sharing an `applicationId`,
+    they resolve as the same object referenced twice, not as two occurrences: only one transform
+    survives. This is a producer-side id collision, not a resolution bug here - check how the
+    sending connector or script generates `applicationId` for repeated or instanced elements.
   </Accordion>
   <Accordion title="Rebuilding the applicationId index per proxy">
     Build it once per received graph — see [Find objects by

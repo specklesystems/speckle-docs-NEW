@@ -1,13 +1,41 @@
 ---
 title: Object Loader 2
 description: Load and traverse Speckle objects in JavaScript/TypeScript
+docs_status: impacted
+changes_in_version: '2026.9'
+changes_from: '2026-09'
+next_docs:
+  - /next/developers/building-applications
+change_scope: 'This package reads object graphs only; 2026.9 bundle versions are not loadable through it and need the bundle load path'
 ---
+
+<Visibility for="agents">
+  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
+
+Affected guidance: This package reads object graphs only; 2026.9 bundle versions are not loadable through it and need the bundle load path.
+
+For these changes, read [2026.9 guidance](/next/developers/building-applications).
+
+For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
+
+</Visibility>
 
 ## Overview
 
 `@speckle/objectloader2` is a JavaScript/TypeScript package for loading and traversing Speckle objects. It provides utilities for working with Speckle's object-based data model in web and Node.js applications.
 
 **Package:** [@speckle/objectloader2 on npm](https://www.npmjs.com/package/@speckle/objectloader2)
+
+<Warning>
+  This package reads object graphs, so a 2026.9 bundle version is not loadable through it — the
+  objects endpoints return 404. Start from [Building applications in
+  2026.9](/next/developers/building-applications) for the load path to move to.
+</Warning>
+
+<Note>
+  Compatibility mode keeps a workspace's versions in the object-graph format until it ends on **1
+  November 2026**. See [Compatibility mode](/next/it-admin/compatibility-mode).
+</Note>
 
 ## Installation
 
@@ -17,15 +45,29 @@ npm install @speckle/objectloader2
 
 ## Quick Start
 
+Loaders are built through `ObjectLoader2Factory`, not constructed directly.
+
 ```typescript
-import { ObjectLoader } from '@speckle/objectloader2'
+import { ObjectLoader2Factory } from '@speckle/objectloader2'
 
-// Initialize loader
-const loader = new ObjectLoader(client, objectId)
+const loader = ObjectLoader2Factory.createFromUrl({
+  serverUrl: 'https://app.speckle.systems',
+  streamId: projectId,
+  objectId,
+  token
+})
 
-// Load object
-const object = await loader.getAndConstructObject()
+const root = await loader.getRootObject()
+
+for await (const object of loader.getObjectIterator()) {
+  // every object in the graph, root first
+}
+
+await loader.disposeAsync()
 ```
+
+`createFromObjects(objects)` and `createFromJSON(json)` build a loader over objects you
+already hold, with `objects[0]` as the root.
 
 ## Features
 

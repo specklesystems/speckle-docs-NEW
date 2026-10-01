@@ -1,7 +1,24 @@
 ---
 title: Proxy Schemas
 description: How proxies encode relationships between objects and shared resources
+docs_status: impacted
+changes_in_version: '2026.9'
+changes_from: '2026-09'
+next_docs:
+  - /next/developers/object-model/overview
+change_scope: 'Tree, nested-property, and Proxy assumptions change for 2026.9 bundle data'
 ---
+
+<Visibility for="agents">
+  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
+
+Affected guidance: Tree, nested-property, and Proxy assumptions change for 2026.9 bundle data.
+
+For these changes, read [2026.9 guidance](/next/developers/object-model/overview).
+
+For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
+
+</Visibility>
 
 This page explains how [Proxies](/developers/data-schema/overview#core-glossary) encode relationships between objects and shared resources. Proxies solve a fundamental problem: how to let objects participate in multiple organizational systems without duplicating data. Here you'll learn how proxies reference objects, how [Definition](/developers/data-schema/overview#core-glossary) and [Instance](/developers/data-schema/overview#core-glossary) patterns work, how transforms propagate, and why proxies matter for deduplication, versioning, and performance.
 
@@ -278,7 +295,7 @@ In addition to proxies, Speckle supports direct reference objects that point to 
 
 ### ObjectReference
 
-`ObjectReference` (deprecated as `Speckle.Core.Models.ObjectReference`, current type is `reference`) is a non-proxy reference object that directly references another object by its `id`:
+A reference (`speckle_type: "reference"`; the .NET class is `Speckle.Sdk.Models.ObjectReference`, formerly `Speckle.Core.Models.ObjectReference`) is a non-proxy reference object that points at another object by its `id`:
 
 ```json
 {
@@ -292,7 +309,49 @@ Fields:
 - **`referencedId`** (required) - The object `id` (hash) of the referenced object
 - **`closure`** (optional) - Dictionary mapping closure information
 
-Unlike proxies which reference by `applicationId` and are stored at root level, `ObjectReference` references by `id` and can appear anywhere in the object graph.
+Unlike proxies, which reference by `applicationId` and are stored at root level, a reference points by `id` and can appear anywhere in the object graph.
+
+#### How references get created
+
+You don't build references by hand. The serializer writes one whenever you **detach** a property, and at the same time records the referenced `id` in the parent's `__closure`. That closure entry is what lets the object be found again on receive. Assign the same object to a detached property on several parents, and it is stored once and referenced from each:
+
+<CodeGroup>
+
+```python specklepy
+spec = Base()
+spec.name = "Type A glazing unit"
+spec.uValue = 1.2
+
+# "@" marks the property detached; add_detachable_attrs({"specification"})
+# does the same for a property you don't want to prefix.
+element_a["@specification"] = spec
+element_b["@specification"] = spec
+
+operations.send(base=root, transports=[server_transport])
+```
+
+```csharp .NET
+var spec = new Base { ["name"] = "Type A glazing unit", ["uValue"] = 1.2 };
+
+// "@" marks the property detached, as in specklepy.
+elementA["@specification"] = spec;
+elementB["@specification"] = spec;
+```
+
+</CodeGroup>
+
+The specification object is stored once, both elements carry a reference to it, and `operations.receive` resolves each one back to the full object.
+
+<Note>
+  specklepy has no `ObjectReference` class — `ObjectReference` is the .NET type name. In Python,
+  detach the property as above rather than building a reference object yourself.
+</Note>
+
+#### References in the 3D viewer
+
+A reference is a pointer, and the viewer's selection panel shows it as one. Select an object whose property holds a reference, and that property lists the reference's own fields — `referencedId`, `speckle_type`, `closure` — not the referenced object's properties. To read those, select the referenced object, which appears in the model tree in its own right.
+
+So if you want a value visible on every object in the viewer, set it on every object. References save storage; they do not copy properties onto the objects that point at them.
 
 ### InstanceProxy
 
@@ -310,6 +369,7 @@ Unlike proxies which reference by `applicationId` and are stored at root level, 
 
 Fields:
 
+- **`applicationId`** (required, must be unique per instance) - Identifies this specific placement. Reusing an id across two instances resolves them to the same one - the second placement's transform is dropped, not applied.
 - **`definitionId`** (required) - The `applicationId` of the Definition proxy that contains the geometry
 - **`transform`** (required) - 4x4 transformation matrix for the instance placement
 - **`units`** (required) - Units of the host application file
@@ -328,6 +388,7 @@ Fields:
 3. **No circular references** - Proxies don't reference other proxies
 4. **Value is the resource** - The `value` field contains the actual resource data
 5. **objects is a list** - Can reference zero or more objects
+6. **applicationId is not mandatory, but where it is relied on as identity it must be unique** - a Proxy's own `applicationId`, and any object's `applicationId` used to resolve a placement (for example `InstanceProxy`), is read as that object's identity. Two objects sharing one are treated as the same object referenced twice, not as two occurrences, and this is not validated - a collision collapses silently rather than raising an error.
 
 <Accordion title="Can an object be in multiple groups?">
   Yes! An object's `applicationId` can appear in multiple Group proxy `objects` arrays. This allows

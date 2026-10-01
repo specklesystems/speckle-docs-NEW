@@ -1,7 +1,24 @@
 ---
 title: Core Concepts
 description: Understanding Models, Collections, Objects, Proxies, and Info
+docs_status: impacted
+changes_in_version: '2026.9'
+changes_from: '2026-09'
+next_docs:
+  - /next/developers/object-model/overview
+change_scope: 'Tree, nested-property, and Proxy assumptions change for 2026.9 bundle data'
 ---
+
+<Visibility for="agents">
+  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
+
+Affected guidance: Tree, nested-property, and Proxy assumptions change for 2026.9 bundle data.
+
+For these changes, read [2026.9 guidance](/next/developers/object-model/overview).
+
+For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
+
+</Visibility>
 
 This page provides detailed explanations of the fundamental concepts that make up every Speckle data package, building from the most granular level upward. Here you'll learn how [Collections](/developers/data-schema/overview#core-glossary), [DataObjects](/developers/data-schema/overview#core-glossary), [Proxies](/developers/data-schema/overview#core-glossary), and [Info](/developers/data-schema/overview#core-glossary) work together to create a structured, traversable model without cycles. For a high-level overview, see the [Overview](/developers/data-schema/overview) page.
 
@@ -130,6 +147,8 @@ Collections can be nested to any depth, but most connectors use 2-4 levels.
 ### Root Collection
 
 The **Root Collection** is always the top-level container for a data package at a version. It contains the collections hierarchy, proxies, info, and the closures table. It has no parent—it is the root of the tree.
+
+A version reaches its Root Collection through the `referencedObject` id on the version record. The version record holds publish metadata (message, author, source application, timestamp); the Root Collection holds the package (name, `units`, `elements`, proxy arrays, info). See [Versions and the root object](/developers/data-schema/version-root-object) for the full split and how to read each in a script.
 
 The **closures table** (stored as `__closure`) provides a flat list of all nodes (objects and collections) that are descendants of the Root Collection. It serves as a shortcut to enable rapid processing—viewers, host applications, and deserializers can use it to quickly identify which objects need to be retrieved, then reassemble them as the hierarchy is loaded in. When data is sent using Speckle's serializers, the closures table is automatically created and populated.
 
