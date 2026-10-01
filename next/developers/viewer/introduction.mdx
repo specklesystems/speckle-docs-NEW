@@ -1,0 +1,96 @@
+---
+title: Building on the Viewer package in 2026.9
+sidebarTitle: Viewer
+description: What changes for apps that import the Viewer package when the data they load becomes a 2026.9 bundle, and the two ways to keep rendering.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+If your application imports `@speckle/viewer` and loads Speckle data itself, 2026.9 changes
+what it loads. A version's data is no longer an object graph fetched from the objects
+endpoints; it is a [bundle](/next/developers/building-integrations) of parquet files. The
+published Viewer package has no loader for that shape, so a bundle version renders nothing
+and the objects endpoints return 404.
+
+The rest of the package is unaffected. Render pipelines, extensions, filtering, selection,
+queries, the world tree and view modes all work the same way, because the change is in where
+the data comes from, not in what the viewer does with it once converted.
+
+## Am I affected?
+
+| How your app uses the Viewer                                          | Affected |
+| --------------------------------------------------------------------- | -------- |
+| Imports `@speckle/viewer`, constructs a `Viewer` and a loader         | Yes      |
+| Extends render pipelines or extensions, reads render views or batches | Yes      |
+| Embeds the hosted web viewer in an iframe                             | No       |
+| Reads data only through the GraphQL or REST API                       | No       |
+
+## Two ways forward
+
+<CardGroup cols={2}>
+  <Card
+    title="Load bundles yourself"
+    icon="download"
+    href="/next/developers/viewer/loading-bundles"
+  >
+    Add about a dozen files to your app, keep the same published packages, and render bundles.
+    Sample code and a step-by-step path.
+  </Card>
+  <Card title="Ask for compatibility mode" icon="clock" href="/next/it-admin/compatibility-mode">
+    Keeps your workspace's data in the object-graph format, so your app keeps working unchanged
+    until the mode ends on **1 November 2026**.
+  </Card>
+</CardGroup>
+
+Loading bundles is the route that outlasts compatibility mode, which ends on **1 November 2026**. It is sample code
+rather than a package release, so you own the copy and it carries a date — see the guide for
+what it does and does not cover.
+
+Neither option reaches what 2026.9 makes possible. The bundle format is built for streaming
+reads, sharded geometry and querying properties without materialising objects, and both
+options here keep your app on the object graph it replaced: compatibility mode by producing
+that graph, the bridge by rebuilding it in memory. Getting the performance the format allows
+needs a viewer built for it. Plan for that, and treat both of these as ways to keep working
+until it arrives.
+
+<Note>
+  Compatibility mode is not self-serve, and it ends for every workspace on **1 November 2026**. See
+  [Compatibility mode](/next/it-admin/compatibility-mode) for how to request it.
+</Note>
+
+## Not the Viewer package
+
+Two nearby cases have their own pages.
+
+- **A data-only JavaScript app** that reads Speckle data without rendering it — built on
+  `@speckle/objectloader` or `@speckle/objectloader2` — should read the bundle directly
+  rather than bridging to an object graph. Start from [Building
+  applications](/next/developers/building-applications).
+- **The 3D viewer in the product UI** is not this package. See [3D viewer in
+  2026.9](/next/3d-viewer/introduction).
+
+## Package reference
+
+Package-level Viewer API documentation is unchanged by 2026.9 and lives in the other
+documentation version: [Viewer developer
+documentation](/developers/viewer/introduction). The API surface the bridge relies on —
+`Loader`, `SpeckleLoader`, `WorldTree`, `loadObject` — is documented there.

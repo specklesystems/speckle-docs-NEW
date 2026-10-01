@@ -2,7 +2,7 @@
 
 This repository contains the official documentation for Speckle. The goal is to make our docs **clear, consistent, and useful** for both new and experienced users.
 
-Canonical doc rules for AI assistants live in `.universal-ai-config/instructions/*.md`. Run `uac generate` to emit tool-specific config (see **Generating universal-ai-config instructions** below).
+Canonical doc rules for AI assistants live in `AGENTS.md` (always on) and the `docs/agents/` docs it lists; agent skills live in `agents/skills/` (see **Agent config** below).
 
 ## Structure & Style
 
@@ -69,12 +69,15 @@ Connector pages are naturally more detailed because they must cover multiple hos
 
 ### PR checks (CI)
 
-Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as **four parallel jobs**:
+Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/docs-pr-checks.yml) as parallel jobs:
 
 - **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only; **blocking**)
 - **Mintlify validate** — `pnpm valid` (full site; **blocking**)
 - **Broken links** — `pnpm check-links` (anchors + redirects + Snippet links; full site; **blocking**)
+- **Missing assets** — `pnpm check:assets` (local image and download files; **blocking**)
+- **Structure** — redirects, orphans, image framing (**blocking**)
 - **Accessibility** — `pnpm check:a11y` (`mint a11y`; full site; **blocking**)
+- **Image placeholders** — `pnpm report:placeholders` (outstanding `{/* IMAGE_PLACEHOLDER: … */}` comments; **informational**, always green)
 
 Require the blocking jobs on `main`:
 
@@ -106,6 +109,7 @@ pnpm check:format-lint     # Prettier + markdownlint on changed files only
 pnpm check:validate        # Mintlify validate
 pnpm check:links           # anchors, redirects, snippets
 pnpm check:a11y            # accessibility
+pnpm report:placeholders   # outstanding screenshot comments (not a gate)
 ```
 
 Full-repo format/lint (not what CI runs on PRs):
@@ -118,40 +122,37 @@ pnpm format
 pnpm lint:md:fix
 ```
 
-### Generating universal-ai-config instructions
-
-Doc rules for AI assistants (Cursor, Copilot, Claude) are maintained as templates in `.universal-ai-config/instructions/`. To emit tool-specific config (e.g. `.cursor/rules/*.mdc` for Cursor), run:
+Object-model drift checks (manual; not in CI because they read sibling checkouts in the speckle-atlas layout, `$ATLAS_ROOT` or `..`):
 
 ```bash
-npx universal-ai-config generate
+pnpm check:bundle-spec             # relations.mdx names vs speckle-bundle-spec's generated catalog (needs duckdb)
+pnpm check:object-model-freshness  # pinned source files behind object-model facts still match origin/main
+pnpm report:object-model-terms     # legacy glossary terms in next/ prose (not a gate)
 ```
 
-Or use the project’s package manager: `pnpm uac generate`, `npm run uac generate`, or `yarn uac generate` (if a `uac` script is defined in `package.json`).
+All three take `--checkout-root <path>`; the two `check:` scripts take `--warn-only`. The workflow around them is the `sync-object-model-docs` skill.
 
-- **All targets (default):** generates for Claude, Copilot, and Cursor.
-- **Specific targets:** `npx universal-ai-config generate -t cursor,claude`
-- **Preview only:** `npx universal-ai-config generate --dry-run`
-- **Clean then generate:** `npx universal-ai-config generate --clean`
+### Agent config
 
-Edit only the source templates in `.universal-ai-config/instructions/*.md`; do not edit the generated files by hand.
+`AGENTS.md` is the always-on instruction file, read natively by Claude Code, Codex, Cursor and Grok. Area rules it points to live in `docs/agents/`, repo-local skills in `agents/skills/<name>/SKILL.md`. Edit those sources only.
 
-To generate only the targets you use, add an overrides file (e.g. `universal-ai-config.overrides.config.ts`) in the repo root and set `targets` (and optionally `variables`, `exclude`, etc.). That file is usually gitignored so each developer can choose their own targets without affecting the shared config.
+In the standard layout (this repo cloned inside the [speckle-atlas](https://github.com/specklesystems/speckle-atlas) checkout, or `ATLAS_ROOT` set in `mise.local.toml`), `mise run agents-sync` — also run by the session-start hooks in `.claude/settings.json`, `.codex/hooks.json` and `.omp/extensions/atlas-sync.js` — copies the shared atlas skills and these local skills into the gitignored `.claude/skills/` and `.agents/skills/`, writes `.mcp.json` / `.codex/config.toml`, and refreshes the shared block in `AGENTS.md`. Layout and opt-in MCP servers: `../atlas/agents/README.md`.
 
-### Using doc rules in AI tools
+### Using doc rules in other AI tools
 
-- **Cursor:** After `uac generate`, rules are in `.cursor/rules/*.mdc` and attach automatically.
-- **ChatGPT / Claude:** Paste the prompt seed below into Custom Instructions or your first message; or attach this README and point to the seed.
-- **Copilot (Chat):** Say “Use the AI authoring prompt seed in README as guidance for all doc edits in this session.” Optionally add at the top of the page you’re editing: `<!-- style: mintlify components; FAQs=AccordionGroup; steps=no nested components -->`
+- **ChatGPT / Claude (chat) / Copilot Chat:** Paste the prompt seed below into Custom Instructions or your first message, or attach `AGENTS.md`. Optionally add at the top of the page you’re editing: `<!-- style: mintlify components; FAQs=AccordionGroup; steps=no nested components -->`
 
-**Prompt seed** (paste once per session for non-Cursor tools):
+**Prompt seed** (paste once per session for tools that don't read `AGENTS.md`):
 
-> You are writing docs for Speckle. Follow the canonical rules in `.universal-ai-config/instructions/` (docs-general, docs-authoring, docs-steps, docs-faqs, docs-asides, docs-titles-nav-seo). After `uac generate`, Cursor users get these as `.cursor/rules/*.mdc`; other tools should use this seed or attach README.
+> You are writing docs for Speckle. Follow the canonical rules in `AGENTS.md` and the `docs/agents/` docs it lists for the area you edit.
 >
 > **Global:** Mintlify components only; approachable, precise tone; short, imperative sentences; task-first; show outcomes; keep pages brief; visuals when they clarify; compact FAQ + best practices + 1–3 Tips; no tutorials in core docs; cross-link by user intent.
 >
 > **Steps:** use `<Steps>` / `<Step>` for short sequences; verb-first titles; do **not** nest complex components; render callouts adjacent; fallback to `###` + ordered list if needed.
 >
 > **FAQs:** use `<AccordionGroup>` + `<Accordion title="…">`; answers are atomic; link out if longer; include an edge case.
+>
+> **Versioned snippets:** when tabs or headings compare two releases, share one setup; only the changed call differs; tab titles use `2026.9` with no leading `v`.
 >
 > **Connectors:** frame by purpose (publish/load), not connector names; H2 order = Install → Open and sign in → Publish → Load → Common tasks → FAQ → Troubleshooting → Known issues; add a header panel (versions, download, changelog); always show the web-app handoff.
 

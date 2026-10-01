@@ -1,0 +1,100 @@
+---
+title: Upgrade Revit to 2026.9
+sidebarTitle: Upgrade
+description: Re-publish once, and switch scripts from root referencePointTransform to bundle modelPlacement.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+This page is the mechanical path onto 2026.9 model placement. For Apply Transform, the placement
+picker, and the placement record, see [Revit in
+2026.9](/next/connectors/revit/introduction). For install, sign-in, publish, and load in today's connector,
+see [How to use Speckle for Revit](/connectors/revit/revit).
+
+## When to switch
+
+Existing v3 models keep working. Re-publish from a 2026.9 connector if you need the viewer placement
+picker and named datums. Scripts and SDK consumers that read `referencePointTransform` on the root
+object must switch to `modelPlacement.*`.
+
+## Before and after
+
+| Before                                           | After                                        |
+| ------------------------------------------------ | -------------------------------------------- |
+| Geometry rewritten so the chosen datum is origin | Geometry stays in Revit internal coordinates |
+| Root `referencePointTransform`                   | Bundle `modelPlacement.*` on `eav.model`     |
+| Datum kind not recorded                          | Named datum plus `options.*` for every datum |
+| One publish per consumer datum                   | One publish; consumers pick the datum        |
+
+v3 connectors that read 2026.9 models get the old root-object transform rebuilt from the placement
+record. When a 2026.9 consumer reads a v3 model, the old root transform is migrated into a placement
+record, but the datum kind cannot be recovered.
+
+## How to switch
+
+<Steps>
+  <Step title="Update the Revit connector">
+    Use a 2026.9 Revit connector. You should see **Apply Transform** next to **Reference Point** in
+    publish settings.
+  </Step>
+  <Step title="Publish a new version">
+    Leave **Apply Transform** off, then publish as usual. You should see a new version on the model.
+  </Step>
+</Steps>
+
+Keep **Apply Transform** off unless a downstream tool that does not understand model placements
+needs the geometry pre-positioned.
+
+### Scripts and SDK consumers
+
+Assume the model is already in scope.
+
+1. Read `modelPlacement.*` from `eav.model`.
+2. Apply `modelPlacement.transform`. The value is 16 row-major doubles. Translation is expressed in
+   `modelPlacement.units`.
+3. If `modelPlacement.appliedToGeometry` is `true`, invert that transform before you place the
+   model. Do this regardless of the receive datum.
+4. Then apply the receive datum you want, if it is not **Source**.
+
+AutoCAD and Civil 3D follow the same contract.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Where did referencePointTransform go?">
+    It is not the placement record in 2026.9. Read `modelPlacement.*` from `eav.model`. See
+    [Placement record](/next/connectors/revit/introduction#placement-record).
+  </Accordion>
+  <Accordion title="What happens if appliedToGeometry is true?">
+    Invert `modelPlacement.transform` before you place the model, then apply your receive datum.
+    Revit does this automatically. A custom consumer must do the same.
+  </Accordion>
+  <Accordion title="Do existing v3 models break?">
+    No. They keep working. 2026.9 consumers rebuild a placement record from the old root transform.
+    Re-publish once from a 2026.9 connector if you need the viewer placement picker and named
+    datums.
+  </Accordion>
+  <Accordion title="Something still lands in the wrong place. What should I send?">
+    Report it with the model URL and the publish and receive settings on both sides. The viewer's
+    placement overlay shows world origin, model origin, and each reference point.
+  </Accordion>
+</AccordionGroup>

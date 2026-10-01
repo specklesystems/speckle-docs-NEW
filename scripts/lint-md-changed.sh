@@ -23,7 +23,7 @@ files=()
 while IFS= read -r file; do
   [ -n "$file" ] || continue
   case "$file" in
-    node_modules/* | .mintlify/* | .cursor/* | .claude/* | .github/skills/* | .github/instructions/* | .universal-ai-config/* | */notebooks/*)
+    node_modules/* | .mintlify/* | .cursor/* | .claude/* | .agents/* | AGENTS.md | agents/* | docs/agents/* | */notebooks/*)
       continue
       ;;
   esac

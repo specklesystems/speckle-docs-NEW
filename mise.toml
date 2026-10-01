@@ -18,6 +18,12 @@ run = "pnpm run valid"
 description = "Check for broken links and anchors"
 run = "pnpm run check-links"
 
-[tasks.uac-generate]
-description = "Regenerate universal-ai-config outputs"
-run = "pnpm run uac generate"
+[tasks.example-check]
+description = "Typecheck and build the bundle-bridge sample (its own pnpm root)"
+dir = "examples/viewer-bundle-bridge"
+run = ["pnpm install --frozen-lockfile", "pnpm typecheck", "pnpm build"]
+
+# Alias for a session started in this repo alone; the atlas root fan-out runs the script directly (ADR-0008).
+[tasks.agents-sync]
+description = "Sync agent config (shared atlas set + agents/) into .claude/skills, .agents/skills, .mcp.json, .codex/config.toml"
+run = 'python3 "${ATLAS_ROOT:-..}/atlas/scripts/sync-agents.py" --repo .'

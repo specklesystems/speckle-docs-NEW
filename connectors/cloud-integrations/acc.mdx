@@ -2,9 +2,26 @@
 title: 'Autodesk Forma Data Management'
 sidebarTitle: 'Forma Data Management (ACC)'
 description: 'Connect and sync models from Autodesk Forma Data Management — the Autodesk cloud platform still widely known as ACC — with Speckle for analytics, dashboards, and automation workflows.'
+docs_status: impacted
+changes_in_version: '2026.9'
+changes_from: '2026-09'
+next_docs:
+  - /next/it-admin/compatibility-mode
+change_scope: '2026.9 upload data format and temporary compatibility mode'
 ---
 
 import CoordinationWorkflowRevit from '/snippets/connectors/coordination-workflow-revit.mdx'
+
+<Visibility for="agents">
+  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
+
+Affected guidance: 2026.9 upload data format and temporary compatibility mode.
+
+For these changes, read [2026.9 guidance](/next/it-admin/compatibility-mode).
+
+For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
+
+</Visibility>
 
 <Note>
   **Autodesk Forma Data Management** is the current name for **Autodesk Construction Cloud (ACC)**;
@@ -85,11 +102,12 @@ The following file formats are currently supported for syncing from Autodesk For
   without requiring a Navisworks license, so you can upload those exports to Speckle.
 </Info>
 
-<Warning>
-  While the Navisworks parser is in Beta if the file size is over 200MB, the sync may not always
-  succeed. Treat Navisworks sync as a beta release and expect occasional failures, especially for
-  very large files.
-</Warning>
+<Note>
+  ACC sync of Navisworks files (`.nwc` and `.nwd`) has been tested to **6 GB**. Direct upload of
+  those files follows the general **2 GB** limit. A publish around **200 MB** is still advised from
+  the 2026.8 desktop connector. See [Navisworks in
+  2026.9](/next/connectors/navisworks/introduction).
+</Note>
 
 <Info>We're planning to add support for additional formats like `.dwg` in future releases.</Info>
 
@@ -155,7 +173,7 @@ If you are aligning multiple models, use the same coordination system approach a
     Yes. Speckle establishes a read-only connection with Autodesk Forma Data Management (ACC), which means we can sync and analyze your data but can't modify the original files. This ensures data integrity and security.
   </Accordion>
   <Accordion title="How often do files sync?">
-    Once you've created a sync model, it automatically syncs whenever a new version of the file is published to Autodesk Forma Data Management. You don't need to manually trigger ongoing synchronization.
+    Once you've created a sync model, each new version published to Autodesk Forma Data Management triggers one sync attempt. You don't need to manually trigger ongoing synchronization. A version whose attempt fails can be retried from the sync's status until a newer version is published; after that, re-publish it to sync it. See [Sync guarantees](/it-admin/integrations/introduction#sync-guarantees).
   </Accordion>
   <Accordion title="Why are my models in the wrong location?">
     For **Revit** ACC syncs, use the reference point input in the sync configuration to control placement for coordination workflows. If the selected reference point does not match your downstream model setup, placement can still appear offset. Reference point and coordination system options are **not** available for IFC or Navisworks ACC syncs—adjust placement in those workflows using your authoring tool or the relevant connector where applicable.
@@ -168,7 +186,11 @@ If you are aligning multiple models, use the same coordination system approach a
     - Your permissions are correct
     - The file is in **.rvt**, **.ifc**, **.nwc**, or **.nwd** format
 
-    Contact support if issues persist.
+    A failed attempt is not retried automatically. If it is the sync's most recent attempt, retry it
+    from the sync's status once the cause is fixed; if a newer version has been published since,
+    re-publish the file instead. See [Sync
+    guarantees](/it-admin/integrations/introduction#sync-guarantees). Contact support if issues
+    persist.
 
   </Accordion>
   <Accordion title="How do I get access?">
