@@ -40,7 +40,8 @@ script upgrade, see [Upgrade Grasshopper to 2026.9](/next/connectors/grasshopper
   **Load (legacy)** and **Publish (legacy)**. They still run. The same rename applies to **(Sync)
   Load** and **(Sync) Publish**.
 - **Speckle Data Object** is renamed **Speckle Object**. It is the same node with the same ports.
-  Existing scripts keep working.
+  Existing scripts keep working. Its **Geometries** input does not accept Block Instances, because
+  a Block Instance is already its own object.
 - The current **Speckle Geometry** node has no Name or Properties inputs. Name and properties live
   on the **Speckle Object** that contains the geometry. Geometry nodes already on your canvas keep
   those inputs and are renamed **Speckle Geometry (legacy)**.
@@ -64,13 +65,15 @@ is not on the current Load node. Model-wide properties such as project informati
 {/* IMAGE_PLACEHOLDER: Speckle Object node — Name and Properties ports; current Speckle Geometry node with colour and material only. */}
 
 Name and properties live on the **Speckle Object**, not on geometry. A wall is one thing with one
-name and one set of properties, even when it has three meshes. To set a name or properties, wire
-geometry into a **Speckle Object**.
+name and one set of properties, even when it has three meshes. If each mesh carried its own copy,
+summing a volume across the model would count that wall three times. To set a name or properties,
+wire geometry into a **Speckle Object**.
 
 {/* IMAGE_PLACEHOLDER: Explore node — Speckle Object input; dynamic outputs such as level, rooms, host, and definition. */}
 
 **Explore** is a new node. After you load a 2026.9 version with the current Load node, it surfaces
-relationships such as level, room, host, and block definition.
+relationships such as level, room, host, and block definition. See [Explore what an object is
+connected to](/next/connectors/grasshopper/explore).
 
 Plug in a Speckle Object, Speckle Geometry, Block Instance, or Collection. Explore creates an output
 for each relationship the model records for that object. The set of outputs changes with what you
@@ -89,6 +92,12 @@ already set on the object when it loads.
 ## FAQ
 
 <AccordionGroup>
+  <Accordion title="Can I create objects for other applications like Revit?">
+    Wrap your geometry in a **Speckle Object** and set the properties there. If you assign a
+    **builtInCategory** property, Revit loads it as a generic model with that category. There is
+    currently no way to create elements that load as native walls or beams in BIM or structural
+    applications.
+  </Accordion>
   <Accordion title="Will my saved scripts break?">
     No. Nodes are matched by identity, not by name, so renaming them has no effect on your files. No
     node turns into a placeholder and no wire is dropped.
