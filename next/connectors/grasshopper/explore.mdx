@@ -1,0 +1,107 @@
+---
+title: Explore what an object is connected to
+sidebarTitle: Explore
+description: Use the Explore node to find the level, room, host, or definition behind a Speckle Object in Grasshopper.
+contextual:
+  options: []
+docs_version: '2026.9'
+product_generation: next
+docs_status: current
+docs_authority: canonical
+applies_to_version: '2026.9'
+applies_from: '2026-09'
+---
+
+import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
+
+<Visibility for="agents">
+  Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
+
+Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+
+Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
+
+</Visibility>
+
+<NextPreviewBanner />
+
+When you load a model you get the objects themselves: geometry, properties, materials. The model
+also records how those objects relate to each other. Which level a wall sits on, which room it is
+in, which block definition an instance uses, what it is hosted on.
+
+The **Explore** node surfaces those connections. Plug in any Speckle Object and it works out which
+relationships exist for that object, then creates an output for each one.
+
+<Note>
+  Explore supports versions published with 2026.9 onwards, loaded with the current **Load** node.
+  Versions published before then do not record these connections, so there is nothing for Explore to
+  show. See [Grasshopper in 2026.9](/next/connectors/grasshopper/introduction#load).
+</Note>
+
+{/* IMAGE_PLACEHOLDER: Explore node on the canvas — Speckle Object input wired from a loaded Revit wall; dynamic outputs such as level, rooms, and type properties. */}
+
+## Use Explore
+
+Inputs:
+
+1. Add a **Speckle Object** input of the thing you want to explore. Speckle Objects, Speckle
+   Geometry, Block Instances, and Collections are all accepted.
+
+Outputs:
+
+1. An output is created for each relationship the model records for that object. The set of outputs
+   changes with what you plug in, so a Revit object and a Rhino object produce different ones.
+
+## What you can expect to find
+
+The outputs depend on the source application, because different applications record different
+things. Some examples:
+
+- A wall gives you its level, the rooms it bounds, its type properties, and its sub-elements.
+- A block instance gives you its definition, and the other placements using that same definition.
+- A whole-model Collection gives you every level and its elevation.
+- A structural member from ETABS gives you its analysis results.
+
+<Info>
+  Explore does not repeat what the object already carries. Material, colour, and Collection path are
+  already set on the object when it loads, so they are not shown again here.
+</Info>
+
+## Work with analysis results
+
+Structural results come out as several outputs of the same length, one per column of the results:
+result type, load case, component, station, step, and value. Each row lines up across all of them.
+
+Use the normal list tools to group them. **Sift Pattern** or **Member Index** on the load case
+output pulls out just the results for one case.
+
+Outputs only appear for the columns your model actually uses, so a result type without a station
+does not produce a station output.
+
+## Objects Explore cannot read
+
+Some objects have no connections to show:
+
+- Objects from a version published before 2026.9. This is by far the most common reason, because
+  older versions do not record connections.
+- Objects loaded with a **Load (legacy)** node. See [Upgrade Grasshopper to
+  2026.9](/next/connectors/grasshopper/upgrading).
+- Objects from inside a block definition, rather than a placed instance.
+- Objects that were never loaded from Speckle.
+
+In these cases Explore shows a remark on the canvas explaining why, and produces no outputs.
+
+Republish the model with the current **Publish** node to create a version Explore can read.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Why does Explore say nothing is cached for a model that loaded correctly?">
+    Explore reads a local copy of the model that your machine may have cleared. Reload the model and
+    Explore picks up its connections again.
+  </Accordion>
+  <Accordion title="Why does Explore produce no outputs for my Revit model?">
+    The usual cause is a version published before 2026.9, or a **Load (legacy)** node. Republish
+    with the current Publish node, then load with the current Load node.
+  </Accordion>
+</AccordionGroup>
