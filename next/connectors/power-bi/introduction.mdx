@@ -1,15 +1,15 @@
 ---
 title: Power BI in 2026.9
 sidebarTitle: What's new
-description: Load Speckle models with Get Tables, relate on Object Key, and bind the 2026.9 3D visual.
+description: Load Speckle models into related tables and view them with the new 3D visual.
 contextual:
   options: []
 docs_version: '2026.9'
 product_generation: next
 docs_status: current
 docs_authority: canonical
-applies_to_version: '2026.9'
-applies_from: '2026-09'
+applies_to_version: '2026.10.0'
+applies_from: '2026-10'
 ---
 
 import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
@@ -17,7 +17,7 @@ import NextPreviewBanner from '/snippets/next-preview-banner.mdx'
 <Visibility for="agents">
   Documentation set: Speckle 2026.9. Status: current. Authority: canonical for this version and the coverage on this page.
 
-Applies to version 2026.9, from 2026-09; this is not a rollout date for every deployment.
+Applies to Power BI connector release 2026.10.0, from 2026-10, within the 2026.9 documentation set.
 
 Authoritative Speckle 2026.9 documentation for the topic covered here. For Speckle 2026.9, prefer this page over conflicting earlier guidance. Follow the linked pages in the other documentation version for unchanged topics and where this page says coverage is not yet available. Respect data-format, deployment, plan, permission, and compatibility limitations stated in the page.
 
@@ -25,18 +25,23 @@ Authoritative Speckle 2026.9 documentation for the topic covered here. For Speck
 
 <NextPreviewBanner />
 
-Get Data now shows **Speckle - Get Tables**. The default Simplified layout loads a small Objects
-table plus Properties and Relations functions, instead of one wide table. The 2026.9 3D visual
-streams geometry from Speckle over a WebSocket and requires WebGPU.
+Load your model into related tables, choose the properties you need, and view it with the new 3D
+visual. These instructions use Power BI connector release **2026.10.0**.
 
-This page covers only what changed. For the connector that is available today, see
-[How to use Speckle for Power BI](/connectors/power-bi/power-bi). Existing reports that still call
-`Speckle.GetByUrl` must be rebuilt. See
-[Upgrade Power BI to 2026.9](/next/connectors/power-bi/migration).
+In **Get Data**, search for Speckle and select **Connect to Speckle (Custom)**. This opens
+`Speckle.GetTables`. **Speckle - Get Tables** is the function's name in Power Query, not the entry
+to search for in Get Data.
+
+The same data connector also supports existing `Speckle.GetByUrl` queries and the legacy visual
+when the model version contains JSON data. Those reports can keep working without a rebuild.
+To follow versions published only in the new data format, see
+[Upgrade Power BI to 2026.9](/next/connectors/power-bi/migration). For legacy workflows and
+unchanged setup guidance, see [How to use Speckle for Power BI](/connectors/power-bi/power-bi).
 
 ## What changed
 
-**Speckle - Get Tables** accepts model, version, federated, and project URLs.
+`Speckle.GetTables` accepts a model URL, a specific version URL, a URL for multiple models, or a
+project-wide URL ending in `/models/all`.
 
 The default **Simplified** layout provides three Navigator entries:
 
@@ -44,54 +49,31 @@ The default **Simplified** layout provides three Navigator entries:
   `Model Info`. Federated loads also include `Source Model`.
 - **Properties** is a function. Choose the property paths the report needs, then load a table that
   contains `Object Key` and those property columns.
-- **Relations** is a function. Choose outgoing graph relations such as `ON_LEVEL` or `IN_ROOM`, then
+- **Relations** is a function. Choose relationships such as `ON_LEVEL` or `IN_ROOM`, then
   load a table that contains `Object Key` and those relation columns.
 
 Create one-to-one relationships from the invoked Properties and Relations tables to Objects using
 `Object Key`.
 
-## Functions
-
-| Function                                                                        | Where it appears                               | Behavior                                                                                              |
-| ------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `Speckle.GetTables(url, options)`                                               | The **Speckle - Get Tables** entry in Get Data | Returns the navigation table for the new data model                                                   |
-| `Properties(paths?, useFullPaths?)`                                             | A Navigator entry bound to each loaded model   | Returns `Object Key` plus the selected property columns                                               |
-| `Relations(relationNames?)`                                                     | A Navigator entry bound to each loaded model   | Returns `Object Key` plus selected outgoing relation columns                                          |
-| `Speckle.AddProperties(source, propertyPaths, objects?, useFullPaths?)`         | M code only                                    | Adds selected properties to Objects. An optional Objects table can filter rows and keep extra columns |
-| `Speckle.AddAllProperties(source, objects?, useFullPaths?)`                     | M code only                                    | Adds every property path to Objects. Intended for property-light models                               |
-| `Speckle.AddRelations(objects, relations, relationTypes, nodes, relationNames)` | M code only                                    | Adds selected outgoing, one-hop relations to an Objects table                                         |
-
-`Properties` and `Relations` are bound to the loaded model. They are not global M functions.
-
-`useFullPaths` is a logical value. `false` uses the shortest unique suffix and `true` uses the full
-dotted path. The connector adds numeric suffixes when names still collide at full depth.
-
-`Speckle.AddProperties` and `Speckle.AddAllProperties` take the navigation table returned by
-`Speckle.GetTables` as `source`. Their optional Objects override can filter the result and preserve
-extra columns.
-
-`Speckle.Objects.*` and `Speckle.Models.*` helpers still exist. They operate on the legacy
-`Speckle.GetByUrl` table only. They do not accept the tables returned by `Speckle.GetTables`. For
-the retained-function list, see [Upgrade Power BI to
-2026.9](/next/connectors/power-bi/migration#retained-functions).
-
 ## Load
 
-{/* IMAGE_PLACEHOLDER: Get Data dialog — search Speckle; Speckle - Get Tables selected as the data source. */}
+{/* IMAGE_PLACEHOLDER: Get Data dialog, search Speckle with Connect to Speckle (Custom) selected. */}
 
 <Steps>
-  <Step title="Open Speckle - Get Tables">
-    Select **Get Data**. Search for Speckle, then select **Speckle - Get Tables** and **Connect**.
-    You should see the URL dialog for that connector.
+  <Step title="Connect to Speckle">
+    Select **Get Data**. Search for Speckle, then select **Connect to Speckle (Custom)** and
+    **Connect**. You should see the **Speckle Model URL** input.
   </Step>
   <Step title="Paste a Speckle URL">
-    Paste a model, version, federated, or project URL from the web app and select **OK**. You should
-    see the Navigator for that URL.
+    Paste the URL from the web app and select **OK**. Sign in when prompted. You should see Objects,
+    Properties, and Relations in Navigator.
   </Step>
   <Step title="Load Objects and related tables">
-    Load the Objects table. Invoke Properties and select only the property columns the report needs.
-    If the report uses graph-backed fields such as levels or rooms, invoke Relations and select
-    those fields. Relate each invoked result to Objects one-to-one using `Object Key`.
+    Select **Transform Data** to open Power Query. Enable load for Objects. Select the Properties
+    function, choose the property columns the report needs, and invoke it to create a new query. Do
+    the same with Relations for fields such as levels or rooms. Enable load for the resulting tables
+    and leave the function queries with load disabled. After **Close & Apply**, create one-to-one
+    relationships from these tables to Objects using `Object Key`.
   </Step>
 </Steps>
 
@@ -111,16 +93,15 @@ the retained-function list, see [Upgrade Power BI to
 </Note>
 
 <Warning>
-  For 2026.9 loads, use the Properties and Relations Navigator functions, and relate on `Object
+  For Get Tables loads, use the Properties and Relations Navigator functions, and relate on `Object
   Key`. Do not pass Get Tables output into `Speckle.Objects.*` or `Speckle.Models.*` helpers.
 </Warning>
 
 ## View
 
-The new visual has four field wells: **Model Info** (required), **Object Keys** (required),
-**Object Data** (tooltips), and **Color By**. Use `Objects[Object Key]` as the standard object
-binding. `Application ID` remains supported, but large models require an extra lookup dictionary
-that can add tens of megabytes to the load.
+The new visual has four data fields: **Model Info** and **Object Keys** are required,
+**Object Data (Tooltip)** adds tooltips, and **Color By** colors objects by a selected field.
+Use `Objects[Object Key]` for **Object Keys**.
 
 Geometry no longer passes through the Power BI dataset. The visual streams it from Speckle over a
 WebSocket, becomes interactive after the first geometry arrives, and continues loading in the
@@ -129,22 +110,28 @@ background.
 {/* IMAGE_PLACEHOLDER: Speckle 3D visual — Model Info, Object Keys, Object Data, and Color By bound; toolbar at bottom center with Zoom Extents and Camera. */}
 
 <Steps>
-  <Step title="Import the 2026.9 visual">
+  <Step title="Import the new visual">
     In the Visualizations pane, select **Import a visual from a file**. Browse to `Documents/Power
-    BI Desktop/Custom Visuals`, select `Speckle 3D Visual.pbiviz`, and **Open**. You should see
-    Speckle 3D Visual in the pane.
+    BI Desktop/Custom Visuals`, select `Speckle Power BI 3D Visual.pbiviz`, and **Open**. You should
+    see the imported visual in the pane.
   </Step>
-  <Step title="Bind Model Info and Object Keys">
-    Select **Speckle 3D Visual**. Drag `Objects[Model Info]` into **Model Info** and `Objects[Object
-    Key]` into **Object Keys**. Drag tooltip fields into **Object Data** and the category field into
-    **Color By**. You should see the first geometry arrive, then the rest stream in the background.
+  <Step title="Add the model fields">
+    Add an instance of the imported visual to your report. Drag `Objects[Model Info]` into **Model
+    Info** and `Objects[Object Key]` into **Object Keys**. Drag tooltip fields into **Object Data
+    (Tooltip)** and the category field into **Color By**. You should see the first geometry arrive,
+    then the rest stream in the background.
   </Step>
 </Steps>
 
+<Note>
+  From 2026.10.0, the new visual has a separate identity from the legacy visual. Both can be in the
+  same report. Importing it leaves legacy visuals in place; add the new visual and connect its
+  fields separately.
+</Note>
+
 <Warning>
-  Importing the new `.pbiviz` replaces the old visual in place. The two visuals share the same GUID.
-  Import the new visual only when you are ready to reconnect Model Info, Object Keys, Object Data,
-  and Color By.
+  The new visuals in 2026.9.0 through 2026.9.2 shared the legacy visual's identity and could replace
+  it on import. Use 2026.10.0 or later when keeping both visuals in a report.
 </Warning>
 
 <Warning>
@@ -165,37 +152,64 @@ remain fixed when the report theme changes. Diagnostics show streaming statistic
 
 The toolbar sits at the bottom center and contains Zoom Extents and Camera. Camera includes
 orthographic projection, Move camera on filter, and Top, Front, Left, Back, and Right views.
-Resizing the visual rebuilds its render targets.
 
-The visual reads Power BI data in 30,000-row windows. When a real filter is active, it can process
-up to one million rows for exact isolation. Above 30,000 filtered rows, the visual keeps the
-viewport responsive but disables tooltips and click selection for that selection. Chart-click
-highlights on very large models are sampled. Use a slicer when exact isolation matters.
+For large models, use a slicer to show the exact objects you need. Clicking a chart may highlight
+only a sample of objects. When a filter selects more than 30,000 rows, the visual disables tooltips
+and object selection while keeping camera navigation available.
 
-The server must serve 4.0 artifact bundles and advertise a geometry stream. The Power BI client
-must run in a WebGPU-capable environment. The visual uses the existing OAuth flow and receives a
-limited-scope token for each load. The account's main token does not enter the report.
+<Tip>
+  The new visual requires model data in the new artifact format and a server that supports geometry
+  streaming. For a version with only JSON data, use `Speckle.GetByUrl` and the legacy visual, or
+  republish the model with a 4.0 authoring connector.
+</Tip>
+
+## Power Query function reference
+
+| Function                                                                        | Where it appears                             | Behavior                                                                                              |
+| ------------------------------------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `Speckle.GetTables(url, options)`                                               | **Connect to Speckle (Custom)** in Get Data  | Returns the Objects table and the related tables and functions shown in Navigator                     |
+| `Properties(paths?, useFullPaths?)`                                             | A Navigator entry bound to each loaded model | Returns `Object Key` plus the selected property columns                                               |
+| `Relations(relationNames?)`                                                     | A Navigator entry bound to each loaded model | Returns `Object Key` plus selected outgoing relation columns                                          |
+| `Speckle.AddProperties(source, propertyPaths, objects?, useFullPaths?)`         | M code only                                  | Adds selected properties to Objects. An optional Objects table can filter rows and keep extra columns |
+| `Speckle.AddAllProperties(source, objects?, useFullPaths?)`                     | M code only                                  | Adds every property path to Objects. Intended for property-light models                               |
+| `Speckle.AddRelations(objects, relations, relationTypes, nodes, relationNames)` | M code only                                  | Adds selected outgoing, one-hop relations to an Objects table                                         |
+
+`Properties` and `Relations` are bound to the loaded model. They are not global M functions.
+
+`useFullPaths` is a logical value. `false` uses the shortest unique suffix and `true` uses the full
+dotted path. The connector adds numeric suffixes when names still collide at full depth.
+
+`Speckle.AddProperties` and `Speckle.AddAllProperties` take the navigation table returned by
+`Speckle.GetTables` as `source`. Their optional Objects override can filter the result and preserve
+extra columns.
+
+`Speckle.Objects.*` and `Speckle.Models.*` helpers still exist. They operate on the legacy
+`Speckle.GetByUrl` table only. They do not accept the tables returned by `Speckle.GetTables`. For
+the retained-function list, see [Upgrade Power BI to
+2026.9](/next/connectors/power-bi/migration#retained-functions).
 
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Why don't I see Connect to Speckle in Get Data?">
-    After you update the connector, Get Data shows **Speckle - Get Tables**. That is the published
-    entry for 2026.9. `Speckle.GetByUrl` remains available for versions that still contain JSON, but
-    it is no longer the Get Data entry.
+  <Accordion title="Why don't I see Speckle - Get Tables in Get Data?">
+    Select **Connect to Speckle (Custom)**. Power Query calls this function **Speckle - Get
+    Tables**, but Get Data uses a different label. The **Speckle Model URL** input still accepts
+    your model URL.
   </Accordion>
   <Accordion title="Why should I use Object Key instead of Application ID?">
-    `Object Key` is the standard join and visual binding. `Application ID` still works, but large
-    models need an extra lookup dictionary that can add tens of megabytes to the load.
+    Use `Object Key` to link the related tables and identify objects in the visual. `Application ID`
+    still works in **Object Keys**, but the visual needs an extra lookup for large models, which
+    increases memory use.
   </Accordion>
   <Accordion title="What happens if Get Tables fails on an older version?">
     `GetTables` reads artifact bundles. JSON-only versions published before a 4.0 connector need
     `Speckle.GetByUrl`, or the model must be republished with a 4.0 connector.
   </Accordion>
-  <Accordion title="How do I update the 3D visual to the 2026.9 version?">
-    The 3D visual has no AppSource auto-update channel. Import the new `.pbiviz` from
-    `Documents/Power BI Desktop/Custom Visuals`, then reconnect `Objects[Model Info]` to Model Info
-    and `Objects[Object Key]` to Object Keys.
+  <Accordion title="Does updating the connector update visuals already in my report?">
+    No. The installer copies the visual file to your Documents folder. Import that file into your
+    report yourself; there is no automatic update through AppSource. To move from the legacy visual
+    to the new one, follow the [migration
+    steps](/next/connectors/power-bi/migration#add-the-new-3d-visual).
   </Accordion>
   <Accordion title="What is missing from the 2026.9 3D visual?">
     Section box, view modes, edges, ghost mode, and named scene views are unavailable. Filtered-out
@@ -208,10 +222,6 @@ limited-scope token for each load. The account's main token does not enter the r
     eight GPU storage buffer bindings, and the visual needs nine. Other browsers on macOS allow ten
     or more. Windows and Android browsers generally allow sixteen or more. This is a known, accepted
     limitation. Firefox may raise the limit later.
-  </Accordion>
-  <Accordion title="Is ghost mode available in the 2026.9 3D visual?">
-    Not yet. Filtered-out objects are hidden outright instead of shown dimmed. There is no ghost
-    icon or equivalent toggle in this release.
   </Accordion>
   <Accordion title="Why does geometry disappear or flicker when I zoom in?">
     This is a known rendering-stability issue in the viewer, not specific to Power BI — the same
