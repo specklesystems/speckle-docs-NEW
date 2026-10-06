@@ -1,7 +1,7 @@
 ---
 title: Data Validation in 2026.9
 sidebarTitle: Data Validation
-description: What changes for Data Validation after models move to the 2026.9 data format, including related objects, value mapping, and the removal of project standards.
+description: What changes for Data Validation after models move to the 2026.9 data format, including related objects, value mapping, calculated values, and the removal of project standards.
 contextual:
   options: []
 docs_version: '2026.9'
@@ -30,8 +30,8 @@ still work as in the current product. **Project standards** are not in 2026.9. F
 flows that did not change, see [Data Validation](/analytics/data-validation/overview).
 
 This page covers only the differences that change how a check scopes objects, reads properties,
-binds a related object (direction, all versus any, multi-hop), and maps labels before a
-comparison, plus the Project standards change.
+binds a related object (direction, all versus any, multi-hop), maps labels before a comparison,
+and tests a calculated value, plus the Project standards change.
 
 ## What stays the same
 
@@ -190,6 +190,73 @@ That covers instance and type placements without a separate rule for each path. 
 not available on **Equals property** or **Equals template**. Those operators compare two specific
 paths.
 
+## Check a calculated value
+
+{/* IMAGE_PLACEHOLDER: Check editor — CHECK row with a Σ Reinforcement ratio subject and its popover showing the description, Unit, and read-only SQL. */}
+
+Some rules test a number no single property holds, such as a reinforcement ratio: the rebar area
+parsed from a code like `9H16`, divided by the section area. In 2026.9 a rule's scope or check can
+test a **computed value** calculated from each object's properties. The usual comparisons apply,
+so the threshold stays a value you can edit.
+
+<Note>
+  Computed values are created with Speckle Intelligence, available when your workspace plan includes
+  it. On a self-hosted server, it is available only on Speckle Enterprise Server. For deployment
+  setup, see [Enterprise license —
+  Intelligence](/developers/server/deployment/enterprise-license#optional-intelligence).
+</Note>
+
+You do not build the calculation in the editor. Describe it to the assistant instead.
+
+<Steps>
+  <Step title="Describe the calculation">
+    In the check editor, select **Generate rule**, or ask [Speckle
+    Intelligence](/next/analytics/intelligence) in **Chat**. Name the inputs, how to combine them,
+    their units, and the threshold.
+  </Step>
+  <Step title="Review the value range">
+    Before it offers the rule, the assistant states the range of values, the units, and how many
+    objects have no value. Confirm the range fits what you asked for.
+  </Step>
+  <Step title="Save the rule">
+    Accept the rule the assistant proposes, then save the check. The rule shows the computed value
+    as **Σ** followed by its name.
+  </Step>
+</Steps>
+
+An example ask:
+
+```text
+Add a rule: the reinforcement ratio must be greater than 0.01. MainRebar codes look like 9H16
+(9 bars of 16 mm, area 9 × π × 16² / 4 mm²). Divide by Beca XSect Area, which is in m².
+```
+
+<Tip>
+  If you already coloured a model by a calculated value in the 3D viewer, ask the viewer sparkle
+  **Make this a validation rule: the ratio must be greater than 0.01** to reuse that calculation.
+</Tip>
+
+Select the **Σ** subject in the editor to see the description, the unit, and the SQL behind it. The
+computed value is read-only; its comparison and threshold stay editable. To change the calculation,
+ask the assistant again.
+
+When you open a failing rule in results, the object table adds a first column with each failing
+object's value against the rule, for example `0.0089, expected > 0.01`.
+
+### When there is no value or more than one
+
+An object whose inputs are missing, or do not parse (a code like `9H16+4H12`), has **no value**. A
+scope condition on the computed value drops it, and the check fails it. The object table shows
+`no value, expected > 0.01`. To treat those objects as not applicable, ask the assistant to check
+only objects where the value can be calculated.
+
+The calculation must give one value per object. When it gives more than one for any object the rule
+checks, the rule shows **ERROR** with a message such as `3 objects have more than one computed
+value`, instead of pass or fail. Ask the assistant to fix the calculation.
+
+Computed values work in a rule's scope and check only, not in the global scope or on a related
+object. Each one reads the properties of the model the check runs on.
+
 ## Property paths
 
 Always pick property paths from the path picker after a preview model loads. Paths in the current
@@ -258,6 +325,12 @@ does not load, publish a new version after the project has moved to 2026.9. See
     Rating**. Every matching value must pass. Click again for regex over the full path. Path
     matching is not available on **Equals property**. See [Match a property wherever it
     sits](#match-a-property-wherever-it-sits).
+  </Accordion>
+  <Accordion title="Why does an object that has every input still show no value?">
+    The calculation could not read one of the inputs, for example a rebar code written as
+    `9H16+4H12` that does not match the expected pattern. Fix the source data, or ask the assistant
+    to handle that format. See [When there is no value or more than
+    one](#when-there-is-no-value-or-more-than-one).
   </Accordion>
   <Accordion title="Do I rewrite every property path in every check?">
     Only when a path no longer exists on the new version. Load preview, pick the replacement from
