@@ -192,10 +192,10 @@ paths.
 
 ## Check a calculated value
 
-{/* IMAGE_PLACEHOLDER: Check editor — CHECK row with a Σ Reinforcement ratio subject and its popover showing the description, Unit, SQL, Edit SQL and Edit with AI. */}
+{/* IMAGE_PLACEHOLDER: Check editor — CHECK row with a Σ Span-to-depth ratio subject and its popover showing the description, Unit, SQL, Edit SQL and Edit with AI. */}
 
-Some rules test a number no single property holds, such as a reinforcement ratio: the rebar area
-parsed from a code like `9H16`, divided by the section area. In 2026.9 a rule's scope or check can
+Some rules test a number no single property holds, such as a beam's span-to-depth ratio: its length
+divided by the depth parsed from a section name like `300x600`. In 2026.9 a rule's scope or check can
 test a **computed value** calculated from each object's properties. The usual comparisons apply,
 so the threshold stays a value you can edit.
 
@@ -227,13 +227,14 @@ Describe the calculation to the assistant to create it.
 An example ask:
 
 ```text
-Add a rule: the reinforcement ratio must be greater than 0.01. MainRebar codes look like 9H16
-(9 bars of 16 mm, area 9 × π × 16² / 4 mm²). Divide by Beca XSect Area, which is in m².
+Add a rule: for structural framing, the span-to-depth ratio must be at most 20. Divide Length by the
+depth, which is the second number in the type name (300x600 is 300 mm wide and 600 mm deep).
+Length is in metres.
 ```
 
 <Tip>
   If you already coloured a model by a calculated value in the 3D viewer, ask the viewer sparkle
-  **Make this a validation rule: the ratio must be greater than 0.01** to reuse that calculation.
+  **Make this a validation rule: the ratio must be at most 20** to reuse that calculation.
 </Tip>
 
 Select the **Σ** subject in the editor to see the description, the unit, and the SQL behind it. The
@@ -256,13 +257,13 @@ unit still match.
 </Note>
 
 When you open a failing rule in results, the object table adds a first column with each failing
-object's value against the rule, for example `0.0089, expected > 0.01`.
+object's value against the rule, for example `22.5, expected ≤ 20`.
 
 ### When there is no value or more than one
 
-An object whose inputs are missing, or do not parse (a code like `9H16+4H12`), has **no value**. A
+An object whose inputs are missing, or do not parse (a type name like `Custom beam`), has **no value**. A
 scope condition on the computed value drops it, and the check fails it. The object table shows
-`no value, expected > 0.01`. To treat those objects as not applicable, ask the assistant to check
+`no value, expected ≤ 20`. To treat those objects as not applicable, ask the assistant to check
 only objects where the value can be calculated.
 
 The calculation must give one value per object. When it gives more than one for any object the rule
@@ -342,9 +343,9 @@ does not load, publish a new version after the project has moved to 2026.9. See
     sits](#match-a-property-wherever-it-sits).
   </Accordion>
   <Accordion title="Why does an object that has every input still show no value?">
-    The calculation could not read one of the inputs, for example a rebar code written as
-    `9H16+4H12` that does not match the expected pattern. Fix the source data, or ask the assistant
-    to handle that format. See [When there is no value or more than
+    The calculation could not read one of the inputs, for example a type name like `Custom beam`
+    that does not match the expected pattern. Fix the source data, or ask the assistant to handle
+    that format. See [When there is no value or more than
     one](#when-there-is-no-value-or-more-than-one).
   </Accordion>
   <Accordion title="Do I rewrite every property path in every check?">
