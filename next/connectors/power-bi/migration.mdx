@@ -1,7 +1,7 @@
 ---
 title: Upgrade Power BI to 2026.9
 sidebarTitle: Upgrade
-description: Keep older reports working or rebuild their queries and add the new 3D visual.
+description: Pin a broken report, rebuild queries with Get Tables, and add the new 3D visual.
 contextual:
   options: []
 docs_version: '2026.9'
@@ -33,14 +33,10 @@ setup guidance, see [How to use Speckle for Power BI](/connectors/power-bi/power
 
 There is no automatic conversion. Renaming the function in the Advanced Editor is not enough.
 
-<Note>
-  In 2026.10.0, the new visual has a separate identity from the legacy visual. You can keep both in
-  the same report while migrating. Importing the new file leaves existing legacy visuals in place.
-</Note>
-
 <Warning>
-  The new visuals in 2026.9.0 through 2026.9.2 shared the legacy visual's identity and could replace
-  it on import. Use 2026.10.0 or later when keeping both visuals in a report.
+  From 2026.10.0, the new visual has a separate identity and leaves legacy visuals in place on
+  import. Releases 2026.9.0 through 2026.9.2 shared the legacy identity. Use 2026.10.0 or later to
+  keep both visuals in a report.
 </Warning>
 
 ## When to switch
@@ -51,12 +47,12 @@ Your report is at risk if all three statements are true:
 - It points to a model URL instead of a specific version.
 - The model will be published with a 4.0 authoring connector.
 
-Version 4.0 authoring connectors publish versions in the new artifact format without JSON data.
-`GetByUrl` needs JSON, so the next refresh fails with `JsonRepresentationUnavailable`. Point the
-report at an earlier version to restore it temporarily. Rebuild it to follow the new versions.
+Version 4.0 authoring connectors publish artifact-only versions. The next refresh then fails with
+`JsonRepresentationUnavailable`. Pinning to a pre-4.0 version URL is a stopgap. Rebuild the report
+if it must keep following new versions.
 
-Reports whose target versions still contain JSON data can continue using `GetByUrl` and the legacy
-visual with the current data connector. Updating the connector alone does not require a rebuild.
+Reports whose target versions still contain JSON data can keep using `GetByUrl` and the legacy
+visual. Updating the connector alone does not require a rebuild.
 
 ## Before and after
 
@@ -162,25 +158,24 @@ Delete the `GetByUrl` queries after no visual, measure, or relationship referenc
 
 ## Retained functions
 
-The current data connector keeps the legacy M functions available. Helpers under `Speckle.Objects`
-and `Speckle.Models` expect the old flat table; use the Properties and Relations functions for
-`GetTables` output. The project issues helper works with either workflow.
+Existing M functions remain available. Data-shaping helpers still expect the legacy `GetByUrl`
+table shape. The project issues function is independent of both object data paths.
 
-| Function                                     | Behavior in the current data connector                                                                            |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `Speckle.GetByUrl(url, ExpandProperties)`    | Reads JSON data and returns the legacy flat table. Available in M code and existing queries, rather than Get Data |
-| `Speckle.GetStructuredData(url)`             | Returns the legacy flat objects table from JSON                                                                   |
-| `Speckle.SendToServer(url)`                  | Downloads the version's raw JSON object tree                                                                      |
-| `Speckle.Objects.Collections`                | Shapes legacy `GetByUrl` output                                                                                   |
-| `Speckle.Objects.CompositeStructure`         | Shapes legacy `GetByUrl` output                                                                                   |
-| `Speckle.Objects.MaterialQuantities`         | Shapes legacy `GetByUrl` output                                                                                   |
-| `Speckle.Objects.Properties`                 | Shapes legacy `GetByUrl` output                                                                                   |
-| `Speckle.Models.Federate`                    | Operates on legacy `GetByUrl` shapes                                                                              |
-| `Speckle.Models.MaterialQuantities`          | Operates on legacy `GetByUrl` shapes                                                                              |
-| `Speckle.Revit.Parameters.ToNameValueRecord` | Operates on legacy `GetByUrl` shapes                                                                              |
-| `Speckle.Utils.ExpandRecord`                 | Operates on legacy `GetByUrl` shapes                                                                              |
-| `Speckle.Projects.Issues(url, getReplies)`   | Remains independent of both object data paths and works with old and new reports                                  |
-| `Speckle.GetVersion()`                       | Returns the connector version string, unchanged                                                                   |
+| Function                                     | Behavior in 2026.10.0                                                                             |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `Speckle.GetByUrl(url, ExpandProperties)`    | Keeps its 3.x contract and reads JSON versions only. It is no longer the published Get Data entry |
+| `Speckle.GetStructuredData(url)`             | Returns the legacy flat objects table from JSON                                                   |
+| `Speckle.SendToServer(url)`                  | Downloads the version's raw JSON object tree                                                      |
+| `Speckle.Objects.Collections`                | Shapes legacy `GetByUrl` output                                                                   |
+| `Speckle.Objects.CompositeStructure`         | Shapes legacy `GetByUrl` output                                                                   |
+| `Speckle.Objects.MaterialQuantities`         | Shapes legacy `GetByUrl` output                                                                   |
+| `Speckle.Objects.Properties`                 | Shapes legacy `GetByUrl` output                                                                   |
+| `Speckle.Models.Federate`                    | Operates on legacy `GetByUrl` shapes                                                              |
+| `Speckle.Models.MaterialQuantities`          | Operates on legacy `GetByUrl` shapes                                                              |
+| `Speckle.Revit.Parameters.ToNameValueRecord` | Operates on legacy `GetByUrl` shapes                                                              |
+| `Speckle.Utils.ExpandRecord`                 | Operates on legacy `GetByUrl` shapes                                                              |
+| `Speckle.Project.Issues(url, getReplies)`    | Remains independent of both object data paths and works with old and new reports                  |
+| `Speckle.GetVersion()`                       | Returns the connector version string, unchanged                                                   |
 
 The installer places the data connector in the current user's Documents folder. Reports opened by
 that user use the installed connector. Existing `GetByUrl` queries still work when their target
@@ -189,15 +184,19 @@ version contains JSON data.
 ## FAQ
 
 <AccordionGroup>
+  <Accordion title="What happens if I only rename GetByUrl to GetTables in the Advanced Editor?">
+    The downstream query steps still expect the old flat table and will fail. Rebuild the query from
+    **Connect to Speckle (Custom)**, load Objects, and invoke Properties and Relations.
+  </Accordion>
+  <Accordion title="Can I keep following new versions without migrating?">
+    No. Pinning to `.../models/MODEL_ID@VERSION_ID` is a recovery option. If the report must follow
+    new publishes after a 4.0 authoring connector is in use, rebuild it with `Speckle.GetTables` and
+    add the new visual.
+  </Accordion>
   <Accordion title="What happens if I import the new visual before I migrate the queries?">
     With 2026.10.0, importing the new file leaves legacy visuals in place. A new visual needs
     `GetTables` output before it can display a model. A legacy `GetByUrl` table cannot supply its
     required fields. Keep the legacy visual until you have loaded the new tables and checked the
     report.
-  </Accordion>
-  <Accordion title="Can I load a project that contains both older and newer models?">
-    `GetTables` requires an artifact bundle for every selected version. If one has only JSON data,
-    load that model separately with `GetByUrl` and the legacy visual, or republish it with a 4.0
-    authoring connector. A project-wide load does not convert older versions automatically.
   </Accordion>
 </AccordionGroup>
