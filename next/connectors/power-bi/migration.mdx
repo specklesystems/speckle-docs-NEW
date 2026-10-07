@@ -41,9 +41,10 @@ Your report is at risk if all three statements are true:
 
 - It uses `Speckle.GetByUrl`.
 - It points to a model URL instead of a specific version.
-- The model will be published with a 4.0 authoring connector.
+- The model will get new versions from a 4.0 authoring connector or an IFC file upload.
 
-Version 4.0 authoring connectors publish artifact-only versions. The next refresh then fails with
+Version 4.0 authoring connectors and IFC files uploaded in the web app create artifact-only
+versions. The next refresh then fails with
 `JsonRepresentationUnavailable`. Pinning to a pre-4.0 version URL is a stopgap. Rebuild the report
 if it must keep following new versions.
 
@@ -54,7 +55,7 @@ Reports whose target versions still contain JSON data can keep using `GetByUrl` 
 | Before                                    | After                                                                    |
 | ----------------------------------------- | ------------------------------------------------------------------------ |
 | Existing query calls `Speckle.GetByUrl`   | **Connect to Speckle (Custom)** creates a `Speckle.GetTables` query      |
-| `Speckle.GetByUrl` returns one flat table | `Speckle.GetTables` returns related tables                               |
+| `Speckle.GetByUrl` returns one flat table | The invoked **Properties** table has one row per object                  |
 | Join and color on `Application ID`        | Join and bind on `Object Key`                                            |
 | Legacy 3D visual                          | Separate new visual with **Model Info** and **Object Keys** from Objects |
 | JSON-only versions                        | Artifact bundles published with a 4.0 connector                          |
@@ -69,7 +70,9 @@ Reports whose target versions still contain JSON data can keep using `GetByUrl` 
 
 ### Pin a broken report
 
-If the report already fails, pin it to the last version published before 4.0.
+If the report already fails, pin it to the last version published before 4.0. A model whose first
+version is artifact-only, such as a new IFC upload, has no version to pin to: go to [Rebuild the
+queries](#rebuild-the-queries).
 
 <Steps>
   <Step title="Open the GetByUrl query">
@@ -104,10 +107,11 @@ Use the existing model URL. Do not rename `GetByUrl` to `GetTables` in the Advan
     `Object Key`, `Application ID`, and `Model Info`.
   </Step>
   <Step title="Choose properties and related fields">
-    Select the Properties function, choose the columns used by the report, and invoke it to create a
-    new query. Do the same with Relations for fields such as levels or rooms. Enable load for the
-    resulting tables and leave the function queries with load disabled. After **Close & Apply**,
-    create one-to-one relationships from the resulting tables to Objects using `Object Key`.
+    Select the Properties function, pick the columns used by the report in the **Properties** list,
+    then select **OK** and **Invoke** to create a new query. Do the same with Relations for fields
+    such as levels or rooms. Enable load for the resulting tables and leave the function queries
+    with load disabled. After **Close & Apply**, create one-to-one relationships from the resulting
+    tables to Objects using `Object Key`.
   </Step>
 </Steps>
 
@@ -177,6 +181,16 @@ The installer places the data connector in the current user's Documents folder. 
 ## FAQ
 
 <AccordionGroup>
+  <Accordion title="How do I get back the single flat table that GetByUrl returned?">
+    Invoke the **Properties** function and pick the properties the report uses. The result has one
+    row per object, with `Object Key` and one column per property. See [Power BI in
+    2026.9](/next/connectors/power-bi/introduction#faq) for the M alternative.
+  </Accordion>
+  <Accordion title="Why does GetByUrl still fail when I use a version URL?">
+    The version is artifact-only. `GetByUrl` reads JSON data only, so pinning works only for a
+    version published before 4.0. Models created by a 4.0 connector or a new IFC upload have no such
+    version. Rebuild the query with **Connect to Speckle (Custom)**.
+  </Accordion>
   <Accordion title="What happens if I only rename GetByUrl to GetTables in the Advanced Editor?">
     The downstream query steps still expect the old flat table and will fail. Rebuild the query from
     **Connect to Speckle (Custom)**, load Objects, and invoke Properties and Relations.

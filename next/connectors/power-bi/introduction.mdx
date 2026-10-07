@@ -37,8 +37,9 @@ The default **Simplified** layout provides three Navigator entries:
 
 - **Objects** has one row per object. Its standard columns are `Object Key`, `Application ID`, and
   `Model Info`. Federated loads also include `Source Model`.
-- **Properties** is a function. Choose the property paths the report needs, then load a table that
-  contains `Object Key` and those property columns.
+- **Properties** is a function. Pick the properties the report needs from a list, then load a table
+  that contains `Object Key` and those property columns. This table replaces the single flat table
+  that `Speckle.GetByUrl` returned.
 - **Relations** is a function. Choose outgoing graph relations such as `ON_LEVEL` or `IN_ROOM`, then
   load a table that contains `Object Key` and those relation columns.
 
@@ -85,12 +86,20 @@ the retained-function list, see [Upgrade Power BI to
   </Step>
   <Step title="Load Objects and related tables">
     Select **Transform Data** to open Power Query. Enable load for Objects. Select the Properties
-    function, choose the property columns the report needs, and invoke it to create a new query. Do
-    the same with Relations for fields such as levels or rooms. Enable load for the resulting tables
-    and leave the function queries with load disabled. After **Close & Apply**, create one-to-one
-    relationships from these tables to Objects using `Object Key`.
+    function, pick the properties the report needs in the **Properties** list, then select **OK**
+    and **Invoke** to create a new query. Do the same with Relations for fields such as levels or
+    rooms. Enable load for the resulting tables and leave the function queries with load disabled.
+    After **Close & Apply**, create one-to-one relationships from these tables to Objects using
+    `Object Key`.
   </Step>
 </Steps>
+
+<Frame caption="Pick properties from the list, then select OK and Invoke.">
+  <img
+    src="/images/connectors/powerbi/properties-picker.png"
+    alt="Power Query with the Properties function selected and its Properties list open, showing property paths with checkboxes"
+  />
+</Frame>
 
 {/* IMAGE_PLACEHOLDER: Power Query Navigator — Simplified layout with Objects plus Properties and Relations functions. */}
 
@@ -176,6 +185,30 @@ limited-scope token for each load. The account's main token does not enter the r
 ## FAQ
 
 <AccordionGroup>
+  <Accordion title="How do I get one table of objects and their properties, like GetByUrl returned?">
+    Invoke the **Properties** function: pick the properties you report on, select **OK**, then
+    **Invoke**. The result has one row per object, with `Object Key` and one column per property.
+    For the 3D visual, also load Objects and relate it on `Object Key`, because `Model Info` lives
+    there. To get it all in one table in M, use `Speckle.AddProperties(Source, {"path.one",
+    "path.two"})`, where `Source` is the `Speckle.GetTables` result.
+  </Accordion>
+  <Accordion title="Why do I see seven or more tables in Navigator?">
+    The **All tables** layout is on. It adds supporting tables for building custom relationships.
+    Most reports need only the default **Simplified** layout: set **Table layout** to Simplified
+    under Advanced options, or remove `[TableLayout = "All tables"]` from the `Speckle.GetTables`
+    call.
+  </Accordion>
+  <Accordion title="Should I select all properties?">
+    No. Models with many property sets can have hundreds of paths, and every selected path adds a
+    column and refresh time. Start with the properties the report uses. To add more later, edit the
+    invoked query's step or invoke Properties again.
+  </Accordion>
+  <Accordion title="How do I find a property in the Properties list?">
+    Type part of its name in the list's search box, for example a property set name. The list shows
+    full dotted paths such as `properties.Quantities.Qto_SpaceBaseQuantities.NetFloorArea`. The
+    resulting column uses the shortest unique end of the path, such as `NetFloorArea`, unless you
+    set **Use full paths** to `true`.
+  </Accordion>
   <Accordion title="Why don't I see Speckle - Get Tables in Get Data?">
     Select **Connect to Speckle (Custom)**. Power Query calls this function **Speckle - Get
     Tables**, but Get Data uses a different label. The **Speckle Model URL** input still accepts
