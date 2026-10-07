@@ -75,6 +75,26 @@ Environment Variables:
 
 The project and automation IDs are in the URL of your automation page: `/projects/[project-id]/automations/[automation-id]`.
 
+### Token scopes
+
+For local testing with the Python template, a token with four scopes is enough when your function only reads the model and reports results. Add up to four more if it writes anything back.
+
+A read-only function (receives the model, attaches results, marks success or failure) needs:
+
+- `user.profile.read`: the SDK checks the token against your account when it logs in.
+- `project.core.read`: downloads the model's objects.
+- `project.version.read`: fetches the version and marks it as received.
+- `project.automation.admin`: the test setup creates a new test run every time you run it, which requires automation admin.
+
+If your function writes back, also add:
+
+- `project.core.write`: uploads objects.
+- `project.version.write`: creates a new version.
+- `project.model.write`: only if the function creates a new model.
+- `workspace.blob.write`: attaches a file with `store_file_result`.
+
+<Note>A read-only function that attaches a report file still needs `workspace.blob.write`.</Note>
+
 ## Running Test Cases
 
 1. Set up your local environment with the required values.
