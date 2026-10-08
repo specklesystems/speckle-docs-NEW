@@ -195,6 +195,13 @@ The installer places the data connector in the current user's Documents folder. 
     The downstream query steps still expect the old flat table and will fail. Rebuild the query from
     **Connect to Speckle (Custom)**, load Objects, and invoke Properties and Relations.
   </Accordion>
+  <Accordion title="Why does GetByUrl fail with DirectDownloadFailed and status 404?">
+    If the error's `RootObjectId` starts with `bundle.`, the version is artifact-only. Some
+    connector releases report this as `DirectDownloadFailed` instead of
+    `JsonRepresentationUnavailable`. The fix is the same: rebuild the query with
+    `Speckle.GetTables`. Pinning to a version published before 4.0 works only if the model has one;
+    a new IFC upload does not.
+  </Accordion>
   <Accordion title="Can I keep following new versions without migrating?">
     No. Pinning to `.../models/MODEL_ID@VERSION_ID` is a recovery option. If the report must follow
     new publishes after a 4.0 authoring connector is in use, rebuild it with `Speckle.GetTables` and
