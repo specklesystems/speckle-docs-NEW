@@ -25,25 +25,21 @@ Authoritative Speckle 2026.9 documentation for the topic covered here. For Speck
 
 <NextPreviewBanner />
 
-Get Data now shows **Speckle - Get Tables**. The default Simplified layout loads a small Objects
-table plus Properties and Relations functions, instead of one wide table. The 2026.9 3D visual
-streams geometry from Speckle over a WebSocket and requires WebGPU.
+In **Get Data**, select **Connect to Speckle (Custom)**. Power Query calls the function **Speckle - Get Tables**. These instructions use Power BI connector release **2026.10.0**. The default Simplified layout loads a small Objects table plus Properties and Relations functions, instead of one wide table. The new 3D visual streams geometry from Speckle over a WebSocket and requires WebGPU.
 
-This page covers only what changed. For the connector that is available today, see
-[How to use Speckle for Power BI](/connectors/power-bi/power-bi). Existing reports that still call
-`Speckle.GetByUrl` must be rebuilt. See
-[Upgrade Power BI to 2026.9](/next/connectors/power-bi/migration).
+This page covers only what changed. For legacy workflows and unchanged setup guidance, see [How to use Speckle for Power BI](/connectors/power-bi/power-bi). Existing `Speckle.GetByUrl` reports can keep working when their target versions contain JSON data. To follow versions published only in the new data format, see [Upgrade Power BI to 2026.9](/next/connectors/power-bi/migration).
 
 ## What changed
 
-**Speckle - Get Tables** accepts model, version, federated, and project URLs.
+`Speckle.GetTables` accepts model, version, federated, and project URLs.
 
 The default **Simplified** layout provides three Navigator entries:
 
 - **Objects** has one row per object. Its standard columns are `Object Key`, `Application ID`, and
   `Model Info`. Federated loads also include `Source Model`.
-- **Properties** is a function. Choose the property paths the report needs, then load a table that
-  contains `Object Key` and those property columns.
+- **Properties** is a function. Pick the properties the report needs from a list, then load a table
+  that contains `Object Key` and those property columns. This table replaces the single flat table
+  that `Speckle.GetByUrl` returned.
 - **Relations** is a function. Choose outgoing graph relations such as `ON_LEVEL` or `IN_ROOM`, then
   load a table that contains `Object Key` and those relation columns.
 
@@ -52,14 +48,14 @@ Create one-to-one relationships from the invoked Properties and Relations tables
 
 ## Functions
 
-| Function                                                                        | Where it appears                               | Behavior                                                                                              |
-| ------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `Speckle.GetTables(url, options)`                                               | The **Speckle - Get Tables** entry in Get Data | Returns the navigation table for the new data model                                                   |
-| `Properties(paths?, useFullPaths?)`                                             | A Navigator entry bound to each loaded model   | Returns `Object Key` plus the selected property columns                                               |
-| `Relations(relationNames?)`                                                     | A Navigator entry bound to each loaded model   | Returns `Object Key` plus selected outgoing relation columns                                          |
-| `Speckle.AddProperties(source, propertyPaths, objects?, useFullPaths?)`         | M code only                                    | Adds selected properties to Objects. An optional Objects table can filter rows and keep extra columns |
-| `Speckle.AddAllProperties(source, objects?, useFullPaths?)`                     | M code only                                    | Adds every property path to Objects. Intended for property-light models                               |
-| `Speckle.AddRelations(objects, relations, relationTypes, nodes, relationNames)` | M code only                                    | Adds selected outgoing, one-hop relations to an Objects table                                         |
+| Function                                                                        | Where it appears                             | Behavior                                                                                              |
+| ------------------------------------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `Speckle.GetTables(url, options)`                                               | **Connect to Speckle (Custom)** in Get Data  | Returns the navigation table for the new data model                                                   |
+| `Properties(paths?, useFullPaths?)`                                             | A Navigator entry bound to each loaded model | Returns `Object Key` plus the selected property columns                                               |
+| `Relations(relationNames?)`                                                     | A Navigator entry bound to each loaded model | Returns `Object Key` plus selected outgoing relation columns                                          |
+| `Speckle.AddProperties(source, propertyPaths, objects?, useFullPaths?)`         | M code only                                  | Adds selected properties to Objects. An optional Objects table can filter rows and keep extra columns |
+| `Speckle.AddAllProperties(source, objects?, useFullPaths?)`                     | M code only                                  | Adds every property path to Objects. Intended for property-light models                               |
+| `Speckle.AddRelations(objects, relations, relationTypes, nodes, relationNames)` | M code only                                  | Adds selected outgoing, one-hop relations to an Objects table                                         |
 
 `Properties` and `Relations` are bound to the loaded model. They are not global M functions.
 
@@ -77,23 +73,33 @@ the retained-function list, see [Upgrade Power BI to
 
 ## Load
 
-{/* IMAGE_PLACEHOLDER: Get Data dialog — search Speckle; Speckle - Get Tables selected as the data source. */}
+{/* IMAGE_PLACEHOLDER: Get Data dialog — search Speckle; Connect to Speckle (Custom) selected as the data source. */}
 
 <Steps>
-  <Step title="Open Speckle - Get Tables">
-    Select **Get Data**. Search for Speckle, then select **Speckle - Get Tables** and **Connect**.
-    You should see the URL dialog for that connector.
+  <Step title="Connect to Speckle">
+    Select **Get Data**. Search for Speckle, then select **Connect to Speckle (Custom)** and
+    **Connect**. You should see the **Speckle Model URL** input.
   </Step>
   <Step title="Paste a Speckle URL">
-    Paste a model, version, federated, or project URL from the web app and select **OK**. You should
-    see the Navigator for that URL.
+    Paste the URL from the web app and select **OK**. Sign in when prompted. You should see Objects,
+    Properties, and Relations in Navigator.
   </Step>
   <Step title="Load Objects and related tables">
-    Load the Objects table. Invoke Properties and select only the property columns the report needs.
-    If the report uses graph-backed fields such as levels or rooms, invoke Relations and select
-    those fields. Relate each invoked result to Objects one-to-one using `Object Key`.
+    Select **Transform Data** to open Power Query. Enable load for Objects. Select the Properties
+    function, pick the properties the report needs in the **Properties** list, then select **OK**
+    and **Invoke** to create a new query. Do the same with Relations for fields such as levels or
+    rooms. Enable load for the resulting tables and leave the function queries with load disabled.
+    After **Close & Apply**, create one-to-one relationships from these tables to Objects using
+    `Object Key`.
   </Step>
 </Steps>
+
+<Frame caption="Pick properties from the list, then select OK and Invoke.">
+  <img
+    src="/images/connectors/powerbi/properties-picker.png"
+    alt="Power Query with the Properties function selected and its Properties list open, showing property paths with checkboxes"
+  />
+</Frame>
 
 {/* IMAGE_PLACEHOLDER: Power Query Navigator — Simplified layout with Objects plus Properties and Relations functions. */}
 
@@ -111,40 +117,40 @@ the retained-function list, see [Upgrade Power BI to
 </Note>
 
 <Warning>
-  For 2026.9 loads, use the Properties and Relations Navigator functions, and relate on `Object
+  For Get Tables loads, use the Properties and Relations Navigator functions, and relate on `Object
   Key`. Do not pass Get Tables output into `Speckle.Objects.*` or `Speckle.Models.*` helpers.
 </Warning>
 
 ## View
 
-The new visual has four field wells: **Model Info** (required), **Object Keys** (required),
-**Object Data** (tooltips), and **Color By**. Use `Objects[Object Key]` as the standard object
-binding. `Application ID` remains supported, but large models require an extra lookup dictionary
-that can add tens of megabytes to the load.
+The new visual has four data fields: **Model Info** (required), **Object Keys** (required), **Object Data (Tooltip)**, and **Color By**. Use `Objects[Object Key]` as the standard object binding. `Application ID` remains supported, but large models require an extra lookup dictionary that can add tens of megabytes to the load.
 
 Geometry no longer passes through the Power BI dataset. The visual streams it from Speckle over a
 WebSocket, becomes interactive after the first geometry arrives, and continues loading in the
 background.
 
-{/* IMAGE_PLACEHOLDER: Speckle 3D visual — Model Info, Object Keys, Object Data, and Color By bound; toolbar at bottom center with Zoom Extents and Camera. */}
+{/* IMAGE_PLACEHOLDER: Speckle 3D visual — Model Info, Object Keys, Object Data (Tooltip), and Color By bound; toolbar at bottom center with Zoom Extents and Camera. */}
 
 <Steps>
-  <Step title="Import the 2026.9 visual">
+  <Step title="Import the new visual">
     In the Visualizations pane, select **Import a visual from a file**. Browse to `Documents/Power
-    BI Desktop/Custom Visuals`, select `Speckle 3D Visual.pbiviz`, and **Open**. You should see
-    Speckle 3D Visual in the pane.
+    BI Desktop/Custom Visuals`, select `Speckle Power BI 3D Visual.pbiviz`, and **Open**. You should
+    see the imported visual in the pane.
   </Step>
-  <Step title="Bind Model Info and Object Keys">
-    Select **Speckle 3D Visual**. Drag `Objects[Model Info]` into **Model Info** and `Objects[Object
-    Key]` into **Object Keys**. Drag tooltip fields into **Object Data** and the category field into
-    **Color By**. You should see the first geometry arrive, then the rest stream in the background.
+  <Step title="Add the model fields">
+    Add the imported visual to your report. Check that its fields include **Object Keys**. The older
+    visual has **Object IDs**. Drag `Objects[Model Info]` into **Model Info** and `Objects[Object
+    Key]` into **Object Keys**. Drag tooltip fields into **Object Data (Tooltip)** and the category
+    field into **Color By**. You should see the first geometry arrive, then the rest stream in the
+    background.
   </Step>
 </Steps>
 
 <Warning>
-  Importing the new `.pbiviz` replaces the old visual in place. The two visuals share the same GUID.
-  Import the new visual only when you are ready to reconnect Model Info, Object Keys, Object Data,
-  and Color By.
+  From 2026.10.0, the new visual has a separate identity and leaves legacy visuals in place on
+  import. Add the new visual and connect its fields separately. Releases 2026.9.0 through 2026.9.2
+  shared the legacy identity and could replace legacy visuals on import. Use 2026.10.0 or later to
+  keep both visuals in a report.
 </Warning>
 
 <Warning>
@@ -179,10 +185,34 @@ limited-scope token for each load. The account's main token does not enter the r
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Why don't I see Connect to Speckle in Get Data?">
-    After you update the connector, Get Data shows **Speckle - Get Tables**. That is the published
-    entry for 2026.9. `Speckle.GetByUrl` remains available for versions that still contain JSON, but
-    it is no longer the Get Data entry.
+  <Accordion title="How do I get one table of objects and their properties, like GetByUrl returned?">
+    Invoke the **Properties** function: pick the properties you report on, select **OK**, then
+    **Invoke**. The result has one row per object, with `Object Key` and one column per property.
+    For the 3D visual, also load Objects and relate it on `Object Key`, because `Model Info` lives
+    there. To get it all in one table in M, use `Speckle.AddProperties(Source, {"path.one",
+    "path.two"})`, where `Source` is the `Speckle.GetTables` result.
+  </Accordion>
+  <Accordion title="Why do I see seven or more tables in Navigator?">
+    The **All tables** layout is on. It adds supporting tables for building custom relationships.
+    Most reports need only the default **Simplified** layout: set **Table layout** to Simplified
+    under Advanced options, or remove `[TableLayout = "All tables"]` from the `Speckle.GetTables`
+    call.
+  </Accordion>
+  <Accordion title="Should I select all properties?">
+    No. Models with many property sets can have hundreds of paths, and every selected path adds a
+    column and refresh time. Start with the properties the report uses. To add more later, edit the
+    invoked query's step or invoke Properties again.
+  </Accordion>
+  <Accordion title="How do I find a property in the Properties list?">
+    Type part of its name in the list's search box, for example a property set name. The list shows
+    full dotted paths such as `properties.Quantities.Qto_SpaceBaseQuantities.NetFloorArea`. The
+    resulting column uses the shortest unique end of the path, such as `NetFloorArea`, unless you
+    set **Use full paths** to `true`.
+  </Accordion>
+  <Accordion title="Why don't I see Speckle - Get Tables in Get Data?">
+    Select **Connect to Speckle (Custom)**. Power Query calls this function **Speckle - Get
+    Tables**, but Get Data uses a different label. The **Speckle Model URL** input still accepts
+    your model URL.
   </Accordion>
   <Accordion title="Why should I use Object Key instead of Application ID?">
     `Object Key` is the standard join and visual binding. `Application ID` still works, but large
@@ -192,10 +222,11 @@ limited-scope token for each load. The account's main token does not enter the r
     `GetTables` reads artifact bundles. JSON-only versions published before a 4.0 connector need
     `Speckle.GetByUrl`, or the model must be republished with a 4.0 connector.
   </Accordion>
-  <Accordion title="How do I update the 3D visual to the 2026.9 version?">
-    The 3D visual has no AppSource auto-update channel. Import the new `.pbiviz` from
-    `Documents/Power BI Desktop/Custom Visuals`, then reconnect `Objects[Model Info]` to Model Info
-    and `Objects[Object Key]` to Object Keys.
+  <Accordion title="Does updating the connector update visuals already in my report?">
+    No. The installer copies the visual file to your Documents folder. Import that file into your
+    report yourself; there is no automatic update through AppSource. To move from the legacy visual
+    to the new one, follow the [migration
+    steps](/next/connectors/power-bi/migration#add-the-new-3d-visual).
   </Accordion>
   <Accordion title="What is missing from the 2026.9 3D visual?">
     Section box, view modes, edges, ghost mode, and named scene views are unavailable. Filtered-out

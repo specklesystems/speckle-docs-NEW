@@ -1,7 +1,7 @@
 ---
 title: File uploads in 2026.9
 sidebarTitle: File uploads
-description: Changes to file uploads in 2026.9, including supported formats, Tekla Structures and Vectorworks support, and legacy/compatibility mode, which ends on 1 November 2026.
+description: Changes to file uploads in 2026.9, including supported formats, Tekla Structures, Solibri and Vectorworks support, and legacy/compatibility mode, which ends on 1 November 2026.
 contextual:
   options: []
 docs_version: '2026.9'
@@ -46,6 +46,8 @@ models stay readable; the change affects importing new files and uploading new v
 
 Availability depends on the conversion services enabled for your workspace.
 
+In default 2026.9 mode, cloud file sync supports the same file formats as file uploads.
+
 | Format                 | Extensions                                                               | Default 2026.9 mode | Legacy/compatibility mode |
 | ---------------------- | ------------------------------------------------------------------------ | ------------------- | ------------------------- |
 | IFC                    | .ifc                                                                     | Supported           | Supported                 |
@@ -58,8 +60,13 @@ Availability depends on the conversion services enabled for your workspace.
 | STEP                   | .step, .stp                                                              | Supported           | Supported                 |
 | MicroStation           | .dgn                                                                     | Supported           | Not supported             |
 | Vectorworks            | .vwx                                                                     | Supported           | Not supported             |
+| Solibri                | .smc                                                                     | Supported           | Not supported             |
 | Tekla Structures       | .tekla, .db1                                                             | Where enabled       | Not supported             |
 | Other retained formats | .stl, .3mf, .3ds, .amf, .dxf, .x, .e57, .igs, .iges, .fbx, .ply, .sldprt | Not supported       | Supported                 |
+
+<Note>
+  In legacy/compatibility mode, cloud sync supports only Revit, Navisworks, AutoCAD and IFC files.
+</Note>
 
 ## Additional format: Tekla Structures
 
@@ -84,7 +91,7 @@ upload publishes the 3D content of every design layer.
 
 ### Files that convert
 
-Speckle reads files last saved in Vectorworks 2021 through 2026. Files from other releases are not
+Speckle reads files last saved in Vectorworks 2021 through 2027. Files from other releases are not
 supported yet.
 
 ### What is published
@@ -112,6 +119,61 @@ These parts of the document are not published:
 | Vectorworks file version _number_ is not supported       | Contact Speckle support.                                                           |
 | This is not a supported Vectorworks document             | Check that the file is a Vectorworks document, not another file renamed to `.vwx`. |
 | This Vectorworks document uses an unsupported byte order | Contact Speckle support.                                                           |
+
+## Upload a Solibri file
+
+Upload a Solibri `.smc` file to publish the whole federation saved in it, without opening Solibri
+or installing a connector. You do not need the original IFC files alongside it. For the steps, see
+[Upload a file](/connectors/direct-uploads/introduction#upload-a-file). After conversion, open the
+model in Speckle to view its geometry and inspect its properties.
+
+### Files that convert
+
+Files saved in Solibri 9.12 and 26.6 have been verified. Speckle attempts to read `.smc` files from
+other releases, but their compatibility has not been verified. `.smv` and `.smct` files are not
+supported.
+
+### What is published
+
+- The saved federation, grouped by source model and its spatial hierarchy.
+- Component geometry with original colours and transparency.
+- Source properties, Solibri-derived properties, and saved classification results, including
+  group, zone and system memberships.
+
+These parts of the document are not published:
+
+- Rule sets and checking results.
+- Presentations.
+- Issues and BCF data.
+
+An upload reads the data saved in the file; it does not run Solibri checks or re-evaluate
+classifications.
+
+<Note>
+  Solibri uploads require the default 2026.9 upload mode. Workspaces using legacy/compatibility mode
+  cannot upload `.smc` files.
+</Note>
+
+### Recover missing Solibri geometry
+
+For the closest match to Solibri's 3D view, save the file with **Save 3D Representations with Model**
+enabled under **Settings > 3D** in Solibri. Let the 3D view finish drawing before saving.
+
+When the file has no saved 3D representation for a component, Speckle tries to rebuild its geometry.
+This takes longer and can produce approximate geometry. Components that cannot be rebuilt retain
+their properties but have no geometry. Open the file in Solibri, enable the setting, let the 3D
+view draw, save and upload it again.
+
+### Recover a missing Federated Floor property
+
+A component's **Federated Floor** property is included only if Solibri computed and saved it.
+To populate it, open the file in Solibri, group the model tree by **Locations**, and use
+**Save As** before uploading again. Some components may still have no federated floor.
+
+### If a Solibri upload fails
+
+If the upload fails, check that the file opens in Solibri and save it again before retrying. Contact
+Speckle support if it still fails.
 
 ## Update an affected workflow
 
