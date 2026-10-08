@@ -46,6 +46,7 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 - **Version naming:** "Speckle Next" and other codenames never appear in reader-facing copy, nav or titles; `next/` is an internal path. Write `2026.9`, never `v2026.9` (same for `2026.8`); no placeholder disclaimer, no invented marketing name, no hiding the string. When product names the release, replace 2026.9 everywhere. "Current" names the version selector only: body copy says "before 2026.9" / "2026.8 and earlier" or names the mechanism; table columns `Before 2026.9` / `2026.9`. "Legacy" names the v2 → v3 migration, not the 2026.8 corpus.
 - **User pages stay user-facing:** feature flags, Helm values, env vars and docker-compose config never appear in user guides; state availability and link to the deployment guide.
 - **Enterprise-only features** (Workspaces, Admin Support Mode, Saved Views, Issues, Multi-regional Deployment, Automate, Intelligence, ACC Integration, extended Direct Uploads): the user-facing page carries its own `<Note>` (available only on Speckle Enterprise Server) linked to its setup in `developers/server/deployment/enterprise-license`; add role restrictions where they apply.
+- **Plan labels:** frontmatter `tag` is for `Enterprise` only; Alpha/Beta go in a `<Badge>` atop the body. Keep billing light: no plan limits or prices, just "available on the **Enterprise** plan".
 
 ## Area docs
 
