@@ -6,31 +6,12 @@ per-version frontmatter: do not add `docs_version`, `docs_status`, `docs_authori
 `next_docs`. A page whose guidance applies only to data published before 2026.9 says so in a
 visible `<Note>` at the top of the body, where readers, search engines and Fin all read it.
 
-## Pages with an existing legacy-connector notice
-
-Apply only where the page already renders `LegacyWarning`, which recommends newer connectors
-(the frozen `legacy/` tree):
-
-```yaml
-product_generation: legacy
-docs_status: superseded
-docs_authority: historical
-change_scope: Legacy connector guidance; the existing notice recommends newer connectors.
-replacement_docs:
-  - /connectors/overview
-```
-
-`docs_authority: historical` and the page's agent-only historical-use instruction keep these
-pages retrievable for the legacy (v2) connector they describe. `replacement_docs` is a
-navigation starting point, not an asserted one-to-one replacement. Do not infer a deprecation
-date from this older notice.
-
 ## Agent instructions
 
 - `markdown.instructions` in `docs.json` holds the site-wide rules for AI readers. Mintlify
   appends them to page Markdown exports, `llms.txt` and `llms-full.txt`.
-- `<Visibility for="agents">` is reserved for the legacy-connector pages above. Do not use it
-  to route between versions or to carry information a human reader also needs.
+- Do not use `<Visibility for="agents">` to route between versions or to carry information a
+  human reader also needs.
 - These are content instructions, not a guarantee that every external LLM or ingestion service
   obeys them. Verify Fin's answers after a deploy that changes them.
 
