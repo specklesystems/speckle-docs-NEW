@@ -34,15 +34,15 @@ load](/developers/connectivity/integration-depth).
 
 ## What changes
 
-| Concern                     | Before 2026.9                                                        | 2026.9                                                                                                                                          |
-| --------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| What you write              | One root object with nested `elements`, serialized as JSON objects   | A bundle: parquet files for objects, properties, geometry, and a graph of nodes and relations                                                   |
-| Object identity             | Content hash per object, plus a `__closure` table on the root        | `applicationId` per object. Objects, geometry, and nodes get dense integer keys that are local to one bundle                                    |
-| Hierarchy and shared assets | Nested `elements` and Proxy arrays on the root                       | Grouping containers, structural nodes, and typed [relations](/developers/object-model/relations)                                                |
-| Geometry                    | `displayValue` objects in JSON                                       | SGEO binary blobs in a sharded geometry table                                                                                                   |
-| How a version is created    | Upload objects, then call create-version with the root id            | Open an ingestion, upload the bundle, complete it. The server creates the version                                                               |
-| When the version exists     | When create-version returns                                          | When the ingestion reaches `success`. Completing the upload is not enough                                                                       |
-| Version metadata            | Message and source application on the create call, units on the root | Source application on the ingestion, message on completion, units per object. See [Version metadata](/developers/object-model/version-metadata) |
+| Concern                     | Before 2026.9                                                        | 2026.9                                                                                                                                                                          |
+| --------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What you write              | One root object with nested `elements`, serialized as JSON objects   | A bundle: parquet files for objects, properties, geometry, and a graph of nodes and relations                                                                                   |
+| Object identity             | Content hash per object, plus a `__closure` table on the root        | `applicationId` per object. Objects, geometry, and nodes get dense integer keys that are local to one bundle                                                                    |
+| Hierarchy and shared assets | Nested `elements` and Proxy arrays on the root                       | Grouping containers, structural nodes, and typed [relations](/developers/object-model/relations)                                                                                |
+| Geometry                    | `displayValue` objects in JSON                                       | SGEO binary blobs in a sharded geometry table                                                                                                                                   |
+| How a version is created    | Upload objects, then call create-version with the root id            | Open an ingestion, upload the bundle, complete it. The server creates the version                                                                                               |
+| When the version exists     | When create-version returns                                          | When the ingestion reaches `success`. Completing the upload is not enough                                                                                                       |
+| Version metadata            | Message and source application on the create call, units on the root | Source application on the ingestion, units per object. The current SDK publish leaves `Version.message` null. See [Version metadata](/developers/object-model/version-metadata) |
 
 ## What a bundle builder is
 

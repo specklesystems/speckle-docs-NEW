@@ -34,7 +34,7 @@ const ALLOWED_KEYS = new Set(['source', 'destination', 'permanent'])
  * Trees kept in the repo purely as historical source and deliberately shadowed
  * by redirects. Sources under these prefixes are exempt from the shadow check.
  */
-const INTENTIONALLY_SHADOWED = ['/classic/', '/legacy/']
+const INTENTIONALLY_SHADOWED = ['/legacy/']
 
 /** Directories that hold no routable pages. */
 const NOT_ROUTABLE = ['node_modules', 'snippets', '.git', '.mintlify']

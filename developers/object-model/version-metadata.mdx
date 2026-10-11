@@ -26,17 +26,18 @@ the two-store picture, see [Object model](/developers/object-model/overview).
 
 ## What the root object carried, and where it lives now
 
-| Before 2026.9                                                      | 2026.9                                                                                                                                                                             | Read it with                                                                        |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Version id, message, author, created date on the version record    | Unchanged shape on the version record. The record exists only after ingestion completes                                                                                            | `client.version.get` / `client.Version.Get`                                         |
-| `sourceApplication` on the version record, set by `version.create` | Set when the ingestion opens, from the producer slug and version you give the bundle builder                                                                                       | `Version.sourceApplication`                                                         |
-| `referencedObject` is the root object's content hash               | A bundle reference: `bundle.<projectId>.<modelId>.<versionId>`. `Version.schemaVersion` is `3`                                                                                     | Dispatch on the `bundle.` prefix. Never fetch it from the objects endpoints         |
-| `units` on the root object                                         | A `units` property on every object. The bundle builder requires a default unit and stamps it per object                                                                            | `Model.units` / `Model.Units`, or the object's own `units` property                 |
-| Root `name` and the nested `elements` tree                         | No root node. Grouping containers (subtypes Model, Layer, Collection, Folder, Group) joined to objects by `IN_MODEL`, `IN_COLLECTION`, and `IN_GROUP`. A scene view picks the tree | [Relations](/developers/object-model/relations#containment-and-grouping)            |
-| Proxy lists on the root (materials, levels, groups, instances)     | Typed relations                                                                                                                                                                    | [Relations](/developers/object-model/relations)                                     |
-| Info: views, `referencePointTransform`, analysis results           | Model-scoped properties (`modelPlacement.*`, document settings, project information), camera views, and optional structural results                                                | `Model.properties` / `Model.Properties`, `Model.camera_views` / `Model.CameraViews` |
-| `totalChildrenCount` and the `__closure` table                     | The object count is reported when the upload completes. There is no closure table                                                                                                  | `Version.totalChildrenCount`                                                        |
-| Not carried                                                        | A `meta` row in the bundle: `schema_version`, `produced_by`, `producer_version`, `sdk_name`, `sdk_version`                                                                         | `Model.Meta` (.NET). Scripts rarely need it                                         |
+| Before 2026.9                                                            | 2026.9                                                                                                                                                                             | Read it with                                                                        |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Version id, nullable message, author, created date on the version record | Unchanged shape on the version record. Current `send3` / `Send3` publishes leave `message` null; their send-option message is ingestion progress text                              | `client.version.get` / `client.Version.Get`                                         |
+| `sourceApplication` on the version record, set by `version.create`       | Set when the ingestion opens, from the producer slug and version you give the bundle builder                                                                                       | `Version.sourceApplication`                                                         |
+| `referencedObject` is the root object's content hash                     | A bundle reference: `bundle.<projectId>.<modelId>.<versionId>`. `Version.schemaVersion` is `3`                                                                                     | Dispatch on the `bundle.` prefix. Never fetch it from the objects endpoints         |
+| `units` on the root object                                               | A `units` property on every object. The bundle builder requires a default unit and stamps it per object                                                                            | `Model.units` / `Model.Units`, or the object's own `units` property                 |
+| Root `name` and the nested `elements` tree                               | No root node. Grouping containers (subtypes Model, Layer, Collection, Folder, Group) joined to objects by `IN_MODEL`, `IN_COLLECTION`, and `IN_GROUP`. A scene view picks the tree | [Relations](/developers/object-model/relations#containment-and-grouping)            |
+| Proxy lists on the root (materials, levels, groups, instances)           | Typed relations                                                                                                                                                                    | [Relations](/developers/object-model/relations)                                     |
+| Info: views, `referencePointTransform`, analysis results                 | Model-scoped properties (`modelPlacement.*`, document settings, project information), camera views, and optional structural results                                                | `Model.properties` / `Model.Properties`, `Model.camera_views` / `Model.CameraViews` |
+| `totalChildrenCount` and the `__closure` table                           | The object count is reported when the upload completes. There is no closure table                                                                                                  | `Version.totalChildrenCount`                                                        |
+| Not carried                                                              | A `meta` row in the bundle: `schema_version`, `produced_by`, `producer_version`, `sdk_name`, `sdk_version`, `migrated_from_schema_version`                                         | `Model.Meta` (.NET). Scripts rarely need it                                         |
+| Not carried                                                              | An optional producer-computed summary, grouped by namespace as flat scalar values                                                                                                  | `Version.summary`                                                                   |
 
 Two rows need more detail because scripts depend on them.
 
@@ -57,7 +58,7 @@ queryable the moment the call returns, and where each piece of metadata is set.
 <Steps>
   <Step title="Open a model ingestion">
     The SDK creates an ingestion on the model, carrying the producer slug and version from your
-    bundle builder and the message from your send options. The outcome is an ingestion with a
+    bundle builder and a progress message from your send options. The outcome is an ingestion with a
     reserved version id.
   </Step>
   <Step title="Build the bundle">
@@ -132,9 +133,11 @@ queryable the moment the call returns, and where each piece of metadata is set.
 
 ## Read version metadata from a script
 
-Read the **version record** for identity and provenance: `message`, `sourceApplication`,
-`authorUser`, `createdAt`, `schemaVersion`, and `referencedObject`. This is the same query as for
-any other version.
+Read the **version record** for identity and provenance: nullable `message`, `sourceApplication`,
+`authorUser`, `createdAt`, `schemaVersion`, `referencedObject`, and the optional `summary`. A
+summary contains facts the producer computed during conversion, grouped into namespaces such as
+`modelHealth`; it is not a replacement for model or object properties. This is the same query as
+for any other version.
 
 Read **model-wide facts** from the received `Model`, not from a root object. `units` gives the
 default unit. `properties` holds the model-scoped rows: the placement record

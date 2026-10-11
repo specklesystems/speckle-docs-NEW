@@ -176,31 +176,18 @@ The snippets below assume `wall` is already in scope: a `DataObject` from the tr
 
 ## Replace proxy walks
 
-Before 2026.9, grouping by level or material means indexing `applicationId`s and resolving proxy `objects` lists. In 2026.9 those links are typed relations. See [Relations](/developers/object-model/relations) for the names.
+Before 2026.9, grouping by level or material meant indexing `applicationId`s and resolving proxy
+`objects` lists. In 2026.9, use the typed relation accessors directly. See
+[Relations](/developers/object-model/relations) for the names.
 
-<Tabs>
-  <Tab title="Prior to 2026.9">
-    ```python Prior to 2026.9 lines icon="python"
-    by_app_id = {}
-    for obj in iter_elements(root):
-        app_id = getattr(obj, "applicationId", None)
-        if app_id:
-            by_app_id[app_id] = obj
-    ```
+```python 2026.9 lines icon="python"
+by_level = {}
+for obj in model.objects:
+    key = obj.level.name if obj.level else "Unknown"
+    by_level.setdefault(key, []).append(obj)
 
-  </Tab>
-  <Tab title="2026.9">
-    ```python 2026.9 lines icon="python"
-    by_level = {}
-    for obj in model.objects:
-        key = obj.level.name if obj.level else "Unknown"
-        by_level.setdefault(key, []).append(obj)
-
-    hosted = [o for o in model.objects if o.host is not None]
-    ```
-
-  </Tab>
-</Tabs>
+hosted = [o for o in model.objects if o.host is not None]
+```
 
 A 2026.9 version has no nested `elements` tree and no proxy `objects` lists. Do not unpack proxies to rebuild containment; read the relation accessors instead.
 

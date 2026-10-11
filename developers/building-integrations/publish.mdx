@@ -33,9 +33,9 @@ Speckle producer follows this sequence.
     filename.
   </Step>
   <Step title="Complete the upload">
-    Post the ETags, the bundle reference as the root id, the object count, and the version message.
-    The outcome is the server accepting the bundle and starting ingestion. The response echoes the
-    version id.
+    Post the ETags, the bundle reference as the root id, the object count, and any optional
+    producer-computed summary. The outcome is the server accepting the bundle and starting
+    ingestion. The response echoes the version id.
   </Step>
   <Step title="Wait for the ingestion to finish">
     Subscribe to ingestion updates or poll until the status is terminal. The outcome on `success` is
@@ -152,7 +152,9 @@ non-SDK producer makes, numbered to match the steps.
       "etags": { "<name>": "\"<etag>\"" },
       "rootId": "bundle.<projectId>.<modelId>.<versionId>",
       "totalChildrenCount": <object count>,
-      "message": "Nightly export"
+      "summary": {
+        "modelHealth": { "warnings": 49, "views": 302, "isWorkshared": false }
+      }
     }
 
     200 { "versionId": "<versionId>", "files": ["<name>", "..."] }
@@ -194,6 +196,11 @@ non-SDK producer makes, numbered to match the steps.
 
   </Tab>
 </Tabs>
+
+The optional `summary` is exposed as `Version.summary`. It may be at most 16 KiB and must be a map
+of namespaces to flat string, number, or boolean values. Every namespace and field key must begin
+with an ASCII letter and contain only letters, numbers, or underscores. Omit the summary when the
+producer has no summary facts; model and object properties still belong in the bundle.
 
 <Note>
   Forward the ETag byte for byte. Object storage wraps it in double quotes and the complete endpoint

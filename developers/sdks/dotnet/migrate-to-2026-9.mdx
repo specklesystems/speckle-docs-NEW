@@ -171,25 +171,14 @@ Before 2026.9, nested parameters are dictionaries you walk: `obj.properties["x"]
 
 ## Replace proxy walks
 
-Before 2026.9, grouping by level or material means indexing `applicationId`s and resolving proxy `objects` lists. In 2026.9 those links are typed relations. See [Relations](/developers/object-model/relations) for the names.
+Before 2026.9, grouping by level or material meant indexing `applicationId`s and resolving proxy
+`objects` lists. In 2026.9, use the typed relation accessors directly. See
+[Relations](/developers/object-model/relations) for the names.
 
-<Tabs>
-  <Tab title="Prior to 2026.9">
-    ```csharp Prior to 2026.9 lines icon="/images/developers/sdks/csharp.svg"
-    var byAppId = root.Flatten()
-        .Where(o => o.applicationId is not null)
-        .ToDictionary(o => o.applicationId!);
-    ```
-
-  </Tab>
-  <Tab title="2026.9">
-    ```csharp 2026.9 lines icon="/images/developers/sdks/csharp.svg"
-    var byLevel = model.Objects.GroupBy(o => o.Level?.Name ?? "Unknown");
-    var hosted = model.Objects.Where(o => o.Host is not null);
-    ```
-
-  </Tab>
-</Tabs>
+```csharp 2026.9 lines icon="/images/developers/sdks/csharp.svg"
+var byLevel = model.Objects.GroupBy(o => o.Level?.Name ?? "Unknown");
+var hosted = model.Objects.Where(o => o.Host is not null);
+```
 
 A 2026.9 version has no nested `elements` tree and no proxy `objects` lists. Do not unpack proxies to rebuild containment; read the relation accessors instead.
 
