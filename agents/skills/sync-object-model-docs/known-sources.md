@@ -6,6 +6,18 @@ catalog, and which page already covers it. Step 3 of [`SKILL.md`](SKILL.md)
 reads the concept's section here first and appends what a research pass
 finds. Hashes and dates live in `scripts/object-model-freshness-manifest.json`.
 
+## Relation and node-kind names — diffed by step 1
+
+These two do have a catalog: the `rel_types` and `node_kinds` tables of
+`speckle-bundle-spec`'s `spec/bundle-spec.sql`, which `pnpm
+check:bundle-spec` runs in DuckDB at `origin/main`. Every bundle ships the
+same tables as its self-describing catalog, so their names and columns are
+part of the format, and the spec's path held through the 1.4.0 move to
+registry packages (bundle-spec ADR-0004). The generated outputs derive from
+these tables and make weaker sources: `docs/reference.md` is markdown, and
+the constants under `packages/` are code with no descriptions, readable only
+by parsing generated source or loading it in its language's runtime.
+
 ## What replaced the Commit object — documented
 
 Covered in full by:
