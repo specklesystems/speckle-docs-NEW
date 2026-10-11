@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Report superseded glossary terms in next/ prose.
+ * Report superseded glossary terms in the 2026.9 data-model pages.
  *
  * Parses the `**term** (was: *legacy*, ...)` rows of atlas/glossary.md and
- * lists every next/*.mdx line that uses a legacy term outside code spans,
+ * lists every line in SCANNED_DIRS that uses a legacy term outside code spans,
  * fenced blocks and MDX comments. Hits never fail the run: a legacy term
  * named for reader comparison is correct, so each hit is a judgement call.
  *
@@ -20,6 +20,8 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
+
+const SCANNED_DIRS = ['developers/object-model', 'developers/building-integrations']
 
 function argValue(flag) {
   const index = process.argv.indexOf(flag)
@@ -76,10 +78,10 @@ function main() {
   }
 
   const renames = parseRenames(fs.readFileSync(glossaryPath, 'utf8'))
-  const files = walk(path.join(root, 'next'))
+  const files = SCANNED_DIRS.flatMap((dir) => walk(path.join(root, dir)))
 
   console.log(
-    `Checking ${files.length} next/ page(s) against ${renames.length} glossary rename(s).\n`
+    `Checking ${files.length} 2026.9 data-model page(s) against ${renames.length} glossary rename(s).\n`
   )
 
   let hits = 0
@@ -100,7 +102,7 @@ function main() {
   }
 
   if (!hits) {
-    console.log('No superseded terms found in next/ prose.')
+    console.log('No superseded terms found in 2026.9 data-model prose.')
     return
   }
 

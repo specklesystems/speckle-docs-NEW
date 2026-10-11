@@ -1,25 +1,8 @@
 ---
 title: 'Keep connectors current across your estate'
-description: 'How to keep connectors current across a managed estate, the minimum update cadence we recommend, and what an estate loses by falling behind.'
-sidebarTitle: Connector Updates
-docs_status: impacted
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/it-admin/connector-updates
-change_scope: '2026.9 connector upgrade window and Navisworks exception'
+description: 'How to keep connectors current across a managed estate, the 2026.9 upgrade window, the minimum update cadence we recommend, and what an estate loses by falling behind.'
+sidebarTitle: Connector updates
 ---
-
-<Visibility for="agents">
-  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: 2026.9 connector upgrade window and Navisworks exception.
-
-For these changes, read [2026.9 guidance](/next/it-admin/connector-updates).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
 
 <Warning>
   **This guide is for IT administrators and workspace admins managing connectors across an
@@ -29,18 +12,78 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
 
 The hosted Speckle platform is continuously deployed — the server updates most days. Connectors release roughly monthly and are built and tested against it. Keeping them current is routine maintenance rather than a series of upgrade decisions.
 
-Backwards compatibility is maintained and API deprecations are announced in advance, so an older connector does not stop working overnight. But the further your estate sits from the current release, the more you depend on those commitments rather than on a tested pairing — and occasionally a platform change does require a connector from the same period.
+Your data stays compatible: versions published with an older connector still load with current connectors and the current server. Connectors are different. Speckle tests the current connectors against the current server and does not guarantee that older connectors keep working. The further your estate sits from the current release, the more likely a platform change needs a newer connector.
 
-<Note>
-  For 2026.9, connectors have a dated upgrade window: update from **1 September 2026**, and no later
-  than **1 November 2026**. That window is not a freeze of publish and load. The Navisworks desktop
-  connector is not in that window: **2026.8** is the last installer, and it remains the advised path
-  for a **200 MB** publish. See [Plan the connector upgrade
-  window](/next/it-admin/connector-updates) and [Navisworks in
-  2026.9](/next/connectors/navisworks/introduction).
-</Note>
+<Warning>
+  The 2026.9 upgrade window is open until **1 November 2026**. Finish updating connectors across the
+  estate before then. Speckle does not guarantee older connectors after that date. See [Upgrade
+  window for 2026.9](#upgrade-window-for-2026-9).
+</Warning>
 
 For installation mechanics, see the [IT Setup Guide](/it-admin/setup) and [Manual Connector Installation](/connectors/manual-installation/introduction).
+
+## Upgrade window for 2026.9
+
+2026.9 moves new publishes to a new data model. The upgrade window opened on **1 September 2026**
+and closes on **1 November 2026**. Finish updating connectors across the estate within it: your
+teams get the performance improvements sooner, and you avoid a rollout under time pressure.
+
+<Note>
+  Compatibility mode is a separate, temporary bridge for cloud syncs and file uploads. It does not
+  extend support for older desktop connectors. See [Compatibility
+  mode](/it-admin/compatibility-mode).
+</Note>
+
+The backstop is **1 November 2026**, when compatibility mode ends. Do not plan to still be rolling
+out after that date.
+
+The standing guidance on this page still applies: stay on the current release, and treat quarterly
+as the minimum cadence. The window is a dated exception for 2026.9, not a replacement for that
+process.
+
+<Warning>
+  A connector from 2026.8 or earlier cannot load a version published by a 2026.9 or newer connector.
+  Roll forward together so teams that share models do not sit on mixed versions.
+</Warning>
+
+### As an IT administrator
+
+<Steps>
+  <Step title="Inventory connector versions">
+    Record which connector versions run across the estate. You should end with a single target
+    version before the pilot starts.
+  </Step>
+  <Step title="Pilot with a small group">
+    Deploy to a small group covering your main host applications. Publish and load a representative
+    model, including a large or federated one.
+  </Step>
+  <Step title="Roll forward together">
+    Deploy the validated version to every team. You should see one connector generation across the
+    estate.
+  </Step>
+  <Step title="Finish by 1 November 2026">
+    Complete the rollout and record the baseline, so the next update starts from a known position.
+  </Step>
+</Steps>
+
+Use the deployment routes in [Move to a new baseline](#move-to-a-new-baseline): `.exe` for
+single-user installs, and ZIP for managed all-user installs.
+
+<Warning>
+  The Navisworks desktop connector is not in this window. **2026.8** is the last Navisworks
+  connector, and there is no 2026.9 package to roll out.
+</Warning>
+
+Keep the 2026.8 Navisworks connector for publishes around **200 MB**. Move larger NWC and NWD files
+to upload (up to **2 GB**) or ACC sync (tested to **6 GB**). See [Navisworks](/connectors/navisworks).
+
+### As a self-hosted server admin
+
+<Note>
+  Self-hosted servers do not have to adopt the 2026.9 data model on a fixed date. If your connector
+  and server versions work together, pin both, and keep downstream users on that combination. See
+  [Self-hosted servers](/it-admin/compatibility-mode#self-hosted-servers).
+</Note>
 
 ## Our recommendation
 
@@ -88,11 +131,12 @@ These are the releases that changed something structural. They are cumulative �
 
 | Baseline                        | Version | Everything above, plus                                                                                                                                                                                                 |
 | ------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Current generation**          | Any v3  | Publishing into workspace projects, on the current data model. Legacy connectors cannot do this at all. See [Migrate from legacy connectors](/migration/connectors-v2-to-v3).                                          |
+| **Current generation**          | Any v3  | Publishing into workspace projects. Legacy connectors cannot do this at all. See [Migrate from legacy connectors](/migration/connectors-v2-to-v3).                                                                     |
 | **Tracked publishing**          | 3.15    | Publishes registered as jobs on the server: visible publish status and better support diagnostics.                                                                                                                     |
 | **Model write-back**            | 3.17    | The [Parameter Updater](/beta/parameter-updater) round trip — review and edit model data in Speckle, then apply it back to the model via Issues.                                                                       |
 | **Managed deployment baseline** | 3.20    | Central configuration of connector settings, the current publish pipeline, consistent object properties across host applications, and the .NET 10 runtime. Analytics and validation workflows degrade below this rung. |
 | **Autodesk 2027 line**          | 3.22    | Support for Revit, AutoCAD and Navisworks 2027, and write-back extended across more host applications.                                                                                                                 |
+| **2026.9 data model**           | 2026.9  | New publishes use the 2026.9 data model. Connectors from 2026.8 or earlier cannot load these versions. See [Upgrade window for 2026.9](#upgrade-window-for-2026-9).                                                    |
 | **Current release**             | 2026.x  | Continued host application support, accumulated fixes, and the most recent capability. **The supported position.**                                                                                                     |
 
 <Tip>
@@ -117,10 +161,8 @@ Microsoft ends support for .NET 8 in November 2026, and Autodesk is migrating Re
 If your organization is already planning add-in validation for the Revit .NET 10 migration, bring your connector baseline into the same cycle. You test once rather than twice, and you finish on a connector built against the runtime your host applications are moving to.
 
 <Note>
-  This is a scheduling argument, not a compatibility warning. Speckle connectors below the managed
-  deployment baseline are not expected to stop working because of the Revit runtime migration. The
-  point is that the validation effort overlaps, so doing both together is cheaper than doing them
-  separately.
+  This is a scheduling argument: the validation effort overlaps, so doing both together is cheaper
+  than doing them separately.
 </Note>
 
 ### Constraints that override the recommendation
@@ -128,7 +170,7 @@ If your organization is already planning add-in validation for the Revit .NET 10
 Two situations set your baseline for you.
 
 - **Legacy (v2) connectors.** Moving off these is a migration to a different data model, not a version update. Check your workflow inventory first — some connectors are legacy-only. See [Migrate from legacy connectors](/migration/connectors-v2-to-v3).
-- **Revit 2022.** Support for that host ended with the 2027 connectors, so those users cannot move past 3.21. The Revit upgrade is the blocking dependency, not the connector.
+- **Revit 2022.** Support for that host ended with the 2027 connectors, so those users cannot move past 3.21 or load versions published by 2026.9 connectors. The Revit upgrade is the blocking dependency, not the connector.
 
 ## Host application support
 
@@ -137,6 +179,7 @@ Two situations set your baseline for you.
 | Revit 2023, 2024, 2025, 2026       | Current release                                                                                          |
 | Revit, AutoCAD and Navisworks 2027 | Autodesk 2027 line onward                                                                                |
 | Revit 2022                         | Up to 3.21 only — support ended                                                                          |
+| Navisworks 2020 to 2027            | 2026.8 only — there is no 2026.9 Navisworks connector                                                    |
 | Rhino 7 and 8                      | Current release. Rhino 8 below 8.9 may show a framework compatibility error or a blank connector window. |
 
 <Note>
@@ -162,8 +205,8 @@ Before this change, products released around the same time carried unrelated num
 </Warning>
 
 <Note>
-  The change affects numbering only. Release cadence, backwards compatibility commitments, and the
-  way API deprecations are announced are unchanged.
+  The change affects numbering only. Release cadence, data compatibility, and the way API
+  deprecations are announced are unchanged.
 </Note>
 
 ## Move to a new baseline
@@ -216,6 +259,12 @@ Configuration follows the same pattern: settings can be written to `HKEY_CURRENT
 ## FAQ
 
 <AccordionGroup>
+  <Accordion title="Can we keep connectors from 2026.8 or earlier after 1 November 2026?">
+    No, not with any guarantee. Speckle does not promise that older connectors keep working after
+    the window closes, and they cannot load versions published by 2026.9 connectors. Upgrade before
+    **1 November 2026**; see [Upgrade window for 2026.9](#upgrade-window-for-2026-9). Models already
+    published stay readable.
+  </Accordion>
   <Accordion title="Do we have to update every release?">
     Ideally yes — approve them as a standing item and let them flow. If that is not possible,
     consolidate into a quarterly update rather than assessing each release individually.
@@ -237,8 +286,8 @@ Configuration follows the same pattern: settings can be written to `HKEY_CURRENT
   </Accordion>
   <Accordion title="How do we check our connectors are compatible with the server?">
     Compare the year and month in the version numbers. Speckle products sharing a `Year.Month` are
-    fully compatible. Older connectors are still supported under our backwards compatibility
-    commitments, but matching year and month is the position we test against.
+    fully compatible. Speckle tests the current connectors against the current server and does not
+    guarantee older ones. Data published with older connectors stays readable.
   </Accordion>
   <Accordion title="Can we adopt just the one feature we need?">
     No — and you do not need to work out which release added it. Baselines are cumulative, so

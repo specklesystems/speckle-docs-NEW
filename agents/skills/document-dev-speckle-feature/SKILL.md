@@ -25,7 +25,7 @@ Explore a recently developed feature in a local Speckle Server deployment, under
 
 ## 2. Determine Documentation Placement
 
-Read `navigation.json` (version **Current**) and `navigation.next.json` (version **2026.9**, pages under `next/`; rules in `docs/agents/next.md`). Both have these top-level dropdowns (Current adds Get Involved):
+Read `navigation.json`. Its top-level dropdowns (plus Get Involved):
 
 - **User Guides** — end-user documentation (workflows, UI features, connectors)
 - **Developers** — API, SDKs, server, automate, viewer, data schema
@@ -100,7 +100,7 @@ Generate the doc pages following these rules:
 
 1. Write the `.mdx` file content
 2. Show the user the proposed content before writing
-3. After user approval, write the file and add the new page(s) to the navigation file (`navigation.json` or `navigation.next.json`)
+3. After user approval, write the file and add the new page(s) to `navigation.json`
 
 ## 6. Final Review
 
@@ -108,7 +108,7 @@ Run the `docs-page-review` skill on every created page, then present a
 summary:
 
 - Pages created (with file paths)
-- Navigation changes made to `navigation.json` / `navigation.next.json`
+- Navigation changes made to `navigation.json`
 - Screenshots captured or IMAGE_PLACEHOLDER comments to fill
 - Suggested cross-links to add in existing pages
 

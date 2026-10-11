@@ -1,56 +1,80 @@
 ---
 title: Viewing Automation Results
-description: Learn how to view and interpret automation results in Speckle Automate. Discover how to access results from the model scene view and project dashboard, understand status messages, view artifacts, and interact with result reports.
+description: Where to see Speckle Automate runs and results — run status and logs in project Settings → Automations, and the results each function recorded in the Dashboards Automate results widget.
 ---
 
-There are two entry points to view Automate results:
+Every automation run records its status, its log output, and the results your function attached to objects. Check the run itself from the project's automation settings, and see the recorded results in a dashboard.
 
-## From the Model Scene View
+<Warning>
+  The 3D viewer and the project model list do not show Automate results. Runs still complete and
+  record their results, so a run with no results visible in the viewer has not failed: check its
+  status as described below.
+</Warning>
 
-A results "doughnut" icon will appear if automation registered against that model is running or has been completed. Clicking on this icon reveals all the automations that have reported results for the currently viewed version.
+<Note>
+  If your function attaches results to individual objects, see [Attach results to 2026.9
+  models](/developers/automate/function-results#attach-results-to-2026-9-models) for how those
+  results line up with the model's objects.
+</Note>
 
-<Frame>
-  <img
-    src="/images/developers/automate/scene-viewer-results.png"
-    alt="Automate results in model scene viewer"
-  />
-</Frame>
+## Check a run's status
 
-Clicking on any of the run cards expands to show details:
+{/* IMAGE_PLACEHOLDER: Automation page under project Settings → Automations — Function and Model trigger cards, Runs table with Status, Run ID, Model version, Date, Duration. */}
 
-<Frame>
-  <img src="/images/developers/automate/results-card.png" alt="Automation run results card" />
-</Frame>
+<Steps>
+  <Step title="Open project Automations">
+    Open the project, then **Settings → Automations**. The **Status** column shows the latest run of
+    each automation.
+  </Step>
+  <Step title="Open the automation">
+    Select the automation's name. The **Runs** table lists each run with its status, run ID, model
+    version, date, and duration.
+  </Step>
+  <Step title="Open a run">
+    Select the eye icon on a run. The **Run details** dialog shows the run's status, start time,
+    duration, any error message, and the log output.
+  </Step>
+</Steps>
 
-- **Status**: Displays the message included with a Fail or Success result.
-- **Attachments**: Lists any artefacts uploaded by the function.
-- **Resulting Models**: Provides the option to add any model version produced by the function.
-- **Results**: Displays each result report, including:
-  - Status, category, object count, and message as reported by the function.
-  - Clicking on a results card isolates the objects reported by that card.
-  - A filter function may highlight specific outcomes if the result includes metadata.
+## See results in a dashboard
 
-    <Frame>
-      <img src="/images/developers/automate/result-metadata.png" alt="result metadata view" />
-    </Frame>
+Dashboards include an **Automate results** widget, in Beta, that shows the latest Automate runs for a model version. For each run it lists the results your function recorded — level, category, and message — with any attachments. Selecting a result isolates the objects it refers to in the dashboard's 3D view.
 
-## From the Project Dashboard
+{/* IMAGE_PLACEHOLDER: Dashboards — Automate results widget listing a run's results as cards, with the affected objects isolated in the 3D view. */}
 
-In the model list or card view, any model with completed automation runs will display the same doughnut icon.
+<Steps>
+  <Step title="Add the widget">
+    Open a dashboard on the project and add the **Automate results** widget. See [Intelligence
+    Dashboards](/analytics/intelligence-dashboards) for adding widgets.
+  </Step>
+  <Step title="Point it at a model version">
+    Choose the model version the automation ran on as the widget's data source. The widget lists
+    that version's latest runs and their results.
+  </Step>
+  <Step title="Isolate a result's objects">
+    Select a result card. The objects it refers to are isolated in the dashboard's 3D view.
+  </Step>
+</Steps>
 
-<Frame>
-  <img src="/images/developers/automate/passed-runs.png" alt="model-list-indicator" />
-</Frame>
+<Note>
+  The widget matches a result to model objects by `applicationId`. Results stored before a model was
+  migrated to the 2026.9 data model reference the old content-hashed ids and do not match; re-run
+  the automation to get results that line up.
+</Note>
 
-Clicking the doughnut icon in the model list provides a summary similar to the model scene view, with additional options:
+## FAQ
 
-<Frame>
-  <img
-    src="/images/developers/automate/all-runs-passed.png"
-    alt="automation list showing all runs passed"
-  />
-</Frame>
-
-- **View Results**: Links to the relevant version and uses the results context view to include other models or objects.
-- **Open Model**: Opens the model at its latest version.
-- **View Artefact**: Opens the artefact in a new browser tab (e.g., images) or prompts to download (e.g., files).
+<AccordionGroup>
+  <Accordion title="Did my automation actually run if I can't see results in the viewer?">
+    Yes, if its run shows **SUCCEEDED** in the **Runs** table. The viewer does not show Automate
+    results; the run and what it recorded are not affected.
+  </Accordion>
+  <Accordion title="Is there an API to read results back?">
+    There is no documented, supported API for reading Automate results after a run. Use the
+    Dashboards **Automate results** widget.
+  </Accordion>
+  <Accordion title="Why does a run show as failed?">
+    Open the run's **Run details**. The error message and the log output show what the function
+    reported. See [Troubleshooting Automations](/developers/automate/troubleshooting).
+  </Accordion>
+</AccordionGroup>

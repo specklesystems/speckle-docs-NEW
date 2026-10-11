@@ -1,12 +1,19 @@
 ---
 title: 'Transports'
-description: 'ITransport for Send and Receive — use Receive2/Send2 instead for most scripts'
+description: 'ITransport for Send and Receive — use Receive3/Send3 instead for most scripts'
 sidebarTitle: 'Transports'
 ---
 
-**Most AEC automation scripts should use `Receive2`/`Send2`** and skip transports entirely. Read this page only when you use **`IOperations.Send`** or **`Receive`** (Path B) — for example the [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart) or local-only `MemoryTransport`/`SQLiteTransport` workflows.
+<Note>
+  Transports move `Base` object graphs and work only with versions published before 2026.9.
+  Transport `Receive` throws when you pass a 2026.9 bundle reference. To load any version, use
+  `Receive3` — see [Load and publish model
+  data](/developers/sdks/dotnet/concepts/send-and-receive-paths).
+</Note>
 
-**Read next:** [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) — Path B vs Path C.
+**Most AEC automation scripts should use `Receive3`/`Send3`** and skip transports entirely. Read this page only when you use **`IOperations.Send`** or **`Receive`** (Path B) — for example local-only `MemoryTransport`/`SQLiteTransport` workflows or existing transport-based code.
+
+**Read next:** [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths).
 
 ## ServerTransport
 
@@ -85,10 +92,9 @@ All transports implement `ITransport`, which supports:
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Do I need a transport if I use Send2?">
-    No for server send/receive — `Send2`/`Receive2` talk to the server directly. You still use
-    transports for Path B (`Send`/`Receive`), local-only workflows, or the [Full send/receive
-    tour](/developers/sdks/dotnet/getting-started/quickstart).
+  <Accordion title="Do I need a transport if I use Send3?">
+    No. `Receive3`/`Send3` (and `Receive2`/`Send2`) talk to the server directly. You still use
+    transports for Path B (`Send`/`Receive`) and local-only workflows.
   </Accordion>
   <Accordion title="Why must ServerTransport come from IServerTransportFactory?">
     Its constructor depends on `ISpeckleHttp` and other services registered by `AddSpeckleSdk`. The
@@ -111,11 +117,11 @@ All transports implement `ITransport`, which supports:
     When Path B needs a transport
   </Card>
   <Card
-    title="Full send/receive tour"
-    icon="rocket"
-    href="/developers/sdks/dotnet/getting-started/quickstart"
+    title="Migrate to 2026.9"
+    icon="arrow-right-arrow-left"
+    href="/developers/sdks/dotnet/migrate-to-2026-9"
   >
-    ServerTransport worked example
+    Move transport code to Receive3
   </Card>
   <Card title="Operations" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
     Send and Receive signatures

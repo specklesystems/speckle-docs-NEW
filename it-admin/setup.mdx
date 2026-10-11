@@ -1,30 +1,8 @@
 ---
-title: 'IT Setup Guide'
+title: 'IT setup guide'
 description: 'Complete setup resources for IT administrators deploying Speckle in enterprise environments'
 noindex: true
-docs_status: impacted
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/whats-new
-change_scope: '2026.9 data-model migration and release-specific guidance'
 ---
-
-<Visibility for="agents">
-  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: 2026.9 data-model migration and release-specific guidance.
-
-For these changes, read [2026.9 guidance](/next/whats-new).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
-
-<Warning>
-  The Speckle data model is changing in version 2026.9. For dates, compatibility mode, and the
-  connector upgrade window, see [IT administration for 2026.9](/next/it-admin/introduction).
-</Warning>
 
 This guide consolidates all technical setup requirements for IT teams deploying Speckle in enterprise environments. Share this page with your IT department for approvals and configuration.
 
@@ -33,12 +11,33 @@ This guide consolidates all technical setup requirements for IT teams deploying 
   Installation](/connectors/installation) and [Workspace Management](/workspaces/introduction).
 </Note>
 
+## 2026.9 dates and actions
+
+2026.9 moves Speckle to a new data model. It does not change how you install connectors, configure
+SSO, or enable ACC and ProjectWise. Two dated actions apply to your organization:
+
+| Date            | What you do                                                                                                                               | Learn more                                                                         |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Now             | Roll connector updates across the estate. The upgrade window opened on 1 September 2026.                                                  | [Upgrade window for 2026.9](/it-admin/connector-updates#upgrade-window-for-2026-9) |
+| Now             | If ACC sync or file uploads feed a tool that still needs the earlier data format, ask Speckle for compatibility mode and update the tool. | [Compatibility mode](/it-admin/compatibility-mode)                                 |
+| 1 November 2026 | Compatibility mode ends for every workspace. Finish connector updates.                                                                    | [What's new for IT admins](/whats-new/it-admins)                                   |
+
+Speckle does not guarantee that connectors from 2026.8 or earlier keep working after the window
+closes, so upgrade. Models already published stay readable. Compatibility mode applies only to
+cloud syncs and file uploads, not to desktop connectors. For the summary for workspace members, see [Speckle's
+new data model](/workspaces/data-model-migration).
+
+<Note>
+  On a self-hosted server running a release before 2026.9, these dates and steps differ. See
+  [Compatibility mode](/it-admin/compatibility-mode#self-hosted-servers).
+</Note>
+
 <CardGroup cols={2}>
   <Card title="Connector Installation" icon="download" href="#connector-installation">
     Manual installation instructions and ZIP downloads
   </Card>
   <Card title="Cloud Integrations" icon="cloud" href="#cloud-integrations">
-    Admin setup for ACC and ProjectWise integrations
+    Admin setup for ACC, ProjectWise, and Trimble Connect integrations
   </Card>
   <Card title="SSO Setup" icon="lock" href="/workspaces/sso">
     Configure Single Sign-On with your identity provider
@@ -66,8 +65,8 @@ Connector updates work in two parts:
 When deploying connectors manually, you only need to update connector addons. DUI updates automatically.
 
 <Note>
-  To prevent update checks, contact [support@speckle.systems](mailto:support@speckle.systems) for a
-  file to replace the connector configuration database.
+  To turn off update notifications, set `SPECKLE_IS_UPDATE_NOTIFICATION_DISABLED`. See [Connector
+  Configuration](/connectors/connector-configuration).
 </Note>
 
 Speckle connectors are updated frequently to stay compatible with the continuously updated Speckle server. Connectors are open source and can be inspected for security and compliance. If your organization requires approval for every software update, factor this frequent update cadence into your deployment process: consider a faster approval workflow or allowing automatic updates for patch releases.
@@ -98,7 +97,7 @@ Before enabling any integration, read [Cloud Integrations: Access and Governance
 
 ### Autodesk Forma Data Management (ACC)
 
-Setup is user-led after the integration is enabled. **IT Administrators** enable the Speckle integration on the **ACC Hub** (Autodesk Forma Data Management admin). Once enabled, users sign in from Speckle workspace settings and follow the [Forma Data Management integration guide](/connectors/cloud-integrations/acc) for project syncing.
+Setup is user-led after the integration is enabled. **IT Administrators** enable the Speckle integration on the **ACC Hub** (Autodesk Forma Data Management admin). Once enabled, users connect from a project's **Integrations** → **ACC** page and follow the [Forma Data Management integration guide](/connectors/cloud-integrations/acc) for project syncing.
 
 [Enable Autodesk Forma Data Management integration](/it-admin/integrations/acc)
 
@@ -118,6 +117,14 @@ Users complete the connection from their Speckle project after IT prepares the s
   model and file synchronization rather than general document management.
 </Note>
 
+### Trimble Connect
+
+Trimble Connect has no hub-level enablement step. A workspace admin connects a dedicated Trimble
+**service account** from a project's **Integrations** → **Trimble Connect** page, and invites that
+account to every Trimble Connect project users need to sync.
+
+[Sync models from Trimble Connect](/connectors/cloud-integrations/trimble-connect)
+
 ## Single sign-on (SSO)
 
 Configure SSO to allow users to access Speckle using your organization's existing identity provider. Speckle supports any OIDC identity provider.
@@ -127,6 +134,31 @@ Configure SSO to allow users to access Speckle using your organization's existin
 [View SSO Setup Guide](/workspaces/sso)
 
 The SSO setup guide includes the redirect URL, required scopes, grant type configuration, and identity provider setup steps.
+
+## Turn AI features off for the workspace
+
+A workspace admin can turn
+**AI features** off for the whole workspace from workspace **Settings**, then **General**. Members
+and guests can open the General page but cannot change the switch.
+
+{/* IMAGE_PLACEHOLDER: Workspace Settings → General with the AI features switch turned off. */}
+
+When AI features are off, **Chat** and the sparkle control in the 3D viewer are unavailable to
+everyone in the workspace, so nobody can start a conversation or spend AI credit. Turn the switch
+back on the same way to restore access.
+
+The switch is a workspace setting. If your organization runs several workspaces, turn AI features
+off in each one.
+
+<Note>
+  Running a self-hosted Speckle Enterprise Server? Ask us about Intelligence for your deployment:
+  contact your Speckle representative or sales@speckle.systems.
+</Note>
+
+For the rest of workspace Settings, see [Configuration](/workspaces/configuration#workspace-settings).
+For activity, plan limits, and AI spend, see [Usage statistics](/workspaces/usage). Organization
+playbooks for Intelligence are [skills](/analytics/intelligence-skills), and standing constraints on
+every conversation are [AI Rules](/analytics/intelligence-rules).
 
 ## Firewall and network requirements
 
@@ -316,8 +348,9 @@ Depending on your environment, the IP ranges may need to be added to:
 </Accordion>
 
 <Accordion title="What if we block WebSocket connections?">
-  WebSocket connections are used for real-time features in the web application. Connectors will
-  function without WebSocket access, but some web app features may be limited.
+  WebSocket connections are used for real-time features in the web application, and the Speckle 3D
+  visual for Power BI streams geometry over a WebSocket. Connectors will function without WebSocket
+  access, but some web app features may be limited and the Power BI 3D visual cannot load geometry.
 </Accordion>
 
   <Accordion title="Can we deploy connectors without internet access?">

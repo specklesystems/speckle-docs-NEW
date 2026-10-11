@@ -1,8 +1,8 @@
 {
-  "_comment": "Source files behind next/developers/object-model facts that are read from source rather than diffed (sync-object-model-docs skill). Each source pins the sha256 of `git show <ref>:<path>` in the sibling checkout (<repo> relative to the speckle-atlas root; `.` is the root itself; ref defaults to origin/main) as of the last time a conclusion was verified against it. check-object-model-freshness.mjs reports sources whose hash moved. Refresh sha256, verifiedAt and the note whenever you re-verify.",
+  "_comment": "Source files behind developers/object-model facts that are read from source rather than diffed (sync-object-model-docs skill). Each source pins the sha256 of `git show <ref>:<path>` in the sibling checkout (<repo> relative to the speckle-atlas root; `.` is the root itself; ref defaults to origin/main) as of the last time a conclusion was verified against it. check-object-model-freshness.mjs reports sources whose hash moved. Refresh sha256, verifiedAt and the note whenever you re-verify.",
   "entries": [
     {
-      "docsPage": "next/developers/object-model/version-metadata.mdx",
+      "docsPage": "developers/object-model/version-metadata.mdx",
       "concept": "What replaced the Commit object (root-object metadata split: version record, ingestion, meta row, model-scoped properties)",
       "verifiedAt": "2026-09-16",
       "note": "Already documented in full on this page (see the 'What the root object carried, and where it lives now' table and FAQ) — this manifest entry exists to catch drift against the page's SDK/spec-side claims, not to flag a gap. Sources below confirm the SDK-side publish sequence (Ingestion.Create pre-allocates the version id, meta row shape, SetProducer) and the meta table DDL. The page's server-side claims (BUNDLE_REFERENCE_NOT_FOUND, the version-created signal, Version.schemaVersion = 3, the bundle reference format) are covered by the 'Server-side ingestion contract' entry on publish.mdx, which lists the speckle-server-internal sources.",
@@ -52,7 +52,7 @@
       ]
     },
     {
-      "docsPage": "next/developers/building-integrations/publish.mdx",
+      "docsPage": "developers/building-integrations/publish.mdx",
       "concept": "The ingestion publish sequence (create -> build -> sign -> upload -> complete -> wait) and bundle-correctness rules",
       "verifiedAt": "2026-09-16",
       "note": "SDK-side sequence and its parity between .NET and Python matches this page's Steps + code tabs. The REST/GraphQL wire detail on the same page is verified separately by the 'Server-side ingestion contract' entry below.",
@@ -72,7 +72,7 @@
       ]
     },
     {
-      "docsPage": "next/developers/building-integrations/publish.mdx",
+      "docsPage": "developers/building-integrations/publish.mdx",
       "concept": "Server-side ingestion contract (GraphQL ingestion mutations and inputs, REST sign/complete, ETag and additionalRequestHeaders handling, LEGACY_SEND_UNSUPPORTED and BUNDLE_REFERENCE_NOT_FOUND, the projectVersionsUpdated CREATED signal, viewer .dat gating, artifacts endpoint, multipart threshold)",
       "verifiedAt": "2026-09-16",
       "note": "Also grounds version-metadata.mdx's server-side claims. Verified 2026-09-16 against speckle-server-internal on branch jbr/fea-504-grasshopper-publish-versionmessage-is-not-shown-on-the-model with a DIRTY worktree: upload.ts and envelopeVersion.ts were hashed from the worktree and include the uncommitted `message` field on the uploads/complete body that publish.mdx documents. If the freshness check flags those two files, first check whether that change merged (hash moves but the docs stay right) or was dropped (the `message` key on the page is then wrong). Facts corrected on the pages during this pass: the version-created signal is the projectVersionsUpdated subscription (type CREATED; internal event versions.created; webhook commit_create) — there is no version_created; apollographql-client-name is never read by the server and apollographql-client-version is analytics-only, the publishing app comes from the ingestion's sourceData; the sign response may carry additionalRequestHeaders the PUT must send (always on Azure); failWithInvalid/failWithCancel have distinct input types; multipart is for files over the 5 GB single-PUT ceiling; LEGACY_SEND_UNSUPPORTED is a 422 raised when the server has no legacy-send support (isLegacySendSupported), not a named '2026.9-only' setting. Not server-enforced (spec/consumer rules only): meta.produced_by/producer_version, the 1536 MiB shard cap.",
@@ -146,7 +146,7 @@
       ]
     },
     {
-      "docsPage": "next/developers/object-model/geometry-encoding.mdx",
+      "docsPage": "developers/object-model/geometry-encoding.mdx",
       "concept": "SGEO geometry encoding (geometries table row shape and sharding, 16-byte header, primitive codes, flag bits, body layouts, CRC and id spans, encoder/decoder names) and the viewer .dat (name, gating, layout, realizations)",
       "verifiedAt": "2026-09-16",
       "note": "Verified 2026-09-16 across speckle-bundle-spec, speckle-sharp-sdk, specklepy, speckle-viewer-webgpu, speckle-converters and speckle-server-internal. Header, units codes, primitive codes 0-12, flag bits 0-10, mesh body order (pad-to-8 before normals and uvs, none before colors), curve display-polyline-then-NURBS, whole-blob SHA-256 id, CRC over body only: all confirmed byte-for-byte in SgeoFormat.cs/SgeoEncoder.cs and sgeo.py. Facts corrected on the page during this pass: the geometries `type` column holds the lowercase primitive name (mesh, line, ...) for SGEO rows and the host label (3dm) for SOLID rows, not an 'encoding'; DEFINES ord is the definition's member ordinal (shared with DEFINES_MEMBER/DEFINES_INSTANCE), only DISPLAY/SOLID/CENTERLINE have per-object counters; nested polycurve/region segments sit behind an 8-byte prefix (u32 length + reserved u32); the .dat index has seven sections ending in realizations; the shard roll happens before a blob would exceed 1536 MiB. Nuance kept out of reader copy: the .dat builder is datgen, shipped in the speckle-converters image and orchestrated by the server as a job (speckle-converters/datgen/README.md); .NET SgeoEncoder/SgeoDecoder live in the Speckle.Sdk project under namespace Speckle.Objects.Utils.",

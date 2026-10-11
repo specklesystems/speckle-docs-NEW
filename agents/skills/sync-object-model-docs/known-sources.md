@@ -1,19 +1,31 @@
 # Known sources for object-model facts read from source
 
 Which repo owns the ground truth for each concept on
-`next/developers/object-model/*` and `publish.mdx` that has no generated
+`developers/object-model/*` and `publish.mdx` that has no generated
 catalog, and which page already covers it. Step 3 of [`SKILL.md`](SKILL.md)
 reads the concept's section here first and appends what a research pass
 finds. Hashes and dates live in `scripts/object-model-freshness-manifest.json`.
+
+## Relation and node-kind names — diffed by step 1
+
+These two do have a catalog: the `rel_types` and `node_kinds` tables of
+`speckle-bundle-spec`'s `spec/bundle-spec.sql`, which `pnpm
+check:bundle-spec` runs in DuckDB at `origin/main`. Every bundle ships the
+same tables as its self-describing catalog, so their names and columns are
+part of the format, and the spec's path held through the 1.4.0 move to
+registry packages (bundle-spec ADR-0004). The generated outputs derive from
+these tables and make weaker sources: `docs/reference.md` is markdown, and
+the constants under `packages/` are code with no descriptions, readable only
+by parsing generated source or loading it in its language's runtime.
 
 ## What replaced the Commit object — documented
 
 Covered in full by:
 
-- `next/developers/object-model/version-metadata.mdx` — the root-object
+- `developers/object-model/version-metadata.mdx` — the root-object
   metadata split (version record / ingestion / `meta` row / model-scoped
   properties), with a before-and-after table and FAQ.
-- `next/developers/building-integrations/publish.mdx` — the ingestion
+- `developers/building-integrations/publish.mdx` — the ingestion
   sequence (create → build → sign → upload → complete → wait), GraphQL/REST
   wire detail, and bundle-correctness rules.
 
@@ -73,7 +85,7 @@ real values; the 1536 MiB shard cap.
 
 ## SGEO geometry encoding and the viewer `.dat`
 
-`next/developers/object-model/geometry-encoding.mdx`. Every header, body,
+`developers/object-model/geometry-encoding.mdx`. Every header, body,
 flag and code table on the page matched source byte-for-byte at the last
 verification. Ground truth, by repo:
 

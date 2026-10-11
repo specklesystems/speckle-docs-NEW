@@ -1,0 +1,115 @@
+---
+title: Compatibility mode for ACC sync and uploads
+sidebarTitle: Compatibility mode
+description: Compatibility mode keeps ACC sync and file uploads in the data format used before 2026.9. It ends for every workspace on 1 November 2026.
+---
+
+Scripts and reports that read the data format used before 2026.9 can stop working when ACC sync
+and file uploads start writing the 2026.9 format. Compatibility mode keeps a workspace's syncs and
+uploads in the earlier format while you update the tools that read that data.
+
+<Warning>
+  Compatibility mode ends for every workspace on **1 November 2026**, whenever it was turned on.
+  From that date, ACC sync and file uploads write the 2026.9 format. Update dependent scripts and
+  reports before then.
+</Warning>
+
+For the summary for workspace members, see
+[Speckle's new data model](/workspaces/data-model-migration). ACC hub setup does not change:
+see [Enable Autodesk Forma Data Management integration](/it-admin/integrations/acc).
+
+## What compatibility mode covers
+
+Compatibility mode applies to the whole workspace, not to single projects or files. It covers
+every model that reaches Speckle without a desktop connector:
+
+- **ACC sync**, and the other cloud syncs (ProjectWise and Trimble Connect).
+- **File uploads**: drag-and-drop in the web app, and uploads through the API.
+
+It does not cover desktop connectors. A connector publishes and loads in its own data format,
+whatever the workspace mode. Existing models stay readable.
+
+## When to request it
+
+Compatibility mode is a short bridge while you update downstream tools. It is not a way to stay on
+the earlier format. Request it when all of the following are true:
+
+- The workspace uses **ACC sync** or **file uploads**.
+- A script, custom report, or other tool downstream of Speckle depends on the earlier data format.
+- You cannot update that tool before the workspace starts writing the 2026.9 format.
+
+Do not request it only because connectors are still on an older release. Connector updates have
+their own window. See [Upgrade window for 2026.9](/it-admin/connector-updates#upgrade-window-for-2026-9).
+
+## What differs in compatibility mode
+
+Compatibility mode uses the conversion path from before 2026.9, so it accepts a different set of
+files:
+
+- File uploads accept STL, 3MF, 3DS, AMF, DXF, X, E57, IGS/IGES, FBX, PLY, and SLDPRT files. The
+  default path does not accept these formats.
+- MicroStation (`.dgn`), Vectorworks (`.vwx`), Solibri (`.smc`), and Tekla Structures files cannot
+  be uploaded or synced.
+- Cloud syncs accept Revit, Navisworks, AutoCAD (`.dwg`), and IFC files only.
+- Revit uploads do not offer the **Shared Coordinates** reference point.
+
+For the full format list, see [Supported file
+formats](/connectors/direct-uploads/introduction#supported-file-formats).
+
+## As a workspace admin
+
+Check whether any project uses ACC sync or file uploads, and whether a script, custom report, or
+other tool reads that data in the earlier format. If one does, ask Speckle to switch the workspace
+into compatibility mode. It is not self-serve.
+
+Contact Speckle in-app, through [speckle.community/help](https://speckle.community/help), or via
+your Customer Success Advisor.
+
+After Speckle confirms the switch, syncs and uploads keep writing the earlier format until you ask
+to leave compatibility mode, and no later than **1 November 2026**.
+
+## As an IT administrator
+
+Compatibility mode does not change ACC hub enablement, firewall allowlists, or connector
+installers. Keep using the [IT Setup Guide](/it-admin/setup) for those tasks.
+
+Identify the tools that read data from ACC sync and file uploads, and update them before **1
+November 2026**.
+
+## After 1 November 2026
+
+Speckle switches compatibility mode off for every workspace on this date and no longer offers it.
+New syncs and uploads then use the default path and the 2026.9 format. The default path does not
+accept the upload formats that only compatibility mode accepts. Downstream tools that still expect
+the earlier format can break until they are updated.
+
+Existing models stay readable. Compatibility mode covers cloud syncs and file uploads only; it
+never kept desktop connectors working. The connector upgrade window closes on the same date, and
+Speckle does not guarantee connectors from 2026.8 or earlier after it. See [Upgrade window for
+2026.9](/it-admin/connector-updates#upgrade-window-for-2026-9).
+
+## Self-hosted servers
+
+A self-hosted server running a release before 2026.9 keeps working as it does today. Compatibility
+mode and the **1 November 2026** date do not apply to it.
+
+If your connector and server versions work together, pin both, and keep downstream users on that
+combination. See [Self-hosted
+servers](/developers/migration/data-model-migration#self-hosted-servers).
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can I turn compatibility mode on for one project only?">
+    No. It applies to the whole workspace: every cloud sync and file upload in every project uses
+    the earlier format until compatibility mode ends.
+  </Accordion>
+  <Accordion title="Does compatibility mode change what desktop connectors publish?">
+    No. Desktop connectors publish and load in their own data format. Updating a connector, not
+    compatibility mode, decides which format its publishes use.
+  </Accordion>
+  <Accordion title="Can I upload Vectorworks or Solibri files in compatibility mode?">
+    No. Vectorworks, Solibri, MicroStation, and Tekla Structures files need the default upload path.
+    Leave compatibility mode, or wait until it ends, to upload them.
+  </Accordion>
+</AccordionGroup>

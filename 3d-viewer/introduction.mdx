@@ -1,0 +1,137 @@
+---
+title: Open and explore models in the 3D viewer
+sidebarTitle: Overview
+description: Open a model in the Speckle web app, find your way around the viewer panels and tools, and pick the right page for inspecting, filtering, measuring, and sharing.
+---
+
+The 3D viewer opens any model you publish to Speckle in your browser. Geometry starts appearing
+while the model is still downloading. Panels for **Models**, **Filters**, **Views**, **Issues**,
+**Selection**, and **Elements** dock around the canvas, and the toolbar holds **Section**,
+**Sketch**, and **Measure**.
+
+<Warning>
+  The 3D viewer requires WebGPU. There is no fallback. Firefox on macOS currently allows eight GPU
+  storage buffer bindings, and the viewer needs nine, so models do not open there — use Chrome,
+  Edge, or Safari.
+</Warning>
+
+## Open a model
+
+Open a project, then select a model. Large models use a hybrid load. A first overlay can show
+**Preparing 3D stream** or **Downloading model**. Once geometry starts painting, the overlay goes
+away and a progress stack in the top-right corner continues in the background. The downloaded copy
+is stored locally, so opening the same version again prefers that cache.
+
+{/* IMAGE_PLACEHOLDER: Model open — blocking overlay with Preparing 3D stream or Downloading model, then top-right progress stack after first paint. */}
+
+You should see objects in the scene before the background download finishes.
+
+When you open an earlier version of a model, its card in **Models** shows **Older version**.
+Select that badge to load the latest version.
+
+<Note>
+  Point clouds do not render in the viewer yet. Everything else in the model loads normally, and
+  your point cloud data is unchanged — the points are not drawn.
+</Note>
+
+<Note>
+  Some colours and materials do not render yet. Affected objects show as flat grey, even though the
+  colour is in the published data. Known cases are coloured meshes and geometry with a **Color**
+  input from Grasshopper, Civil 3D surfaces with materials, and models published before your project
+  moved to the 2026.9 data format. Your data is unchanged, and connectors that load the model keep
+  the colours.
+</Note>
+
+## Find your way around
+
+{/* IMAGE_PLACEHOLDER: Viewer chrome — left sidebar Models Filters Views Issues; Selection under the left tabs; Elements in the bottom dock; toolbar; status bar; navigation cube bottom-right. */}
+
+- The **top bar** shows where you are (project, then model) and holds **Share**.
+- The **left sidebar** holds the workspace switcher and the **Models**, **Filters**, **Views**,
+  and **Issues** tabs. **Selection** sits under those tabs and shows properties for the current
+  pick.
+- **Elements** sits in the bottom dock and lists every object in the loaded models.
+- The **toolbar** at the bottom of the canvas holds fit, **Section**, **Sketch**, **Measure**,
+  **Save view**, and **Copy view link**.
+- The **status bar** holds panel icons, undo, redo, fit, **Screenshot**, keyboard shortcuts, and
+  **Settings**.
+- The **navigation cube** at the bottom-right of the canvas sets standard camera directions.
+
+Panels are dockable: you can regroup, move, hide, and restore them. See [Interface and
+navigation](/3d-viewer/interface-nav).
+
+## What you can do
+
+| To…                                                | Use                                  | Page                                                                    |
+| -------------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------- |
+| See an object's properties and relations           | **Selection**                        | [Interface and navigation](/3d-viewer/interface-nav#select-and-inspect) |
+| Show only what matches a property, or colour by it | **Filters**                          | [Exploration](/3d-viewer/exploration#filter-and-color)                  |
+| Browse or export every object as a table           | **Elements**                         | [Exploration](/3d-viewer/exploration#browse-objects-in-elements)        |
+| Cut through the model or measure it                | **Section**, **Measure**             | [Exploration](/3d-viewer/exploration#cut-with-section-planes)           |
+| Draw on the model for feedback                     | **Sketch**                           | [Sketch on your model](/3d-viewer/markups)                              |
+| Save and share a viewpoint                         | **Views**                            | [Saved views](/3d-viewer/saved-views)                                   |
+| Add other models to the scene                      | **Models**                           | [Model federation](/3d-viewer/federation)                               |
+| Raise and track issues                             | **Issues**                           | [Issues](/3d-viewer/issues)                                             |
+| Ask questions about the loaded models              | The sparkle at the top right         | [Speckle Intelligence](/analytics/intelligence)                         |
+| Batch-edit parameters                              | **Elements** → **Update parameters** | [Parameter Updater](/beta/parameter-updater)                            |
+| Share a link or embed the model                    | **Share**                            | [Share your models](/3d-viewer/sharing)                                 |
+
+## Issues in the viewer
+
+**Issues** lists issues for the models in the scene. Open it with Shift+I. Opening an issue that
+was created in this viewer restores the camera, filters, visibility, and selection stored with it.
+Right-click an issue card, or use **⋯**, for **Open issue page**, which opens the full issue in a
+new tab.
+
+To tie an issue to particular objects, select them in the scene before you select **New issue**.
+The selection is stored with the issue, along with the camera, filters, and visibility at the
+moment you create it. An issue raised with nothing selected stores the view only. Fields,
+assignment, and permissions are on [Issues](/3d-viewer/issues).
+
+{/* IMAGE_PLACEHOLDER: Issues panel — empty state No issues for this scene with New issue, or issue selected with camera and filters restored. */}
+
+<Note>
+  Issues are available on every Speckle plan, on Speckle Cloud and on self-hosted servers.
+</Note>
+
+An issue created in the viewer before 2026.9 can show **Legacy issue — its view can't be applied
+here yet**. Its details still open.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Why can't I see my point cloud?">
+    Point clouds are not drawn in the viewer yet. Re-publishing or re-uploading the model will not
+    change what you see, and connectors that load the point cloud keep working. Uploading an `.e57`
+    file is a separate case — see [Direct uploads](/connectors/direct-uploads/introduction).
+  </Accordion>
+  <Accordion title="Why does my coloured model show as grey?">
+    Some colours and materials are not drawn yet. Your data is unchanged. If the model was published
+    before your project moved to the 2026.9 data format, publish it again from the source
+    application to restore the colours. For Grasshopper colours and Civil 3D surface materials,
+    publishing again does not help yet. If the colour stands for a property such as status or
+    category, use **Color by values** on that property in **Filters** instead.
+  </Accordion>
+  <Accordion title="Where did View changes (compare versions) go?">
+    The viewer has no dedicated diff view. Ask Speckle Intelligence to compare two versions and
+    summarise what changed — see [Assess model changes with Speckle
+    Intelligence](/workflows/assess-model-changes).
+  </Accordion>
+  <Accordion title="Where did the section box, view modes, explode, and lighting go?">
+    The viewer cuts with individual section planes instead of a box — see [Cut with section
+    planes](/3d-viewer/exploration#cut-with-section-planes). View modes (Pen, Arctic, Shaded),
+    explode, and lighting controls are not in this viewer. Projection and the grid are in the status
+    bar **Settings**.
+  </Accordion>
+  <Accordion title="Why does my embedded model have no filters or toolbar?">
+    Embeds show the 3D scene only. The model tree, **Filters**, selection details, and the toolbar
+    do not appear inside an embed on another site, whichever embed options you choose. Your model
+    and its data are unchanged. Open the model in the web app to filter, select, or measure.
+  </Accordion>
+  <Accordion title="Why won't a model open in Firefox on macOS?">
+    Firefox on macOS supports WebGPU, but it currently allows only eight GPU storage buffer
+    bindings, the WebGPU specification minimum. The viewer needs nine, so the model will not open.
+    Other browsers on macOS allow ten or more, and Windows and Android browsers generally allow
+    sixteen or more. Until Firefox raises the limit, use Chrome, Edge, or Safari.
+  </Accordion>
+</AccordionGroup>

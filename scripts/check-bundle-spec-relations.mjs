@@ -3,18 +3,20 @@
  * Bundle-spec relation drift check.
  *
  * Compares the relation names in table rows on
- * next/developers/object-model/relations.mdx against the live relation
- * catalog in speckle-bundle-spec's generated/docs-data.json. Names only:
- * the page's section placement and reader-facing prose have no mechanical
- * source and are drafted via the sync-object-model-docs skill.
+ * developers/object-model/relations.mdx against the live relation
+ * catalog in speckle-bundle-spec. Names only: the page's section placement
+ * and reader-facing prose have no mechanical source and are drafted via the
+ * sync-object-model-docs skill.
  *
- * docs-data.json is regenerated first (`npm run generate` in the sibling
- * checkout, needs the `duckdb` CLI) so a stale artifact can never produce a
- * false "nothing to do".
+ * The catalog is the spec's own rel_types and node_kinds tables. The spec is
+ * read with `git show <ref>:spec/bundle-spec.sql` (default origin/main, so the
+ * result does not depend on the sibling's checked-out branch) and run in an
+ * in-memory DuckDB: needs the `duckdb` CLI on PATH, or DUCKDB_BIN. Nothing is
+ * written outside this repo.
  *
  * Usage:
  *   node scripts/check-bundle-spec-relations.mjs
- *   node scripts/check-bundle-spec-relations.mjs --no-generate
+ *   node scripts/check-bundle-spec-relations.mjs --ref 1.4.1
  *   node scripts/check-bundle-spec-relations.mjs --checkout-root /path/to/speckle-atlas
  *   node scripts/check-bundle-spec-relations.mjs --warn-only
  *
@@ -29,7 +31,11 @@ import { execFileSync } from 'node:child_process'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
 
-const RELATIONS_MDX = path.join(root, 'next', 'developers', 'object-model', 'relations.mdx')
+const RELATIONS_MDX = path.join(root, 'developers', 'object-model', 'relations.mdx')
+const SPEC_PATH = 'spec/bundle-spec.sql'
+const DEFAULT_REF = 'origin/main'
+const DUCKDB = process.env.DUCKDB_BIN || 'duckdb'
+const STATUSES = new Set(['live', 'reserved', 'retired'])
 
 function argValue(flag) {
   const index = process.argv.indexOf(flag)
@@ -41,18 +47,41 @@ function checkoutRoot() {
   return argValue('--checkout-root') || process.env.ATLAS_ROOT || path.resolve(root, '..')
 }
 
-function regenerate(bundleSpecRoot) {
+function git(repoDir, args) {
+  return execFileSync('git', ['-C', repoDir, ...args], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+    maxBuffer: 64 * 1024 * 1024
+  })
+}
+
+/** Blob id of the spec at `rev`, or null when the rev does not exist. */
+function specBlob(repoDir, rev) {
   try {
-    execFileSync('npm', ['run', 'generate'], { cwd: bundleSpecRoot, stdio: 'inherit' })
-    return true
+    return git(repoDir, ['rev-parse', '--verify', '-q', `${rev}:${SPEC_PATH}`]).trim()
   } catch {
-    console.error(
-      `\n\`npm run generate\` failed in ${bundleSpecRoot} (see output above).\n` +
-        `Common cause: the \`duckdb\` CLI isn't on PATH (brew install duckdb).\n` +
-        `Re-run with --no-generate to check the last-generated docs-data.json instead.`
-    )
-    return false
+    return null
   }
+}
+
+/** Whether the spec at `ref` is the one tagged as release `version`. */
+function releaseState(repoDir, ref, version) {
+  const tagged = specBlob(repoDir, `refs/tags/${version}`)
+  if (!tagged) return `${version} is not tagged: unreleased`
+  if (tagged !== specBlob(repoDir, ref)) return `differs from the ${version} tag: unreleased`
+  return `released as ${version}`
+}
+
+/** Rows of `select`, run after the spec in an in-memory DuckDB. */
+function query(spec, select) {
+  const out = execFileSync(DUCKDB, ['-json'], {
+    input: `${spec}\n${select};\n`,
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+    maxBuffer: 1 << 28
+  }).trim()
+  // DuckDB >= 1.5 prints `[{]` for an empty result set (same guard as bundle-spec's codegen).
+  return !out || out === '[{]' ? [] : JSON.parse(out)
 }
 
 /** Relation names documented in a table row, e.g. `| `ON_LEVEL` | object → node | ... |`. */
@@ -66,10 +95,10 @@ function documentedRelationNames(mdx) {
 
 function main() {
   const warnOnly = process.argv.includes('--warn-only')
+  const ref = argValue('--ref') || DEFAULT_REF
   const bundleSpecRoot = path.join(checkoutRoot(), 'speckle-bundle-spec')
-  const dataPath = path.join(bundleSpecRoot, 'generated', 'docs-data.json')
 
-  if (!fs.existsSync(bundleSpecRoot)) {
+  if (!fs.existsSync(path.join(bundleSpecRoot, '.git'))) {
     console.error(
       `No speckle-bundle-spec checkout at ${bundleSpecRoot}.\n` +
         `Pass --checkout-root <path> or set ATLAS_ROOT.`
@@ -78,15 +107,43 @@ function main() {
     return
   }
 
-  if (!process.argv.includes('--no-generate') && !regenerate(bundleSpecRoot)) {
+  let spec, commit
+  try {
+    spec = git(bundleSpecRoot, ['show', `${ref}:${SPEC_PATH}`])
+    commit = git(bundleSpecRoot, ['log', '-1', '--format=%h, %cs', ref]).trim()
+  } catch {
+    console.error(
+      `Could not read ${SPEC_PATH} at ${ref} in ${bundleSpecRoot}.\n` +
+        `Fetch the checkout (git -C ${bundleSpecRoot} fetch) or pass --ref <tag|branch>.`
+    )
     process.exitCode = 1
     return
   }
 
-  if (!fs.existsSync(dataPath)) {
+  let schemaVersion, relTypes, nodeKinds
+  try {
+    schemaVersion = query(spec, 'SELECT schema_version FROM meta')[0]?.schema_version
+    relTypes = query(
+      spec,
+      'SELECT rel AS id, name, status, src_ns, dst_ns, description FROM rel_types ORDER BY rel'
+    )
+    nodeKinds = query(spec, 'SELECT kind AS id, name, status FROM node_kinds ORDER BY kind')
+  } catch (err) {
     console.error(
-      `Could not find ${dataPath}.\n` +
-        `The speckle-bundle-spec checkout must emit generated/docs-data.json from \`npm run generate\`.`
+      err.code === 'ENOENT'
+        ? `\`${DUCKDB}\` not found. Install the duckdb CLI (brew install duckdb) or set DUCKDB_BIN.`
+        : `DuckDB could not run ${SPEC_PATH} at ${ref}:\n${err.stderr || err.message}`
+    )
+    process.exitCode = 1
+    return
+  }
+
+  const unknown = [...relTypes, ...nodeKinds].filter((r) => !STATUSES.has(r.status))
+  if (!schemaVersion || !relTypes.length || !nodeKinds.length || unknown.length) {
+    console.error(
+      `${SPEC_PATH} at ${ref} has no meta row, an empty catalog, or a status outside ` +
+        `${[...STATUSES].join(' | ')}${unknown.length ? ` (${unknown.map((r) => `${r.name}=${r.status}`).join(', ')})` : ''}.\n` +
+        `The spec's catalog shape changed: update this check before trusting it.`
     )
     process.exitCode = 1
     return
@@ -98,18 +155,22 @@ function main() {
     return
   }
 
-  const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'))
   const mdx = fs.readFileSync(RELATIONS_MDX, 'utf8')
-
-  const live = new Set(data.relations.map((r) => r.name))
+  const live = relTypes.filter((r) => r.status === 'live')
+  const liveNames = new Set(live.map((r) => r.name))
   const documented = documentedRelationNames(mdx)
 
-  const undocumented = [...live].filter((n) => !documented.has(n)).sort()
-  const stale = [...documented].filter((n) => !live.has(n)).sort()
+  const undocumented = live.filter((r) => !documented.has(r.name))
+  const stale = [...documented].filter((n) => !liveNames.has(n)).sort()
 
   console.log(
-    `speckle-bundle-spec schemaVersion ${data.schemaVersion}: ` +
-      `${live.size} live relations, ${documented.size} named on the page.\n`
+    `speckle-bundle-spec ${schemaVersion} at ${ref} (${commit}; ` +
+      `${releaseState(bundleSpecRoot, ref, schemaVersion)}): ` +
+      `${live.length} live relations, ${documented.size} named on the page.\n` +
+      `Live node kinds: ${nodeKinds
+        .filter((k) => k.status === 'live')
+        .map((k) => k.name)
+        .join(', ')}.\n`
   )
 
   if (!undocumented.length && !stale.length) {
@@ -119,16 +180,20 @@ function main() {
 
   if (undocumented.length) {
     console.log('Live in the spec but not named on the page (new relations to document):')
-    for (const n of undocumented) {
-      const r = data.relations.find((r) => r.name === n)
-      console.log(`  - ${n}  (${r.src} → ${r.dst})  ${r.description ?? ''}`)
+    for (const r of undocumented) {
+      console.log(`  - ${r.name}  (${r.src_ns} → ${r.dst_ns})  ${r.description ?? ''}`)
     }
     console.log()
   }
 
   if (stale.length) {
-    console.log('Named on the page but not in the live catalog (retired, renamed, or a typo):')
-    for (const n of stale) console.log(`  - ${n}`)
+    console.log('Named on the page but not live in the spec:')
+    for (const n of stale) {
+      const r = relTypes.find((r) => r.name === n)
+      console.log(
+        `  - ${n}  (${r ? `${r.status} in the spec` : 'not in the catalog: renamed or a typo'})`
+      )
+    }
     console.log()
   }
 

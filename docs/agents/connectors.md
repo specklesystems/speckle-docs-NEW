@@ -1,6 +1,6 @@
 # Connector pages (publishing and loading)
 
-Applies to pages under `connectors/` and `next/connectors/`. `README.md` ("Publishing & Loading") explains why the section is framed by outcome rather than by connector.
+Applies to pages under `connectors/`. `README.md` ("Publishing & Loading") explains why the section is framed by outcome rather than by connector.
 
 - **Purpose-first:** write about **publish** and **load**, not connector names.
 - **H2 order:**

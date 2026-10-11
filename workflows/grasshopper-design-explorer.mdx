@@ -2,67 +2,45 @@
 title: 'Compare parametric design options from Grasshopper'
 sidebarTitle: 'Design Explorer'
 description: 'Publish Grasshopper design options and compare their geometry and numeric properties in a dashboard.'
-docs_status: changed
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/connectors/grasshopper/upgrading
-change_scope: 'Load and Publish node upgrades and 2026.9 data compatibility'
 ---
 
-<Visibility for="agents">
-  Documentation status: changed for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: Load and Publish node upgrades and 2026.9 data compatibility.
-
-For these changes, read [2026.9 guidance](/next/connectors/grasshopper/upgrading).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
-
 Compare the geometry and numeric properties of Grasshopper design options in one dashboard.
-Mark each variant as a design option, publish it to Speckle, and use Design Explorer to compare
-heights, costs, performance scores, or other metrics.
+Mark each variant as a design option, publish it to Speckle, and use the **Design Explorer**
+widget (Beta) to compare heights, costs, performance scores, or other metrics.
 
 <Note>
-  This guide assumes familiarity with the **Data Object** and **Send** components in Grasshopper. If
-  you are new to Speckle in Grasshopper, start with the [Grasshopper
-  connector](/connectors/grasshopper/grasshopper) and [Data
-  Objects](/connectors/grasshopper/grasshopper-objects) guides.
+  This guide assumes familiarity with the **Speckle Object**, **Create Properties**, and **Publish**
+  nodes in Grasshopper. If you are new to Speckle in Grasshopper, start with the [Grasshopper
+  connector](/connectors/grasshopper/grasshopper), [Speckle
+  Objects](/connectors/grasshopper/grasshopper-objects), and
+  [Properties](/connectors/grasshopper/grasshopper-properties) guides.
 </Note>
 
 ## Tag design options in Grasshopper
 
 <Steps>
-  <Step title="Create a Data Object per variant">
-    Use a **Data Object** component for each variant. Connect the variant's geometry to the **Geometries** input and set a descriptive **Name** (e.g. `"Option A"`, `"Variant · H2.0 · N4"`).
-
-    Each variant appears as a named object on the canvas.
-
-  </Step>
-  <Step title="Mark each object as a design option">
-    Right-click the **Data Object** component and select **Mark as Design Option**.
-
-    The component displays a **Design Option** label to confirm it is enabled.
-
+  <Step title="Create a Speckle Object per variant">
+    Use a **Speckle Object** node for each variant. Connect the variant's geometry to the
+    **Geometries** input and set a descriptive **Name** (e.g. `"Option A"`, `"Variant · H2.0 ·
+    N4"`). Each variant appears as a named object on the canvas.
   </Step>
   <Step title="Add numeric properties as performance metrics">
-    In the **Properties** input, add numeric values that describe each variant's performance or characteristics. Properties shared across **all** design option objects become the chart axes — any property present on some options but not others is excluded from the parallel coordinates chart.
-
-    Use short property names so the chart axes are easy to read.
-
-    The component preview shows all property keys and values alongside the Design Option label.
-
+    In a **Create Properties** node, add numeric values that describe each variant's performance or
+    characteristics, and connect it to the object's **Properties** input. Properties shared across
+    **all** design option objects become the chart axes. Use short property names so the axes are
+    easy to read.
+  </Step>
+  <Step title="Mark each object as a design option">
+    In a second **Create Properties** node, add a property named `isDesignOption` with a **Boolean
+    Toggle** set to `True`. Connect its output to an input named `DesignOption` on the node that
+    holds your metrics. The object's properties now include `DesignOption` → `isDesignOption: true`.
   </Step>
 </Steps>
 
-<Frame>
-  <img
-    src="/images/workflows/design-explorer-mark-as-design-option.png"
-    alt="Grasshopper Data Object component right-click menu showing Mark as Design Option"
-  />
-</Frame>
+Any property present on some options but not others is excluded from the parallel coordinates
+chart. The `DesignOption` marker is never shown as a chart axis.
+
+{/* IMAGE_PLACEHOLDER: Grasshopper canvas — Speckle Object per variant; Create Properties with metric inputs and a nested DesignOption group holding isDesignOption = True. */}
 
 ### Name and group numeric properties
 
@@ -87,19 +65,16 @@ produces chart axes labelled **material**, **fabrication**, **score**, **efficie
 ## Publish to Speckle
 
 <Steps>
-  <Step title="Connect the Send component">
-    Connect the merged list to a **Send** component. Set the project and a model name that reflects the study (e.g. `facade-study`, `tower-options`).
-
-    The Send component preview shows the correct object count.
-
+  <Step title="Connect the Publish node">
+    Merge the objects into one list and connect it to a **Publish** node. Set the project and a
+    model name that reflects the study (e.g. `facade-study`, `tower-options`).
   </Step>
   <Step title="Publish the design options">
-    Click **Publish**. The options are uploaded to the selected model.
+    Run the **Publish** node. The options are uploaded to the selected model.
   </Step>
   <Step title="Verify the published options">
-    Open the model in the Speckle web viewer. Confirm each variant is a separate selectable object
-    with its properties visible in the properties panel.
-
+    Open the model in the 3D viewer. Confirm each variant is a separate selectable object with its
+    properties visible in the **Selection** panel.
   </Step>
 </Steps>
 
@@ -113,7 +88,7 @@ produces chart axes labelled **material**, **fabrication**, **score**, **efficie
 
   </Step>
   <Step title="Add the Design Explorer widget">
-    In the widget panel, open the **Grasshopper** group and drag a **Design Explorer** widget onto the canvas.
+    In the widget panel, open the **Grasshopper** group and drag a **Design Explorer** widget (Beta) onto the canvas.
 
     An empty Design Explorer widget appears on the canvas.
 
@@ -179,10 +154,15 @@ Click the option name in the header bar to return to the grid.
     Re-publish the model from Grasshopper, or connect a data source that was. If you are producing
     design options from somewhere else, see [Programmatic design options](#advanced-create-design-options-programmatically).
   </Accordion>
+  <Accordion title="My Grasshopper node has a Mark as Design Option menu item. Should I use it?">
+    No, not any longer. That menu item is only in connectors older than 2026.9.0. If your connector
+    shows it, upgrade the connector, then set the property with nested **Create Properties** as
+    described above. See [Upgrade to 2026.9](/connectors/grasshopper/grasshopper#upgrade-to-2026-9).
+  </Accordion>
   <Accordion title="Why does the widget say 'No design options found'?">
-    Check that each Data Object has been marked as a design option via the right-click menu (**Mark
-    as Design Option**). Also confirm the objects are at the top level of the model, not nested
-    inside Collections.
+    Check that each Speckle Object carries the `DesignOption` → `isDesignOption` property set to
+    `true`, as in [Tag design options in Grasshopper](#tag-design-options-in-grasshopper). Also
+    confirm the objects are at the top level of the model, not nested inside Collections.
   </Accordion>
 
   <Accordion title="What happens to thumbnails when I reload the page?">
@@ -201,9 +181,8 @@ Click the option name in the header bar to return to the grid.
 ## Advanced: create design options programmatically
 
 <AccordionGroup>
-  <Accordion title="What does 'Mark as Design Option' actually do?">
-    The menu item sets a boolean at the property path
-    `DesignOption.isDesignOption` on the Data Object, which is published as:
+  <Accordion title="What marks an object as a design option?">
+    A boolean at the property path `DesignOption.isDesignOption` on the object, published as:
 
     ```json
     "properties": {
@@ -214,13 +193,14 @@ Click the option name in the header bar to return to the grid.
 
     The marker is excluded from the metrics, so it never appears as a chart axis.
 
-    See [`SpeckleDataObjectPassthrough.cs#L208-L213`](https://github.com/specklesystems/speckle-sharp-connectors/blob/dd065202c03a1bade2c720cce1943172389397a6/Connectors/Rhino/Speckle.Connectors.GrasshopperShared/Components/Objects/SpeckleDataObjectPassthrough.cs#L208-L213) (pinned at `dd06520`).
-
   </Accordion>
 
   <Accordion title="Can I produce design options from Python or another connector?">
     This is unsupported. The widget requires a Grasshopper source application, even when another
     tool produces objects with the same marker.
+
+    The example below uses the SpecklePy object API from before 2026.9. For publishing with the
+    current SDK, see the [Python SDK](/developers/sdks/python/introduction).
 
     Build the Data Objects with the marker in their properties, then set the version's
     source application so the widget accepts the model:
@@ -266,5 +246,5 @@ Click the option name in the header bar to return to the grid.
 ## See also
 
 - [Grasshopper connector](/connectors/grasshopper/grasshopper)
-- [Data Objects in Grasshopper](/connectors/grasshopper/grasshopper-objects)
+- [Speckle Objects in Grasshopper](/connectors/grasshopper/grasshopper-objects)
 - [Intelligence Dashboards](/analytics/intelligence-dashboards)

@@ -1,0 +1,271 @@
+---
+title: 'Migrate a specklepy script to 2026.9'
+sidebarTitle: 'Migrate to 2026.9'
+description: 'Update a Python script from operations.receive and Base-tree traversal to operations.receive3, columnar properties, and typed relations.'
+---
+
+Versions published before 2026.9 stay readable. New and updated scripts use the 2026.9 specklepy and `operations.receive3`: versions published by a 2026.9 connector need that build, and their full data shape only comes through `operations.receive3`. Speckle does not guarantee that older specklepy builds, or `operations.receive`, keep working against current servers. This page shows each change side by side so you can judge how much of your script moves.
+
+The old path is **PAT → `operations.receive` → walk a `Base` tree**. The 2026.9 path is **PAT → `operations.receive3`**, which returns a `Model` with columnar properties and typed relations. For the data model itself, see [Object model](/developers/object-model/overview). For dates and who must act, see [Data model migration for developers](/developers/migration/data-model-migration).
+
+<Warning>
+  An older specklepy gets a 404 when it loads a version published by a 2026.9 connector. Install
+  specklepy **2026.9.0b3** or later with the `bundle` extra before you change any code. See [Who's
+  affected](/developers/migration/data-model-migration#whos-affected).
+</Warning>
+
+## What changes for a script
+
+| Concern                 | Before 2026.9                                  | 2026.9                                                                                                  |
+| ----------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Package                 | `pip install specklepy`                        | `pip install "specklepy[bundle]==2026.9.0b3"`. The `bundle` extra pulls in pyarrow                      |
+| Load a version          | `operations.receive` with `referenced_object`  | `operations.receive3` with an account plus project, model, and version ids. Returns `Model`             |
+| Filter and count        | Walk `elements`, then `DataObject.properties`  | `model.objects`, `objects_with`, and `get_string` / `get_double`                                        |
+| Nested property walk    | `properties["x"]` then `["y"]`                 | Dotted path (`get_string("x.y")`) or `properties.under`                                                 |
+| Level, material, groups | Unpack proxy `objects` lists                   | Accessors on `ModelObject` (`level`, `host`, `collection`)                                              |
+| Publish from a script   | `operations.send` then `client.version.create` | `operations.send3` with a `BundleBuilder`. The version appears when the server finishes processing      |
+| Transports              | `send` / `receive` with `ServerTransport`      | Object-graph versions. A bundle reference through `operations.receive` needs an authenticated transport |
+
+## Update specklepy first
+
+Install a 2026.9 specklepy with the `bundle` extra. **2026.9.0b3** is the first public build that loads 2026.9 versions. A later stable **2026.9.0** replaces the beta pin; the calls on this page do not change.
+
+```bash
+pip install "specklepy[bundle]==2026.9.0b3"
+```
+
+On a 2026.9 version, `version.referenced_object` is a bundle reference such as `bundle.<projectId>.<modelId>.<versionId>`, not a content hash. An older specklepy treats that string as an object id, requests it from the objects API, and receives a 404 whose body tells you to upgrade.
+
+<Warning>
+  Do not fetch `version.referenced_object` from the objects REST endpoints. Bundle references always
+  404 there, including after you upgrade. Pass the project, model, and version ids to
+  `operations.receive3`.
+</Warning>
+
+## Load a model
+
+`operations.receive3` takes an `Account` plus project, model, and version ids, and returns a `Model`. Use it as a context manager: it owns the downloaded bundle files on disk until the `with` block ends.
+
+Auth and version lookup stay as on [Authentication](/developers/sdks/python/getting-started/authentication) and the [Quickstart](/developers/sdks/python/getting-started/quickstart). The snippets below assume `account`, `client`, `transport`, `project_id`, `model_id`, and `version_id` are already in scope. Build `account` with `Account.from_token` and a PAT, use `client.account` after you authenticate, or call `get_default_account()`.
+
+<Tabs>
+  <Tab title="Prior to 2026.9 (receive)">
+    ```python Prior to 2026.9 lines icon="python"
+    version = client.version.get(version_id, project_id)
+    root = operations.receive(version.referenced_object, remote_transport=transport)
+    ```
+
+  </Tab>
+  <Tab title="2026.9 (receive3)">
+    ```python 2026.9 lines icon="python"
+    with operations.receive3(account, project_id, model_id, version_id) as model:
+        print(len(model.objects))
+    ```
+
+  </Tab>
+</Tabs>
+
+<Tip>
+  Close the model (leave the `with` block, or call `model.close()`) so the download directory is
+  deleted. Parsed objects stay usable after close. Geometry you have not touched cannot be read
+  afterwards.
+</Tip>
+
+<Note>
+  `operations.receive3` reads the version's bundle. A version published before 2026.9 that the
+  server has not converted has no bundle, and `receive3` raises a `SpeckleException`. Load that
+  version with `operations.receive`.
+</Note>
+
+## Count and filter objects
+
+Before 2026.9 you walk a `Base` tree. In 2026.9, objects are a flat list. Properties are path-keyed (`"category"`, `"Constraints.Base Offset"`). Relations are accessors, not proxy lists.
+
+<Tabs>
+  <Tab title="Prior to 2026.9">
+    ```python Prior to 2026.9 lines icon="python"
+    from specklepy.objects.data_objects import DataObject
+
+    def iter_elements(obj):
+        yield obj
+        for child in getattr(obj, "elements", None) or []:
+            yield from iter_elements(child)
+
+
+    counts = {}
+    for obj in iter_elements(root):
+        if not isinstance(obj, DataObject):
+            continue
+        key = (obj.properties or {}).get("category") or "Unknown"
+        counts[key] = counts.get(key, 0) + 1
+
+    by_level = {}
+    for obj in iter_elements(root):
+        if not isinstance(obj, DataObject):
+            continue
+        key = (obj.properties or {}).get("level") or "Unknown"
+        by_level.setdefault(key, []).append(obj)
+
+    walls = [
+        o
+        for o in iter_elements(root)
+        if isinstance(o, DataObject) and (o.properties or {}).get("category") == "Walls"
+    ]
+    ```
+
+  </Tab>
+  <Tab title="2026.9">
+    ```python 2026.9 lines icon="python"
+    counts = {}
+    for obj in model.objects:
+        key = obj.get_string("category") or obj.name or "Unknown"
+        counts[key] = counts.get(key, 0) + 1
+
+    by_level = {}
+    for obj in model.objects:
+        key = obj.level.name if obj.level else "Unknown"
+        by_level.setdefault(key, []).append(obj)
+
+    walls = [o for o in model.objects_with("category") if o.get_string("category") == "Walls"]
+    ```
+
+  </Tab>
+</Tabs>
+
+Look up one object with `model.object_by_application_id(id)`. `application_id` is the only identity a bundle object has. Do not treat `Base.id` as a content hash on a 2026.9 version.
+
+## Replace property walks
+
+Before 2026.9, nested parameters are dictionaries you walk: `obj.properties["x"]` then `["y"]`. In 2026.9 those paths are flat, and `PropertyView` replaces the walk. `ModelObject.properties` is already this view.
+
+- **`get_string` / `get_double` / `get_bool`:** typed lookup. `None` if the path is missing or the value is another type. Instance properties first, then type properties, then root scalars.
+- **Indexer (`obj["path"]`):** untyped lookup, same order.
+- **`properties.under("Constraints")`:** the subtree under that prefix, with the prefix stripped.
+- **`to_nested()`:** the old nested-dictionary tree. Allocates. Use it only when a caller still needs that shape.
+
+Prefer `get_string` / `get_double` for a single path. Use `under` when you need a group.
+
+The snippets below assume `wall` is already in scope: a `DataObject` from the tree, or a `ModelObject` from `model.objects`.
+
+<Tabs>
+  <Tab title="Prior to 2026.9">
+    ```python Prior to 2026.9 lines icon="python"
+    groups = (wall.properties or {}).get("parameters") or {}
+    x = groups.get("x") or {}
+    y = x.get("y")
+    ```
+
+  </Tab>
+  <Tab title="2026.9">
+    ```python 2026.9 lines icon="python"
+    y = wall.get_string("parameters.x.y")
+    offset = wall.get_double("Constraints.Base Offset")
+
+    constraints = wall.properties.under("Constraints")
+    for key, value in constraints.items():
+        print(f"{key}: {value}")
+    ```
+
+  </Tab>
+</Tabs>
+
+<Warning>
+  If the script reads `parameter["value"]` or other per-parameter metadata from the received tree,
+  that shape is gone on 2026.9 versions. Read the value from a dotted path instead.
+</Warning>
+
+## Replace proxy walks
+
+Before 2026.9, grouping by level or material means indexing `applicationId`s and resolving proxy `objects` lists. In 2026.9 those links are typed relations. See [Relations](/developers/object-model/relations) for the names.
+
+<Tabs>
+  <Tab title="Prior to 2026.9">
+    ```python Prior to 2026.9 lines icon="python"
+    by_app_id = {}
+    for obj in iter_elements(root):
+        app_id = getattr(obj, "applicationId", None)
+        if app_id:
+            by_app_id[app_id] = obj
+    ```
+
+  </Tab>
+  <Tab title="2026.9">
+    ```python 2026.9 lines icon="python"
+    by_level = {}
+    for obj in model.objects:
+        key = obj.level.name if obj.level else "Unknown"
+        by_level.setdefault(key, []).append(obj)
+
+    hosted = [o for o in model.objects if o.host is not None]
+    ```
+
+  </Tab>
+</Tabs>
+
+A 2026.9 version has no nested `elements` tree and no proxy `objects` lists. Do not unpack proxies to rebuild containment; read the relation accessors instead.
+
+## Read versions published before 2026.9
+
+Keep `operations.receive` only to read versions published before 2026.9 that have no bundle; use `operations.receive3` for everything else.
+
+- **Versions published before 2026.9:** pass `referenced_object` as a content hash and get the object graph back.
+- **Versions published by a 2026.9 connector:** `referenced_object` is a bundle reference (`bundle.<projectId>.<modelId>.<versionId>`). A 2026.9 specklepy recognizes the prefix and returns a best-effort `Base` tree (`Model.to_base()`, DataObject idiom, `version = 4` on the root). That projection does not scale to the model sizes the bundle format is built for, and it is not a lossless round trip. It needs an authenticated `ServerTransport` for the reference's project. Do not build new work on it.
+- **Older specklepy:** fetching a bundle reference from the objects API returns **404** with upgrade guidance. Upgrade specklepy rather than parsing the 404 body.
+
+<Warning>
+  Receiving a 2026.9 version as a `Base` tree and sending it again with `operations.send` is not a
+  supported copy workflow. The tree is a baked view, not the authored graph.
+</Warning>
+
+Receive, derive new data, then send to a new version remains supported.
+
+## Publish from a script
+
+Most analysis scripts only receive. If your script calls `operations.send` then `client.version.create`, move it to `operations.send3` with a `BundleBuilder`. Publishing an object graph is deprecated, and Speckle does not guarantee it for new work; see [Publish through model ingestions](/developers/migration/publish-through-ingestions).
+
+`send3` returns a `SendResult` with a reserved `version_id` as soon as the upload finishes. The version appears in queries and at its URL, and fires webhooks, when the server finishes processing. Poll `client.version.get` if the same script needs the version to exist.
+
+```python 2026.9 lines icon="python"
+from specklepy.api import operations
+from specklepy.bundle import BundleBuilder, Producer
+from specklepy.objects.geometry import Mesh
+
+builder = BundleBuilder(Producer("my-script", "1.0.0"), "m")
+walls = builder.get_or_add_container_path(["Walls"])
+wall = builder.get_or_add_object("wall-1").set_properties({"Mark": "W-01"}, name="Basic Wall")
+wall.collection = walls
+wall.add_geometry(Mesh(vertices=[0, 0, 0, 1, 0, 0, 0, 1, 0], faces=[3, 0, 1, 2], units="m"))
+
+sent = operations.send3(account, project_id, model_id, builder)
+print(f"Reserved version {sent.version_id}")
+```
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can I keep my operations.receive script as it is?">
+    No, not any longer. Install `specklepy[bundle]==2026.9.0b3` and load versions with
+    `operations.receive3`. Older specklepy builds get a 404 on versions from a 2026.9 connector, and
+    Speckle does not guarantee they keep working against current servers. Keep `operations.receive`
+    only to read versions published before 2026.9 that have no bundle.
+  </Accordion>
+  <Accordion title="Why does receive3 return Model instead of Base?">
+    `Model` is the bundle itself: objects, path-keyed properties, and relation accessors, with
+    geometry parsed only when you ask. A `Base` tree inflates every object and mesh into Python
+    objects, which is why `operations.receive` does not suit the new format.
+  </Accordion>
+  <Accordion title="What happens if I forget to close Model?">
+    The downloaded parquet files stay in a scratch directory until `close` runs. Always use a `with`
+    block. Objects and geometry you already read stay in memory after close; geometry you have not
+    touched cannot be read afterwards.
+  </Accordion>
+  <Accordion title="Can I keep using ServerTransport?">
+    Only to read versions published before 2026.9. Load everything else with `operations.receive3`,
+    which takes an account instead of a transport.
+  </Accordion>
+  <Accordion title="Why did parameter['value'] stop working?">
+    On a 2026.9 version, parameter metadata is collapsed to scalars on dotted paths. Read the value
+    with `get_double` or `obj["Width"]`, not from a metadata wrapper. That is an intended change,
+    not a bug in your filter.
+  </Accordion>
+</AccordionGroup>

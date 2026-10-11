@@ -2,29 +2,12 @@
 title: Connectors, cloud integrations, and file uploads
 sidebarTitle: Overview
 description: 'Publish and load 3D models using connectors, cloud integrations, or file uploads.'
-docs_status: impacted
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/it-admin/connector-updates
-change_scope: '2026.9 connector upgrade window and Navisworks exception'
 ---
-
-<Visibility for="agents">
-  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: 2026.9 connector upgrade window and Navisworks exception.
-
-For these changes, read [2026.9 guidance](/next/it-admin/connector-updates).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
 
 ## Ways to get data into Speckle
 
 - **Connectors** - Plugins inside your design tools for publishing and loading model data
-- **Cloud integrations** - Automatic sync from platforms like Autodesk Forma Data Management and Bentley ProjectWise
+- **Cloud integrations** - Automatic sync from platforms like Autodesk Forma Data Management, Bentley ProjectWise, and Trimble Connect
 - **File uploads** - Direct uploads when a connector is not available
 
 Only connectors support loading data back into your design tools.
@@ -32,11 +15,6 @@ Only connectors support loading data back into your design tools.
 ## Connectors
 
 Connectors integrate directly with design tools like Revit, Rhino, Blender, and Grasshopper. Choose which objects and properties to publish for your workflow. Loading data preserves design intent where possible, not just geometry.
-
-<Note>
-  In 2026.9, new publishes use a new data format. Publish and load stay the same. See [Connectors in
-  2026.9](/next/connectors/overview).
-</Note>
 
 ### What you can do
 
@@ -48,6 +26,43 @@ Connectors integrate directly with design tools like Revit, Rhino, Blender, and 
 - Build custom workflows in Grasshopper and Blender
 
 <Note>Need a connector we don't have? [Request it on our forum](https://speckle.community/)</Note>
+
+## Update connectors for 2026.9
+
+From 2026.9, connectors publish in a new data format. Your day-to-day work stays the same: you still
+publish and load through your connectors, and view and share in the web app. Models you already
+published stay readable, and publish, load, and view are faster in the new format.
+
+The 2026.9 upgrade window is open until **1 November 2026**: update your connector before then. New
+publishes from an updated connector use the 2026.9 format. If you manage connectors for an
+organization, see [Upgrade window for 2026.9](/it-admin/connector-updates#upgrade-window-for-2026-9).
+
+<Warning>
+  A connector from 2026.8 or earlier cannot load a version published by a 2026.9 or newer connector.
+  Update together with the people you share models with.
+</Warning>
+
+Some tools change more than the data format:
+
+- [Revit](/connectors/revit/revit#model-placement): published geometry stays in Revit's internal
+  coordinates, and consumers pick the datum.
+- [Grasshopper](/connectors/grasshopper/grasshopper#upgrade-to-2026-9): new Load, Publish, and
+  Explore nodes. Switch existing scripts to the new nodes.
+- [Power BI](/connectors/power-bi/power-bi#upgrade-from-2026-8): load models with Get Tables and a new
+  3D visual. Rebuild reports that use `GetByUrl`.
+- [Navisworks](/connectors/navisworks): there is no 2026.9 connector. **2026.8** is the last one.
+  Upload larger NWC and NWD files instead.
+- [Vectorworks](#why-cant-i-load-a-model-into-vectorworks-anymore): the Vectorworks connector cannot
+  load the 2026.9 data format yet.
+
+A 2026.8 Navisworks publish uses the data format from before 2026.9. Speckle may convert it on the
+server, but that is not guaranteed.
+
+<Note>
+  Compatibility mode applies to ACC sync and file uploads only. It does not change the data format
+  published or loaded by desktop connectors. See [Compatibility mode](/it-admin/compatibility-mode)
+  and [Speckle's new data model](/workspaces/data-model-migration).
+</Note>
 
 ## Cloud integrations
 
@@ -63,10 +78,11 @@ Cloud integrations connect Speckle directly to another data service. ProjectWise
 
 - **[Autodesk Forma Data Management (ACC)](/connectors/cloud-integrations/acc)** — Sync Revit files from Autodesk cloud projects (still often called ACC)
 - **[Bentley ProjectWise](/connectors/cloud-integrations/projectwise)** — Sync supported files from Bentley Cloud or an on-premises WSG server
+- **[Trimble Connect](/connectors/cloud-integrations/trimble-connect)** (beta) — Sync models from Trimble Connect projects through a workspace service account
 
 <Note>
-  Forma Data Management and ProjectWise integrations are available on the **Enterprise** plan. See
-  each integration guide for setup details.
+  Forma Data Management, ProjectWise, and Trimble Connect integrations are available on the
+  **Enterprise** plan. See each integration guide for setup details.
 </Note>
 
 ## File uploads
@@ -75,22 +91,11 @@ Upload files directly when a connector is not available or you do not have acces
 
 ### Supported formats
 
-<Warning>
-  **2026.9 changes upload format support.** STL and several other formats below are no longer
-  accepted by the default upload path. These formats remain supported for direct uploads in
-  **legacy/compatibility mode**, until it ends on **1 November 2026**. See [2026.9 upload format
-  changes and compatibility
-  options](/next/connectors/file-uploads#breaking-change-supported-file-formats).
-</Warning>
-
-The following list describes upload support before 2026.9:
-
-- **IFC** (IFC2x3, IFC4)
-- **BIM**: RVT (Revit), NWC and NWD (Navisworks)
-- **CAD**: DWG, DXF, DGN
-- **3D modeling**: 3DM (Rhino), SKP (SketchUp), SLDPRT (SolidWorks)
-- **Mesh**: 3MF, 3DS, AMF, OBJ, PLY, STL
-- **Interchange**: E57, IGES, FBX, STEP
+The default upload path accepts IFC, Revit (RVT), Navisworks (NWC and NWD), AutoCAD (DWG),
+MicroStation (DGN), Rhino (3DM), Wavefront (OBJ), SketchUp (SKP), STEP, Vectorworks (VWX), and
+Solibri (SMC) files. Tekla Structures uploads are available where enabled. For the full list and
+the formats only compatibility mode accepts, see [Supported file
+formats](/connectors/direct-uploads/introduction#supported-file-formats).
 
 Open-source self-hosted servers support IFC uploads only. Extended formats are available on
 [app.speckle.systems](https://app.speckle.systems).
@@ -110,3 +115,17 @@ Each file upload creates a new version of your model, preserving complete versio
 </Frame>
 
 Learn more in [File uploads](/connectors/direct-uploads/introduction).
+
+## FAQ
+
+<div id="why-cant-i-load-a-model-into-vectorworks-anymore" />
+
+<AccordionGroup>
+  <Accordion title="Why can't I load a model into Vectorworks anymore?">
+    The model was published from a connector that has already updated to 2026.9 — Revit, Archicad,
+    or any other design tool once it updates. The Vectorworks connector cannot read that format yet.
+    No connector from 2026.8 or earlier can load data published by a 2026.9 or newer connector, so
+    this is not specific to Vectorworks. Vectorworks Inc. maintains the Vectorworks connector: ask
+    [Vectorworks support](https://www.vectorworks.net/support) when it will read the 2026.9 format.
+  </Accordion>
+</AccordionGroup>

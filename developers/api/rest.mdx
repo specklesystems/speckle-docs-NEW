@@ -1,24 +1,7 @@
 ---
 title: API reference
 description: 'REST API reference for Speckle Server'
-docs_status: impacted
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/developers/api/introduction
-change_scope: 'Legacy object access and object.children do not apply to 2026.9 bundle data'
 ---
-
-<Visibility for="agents">
-  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: Legacy object access and object.children do not apply to 2026.9 bundle data.
-
-For these changes, read [2026.9 guidance](/next/developers/api/introduction).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
 
 This REST API reference is provided for developers who need direct access to REST endpoints. However, we strongly recommend using our [SDKs](../sdks) or the [GraphQL API](./graphql) instead, as they provide safeguards against common mistakes and a more intuitive developer experience.
 
@@ -26,7 +9,7 @@ This REST API reference is provided for developers who need direct access to RES
 
 <Warning>
   We strongly recommend using our [SDKs](../sdks) first, and the [GraphQL API](./graphql) second,
-  before considering the REST API.: While the REST API is fully stable, using it directly presents
+  before considering the REST API. While the REST API is fully stable, using it directly presents
   many opportunities for user error that can lead to undesirable outcomes such as zombie objects.
   The SDKs provide a safer, more intuitive interface with proper error handling and safeguards,
   while the GraphQL API offers better flexibility and type safety than raw REST endpoints.
@@ -65,10 +48,35 @@ The following GET endpoints are documented below. Each endpoint page includes de
 - **[Get Single Object](GET /objects/{projectId}/{objectId}/single)** - Download a single object without its children
 - **[Get Object with Children](GET /objects/{projectId}/{objectId})** - Download an object and all of its children recursively
 
+These object endpoints serve object graphs only. See [Bundle versions](#bundle-versions) for the
+endpoints that serve bundle data.
+
 <Info>
   POST endpoints have been removed from this documentation. For uploading objects and other write
   operations, please use our [SDKs](../sdks) or the [GraphQL API](./graphql).
 </Info>
+
+## Bundle versions
+
+A version is either a bundle or an object graph (published before 2026.9, by an older connector, or
+in compatibility mode). The object endpoints above do not apply to bundles: sending a bundle
+version's `referencedObject` (`bundle.<projectId>.<modelId>.<versionId>`) to them returns **404**
+with `error: "BUNDLE_REFERENCE_NOT_FOUND"`. Treat that as "this version is a bundle," never as an
+empty model.
+
+For a bundle version, use these endpoints instead:
+
+| Endpoint                                                                              | Returns                                                                   |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `POST /api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/query`   | Every indexed property on every element, as JSON (`{"format": "json"}`)   |
+| `GET /api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/download` | The same properties table as a plain download                             |
+| `GET /api/v1/projects/{projectId}/models/{modelId}/eav/download`                      | The properties table of the model's latest version                        |
+| `GET /api/v2/projects/{projectId}/models/{modelId}/versions/{versionId}/artifacts`    | Presigned URLs to the version's bundle files, for code that reads Parquet |
+
+The properties export takes no filter parameters, so you filter the rows yourself. How to tell the
+formats apart, how to filter the export, and when to read the bundle directly instead are in [Get
+element data from a version](/developers/api/graphql#get-element-data-from-a-version). The full
+bundle load sequence is in [Load a bundle in your own code](/developers/building-integrations/load).
 
 ## Interactive API Playground
 

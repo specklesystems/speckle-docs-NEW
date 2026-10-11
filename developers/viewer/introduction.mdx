@@ -1,46 +1,87 @@
 ---
 title: Developers Guide
 sidebarTitle: Getting Started
-description: Introduction to the Speckle Viewer, an open-source 3D model viewer that renders large models in web browsers. Learn how to use the viewer in your own projects, explore the documentation, and access live code examples.
-docs_status: impacted
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/developers/viewer/introduction
-change_scope: 'Direct Viewer and object-loader package use is affected by 2026.9 bundle data; replacement package guidance is not yet available'
+description: Introduction to the Speckle Viewer, an open-source 3D model viewer that renders large models in web browsers. Learn how to load Speckle bundles into it, use it in your own projects, and access live code examples.
 ---
 
-<Visibility for="agents">
-  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
+<Warning>
+  The published `@speckle/viewer` package has no loader for bundles. If your app imports the package
+  and loads Speckle data itself, a bundle version renders nothing. See [Loading Speckle
+  data](#loading-speckle-data) for the two ways to keep rendering.
+</Warning>
 
-Affected guidance: Direct Viewer and object-loader package use is affected by 2026.9 bundle data; replacement package guidance is not yet available.
-
-For these changes, read [2026.9 guidance](/next/developers/viewer/introduction).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
-
-One of Speckle's most popular features is the ability to view gorgeous 3D models directly in your web browser. The Speckle viewer is the component that makes this possible, rendering large 3D models in your browser at rapid speeds.
+Speckle lets you view 3D models directly in your web browser. The Speckle viewer is the component that makes this possible, rendering large 3D models in your browser at rapid speeds.
 
 Speckle has made the Speckle viewer available as an Open Source project and freely available component which you can use within your own code or website.
 
 This section of the documentation explains what the Speckle viewer is and how to build upon it. We provide full documentation, explaining the concepts behind its design, introducing some simple and more advanced examples, and providing comprehensive documentation of its Application Programming Interface (API).
 
-<Warning>
-  **Building directly on this package, rather than just embedding it?** Speckle's data model is
-  changing in 2026.9. If your application imports the Viewer package itself — extending render
-  pipelines, forking extensions, reading render views/batches, or otherwise reaching into its
-  internals — you're exposed as soon as any data you load has been converted to the new format, and
-  there's no updated Viewer package for it yet. See [Who's
-  affected](/developers/migration/data-model-migration#whos-affected) and [Viewer developer notes in
-  2026.9](/next/developers/viewer/introduction) before you hit this in production.
-</Warning>
+## Loading Speckle data
+
+A version's data is a [bundle](/developers/building-integrations/bundles) of parquet files, not an
+object graph fetched from the objects endpoints. The published Viewer package converts object
+graphs, so it needs a bridge to render a bundle.
+
+The rest of the package is unaffected. Render pipelines, extensions, filtering, selection, queries,
+the world tree and view modes all work the same way, because the change is in where the data comes
+from, not in what the viewer does with it once converted.
+
+### Am I affected?
+
+| How your app uses the Viewer                                          | Affected |
+| --------------------------------------------------------------------- | -------- |
+| Imports `@speckle/viewer`, constructs a `Viewer` and a loader         | Yes      |
+| Extends render pipelines or extensions, reads render views or batches | Yes      |
+| Embeds the hosted web viewer in an iframe                             | No       |
+| Reads data only through the GraphQL or REST API                       | No       |
+
+### Two ways forward
+
+<CardGroup cols={2}>
+  <Card title="Load bundles yourself" icon="download" href="/developers/viewer/loading-bundles">
+    Add about a dozen files to your app, keep the same published packages, and render bundles.
+    Sample code and a step-by-step path.
+  </Card>
+  <Card title="Ask for compatibility mode" icon="clock" href="/it-admin/compatibility-mode">
+    Keeps your workspace's ACC syncs and file uploads in the object-graph format until the mode ends
+    on **1 November 2026**. Versions from 2026.9 connectors are bundles regardless.
+  </Card>
+</CardGroup>
+
+Loading bundles is the route that outlasts compatibility mode. It is sample code rather than a
+package release, so you own the copy and it carries a date. The guide says what it does and does
+not cover.
+
+Neither option reaches what the bundle format makes possible. The format is built for streaming
+reads, sharded geometry and querying properties without materialising objects, and both options
+here keep your app on the object graph it replaced: compatibility mode by producing that graph for
+some data, the bridge by rebuilding it in memory. Getting the performance the format allows needs a viewer built
+for it. Plan for that, and treat both of these as ways to keep working until it arrives.
+
+<Note>
+  Compatibility mode is not self-serve, and it ends for every workspace on **1 November 2026**. See
+  [Compatibility mode](/it-admin/compatibility-mode) for how to request it.
+</Note>
+
+### Not the Viewer package
+
+Two nearby cases have their own pages.
+
+- **A data-only JavaScript app** that reads Speckle data without rendering it, built on
+  `@speckle/objectloader` or `@speckle/objectloader2`, should read the bundle directly rather than
+  bridging to an object graph. Start from [Building custom apps](/developers/building-apps).
+- **The 3D viewer in the web app** is not this package. See [3D viewer](/3d-viewer/introduction).
+
+## Package reference
+
+The API reference in this section documents the published package. The surface the bridge relies
+on, `Loader`, `SpeckleLoader`, `WorldTree`, and `loadObject`, is documented in
+[Loaders](/developers/viewer/loaders), the [Loader API](/developers/viewer/loader-api), and the
+[World tree API](/developers/viewer/world-tree-api).
 
 <Tip>
-  We use embedded live code sandboxes across the documentation to exemplify and provide live code
-  that you can better understand. Depending on the browser you use and/or any extensions you might
-  have installed, these embeds might fail to work correctly
+  The documentation embeds live code sandboxes. Depending on your browser and extensions, these
+  embeds might not work.
 </Tip>
 
-🆕 You can now access the viewer sandbox from here: [https://viewer.speckle.systems/](https://viewer.speckle.systems/)
+Try the viewer in the sandbox at [viewer.speckle.systems](https://viewer.speckle.systems/).

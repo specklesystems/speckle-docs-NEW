@@ -162,7 +162,13 @@ print(f"Found {versions.totalCount} versions from Rhino")
 </Info>
 ### create()
 
-Create a new version in a model.
+Create a new version pointing at an object sent with `operations.send`. This publish path is deprecated, and Speckle does not guarantee it for new work: publish with `operations.send3`, which creates the version for you.
+
+<Note>
+  The returned version id is reserved: the version appears in queries only when the server finishes
+  processing — see [Publish through model
+  ingestions](/developers/migration/publish-through-ingestions).
+</Note>
 
 ```python lines icon="python"
 client.version.create(input: CreateVersionInput) -> Version
@@ -206,7 +212,7 @@ CreateVersionInput Fields:
 - `message` (str, optional) - Commit message describing this version
 - `source_application` (str, optional) - Name of the source application
 
-Complete Workflow Example:
+Complete workflow on the deprecated path:
 
 ```python lines icon="python"
 from specklepy.api import operations
@@ -415,7 +421,8 @@ MarkReceivedVersionInput Fields:
 
 <Info>
   This method is useful for automation workflows where you want to track which versions have been
-  processed by your scripts or applications.
+  processed by your scripts or applications. `operations.receive3` marks the version as received for
+  you unless you pass `mark_received=False`.
 </Info>
 ## Types
 
@@ -432,7 +439,9 @@ Represents a version within a Speckle model.
 </ResponseField>
 
 <ResponseField name="referencedObject" type="str">
-  The ID of the committed object
+  For a version published before 2026.9, the ID of the committed root object. For a 2026.9 version,
+  a bundle reference (`bundle.<projectId>.<modelId>.<versionId>`): load it with
+  `operations.receive3` and the version's ids instead.
 </ResponseField>
 
 <ResponseField name="createdAt" type="datetime">

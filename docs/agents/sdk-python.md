@@ -1,6 +1,6 @@
 # specklepy Documentation
 
-Applies when creating or editing pages under `developers/sdks/python/` or `next/developers/sdks/python/`.
+Applies when creating or editing pages under `developers/sdks/python/`.
 
 ## Audience (scripts first)
 

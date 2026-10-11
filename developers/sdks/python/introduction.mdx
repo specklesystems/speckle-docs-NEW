@@ -1,53 +1,32 @@
 ---
 title: 'specklepy'
 description: 'The Python SDK for Speckle - Build powerful AEC data workflows'
-docs_status: impacted
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/developers/sdks/python/breaking-changes
-change_scope: '2026.9 bundle receive, property access, relations, and publishing'
 ---
 
-<Visibility for="agents">
-  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: 2026.9 bundle receive, property access, relations, and publishing.
-
-For these changes, read [2026.9 guidance](/next/developers/sdks/python/breaking-changes).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
-
-**specklepy** is the Python SDK for Speckle, enabling you to interact with Speckle Server, send and receive geometry, and build custom integrations for the AEC industry.
+**specklepy** is the Python SDK for Speckle. Use it to load published models into scripts and notebooks, query their objects, properties, and relations, publish results back, and build custom integrations for the AEC industry.
 
 <Info>
   New to Speckle SDKs? Start with the shared [SDK introduction](/developers/sdks/introduction) for
   platform concepts and how Python and .NET relate.
 </Info>
 
-[GitHub Repository](https://github.com/specklesystems/specklepy)
-
-<Info>Compatible with **Speckle Object Model v3**</Info>
-
-<Warning>
-  After a connector publishes 2026.9 data, receive it with specklepy **2026.9.0b3** or later,
-  installed as `specklepy[bundle]`. An older build 404s. Versions from older connectors keep
-  working. See [Who's affected](/developers/migration/data-model-migration#whos-affected).
-</Warning>
-
 <Note>
-  In 2026.9, prefer `operations.receive3`, which returns a columnar `Model` instead of a `Base`
-  tree. See [Assess specklepy breaking changes](/next/developers/sdks/python/breaking-changes).
+  Moving a script written for `operations.receive` and a `Base`-tree walk? Follow [Migrate to
+  2026.9](/developers/sdks/python/migrate-to-2026-9) for side-by-side changes.
 </Note>
+
+[GitHub Repository](https://github.com/specklesystems/specklepy)
 
 <CardGroup cols={3}>
   <Card title="Quick Start" icon="rocket" href="/developers/sdks/python/getting-started/quickstart">
     Get up and running in 5 minutes
   </Card>
-  <Card title="Core Concepts" icon="book" href="/developers/sdks/python/concepts/overview">
-    Understand the fundamentals
+  <Card
+    title="Migrate to 2026.9"
+    icon="arrow-right-arrow-left"
+    href="/developers/sdks/python/migrate-to-2026-9"
+  >
+    Move an existing script to `receive3`
   </Card>
   <Card title="API Reference" icon="code" href="/developers/sdks/python/api-reference/client">
     Explore the complete API
@@ -55,67 +34,51 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
 </CardGroup>
 
 <Info>
-  📚 **Complete API Documentation**: For detailed, auto-generated API reference documentation, visit
+  **Complete API documentation**: for detailed, auto-generated API reference documentation, visit
   the [specklepy API Documentation](https://specklepy.speckle.systems/specklepy/api/client/).
 </Info>
 
 ## What is specklepy?
 
-specklepy is a comprehensive Python library that provides:
+specklepy is a Python library that provides:
 
-- **Object-based data exchange** - Send and receive geometry and BIM data without files
-- **GraphQL API client** - Full access to Speckle Server's API
-- **Extensible object model** - Create custom objects that inherit from `Base`
-- **Multiple transport options** - Store data locally (SQLite), in-memory, or on Speckle Server
-- **Geometry support** - Rich geometric primitives (Point, Line, Mesh, Brep, etc.)
-- **Structural analysis** - Complete FEA/FEM object types
+- **Model loading** - Load a version as a queryable `Model`: objects, path-keyed properties, and typed relations (`operations.receive3`)
+- **Publishing** - Describe objects and geometry in code and publish them as a new version (`operations.send3`)
+- **GraphQL API client** - Full access to Speckle Server's API: projects, models, versions, and more
+- **Geometry support** - Geometric primitives (Point, Line, Mesh, Brep, and more)
+- **Object-graph tools** - `Base` objects and transports for versions published before 2026.9
 
-<Info>specklepy v3 requires **Python 3.10+** and supports Windows, macOS, and Linux.</Info>
+<Info>specklepy requires **Python 3.10+** and supports Windows, macOS, and Linux.</Info>
 
 ## Key Features
 
-### Object-Based, Not File-Based
+### Query models, not files
 
-Forget about files. Speckle uses **objects** as the fundamental unit of data exchange.
+Speckle stores model data as objects with properties and relations, not files. Load a version and query it directly.
 
 ```python lines icon="python"
-# Create geometry objects
-start = Point(x=0, y=0, z=0)
-end = Point(x=10, y=10, z=0)
-line = Line(start=start, end=end)
+with operations.receive3(account, project_id, model_id, version_id) as model:
+    walls = [o for o in model.objects_with("category") if o.get_string("category") == "Walls"]
+    print(f"{len(walls)} walls on {len({w.level.name for w in walls if w.level})} levels")
 ```
 
 <Note>
-  Instead of files, Speckle stores sets of objects in Models. Models are contained within Projects.
-  Projects are contained within Workspaces. Learn more about organising your data in Speckle in the
-  [User Guide](https://docs.speckle.dev/workspaces/projects).
+  Speckle stores sets of objects in Models. Models are contained within Projects. Projects are
+  contained within Workspaces. Learn more about organising your data in Speckle in the [User
+  Guide](/workspaces/projects). How the data inside a version is shaped: [Object
+  model](/developers/object-model/overview).
 </Note>
 
 ### Version Control for AEC Data
 
-Every change creates a new **version** (commit), giving you full history and traceability.
+Every publish creates a new **version**, giving you full history and traceability.
 
 ```python lines icon="python"
-# Create a version with your data
-version_input = CreateVersionInput(
-    project_id=project_id,
-    model_id=model_id,
-    object_id=object_id,
-    message="Updated geometry"
-)
-version = client.version.create(version_input)
+# List the five most recent versions of a model
+versions = client.version.get_versions(model_id, project_id, limit=5)
+for version in versions.items:
+    print(version.id, version.message)
 ```
-
-<Note>
-  The `object_id` here is of a **Speckle object** that has already been sent to the Speckle server.
-  Sending will register it in the database, but visibility of it is within the scope of a
-  **version**.
-</Note>
-
-<Note>
-  Objects not associated with a **Model** **Version** are considered as "Zombie objects" or
-  "Orphans" other than keeping a record of `object_ids` they will be irretrievable.
-</Note>
 
 ### Real-Time Collaboration
 
@@ -149,62 +112,57 @@ client.subscribe.project_versions_updated(
     Connect Speckle to your internal tools, databases, applications with a python scripting
     environment, or third-party services.
   </Card>
-  <Card title="Structural Analysis" icon="bridge">
-    Work with FEA/FEM models using the built-in structural object types.
+  <Card title="Data analysis" icon="chart-bar">
+    Group, filter, and aggregate model properties in notebooks with pandas or similar tools.
   </Card>
 </CardGroup>
 
 ## Installation
 
-Install specklepy using pip:
+Install specklepy with the `bundle` extra:
 
 ```bash
-pip install specklepy
+pip install "specklepy[bundle]==2026.9.0b3"
 ```
 
+<Warning>
+  An older specklepy gets a 404 when it loads a version published by a 2026.9 connector. Install
+  **2026.9.0b3** or later with the `bundle` extra. See [Who's
+  affected](/developers/migration/data-model-migration#whos-affected).
+</Warning>
+
 <Note>
-  For detailed installation instructions, see the [Installation
+  2026.9.0b3 is a prerelease; a later stable 2026.9.0 replaces the pin without changing the calls.
+  For virtual environments and other options, see the [Installation
   Guide](/developers/sdks/python/getting-started/installation).
 </Note>
 
 ## Quick Example
 
-Here's a complete example of sending geometry to Speckle:
+Load the latest version of a model and count its objects by category:
 
 ```python lines icon="python"
-from specklepy.api.client import SpeckleClient
-from specklepy.api.credentials import get_default_account
 from specklepy.api import operations
-from specklepy.objects.geometry import Point
-from specklepy.transports.server import ServerTransport
-from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+from specklepy.api.client import SpeckleClient
 
 # Authenticate
-client = SpeckleClient(host="https://app.speckle.systems")
-account = get_default_account()
-client.authenticate_with_account(account)
+client = SpeckleClient(host="app.speckle.systems")
+client.authenticate_with_token("your_token_here")  # Replace with your token
 
-# Create geometry
-point = Point(x=10, y=20, z=5)
+project_id = "your_project_id"
+model_id = "your_model_id"
 
-# Send to server
-transport = ServerTransport(stream_id="your_project_id", client=client)
-object_id = operations.send(base=point, transports=[transport])
+# Find the latest version
+latest = client.version.get_versions(model_id, project_id, limit=1).items[0]
 
-# Get the main model
-models = client.model.get_models("your_project_id")
-model_id = models.items[0].id
+# Load it and count objects by category
+with operations.receive3(client.account, project_id, model_id, latest.id) as model:
+    counts = {}
+    for obj in model.objects:
+        key = obj.get_string("category") or obj.name or "Unknown"
+        counts[key] = counts.get(key, 0) + 1
 
-# Create a version
-version_input = CreateVersionInput(
-    project_id="your_project_id",
-    model_id=model_id,
-    object_id=object_id,
-    message="My first point!"
-)
-version = client.version.create(version_input)
-
-print(f"Created version: {version.id}")
+print(counts)
 ```
 
 ## Next Steps
@@ -228,11 +186,11 @@ print(f"Created version: {version.id}")
     Build your first integration
   </Card>
   <Card
-    title="Core Concepts"
-    icon="graduation-cap"
-    href="/developers/sdks/python/concepts/overview"
+    title="Migrate to 2026.9"
+    icon="arrow-right-arrow-left"
+    href="/developers/sdks/python/migrate-to-2026-9"
   >
-    Understand how specklepy works
+    Update an existing `operations.receive` script
   </Card>
 </CardGroup>
 

@@ -1,107 +1,78 @@
 ---
 title: 'Validation Widgets in Dashboards'
 sidebarTitle: 'Validation Widgets'
-description: 'Use Property Checker and Model Validation widgets inside Intelligence dashboards, and know when to use dedicated Data Validation.'
+description: 'Check model data with the Property checker widget in a dashboard, and know when to use a saved Data Validation check instead.'
 ---
 
-Use this page when your validation work happens inside **Intelligence dashboards**
-with widgets.
+Use this page when your validation work happens inside **Intelligence dashboards** with widgets.
 
-This is a focused sub-guide of [Common
-workflows](/analytics/dashboards/common-workflows).
+This is a focused sub-guide of [Common workflows](/analytics/dashboards/common-workflows).
 
 ## Which path are you on?
 
-- **Dashboard widget path**: Property Checker and Model Validation widgets inside
-  dashboards.
-- **Checks-and-standards path**: Validation Checks and Standards in the dedicated Data
-  Validation area.
+- **Dashboard widget path**: a **Property checker** widget shows a pass rate for one rule on a
+  dashboard, next to your other charts.
+- **Data Validation path**: a saved check in the dedicated Data Validation area runs many rules on
+  tracked models and keeps a history of results.
 
 <Info>
-  If you are trying to validate directly in dashboards, start here. If you are creating persistent
-  checks and standards in the web app flow, use [Data Validation
-  Overview](/analytics/data-validation/overview).
+  If you want a quick pass/fail view on a dashboard, start here. If you need saved rules that run on
+  every new version, use [Data Validation](/analytics/data-validation/overview).
 </Info>
 
-## Dashboard widget path
-
-In dashboards, use:
-
-- **Property Checker** for quick single-property checks.
-- **Model Validation** for reusable rulesets applied from widget context.
-
-## Typical dashboard validation workflow
+## Check a rule with Property checker
 
 <Steps>
-  <Step title="Open Intelligence dashboard">
-    Create or open a dashboard with model data sources.
+  <Step title="Open a dashboard">Create or open a dashboard with your model as a data source.</Step>
+  <Step title="Add Property checker">
+    Add **Property checker** from the **Basics** group in the widget panel.
   </Step>
-  <Step title="Add validation widget">
-    Add Property Checker for quick checks or Model Validation for full rulesets.
+  <Step title="Define the conditions">
+    Select **Configure conditions** and add conditions. The last condition is the check; the ones
+    above it narrow which elements are checked.
   </Step>
-  <Step title="Define rules">
-    Configure `WHERE` / `AND` / `CHECK` conditions, then set severity and message.
-  </Step>
-  <Step title="Run and interpret">
-    Review pass/fail outcomes in widget views and viewer colorization.
+  <Step title="Read the result">
+    The widget shows the pass rate. Turn on **Color objects** to see passing and failing elements.
   </Step>
 </Steps>
 
-## Rule authoring in widgets
+## How conditions work
 
-### Rule structure
+| Step    | What it does                                                 |
+| ------- | ------------------------------------------------------------ |
+| `WHERE` | The first condition: which elements to consider              |
+| `AND`   | Further conditions that narrow the same set                  |
+| `CHECK` | The last condition: what must be true for an element to pass |
 
-| Component       | Description                       |
-| --------------- | --------------------------------- |
-| `WHERE`         | Filter objects in scope           |
-| `AND`           | Additional filter clauses         |
-| `CHECK`         | Final validation assertion        |
-| Property Name   | Object property path to evaluate  |
-| Predicate       | Comparison operation              |
-| Value           | Reference value                   |
-| Report Severity | `ERROR`, `WARNING`, or `INFO`     |
-| Message         | User-facing text shown in results |
+Each condition is a property, a predicate, and a value where the predicate needs one. Predicates
+cover existence, comparison, pattern matching, and numeric ranges. See
+[Filters](/analytics/dashboards/filters) for the full predicate list.
 
-### Widget rule usage
+## Reading results
 
-- Property Checker supports quick rule creation in dashboard context.
-- Model Validation supports multi-rule rulesets for a single model.
-- Rulesets can be exported/imported for portability.
-- Predicates cover existence, comparison, pattern matching, and numeric range checks.
+- The chart shows the pass rate for the elements that reach the `CHECK` step.
+- The step list shows how many elements remain after each `WHERE`, `AND`, and `CHECK` condition, so
+  you can see where elements drop out.
+- **Explain this value** shows how the widget arrived at its number.
+- **Color objects** colours passing and failing elements in the model.
 
-### Migration to Data Validation
+## Move rules from a Model Validation widget
 
-Exported Model Validation check rulesets can be imported into **Data Validation
-(checks and standards)**, then used to create or update checks and standards in
-the product workflow.
+The **Model Validation** widget is retired: you can't add it to a dashboard. Use a **Property
+checker** for a pass rate on a dashboard, and a Data Validation check for rulesets. To bring an
+existing ruleset across, open **Model validation (beta)** in the sidebar of a dashboard that has
+the widget, export the ruleset as JSON, then select **Import Speckle** in a new Data Validation
+check. See [Import rules from IDS, COBie, or
+Speckle](/analytics/data-validation/checks#import-rules-from-ids-cobie-or-speckle).
 
-## Reading results in widgets
+## When to move to a Data Validation check
 
-### Property Checker results
+Use a Data Validation check when you need:
 
-- Donut/chart views show pass/fail percentages.
-- Validation steps show progression through `WHERE` / `AND` / `CHECK`.
-- Viewer colorization helps locate affected elements quickly.
+- many rules evaluated together, with severity and messages
+- results tracked over time for each model version
+- checks that run automatically on every new version
+- BCF export of failing elements
 
-### Model Validation results
-
-- Ruleset outcomes summarize pass/fail/not-applied behavior.
-- Breakdown views group outcomes by property values.
-- Rules tabs support rule-by-rule inspection.
-
-### Interpreting outcomes
-
-- **Pass**: compliant for evaluated scope.
-- **Fail**: non-compliant objects detected.
-- **Not Applied**: no matching objects or non-evaluable context.
-
-## When to move to checks-and-standards Data Validation
-
-Move to checks-and-standards Data Validation when you need:
-
-- check-centric runs with explicit tracked model history
-- standards-first authoring and reuse
-- check detail views focused on latest vs historical outcomes
-
-To keep a shared list of allowed values for rules (or for calculated **Map lookup**
-fields), import a [lookup table](/analytics/dashboards/lookup-tables) from CSV or Excel.
+See [Validate incoming models automatically](/workflows/validate-incoming-models-automatically) for
+the end-to-end pattern.

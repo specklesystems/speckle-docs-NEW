@@ -5,7 +5,7 @@ Copy what you need into your own app. Nothing here is a package, and nothing her
 patches the viewer.
 
 The step-by-step guide is
-[Load a 2026.9 bundle in the Viewer](https://docs.speckle.systems/next/developers/viewer/loading-bundles).
+[Load a 2026.9 bundle in the Viewer](https://docs.speckle.systems/developers/viewer/loading-bundles).
 
 <table padding="10" border="0">
    <tr>
@@ -133,7 +133,7 @@ draws leaves both off and never downloads the eav tables.
 
 Solids, centrelines and the scene-view tree are carried by the bundle and read by none of
 this. The rules for them are in [Load a bundle in your own
-code](https://docs.speckle.systems/next/developers/building-integrations/load).
+code](https://docs.speckle.systems/developers/building-integrations/load).
 
 ## Vendored files
 
