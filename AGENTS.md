@@ -5,7 +5,7 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 ## Repository layout
 
 - Pages are `.mdx`, routed by path. `docs.json` is the site config (`markdown.instructions`: site-wide agent rules); navigation `navigation.json`; redirects `redirects.json`.
-- User guides: `quickstart/`, `workspaces/`, `3d-viewer/`, `analytics/`, `workflows/`, `connectors/`, `beta/`. Developers: `developers/`. IT admins: `it-admin/`. `classic/` is frozen, outside the nav. Retired v2 URLs redirect to `migration/legacy-connectors`.
+- User guides: `quickstart/`, `workspaces/`, `3d-viewer/`, `analytics/`, `workflows/`, `connectors/`, `beta/`. Developers: `developers/`. IT admins: `it-admin/`. Retired v2 URLs redirect to `migration/legacy-connectors`.
 - `snippets/` reusable MDX fragments, `images/` assets, `examples/` runnable sample apps (own pnpm root), `scripts/` CI checks.
 - `README.md` is the human contributor guide; `FRONTMATTER_SCHEMAS.md` defines the remaining custom frontmatter.
 
