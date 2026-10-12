@@ -130,6 +130,31 @@ models that need to align in Speckle.
 Cloud sync accepts the same file formats as file uploads. See [Supported file
 formats](/connectors/direct-uploads/introduction#supported-file-formats).
 
+Trimble Connect syncs also accept formats that uploads do not. Trimble Connect converts every 3D
+model it stores into TrimBIM, its own model format, and for these files Speckle syncs that TrimBIM
+instead of the original:
+
+| Format                  | Extensions  |
+| ----------------------- | ----------- |
+| AutoCAD DXF             | .dxf        |
+| IFC ZIP                 | .ifczip     |
+| IGES                    | .igs, .iges |
+| Trimble TTM, TFLX       | .ttm, .tflx |
+| SketchUp Viewer SVD/SVL | .svd, .svl  |
+| Trimble VCL             | .vcl        |
+| Trimble Connect ZIP     | .tczip      |
+
+The sync keeps the file's own name, and the version shows the **TrimBIM** source badge. Formats
+Speckle converts directly, such as Revit, IFC and Navisworks, are unaffected. LandXML files are not
+included. TrimBIM (`.trb`) files sync as well; see
+[TrimBIM (TRB)](/connectors/direct-uploads/introduction#trimbim-trb).
+
+<Note>
+  For a file synced through TrimBIM, Speckle waits for Trimble Connect to finish converting the new
+  version, up to 10 minutes, before it converts the model. Expect those versions a little later than
+  others.
+</Note>
+
 <Note>
   A workspace in compatibility mode accepts fewer formats for cloud sync. See [Compatibility
   mode](/it-admin/compatibility-mode).
@@ -170,6 +195,13 @@ formats](/connectors/direct-uploads/introduction#supported-file-formats).
     after several failed checks), or the service account's access was revoked or its login expired.
     Check the file in Trimble Connect, then reconnect the service account if needed and resume the
     sync.
+  </Accordion>
+  <Accordion title="My DXF or IGES sync failed, but the file opens in Trimble Connect.">
+    These formats sync through the TrimBIM that Trimble Connect generates. If the sync's error says
+    Trimble Connect could not generate a TrimBIM, Trimble Connect did not process that file version:
+    check that it opens in the Trimble Connect 3D viewer and upload it again. If the error says the
+    TrimBIM was not ready within 10 minutes, Trimble Connect was still processing a large file: the
+    next file version syncs normally, or re-upload the file to trigger a new version.
   </Accordion>
   <Accordion title="I don't see my Trimble Connect project in the list.">
     Make sure the Trimble account you signed in with is a member of that project. Projects from

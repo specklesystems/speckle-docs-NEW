@@ -1,6 +1,6 @@
 ---
 title: Direct uploads
-description: 'Upload files directly to your Speckle projects and view them in your browser—no desktop software or connector needed. Supported formats, Tekla Structures, Vectorworks, and Solibri uploads.'
+description: 'Upload files directly to your Speckle projects and view them in your browser—no desktop software or connector needed. Supported formats, Tekla Structures, Vectorworks, Solibri, and TrimBIM uploads.'
 ---
 
 import CoordinationWorkflowRevit from '/snippets/connectors/coordination-workflow-revit.mdx'
@@ -85,7 +85,9 @@ Existing models stay readable; the rules affect importing new files and uploadin
 
 Availability depends on the conversion services enabled for your workspace. Cloud syncs (ACC,
 ProjectWise, and Trimble Connect) accept the same formats as uploads, except Tekla Structures:
-cloud syncs accept neither `.tekla` nor `.db1` files.
+cloud syncs accept neither `.tekla` nor `.db1` files. Trimble Connect syncs additionally accept the
+formats Trimble Connect converts to TrimBIM; see [Sync models from Trimble
+Connect](/connectors/cloud-integrations/trimble-connect#supported-file-formats).
 
 | Format                             | Extensions                                                               | Default       | Compatibility mode |
 | ---------------------------------- | ------------------------------------------------------------------------ | ------------- | ------------------ |
@@ -100,6 +102,7 @@ cloud syncs accept neither `.tekla` nor `.db1` files.
 | MicroStation                       | .dgn                                                                     | Supported     | Not supported      |
 | Vectorworks                        | .vwx                                                                     | Supported     | Not supported      |
 | Solibri                            | .smc                                                                     | Supported     | Not supported      |
+| TrimBIM                            | .trb                                                                     | Supported     | Not supported      |
 | Tekla Structures                   | .tekla, .db1                                                             | Where enabled | Not supported      |
 | Other mesh and interchange formats | .stl, .3mf, .3ds, .amf, .dxf, .x, .e57, .igs, .iges, .fbx, .ply, .sldprt | Not supported | Uploads only       |
 
@@ -299,6 +302,34 @@ before uploading again.
 
 If a Solibri upload fails, check that the file opens in Solibri and save it again before retrying.
 Contact Speckle support if it still fails.
+
+### TrimBIM (TRB)
+
+TrimBIM (`.trb`) is Trimble's model format. Trimble Connect converts every model it stores into
+TrimBIM for its 3D viewer, and Tekla Structures, Trimble Business Center and Trimble Connect for
+Windows export it. Upload a `.trb` file to publish the model without the application that made it.
+
+Speckle reads TrimBIM version 8, the version Trimble Connect writes. Files in another TrimBIM
+version are not supported yet.
+
+What is published:
+
+- Every element with its geometry, name, type and property sets, grouped by site, building and
+  storey, or by the groups saved in the file.
+- Materials and colours. Textures are not published.
+- Openings under the element they cut, and doors and windows linked to the wall that hosts them.
+- Elements whose geometry Speckle cannot read, such as alignments, grid lines, labels and bolts,
+  arrive with their properties and no geometry.
+
+Lengths, areas, volumes and masses are published in millimetres, square metres, cubic metres and
+kilograms, the units a TrimBIM file stores.
+
+If a TrimBIM upload fails:
+
+| Message                                       | What to do                                                                     |
+| --------------------------------------------- | ------------------------------------------------------------------------------ |
+| TrimBIM version _number_ is not supported yet | Export the model again from a current Trimble application, or contact support. |
+| Not a TrimBIM file                            | Check that the file is a TrimBIM file, not another file renamed to `.trb`.     |
 
 ## Move a workflow off a format the default path does not accept
 
