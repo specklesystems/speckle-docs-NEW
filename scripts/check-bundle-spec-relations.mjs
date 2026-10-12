@@ -3,7 +3,7 @@
  * Bundle-spec relation drift check.
  *
  * Compares the relation names in table rows on
- * next/developers/object-model/relations.mdx against the live relation
+ * developers/object-model/relations.mdx against the live relation
  * catalog in speckle-bundle-spec. Names only: the page's section placement
  * and reader-facing prose have no mechanical source and are drafted via the
  * sync-object-model-docs skill.
@@ -31,7 +31,7 @@ import { execFileSync } from 'node:child_process'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
 
-const RELATIONS_MDX = path.join(root, 'next', 'developers', 'object-model', 'relations.mdx')
+const RELATIONS_MDX = path.join(root, 'developers', 'object-model', 'relations.mdx')
 const SPEC_PATH = 'spec/bundle-spec.sql'
 const DEFAULT_REF = 'origin/main'
 const DUCKDB = process.env.DUCKDB_BIN || 'duckdb'

@@ -1,37 +1,25 @@
 ---
 title: Object Sender
-description: Send Speckle objects to Speckle Server
-docs_status: impacted
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/developers/building-applications
-change_scope: 'Still works in 2026.9 — the server converts an uploaded object graph into a bundle; what changes is what consumers read back'
+description: Send Speckle object graphs to Speckle Server from JavaScript/TypeScript. The server converts them to bundles.
 ---
 
-<Visibility for="agents">
-  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: Still works in 2026.9 — the server converts an uploaded object graph into a bundle; what changes is what consumers read back.
-
-For these changes, read [2026.9 guidance](/next/developers/building-applications).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
+<Note>
+  This package sends object graphs, the publish format before 2026.9, and the server converts each
+  one to a bundle before the version appears. That path is superseded: for new work, see [Writing
+  data](/developers/building-apps#writing-data).
+</Note>
 
 ## Overview
 
-`@speckle/objectsender` is a JavaScript/TypeScript package for sending Speckle objects to Speckle Server. It handles object serialization, transport, and version creation.
+`@speckle/objectsender` is a JavaScript/TypeScript package for sending Speckle objects to Speckle Server. It serializes an object graph, uploads it to a project, and returns the id of its root object. You then create a version that points at that id.
 
 **Package:** [@speckle/objectsender on npm](https://www.npmjs.com/package/@speckle/objectsender)
 
-<Warning>
-  This package writes object graphs. A 2026.9 version is a bundle, which is built and uploaded
-  through an ingestion instead — and unlike the read path, there is no published JavaScript bundle
-  builder to move to. See [Building applications in 2026.9](/next/developers/building-applications)
-  for what that leaves you.
-</Warning>
+Creating the version returns a reserved id, not a version you can read yet. Wait for the
+conversion to finish before you query or link it; see [Publish through model
+ingestions](/developers/migration/publish-through-ingestions). A server without legacy-send support
+rejects object-graph publishes with `LEGACY_SEND_UNSUPPORTED`. Consumers read the converted version
+as a bundle.
 
 ## Installation
 
@@ -42,29 +30,48 @@ npm install @speckle/objectsender
 ## Quick Start
 
 ```typescript
-import { ObjectSender } from '@speckle/objectsender'
+import { send, Base } from '@speckle/objectsender'
 
-// Initialize sender
-const sender = new ObjectSender(client, projectId)
+const { hash } = await send(new Base({ name: 'My object' }), {
+  serverUrl: 'https://app.speckle.systems',
+  projectId,
+  token
+})
+```
 
-// Send object
-const objectId = await sender.sendObject(myObject)
+Then create a version on a model with the returned `hash` as its `objectId`, through the
+`versionMutations.create` GraphQL mutation:
+
+```graphql
+mutation CreateVersion($input: CreateVersionInput!) {
+  versionMutations {
+    create(input: $input) {
+      id
+    }
+  }
+}
+```
+
+```json Variables
+{
+  "input": {
+    "projectId": "<projectId>",
+    "modelId": "<modelId>",
+    "objectId": "<hash>",
+    "message": "Sent from my app"
+  }
+}
 ```
 
 ## Features
 
 - Send objects to Speckle Server
 - Handle object serialization
-- Create versions and commits
+- Detach and chunk large properties with the `Detach` and `Chunkable` decorators
 - Support for large object hierarchies
 
 ## Documentation
 
 For complete documentation, examples, and API reference, visit the package on npm:
 
-[View on npm →](https://www.npmjs.com/package/@speckle/objectsender):
-
-<Note>
-  This documentation is a stub. Full documentation coming soon. For now, refer to the npm package
-  page for detailed usage examples and API documentation.
-</Note>
+[View on npm →](https://www.npmjs.com/package/@speckle/objectsender)

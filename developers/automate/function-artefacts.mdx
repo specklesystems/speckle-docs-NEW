@@ -59,12 +59,17 @@ Speckle Automate functions can generate structured reports in various formats, s
 
 #### Example: Generating a PDF Report
 
-```python
+`store_file_result` takes the file's path and uploads it while the file still exists, so call it inside the temporary directory block. The file name in the path is the name readers see.
+
+```python report.py
 import os
 import tempfile
-from fpdf import FPDF
 
-def generate_pdf_report(data, filename):
+from fpdf import FPDF
+from speckle_automate import AutomationContext
+
+
+def store_pdf_report(automate_context: AutomationContext, data: dict, filename: str) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_file_path = os.path.join(temp_dir, filename)
         pdf = FPDF()
@@ -77,78 +82,71 @@ def generate_pdf_report(data, filename):
             pdf.cell(200, 10, txt=f"{key}: {value}", ln=True)
 
         pdf.output(temp_file_path)
-        automation_context.store_file_result(temp_file_path, "application/pdf")
+        automate_context.store_file_result(temp_file_path)
 ```
 
 ### Example: Creating a New Model Version
 
-Automation functions can generate new structured models, storing enhanced data or derived geometry.
+Automation functions can generate new structured models, storing enhanced data or derived geometry. The target model must not be the model that triggered the run. The returned version id is reserved: the version appears once the server finishes processing it.
 
 #### Example: Creating a New Model Version in Speckle
 
-```csharp
-var newVersion = await CreateNewVersion(
-                           automationContext,
-                           versionCollection,
-                           targetModelName,
-                           revitCategory,
-                           objects.Count
-                       );
+```python new_version.py
+version = automate_context.create_new_version_in_project(
+    root_object,
+    model_id=target_model_id,
+    version_message="Derived massing model",
+)
 ```
+
+```csharp NewVersion.cs icon="/images/developers/sdks/csharp.svg"
+var newVersion = await context.CreateNewVersionInProject(
+    rootObject,
+    targetModel,
+    versionMessage: "Derived massing model"
+);
+```
+
+In C#, Speckle.Automate.Sdk **2026.9.0-beta.4** and later can also publish a `BundleBuilder` and wait for the server to create the version. See [Publish a bundle](/developers/automate/api-reference#publish-a-bundle).
 
 We can also populate the context view with details of the created model:
 
-```csharp
-// Link source and target models
-await LinkSourceAndTargetModels(automationContext, targetModelName, newVersion);
-```
-
-```csharp
+```csharp LinkModels.cs icon="/images/developers/sdks/csharp.svg"
 private static async Task LinkSourceAndTargetModels(
-     AutomationContext context,
-     string targetModelName,
-     string newVersion
- )
- {
-     var targetModelId = await FindTargetModelId(context, targetModelName);
+    IAutomationContext context,
+    string targetModelName,
+    string newVersionId
+)
+{
+    var targetModelId = await FindTargetModelId(context, targetModelName);
 
-     if (!string.IsNullOrEmpty(targetModelId))
-     {
-         var modelVersionIdentifier = $"{targetModelId}@{newVersion}";
-         context.SetContextView([modelVersionIdentifier], false);
-     }
- }
+    if (!string.IsNullOrEmpty(targetModelId))
+    {
+        var modelVersionIdentifier = $"{targetModelId}@{newVersionId}";
+        context.SetContextView([modelVersionIdentifier], false);
+    }
+}
 
- private static async Task<string> FindTargetModelId(
-     AutomationContext context,
-     string targetModelName
- )
- {
-     var project = await context.SpeckleClient.Project.GetWithModels(
-         projectId: context.AutomationRunData.ProjectId,
-         modelsLimit: 1,
-         modelsFilter: new ProjectModelsFilter(
-             search: targetModelName,
-             contributors: null,
-             sourceApps: null,
-             ids: null,
-             excludeIds: null,
-             onlyWithVersions: false
-         )
-     );
+private static async Task<string> FindTargetModelId(
+    IAutomationContext context,
+    string targetModelName
+)
+{
+    var project = await context.SpeckleClient.Project.GetWithModels(
+        projectId: context.AutomationRunData.ProjectId,
+        modelsLimit: 1,
+        modelsFilter: new ProjectModelsFilter(search: targetModelName)
+    );
 
-     return project.models?.items.FirstOrDefault()?.id ?? string.Empty;
- }
+    return project.models?.items.FirstOrDefault()?.id ?? string.Empty;
+}
 ```
 
-The `SetContextView` method populates the context view with the newly created model, allowing users to visualize the generated data directly within Speckle. The example shows how the AutomateContext SDK contains all the necessary methods to interact with Speckle data and manage automation results effectively. The combination of the context object with the Speckle Sharp SDK (and specklepy) allows for endless possibilities for the interaction of model data and the data hub itself.
+`SetContextView` records the new model version as the run's context view. The 3D viewer does not show Automate results; see [Viewing Automation Results](/developers/automate/viewing-results) for where run results appear. The automation context, together with the rest of [specklepy](/developers/sdks/python/introduction) or [Speckle.Sdk](/developers/sdks/dotnet/introduction), covers both the run's results and the project's data.
 
 ## Best Practices
 
-1. Include appropriate file extensions
-2. Use correct MIME types
-3. Handle large files appropriately
-4. Generate artifacts after processing
-5. Include metadata when relevant
-6. Store files in a temporary directory
-7. Clean up temporary files after use (a nicety, not a necessity)
+1. Give each file a descriptive name and the right extension: readers see that name.
+2. Generate files after processing, once the results are final.
+3. Write files to a temporary directory, and store them before the directory is removed.
+4. Keep files to a size readers can download comfortably.

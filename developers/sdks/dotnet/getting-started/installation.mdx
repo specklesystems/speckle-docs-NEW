@@ -1,10 +1,10 @@
 ---
 title: 'Installation'
-description: 'Set up a C# project for Speckle automation — NuGet packages and one-time bootstrap'
+description: 'Set up a C# project for Speckle automation — the Speckle.Sdk NuGet package and one-time bootstrap'
 sidebarTitle: 'Installation'
 ---
 
-Set up a C# project for Speckle automation: install NuGet packages, register the SDK once at startup, and optionally add `Speckle.Objects` when you work with geometry types.
+Set up a C# project for Speckle automation: install the Speckle.Sdk NuGet package, then register the SDK once at startup.
 
 **When to read this:** before your first compile against Speckle.Sdk. **Read next:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool), then [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) for the canonical bootstrap snippet.
 
@@ -22,27 +22,21 @@ Speckle.Sdk targets three frameworks, so it runs in both modern and legacy host 
 
 ## Install with the .NET CLI
 
+Install a 2026.9 build of Speckle.Sdk:
+
 ```bash
-dotnet add package Speckle.Sdk
+dotnet add package Speckle.Sdk --version 2026.9.0-beta.7
 ```
 
-Or add the package reference directly to your `.csproj`:
+The command writes this reference into your project file:
 
 ```xml
-<ItemGroup>
-  <PackageReference Include="Speckle.Sdk" Version="3.*" />
-</ItemGroup>
-```
-
-### Install a specific version
-
-```bash
-dotnet add package Speckle.Sdk --version 3.21.1
+<PackageReference Include="Speckle.Sdk" Version="2026.9.0-beta.7" />
 ```
 
 <Note>
-  Check [NuGet](https://www.nuget.org/packages/Speckle.Sdk) for the latest published version before
-  pinning — the version above is a point-in-time example, not a recommendation to stay on it.
+  2026.9.0-beta.7 is a prerelease; a plain `dotnet add package Speckle.Sdk` installs 2026.8, which
+  has no `Receive3`. A later stable 2026.9.0 replaces the pin without changing the calls.
 </Note>
 
 <Warning>
@@ -50,18 +44,14 @@ dotnet add package Speckle.Sdk --version 3.21.1
   than using a floating range in production projects, and review release notes before upgrading.
 </Warning>
 
-## Add geometry support (optional)
+## Geometry types
 
-If you plan to work with geometry (`Point`, `Line`, `Mesh`, `Brep`, and other primitives), also install `Speckle.Objects`:
-
-```bash
-dotnet add package Speckle.Objects
-```
+Geometry types such as `Point`, `Line`, `Mesh`, and `Brep` ship in Speckle.Sdk. You do not need a second package, and the namespaces stay `Speckle.Objects.*`.
 
 <Note>
-  `Speckle.Objects` is a separate package from `Speckle.Sdk`. The core SDK handles sending,
-  receiving, and the object model; `Speckle.Objects` adds the default geometry types built on top of
-  it.
+  Projects on Speckle.Sdk 2026.8 or earlier also reference `Speckle.Objects`. Update every Speckle
+  package to the same 2026.9 version, then remove the `Speckle.Objects` reference. See [Update
+  packages](/developers/sdks/dotnet/migrate-to-2026-9#update-packages).
 </Note>
 
 ## Register the SDK (one-time bootstrap)
@@ -78,9 +68,8 @@ var provider = services.BuildServiceProvider();
 ```
 
 <Note>
-  Pass `Speckle.Objects` or custom type assemblies in `AddSpeckleSdk` when you receive those types —
-  see [Automate with scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks) for the
-  full bootstrap with assemblies.
+  Built-in geometry types register automatically. Pass an assembly to `AddSpeckleSdk` only when you
+  register your own `Base` types.
 </Note>
 
 ## Verify installation
@@ -115,17 +104,17 @@ Speckle.Sdk brings in these dependencies automatically:
 
 <Info>
   You don't need to install these manually — NuGet handles them automatically.
-  `Speckle.Sdk.Dependencies` bundles additional transitive dependencies and should not be referenced
-  directly.
+  `Speckle.Sdk.Dependencies` and `Speckle.Sdk.Parquet` bundle additional transitive dependencies and
+  should not be referenced directly.
 </Info>
 
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Do I need both Speckle.Sdk and Speckle.Objects?">
-    **Speckle.Sdk** is required for sending, receiving, and the object model. Add
-    **Speckle.Objects** when you use built-in geometry types (`Point`, `Line`, `Mesh`, and so on).
-    Pass the `Speckle.Objects` assembly in `AddSpeckleSdk` so those types deserialize on receive.
+  <Accordion title="Why does my build fail with SPKSDK001 or SPKSDK002?">
+    Your project still references a `Speckle.Objects` package that does not match Speckle.Sdk.
+    Update every Speckle package to the same version, then remove the `Speckle.Objects` reference.
+    Its types are part of Speckle.Sdk.
   </Accordion>
   <Accordion title="Do I need to understand dependency injection to install the SDK?">
     No. You paste a short `AddSpeckleSdk` block once — see [Automate with
@@ -147,14 +136,14 @@ Speckle.Sdk brings in these dependencies automatically:
     icon="chart-bar"
     href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool"
   >
-    End-to-end load, traverse, and CSV export
+    End-to-end CSV report from a live model
   </Card>
   <Card
     title="Automate with scripts"
     icon="terminal"
     href="/developers/sdks/dotnet/getting-started/scripts-and-notebooks"
   >
-    Canonical bootstrap and Send2
+    Canonical bootstrap and `Receive3`
   </Card>
   <Card
     title="Authentication"

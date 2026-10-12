@@ -5,7 +5,7 @@ description: >-
   future screenshots on instructional steps and new-concept section intros, when
   the user asks for image placeholders, a screenshot shot list, or a placeholder
   pass, or before a later visual-assets wave.
-argument-hint: '[optional: path or section, e.g. next/analytics]'
+argument-hint: '[optional: path or section, e.g. analytics]'
 ---
 
 # Docs image placeholders
@@ -42,7 +42,7 @@ When a capture lands, replace the comment with a `<Frame>` around the asset and 
 
 ## Pass
 
-1. Scope to `$ARGUMENTS` if given, otherwise the files in the current docs change set, or `next/` when the work is the 2026.9 preview.
+1. Scope to `$ARGUMENTS` if given, otherwise the files in the current docs change set.
 2. Search existing `IMAGE_PLACEHOLDER` comments so you do not double-mark.
 3. Read each page. Insert comments only at the criteria above.
 4. Put comments **adjacent** to Steps, not inside a Step.

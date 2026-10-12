@@ -1,25 +1,12 @@
 ---
 title: Versions and the root object
-description: How a version resolves to its root object, and which metadata lives on each
-docs_status: impacted
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/developers/object-model/version-metadata
-  - /next/developers/object-model/overview
-change_scope: 'Bundle-only versions carry a bundle reference in referencedObject instead of a root object id'
+description: How a version published before 2026.9 resolves to its root object, which metadata lives on each, and what a bundle version carries instead
 ---
 
-<Visibility for="agents">
-  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: Bundle-only versions carry a bundle reference in `referencedObject` instead of a root object id.
-
-For these changes, read [Where version metadata lives in 2026.9](/next/developers/object-model/version-metadata) and [2026.9 guidance](/next/developers/object-model/overview).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
+<Note>
+  This page describes the root object of versions published before 2026.9. Bundle data has no root
+  object; see [Where version metadata lives](/developers/object-model/version-metadata).
+</Note>
 
 A script that looks for the publish message on the root object, or for units on the version, finds nothing. The two live in different records. The **Version** is the record the server keeps: who published, when, from which application, and which object to fetch. The **root object** is the top of the data package itself: the file name, the units, the element tree, and the proxies. This page shows how the two connect and how to read each one.
 
@@ -44,6 +31,32 @@ The root object is a [Root Collection](/developers/data-schema/concepts#root-col
   There is nothing to receive for such a version.
 </Note>
 
+## Bundle versions have no root object
+
+A bundle version, the format 2026.9 connectors and file uploads publish, has no root object to
+resolve. Its `referencedObject` is a bundle reference, `bundle.<projectId>.<modelId>.<versionId>`, and its
+`schemaVersion` is `3` (an object graph has `null`). Dispatch on the `bundle.` prefix before you
+receive:
+
+- **Do not fetch the reference from the objects endpoints.** It returns 404 with
+  `BUNDLE_REFERENCE_NOT_FOUND`. Receive the version with `receive3` / `Receive3` instead, using the
+  project and version ids you already hold.
+- **Read version facts from the version record.** The message, author, source application, and
+  creation date stay on the version; see [What lives on the Version](#what-lives-on-the-version).
+- **Read model-wide facts from the received model.** `units` is per object, and the reference
+  point, document settings, and camera views are model-scoped properties. There is no root `name`,
+  `elements` tree, or Proxy array.
+
+[Where version metadata lives](/developers/object-model/version-metadata) maps each field of the root
+object to where it lives in bundle data.
+
+<Warning>
+  Receive a bundle version with `receive3` / `Receive3`, not `receive` / `Receive2`. The older calls
+  return a compatibility projection built at receive time: a `Collection` named `Received model`
+  with the constant id `artifact-root`. Do not key on its id, and do not read a message or source
+  application from it.
+</Warning>
+
 ## What lives on the Version
 
 The server stores these fields when the version is created. Read them from the version record. They are not present on the root object.
@@ -55,7 +68,7 @@ The server stores these fields when the version is created. Read them from the v
 | `sourceApplication`  | The publishing application slug: the host application for connectors, `.net` or `py` by default for the SDKs.              |
 | `createdAt`          | When the server created the version.                                                                                       |
 | `authorUser`         | The publishing user, or `null` when no author is available.                                                                |
-| `referencedObject`   | The root object id. `null` beyond the version history limit.                                                               |
+| `referencedObject`   | The root object id, or a bundle reference for a bundle version. `null` beyond the version history limit.                   |
 | `previewUrl`         | The URL of the server-rendered preview image.                                                                              |
 | `totalChildrenCount` | The object count the publisher reported at creation time, not a count the server verified. Optional, and only via GraphQL. |
 | `parents`            | Ids of the versions this one was derived from. Optional, and only via GraphQL.                                             |
@@ -156,10 +169,13 @@ You should see one line with the publish message and author, and one line with t
 
 ## Set each field in the right place when you publish
 
-The same split applies when you publish from a script.
+New work publishes a bundle instead: give the source application and message to the model
+ingestion when it opens; see [Where version
+metadata lives](/developers/object-model/version-metadata#how-a-publish-creates-a-version). The
+deprecated object-graph publish keeps the split between root object and version record:
 
 - Set `name`, `units`, and `elements` on the root `Base` before you send it. Set them as dynamic properties on a `Collection` to match what connectors publish.
-- Pass `message`, `sourceApplication`, and `totalChildrenCount` in the create-version input after the send returns the root object id.
+- Pass `message`, `sourceApplication`, and `totalChildrenCount` in the create-version input after the send returns the root object id. The call returns a reserved id: the version exists once the server finishes converting it. See [Publish through model ingestions](/developers/migration/publish-through-ingestions).
 
 See [Version (.NET)](/developers/sdks/dotnet/api-reference/resources/version) and [VersionResource (Python)](/developers/sdks/python/api-reference/resources/version) for the create call.
 

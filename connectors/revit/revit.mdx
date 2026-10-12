@@ -2,12 +2,6 @@
 title: How to use Speckle for Revit
 sidebarTitle: Quickstart
 description: 'Step-by-step guide for using the Revit connector'
-docs_status: changed
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/connectors/revit/introduction
-change_scope: 'Revit placement and Apply Transform'
 ---
 
 import Versions from '/snippets/versions.mdx'
@@ -20,17 +14,6 @@ import Load from '/snippets/connectors/load.mdx'
 import LoadFaq from '/snippets/connectors/load-faq.mdx'
 import CoordinationWorkflowRevitBenefit from '/snippets/connectors/coordination-workflow-revit-benefit.mdx'
 
-<Visibility for="agents">
-  Documentation status: changed for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: Revit placement and Apply Transform.
-
-For these changes, read [2026.9 guidance](/next/connectors/revit/introduction).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
-
 <Versions app="Revit" versions="2023, 2024, 2025, 2026, & 2027" os="Windows" />
 
 <Warning>
@@ -40,9 +23,9 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
 </Warning>
 
 <Note>
-  Update the Revit connector from **1 September 2026**, and no later than **1 November 2026**.
-  Existing connectors keep working. For Apply Transform, the placement picker, and how reference
-  points work in 2026.9, see [Revit in 2026.9](/next/connectors/revit/introduction).
+  The 2026.9 upgrade window is open until **1 November 2026**. Update the Revit connector before
+  then. To move existing models and scripts onto model placement, see [Upgrade to
+  2026.9](#upgrade-to-2026-9).
 </Note>
 
 ## Setup
@@ -108,21 +91,17 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
     </Accordion>
 
     <Accordion title="How do I make sure my Revit model is aligned with my other Speckle models?">
-      If you are using reference points to coordinate your project, you can publish your Revit model according to a specific reference point:
-      1. Expand the **Settings** field at the bottom of the **Select objects** dialog while publishing a new version.
-      <Frame>
-          <img src="/images/connectors/revit_settings.jpg" alt="Revit settings" />
-      </Frame>
-      2. Set the **Reference Point** setting to your desired reference point.
-      Your published model will now be oriented according to your specified reference point.
+      Choose the datum consumers should use with the **Reference Point** setting when you publish. Geometry stays in Revit's internal coordinates, and Speckle stores your choice as the model placement. Collaborators still need matching shared coordinates for models to overlay. See [Model placement](#model-placement).
     </Accordion>
 
-<Accordion title="What is the difference between the Survey Point and Shared Coordinates reference points?">
-  Both are based on Revit's survey point, but differ in rotation: - **Survey Point** positions the
-  model at the survey point with no rotation. - **Shared Coordinates** positions the model at the
-  survey point and applies the True North rotation. In short: **Shared Coordinates = Survey Point +
-  True North rotation**.
-</Accordion>
+    <Accordion title="What is the difference between the Survey and SharedCoordinates reference points?">
+      Both are based on Revit's survey point, but differ in rotation:
+
+      - **Survey** positions the model at the survey point with no rotation.
+      - **SharedCoordinates** positions the model at the survey point and applies the True North rotation.
+
+      In short: **SharedCoordinates = Survey + True North rotation**.
+    </Accordion>
 
     <Accordion title="How do I see the custom properties on my published Revit elements, like parameters or material quantities?">
       All custom properties can be found under the `properties` field when you select and view a Revit object in your browser.
@@ -177,14 +156,14 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
 
     <Accordion title="How do I load a Speckle Model according to a specific reference point in Revit?">
       If you are using reference points to coordinate your project, you can load your Revit model according to a specific reference point:
-      1. Expand the **Settings** field at the bottom of the **Select objects** dialog while publishing a new version.
+      1. Expand the **Settings** field at the bottom of the dialog while loading a model.
       <Frame>
           <img src="/images/connectors/revit_settings_receive.jpg" alt="Revit settings" />
       </Frame>
-      2. Set the **Reference Point** setting to **source** if you want to load your model according to the incoming model coordinate system.
-      3. Set the **Reference Point** setting to **InternalOrigin** if you want to load your model according to your current document's internal origin.
-      4. Set the **Reference Point** setting to **ProjectBase** if you want to load your model according to your current document's project base point.
-      5. Set the **Reference Point** setting to **Survey** if you want to load your model according to your current document's survey point.
+      2. Set **Reference Point** to **Source** (the default) to load the model according to the incoming model's placement.
+      3. Set it to **InternalOrigin**, **ProjectBase**, **Survey**, or **SharedCoordinates** to load the model according to that datum in your current document.
+
+      Models published from a 2026.9 connector land in the right place whatever the sender's **Apply Transform** choice. See [Model placement](#model-placement).
     </Accordion>
 
     <Accordion title="How do I change the material of a Speckle model object I loaded in Revit?">
@@ -215,4 +194,149 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
 
     <LoadFaq app="Revit" />
 
+</AccordionGroup>
+
+## Model placement
+
+Published geometry stays in Revit's internal coordinates. The **Reference Point** setting selects
+the datum you want consumers to use, and Speckle stores that choice next to the model as a **model
+placement**. The viewer and the Revit connector apply it when they load. One publish serves every
+datum: collaborators choose their placement on their side instead of asking you to republish.
+
+A linked model's placement in the host document is never written as the model's reference point.
+
+### Publish with a reference point
+
+{/* IMAGE_PLACEHOLDER: Revit publish Settings — Reference Point dropdown next to Apply Transform toggle, default off. */}
+
+<Steps>
+  <Step title="Open publish settings">
+    Expand **Settings** at the bottom of the **Select objects** dialog while publishing a new
+    version. You should see **Reference Point** and an **Apply Transform** toggle.
+  </Step>
+  <Step title="Choose a reference point">
+    Set **Reference Point** to **InternalOrigin** (default), **ProjectBase**, **Survey**, or
+    **SharedCoordinates**. Use **SharedCoordinates** to match a survey or civil model's orientation,
+    not just its origin.
+  </Step>
+  <Step title="Leave Apply Transform off">
+    Keep **Apply Transform** off, the default. Geometry stays in internal coordinates and the
+    placement is stored separately. You should see the toggle remain off when you publish.
+  </Step>
+</Steps>
+
+**Survey** uses the survey point origin only, with no rotation. **SharedCoordinates** adds the True
+North rotation.
+
+<Warning>
+  Turn **Apply Transform** on only if a downstream tool that does not understand model placements
+  needs the geometry pre-positioned. Once it is on, one publish cannot serve every datum for that
+  model.
+</Warning>
+
+<Note>
+  If the selected base point cannot be found in the document, the connector falls back to the
+  internal origin. The viewer then shows **Internal Origin (fallback)**.
+</Note>
+
+### View the placement in the web app
+
+{/* IMAGE_PLACEHOLDER: Viewer placement picker — published datum marked (published); Internal Origin, Project Base Point, Survey Point origin, Shared Coordinates listed. */}
+
+The web viewer lands the model using its model placement. A **placement picker** lets you inspect
+the same model from any other datum without republishing. The datum you published with is marked
+**(published)**.
+
+### Load with a reference point
+
+The **Reference Point** load setting offers **Source** (default), **InternalOrigin**,
+**ProjectBase**, **Survey**, and **SharedCoordinates**. Models published from a 2026.9 connector land
+in the right place whatever the sender's **Apply Transform** choice. If the sender applied the
+transform to the geometry, Revit inverts it automatically.
+
+With **Source**:
+
+- 2026.9 publish, Apply Transform off: nothing is applied. Geometry is already in internal
+  coordinates.
+- 2026.9 publish, Apply Transform on: the sender's transform is inverted automatically.
+- Publish from before 2026.9: the sender's transform is inverted, as before.
+
+With a named datum, Revit first removes any transform the sender applied, then applies your chosen
+datum.
+
+### Read the placement in a script
+
+Scripts and SDK consumers read `modelPlacement.*` from `eav.model`. Apply the placement yourself
+unless the sender turned **Apply Transform** on.
+
+- `modelPlacement.transform`: internal origin to the datum selected on publish. The value is 16
+  row-major doubles. Translation is in `modelPlacement.units`.
+- `modelPlacement.default`: which datum that is (`internalOrigin`, `projectBasePoint`,
+  `surveyPoint`, `sharedCoordinates`).
+- `modelPlacement.source`: the same datum, or `internalOriginFallback` when the selected base point
+  could not be found in the document.
+- `modelPlacement.options.<datum>.transform`: the transform for every available datum, so a
+  consumer can switch.
+- `modelPlacement.appliedToGeometry`: `false` by default, `true` only if the sender turned **Apply
+  Transform** on. If it is `true`, invert the transform before you place the model.
+- `referencePoints.*` and `projectLocation.trueNorthAngle`: raw base-point positions, True North,
+  and site location.
+
+## Upgrade to 2026.9
+
+Models you already published stay readable, and the 2026.9 connector loads them. Re-publish once
+from a 2026.9 connector if you need the viewer placement picker and named datums for an existing
+model. Scripts and SDK consumers that read `referencePointTransform` on the root object must move
+to `modelPlacement.*`.
+
+| Before 2026.9                                    | 2026.9                                       |
+| ------------------------------------------------ | -------------------------------------------- |
+| Geometry rewritten so the chosen datum is origin | Geometry stays in Revit internal coordinates |
+| Root `referencePointTransform`                   | `modelPlacement.*` on `eav.model`            |
+| Datum kind not recorded                          | Named datum plus a transform for every datum |
+| One publish per consumer datum                   | One publish; consumers pick the datum        |
+
+A connector from 2026.8 or earlier cannot load a version published by a 2026.9 connector. When a
+2026.9 consumer reads a model published before 2026.9, the old root transform is migrated into a
+placement record, but the datum kind cannot be recovered.
+
+### Re-publish an existing model
+
+<Steps>
+  <Step title="Update the Revit connector">
+    Install a 2026.9 Revit connector. You should see **Apply Transform** next to **Reference Point**
+    in publish settings.
+  </Step>
+  <Step title="Publish a new version">
+    Leave **Apply Transform** off, then publish as usual. You should see a new version on the model,
+    with the placement picker available in the viewer.
+  </Step>
+</Steps>
+
+### Update scripts and SDK consumers
+
+The model is already in scope.
+
+1. Read `modelPlacement.*` from `eav.model`.
+2. Apply `modelPlacement.transform`. The value is 16 row-major doubles. Translation is expressed in
+   `modelPlacement.units`.
+3. If `modelPlacement.appliedToGeometry` is `true`, invert that transform before you place the
+   model. Do this regardless of the receive datum.
+4. Then apply the receive datum you want, if it is not **Source**.
+
+AutoCAD and Civil 3D follow the same contract.
+
+<AccordionGroup>
+  <Accordion title="I published with Survey and the model shows at the internal origin in the viewer. What happened?">
+    Check the placement picker. The published datum is marked **(published)**. If it shows
+    **Internal Origin (fallback)**, the survey point could not be resolved in your document.
+  </Accordion>
+  <Accordion title="Where did referencePointTransform go?">
+    Versions published from 2026.9 replace it with a placement record. Read `modelPlacement.*` from
+    `eav.model`. See [Read the placement in a script](#read-the-placement-in-a-script).
+  </Accordion>
+  <Accordion title="Something still lands in the wrong place. What should I send?">
+    Report it with the model URL and the publish and receive settings on both sides. The viewer's
+    placement overlay shows world origin, model origin, and each reference point.
+  </Accordion>
 </AccordionGroup>

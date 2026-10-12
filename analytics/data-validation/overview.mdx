@@ -1,42 +1,20 @@
 ---
 title: 'Data Validation'
 sidebarTitle: 'Overview'
-description: 'Use Validation Checks and Standards to validate models and track results over time.'
-docs_status: changed
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/analytics/data-validation/overview
-change_scope: '2026.9 validation scope, property paths, relations, and removal of project standards'
+description: 'Use Validation Checks to validate models and track results over time.'
 ---
 
-<Visibility for="agents">
-  Documentation status: changed for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: 2026.9 validation scope, property paths, relations, and removal of project standards.
-
-For these changes, read [2026.9 guidance](/next/analytics/data-validation/overview).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
+<Badge>Beta</Badge>
 
 This page covers Data Validation concepts, core objects, setup flow, and project-level entry
 points. It does not cover dashboard widget validation paths; for widget-based validation, see
-[Validation Widgets in Dashboards](/analytics/dashboards/validation-widgets) (draft).
+[Validation Widgets in Dashboards](/analytics/dashboards/validation-widgets).
 
-<Note>
-  On 2026.9, a new check starts with an empty object scope, some property paths change, and a rule
-  can check an object against a related object such as a host wall. **Equals property** comparisons
-  can map labels before they compare. Existing checks that return empty results may need rebuilding.
-  See [Data Validation in 2026.9](/next/analytics/data-validation/overview).
-</Note>
-
-<Note>
-  2026.9 does not include **Project standards**. If your team already built them, email
-  [hello@speckle.systems](mailto:hello@speckle.systems). See [Project standards in
-  2026.9](/next/analytics/data-validation/overview#project-standards).
-</Note>
+<Warning>
+  A check saved before your project moved to the 2026.9 data format can return no objects, because
+  its stored rule still uses the earlier object filter. Create a new check, run preview, then save.
+  See [Default scope](/analytics/data-validation/checks#default-scope).
+</Warning>
 
 ## Why teams adopt it
 
@@ -48,7 +26,9 @@ repeatable QA, shared predicates and thresholds, and pass-rate comparison as ver
 **Validation checks** execute saved rules against tracked models when you run manually or when
 auto-run triggers on new versions.
 
-**Standards** store project-scoped rule templates that you reuse when creating checks.
+A **rule** can read properties on the object itself, on a [related
+object](/analytics/data-validation/checks#checks-against-related-objects) such as the wall that
+hosts a door, or a [calculated value](/analytics/data-validation/checks#check-a-calculated-value).
 
 A **result** captures one completed run with scores, per-rule statuses, counts, and failing
 element links.
@@ -64,16 +44,17 @@ The [end-to-end flow](#end-to-end-flow) is the single setup path from authoring 
 You need at least one published model version in the project.
 
 <Steps>
-  <Step title="Choose mode">Open **Data Validation** and pick **check** or **standard**.</Step>
+  <Step title="Open Run check">
+    In the project sidebar, open **Data Validation**, then **Run check**.
+  </Step>
   <Step title="Author or import rules">
-    Use `WHERE` / `CHECK`, or import **IDS**, **COBie**, or **Speckle** bundles.
+    Use `WHERE` / `CHECK`, or select **Import IDS**, **Import COBie**, or **Import Speckle**.
   </Step>
   <Step title="Run preview">
     Validate filters on real data before save. **Run Preview** or `Ctrl+Enter` / `Cmd+Enter`.
   </Step>
   <Step title="Save">
-    **Check:** name, optional description, scoped models, manual or auto-run on new versions.
-    **Standard:** stored for spawning checks later.
+    Set a name, optional description, scoped models, and manual or auto-run on new versions.
   </Step>
   <Step title="Track results">
     Open the check result page; expand rules and models to see filter-step counts when debugging
@@ -87,9 +68,8 @@ You need at least one published model version in the project.
 ### After the first pass
 
 For authoring details and run analysis, see [Checks](/analytics/data-validation/checks)
-(including [predicates and matching](/analytics/data-validation/checks#predicates-and-matching)),
-[Standards](/analytics/data-validation/standards), and
-[Viewing Results](/analytics/data-validation/viewing-results).
+(including [predicates and matching](/analytics/data-validation/checks#predicates-and-matching))
+and [Viewing Results](/analytics/data-validation/viewing-results).
 
 To fetch check results and KPIs programmatically (GraphQL and Python), see
 [Consuming Data Validation Results via GraphQL](/developers/api/guides/data-validation-results).
@@ -101,7 +81,12 @@ In the project sidebar:
 - **Data Validation**
 - **Run check** — draft / preview without persisting yet
 - **Checks** — saved checks (name and description editable; rules and scope frozen—see Checks)
-- **Project standards** — create / import standards
+
+## Versions you can run against
+
+Data Validation preview and saved-check runs need a version in the data format introduced in
+2026.9. If preview does not load, publish a new version after the project has moved to the new
+format. See [Speckle's new data model](/workspaces/data-model-migration).
 
 ## Progressive implementation sequence
 
@@ -112,8 +97,8 @@ check](/analytics/data-validation/checks#run-a-first-check)).
 time](/analytics/data-validation/checks#operate-checks-over-time), [Practical review
 flow](/analytics/data-validation/viewing-results#practical-review-flow)).
 
-**Scale** — reuse one standard across checks so shared logic stays aligned ([Standards to checks
-flow](/analytics/data-validation/standards#standards-to-checks-flow)).
+**Scale** — set checks to auto-run so every new version is validated without anyone starting it
+([Validate incoming models automatically](/workflows/validate-incoming-models-automatically)).
 
 ## Start here
 
@@ -122,11 +107,11 @@ flow](/analytics/data-validation/standards#standards-to-checks-flow)).
     Rules, predicates, preview, thresholds, saves, tracked models.
   </Card>
   <Card
-    title="Create project standards"
+    title="Validate every new version"
     icon="file-text"
-    href="/analytics/data-validation/standards"
+    href="/workflows/validate-incoming-models-automatically"
   >
-    Templates and interoperability imports inside a project.
+    Author a check once and let it run on each submission.
   </Card>
   <Card
     title="Interpret results"
@@ -141,33 +126,21 @@ flow](/analytics/data-validation/standards#standards-to-checks-flow)).
     href="/analytics/dashboards/validation-widgets"
   >
     Dashboard widget validation is documented in [Validation Widgets in
-    Dashboards](/analytics/dashboards/validation-widgets) (draft).
+    Dashboards](/analytics/dashboards/validation-widgets).
   </Card>
 </CardGroup>
 
-## Plan availability
+## Multi-model checks
 
-Caps differ mainly on whether checks persist and whether multiple models attach per check.
-
-<AccordionGroup>
-  <Accordion title="What Data Validation features do I get on each plan?">
-    **Explore (Free):** in-session authoring and preview only; no saved checks or preserved
-    history.
-
-    **Team (Business):** saved checks and trends for **one** tracked model per check.
-
-    **Enterprise:** multi-model checks and **project standards** on the same authoring
-    stack.
-
-  </Accordion>
-</AccordionGroup>
+<Note>A check that tracks more than one model is available on the **Enterprise** plan.</Note>
 
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Should I start with a check or a standard?">
-    Start with a **check** when you are validating one concrete requirement against active models.
-    Start with a **standard** when you want reusable rules that multiple checks can inherit.
+  <Accordion title="Where did Project standards go?">
+    Project standards are being retired, and the Data Validation sidebar shows **Run check** and
+    **Checks** only. Author and save checks instead; IDS and COBie imports now start a check. See
+    [Project standards](/analytics/data-validation/standards).
   </Accordion>
   <Accordion title="Do checks run automatically?">
     Checks can run in manual mode or auto-run on new model versions, depending on check trigger
@@ -177,8 +150,10 @@ Caps differ mainly on whether checks persist and whether multiple models attach 
     Open the check detail page to inspect latest and historical rule outcomes. See [Viewing
     Results](/analytics/data-validation/viewing-results).
   </Accordion>
-  <Accordion title="Can I still use dashboard widgets for validation?">
-    Yes. Widget-first validation is documented in [Validation Widgets in
+  <Accordion title="Can I still use the Model Validation widget?">
+    No, not any longer. The **Model Validation** widget is no longer supported. Use the **Elements
+    table** or **Property checker** in a dashboard, or a Data Validation check. Saved dashboards and
+    their data are kept. See [Validation Widgets in
     Dashboards](/analytics/dashboards/validation-widgets).
   </Accordion>
 </AccordionGroup>

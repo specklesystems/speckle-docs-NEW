@@ -5,7 +5,7 @@ description: Working with Speckle developer nodes
 
 ## Using a developer access token for authentication
 
-If you are using Speckle for Grasshopper in a headless Rhino environment such as Rhino Compute, or you want access to a Speckle account via developer access token, you can use the **Speckle Model URL** node.
+If you are using Speckle for Grasshopper in a headless Rhino environment such as Rhino Compute, or you want access to a Speckle account via developer access token, you can use the **Speckle Model URL with Token** node from the **Dev** category.
 
 <Frame>
   <img src="/images/connectors/grasshopper/node_modeltoken.jpg" alt="Node modeltoken" />
@@ -29,18 +29,9 @@ Outputs:
 
 ## Inspecting all attributes on Speckle params
 
-When viewing your model in Speckle's web app, you can switch to [Dev Mode](../../3d-viewer/exploration#dev-eloper-mode) to thoroughly inspect all attributes on your Speckle objects. Some examples of exposed fields in dev mode are:
+Use the **Deconstruct** node to access every field of a Speckle param in Grasshopper, such as its application ID, geometric attributes like the knot vector of a NURBS curve, and any dynamically attached attributes.
 
-- The **Speckle ID**, which uniquely identifies this object in the Speckle server.
-- **Geometric** attributes
-  ex: the knot vector of a NURBS curve.
-- **Application-specific** attributes on Data Objects
-  ex: the category, family, and level of Revit Objects.
-- Any **children objects** in Data Objects
-  ex: the baselines of corridor Civil Objects.
-- Any **dynamically attached** attributes.
-
-Use the **Deconstruct** node to access all fields of your Speckle param in Grasshopper as you would in Dev Mode in your browser.
+To find what an object is connected to, such as its level, rooms, or host, use the [Explore](/connectors/grasshopper/explore) node instead. In the web app, the [Inspector](/3d-viewer/exploration#inspect-raw-data-and-relations) panel shows the relations and raw properties of a selected object.
 
 <Info>
   **Inspect → construct → exchange:** Deconstruct is the **inspect** layer (one object on a wire).
@@ -75,7 +66,7 @@ Additional Settings:
 
 ## Synchronous operations
 
-For any scripts operating in contexts which require synchronous solving of nodes, use the **Publish (sync)** and **Load (sync)** nodes instead of the default Publish and Load nodes.
+For any scripts operating in contexts which require synchronous solving of nodes, use the **(Sync) Publish** and **(Sync) Load** nodes instead of the default Publish and Load nodes.
 
 ## Using Speckle with C#/Python script nodes
 
@@ -90,53 +81,22 @@ Speckle publishes nuget packages for our C# SDK. You will need to install the fo
   <img src="/images/connectors/grasshopper/developer_csharp.jpg" alt="Developer csharp" />
 </Frame>
 
-<Steps>
-    <Step title="Add a C# script node to your canvas">
-      1. This node can be found in **Maths** > **Script**.
-      2. Double-click the node to open the script editor window.
-    </Step>
+To install them in a C# script node:
 
-    <Step title="Install the Speckle.Sdk nuget package">
-      1. Click the box icon to install a third-party package for your script.
-      2. Navigate to the Speckle.Sdk nuget package in your web browser (links above).
-      3. Go to the **Script & Interactive** tab and copy the value to your clipboard. The copied text should look like this, with the most recent version of the sdk.
-      ```
-      #r "nuget: Speckle.Sdk, 3.5.5"
-      ```
-      4. In Grasshopper, paste the copied value into the **Specify Package(s)** field and click **Install**.
-    </Step>
+1. Add a C# script node from **Maths** > **Script**, and double-click it to open the script editor.
+2. Select the box icon to install a third-party package.
+3. Paste these references into the **Specify Package(s)** field and select **Install**.
 
-    <Step title="Install the Speckle.Objects nuget package">
-      Repeat the previous step for the Speckle.Objects nuget package. The copied text should look like this, with the most recent version of the sdk.
-      ```
-      #r "nuget: Speckle.Objects, 3.5.5"
-      ```
-    </Step>
+```csharp
+#r "nuget: Speckle.Sdk, 2026.9.0-beta.7"
+#r "nuget: Speckle.Objects, 2026.9.0-beta.7"
+```
 
-</Steps>
+When a stable 2026.9.0 release is out, use that version instead.
 
 ### Python script
 
-Speckle python SDK can be installed with pip for your custom Grasshopper python script
-
-- Use the [specklepy](https://pypi.org/project/specklepy/) package for publish and load operations, serialization, all objects classes, and more.
-
-<Frame>
-  <img src="/images/connectors/grasshopper/developer_python.jpg" alt="Developer python" />
-</Frame>
-
-<Steps>
-    <Step title="Add a Python script node to your canvas">
-      1. This node can be found in **Maths** > **Script**.
-      2. Double-click the node to open the script editor window.
-    </Step>
-
-    <Step title="Install the specklepy package">
-      1. Click the box icon to install a third-party package for your script.
-      2. Type `specklepy` into the **Specify Package(s)** field and click **Install**. You can verify this is the pip package name in the link above.
-      ```
-      specklepy
-      ```
-    </Step>
-
-</Steps>
+The Python SDK, [specklepy](https://pypi.org/project/specklepy/), needs Python 3.10 or later. The
+Rhino 8 script editor runs Python 3.9, so specklepy cannot be installed in a Grasshopper Python
+script node. Use a C# script node with Speckle.Sdk instead, or run specklepy in a separate Python
+environment.

@@ -3,95 +3,66 @@ title: Reporting Success
 description: Guide to reporting function execution status in Speckle Automate. Learn when to use mark_run_success, mark_run_failed, and mark_run_exception, with best practices for meaningful status messages and error handling.
 ---
 
-Effective execution reporting ensures visibility, debugging efficiency, and robust automation workflows. Functions must clearly communicate their success or failure states.
+Every run ends with a status that readers see in the **Runs** table: succeeded, failed, or exception. Report it explicitly, with a message that says what happened, so a failed run tells the reader what to fix.
 
-## Status Reporting Methods
+## Status reporting methods
 
-```python
-async def automate_function(runCtx: AutomateContext):
-    try:
-        # Function logic
-        results = process_data()
-        if results.is_valid:
-            await runCtx.mark_run_success(
-                "Analysis completed successfully: Found 5 valid elements"
-            )
-        else:
-            await runCtx.mark_run_failed(
-                "Analysis completed but found invalid elements"
-            )
-    except Exception as ex:
-        await runCtx.mark_run_failed(str(ex))
-        raise
+The Python methods are synchronous: call them without `await`, from a plain `def` function. The C# methods are synchronous too, even inside your `async Task Run`.
+
+```python main.py
+from speckle_automate import AutomationContext
+
+
+def automate_function(automate_context: AutomationContext) -> None:
+    results = process_data()
+    if results.is_valid:
+        automate_context.mark_run_success(
+            "Analysis completed successfully: Found 5 valid elements"
+        )
+    else:
+        automate_context.mark_run_failed("Analysis completed but found invalid elements")
 ```
 
-### Why?
-
-- Asynchronous execution supports event-driven workflows.
-- The try-except block ensures errors are caught and reported.
-- Explicit success/failure messages provide clarity.
-
-```csharp
-public static async Task Run(AutomationContext context)
+```csharp AutomateFunction.cs icon="/images/developers/sdks/csharp.svg"
+public async Task Run(IAutomationContext context)
 {
-    try
+    var results = await ProcessData(context);
+    if (results.IsValid)
     {
-        // Function logic
-        var results = ProcessData();
-        if (results.IsValid)
-        {
-            await context.MarkRunSuccess(
-                "Analysis completed successfully: Found 5 valid elements"
-            );
-        }
-        else
-        {
-            await context.MarkRunFailed(
-                "Analysis completed but found invalid elements"
-            );
-        }
+        context.MarkRunSuccess("Analysis completed successfully: Found 5 valid elements");
     }
-    catch (Exception ex)
+    else
     {
-        await context.MarkRunFailed(ex.Message);
-        throw;
+        context.MarkRunFailed("Analysis completed but found invalid elements");
     }
 }
 ```
 
-#### Why?
+If you call more than one status method, the last call wins.
 
-- Uses Task for async execution to integrate with automation workflows.
-- Ensures the function reports status before exiting.
-- Encapsulates logic within try-catch to prevent silent failures.
+## What the runner does for you
 
-## Status Types and When to Use Them
+- **No status reported:** when your function returns without one, the runner marks the run successful with a warning message.
+- **Unhandled error:** when your function throws, the runner catches it, marks the run as an exception, and writes the error to the run log. You do not need a try/except around the whole function.
 
-| Status    | Method                    | When to Use                                              |
-| --------- | ------------------------- | -------------------------------------------------------- |
-| Success   | mark_run_success()        | Function executes correctly and returns expected results |
-| Failed    | mark_run_failed()         | Function completes but results are invalid or not useful |
-| Exception | mark_run_failed() + raise | Function crashes due to unexpected errors                |
+<Warning>
+  In C#, the runner keeps only a failed or succeeded status when your function returns. A run marked
+  with `MarkRunException` is replaced by the warning success, so throw instead.
+</Warning>
 
-### Why?
+## Status types and when to use them
 
-- Explicit status codes streamline debugging and monitoring.
-- Differentiates between an expected failure and a catastrophic error.
-- Enables structured logging for automated workflows.
+| Status    | Python                 | C#                 | When to use                                                     |
+| --------- | ---------------------- | ------------------ | --------------------------------------------------------------- |
+| Succeeded | `mark_run_success()`   | `MarkRunSuccess()` | The function ran and the model passed                           |
+| Failed    | `mark_run_failed()`    | `MarkRunFailed()`  | The function ran and the model did not pass, or input was wrong |
+| Exception | `mark_run_exception()` | Throw an exception | The function itself could not finish                            |
 
-## Best Practices for Execution Reporting
+A function that runs but finds problems in the model should mark the run as failed, not as an exception. Keep exception for errors in the function: a bug, a network failure, a model it cannot read.
 
-1. **Always Report Final Status**
-   - Unreported failures leave automation in limbo.
+## Best practices
 
-2. **Use Meaningful Messages**
-   - Generic errors like "Process failed" are useless in debugging.
-
-3. **Choose the Right Status Type**
-   - A function that runs but produces bad data should be marked as failed, not as an exception.
-
-4. **Include Relevant Metrics**
-   - If processing a batch, report counts (e.g., "5 valid elements found").
-
-5. **Handle All Error Cases**
-   - Assume the worst: anticipate network failures, malformed data, and external system issues.
+- **Report the final status yourself.** The runner's fallback success message says the function forgot to.
+- **Write messages a reader can act on.** "12 walls have no Mark" beats "Process failed".
+- **Include counts.** If the function checks a batch, say how many objects passed and failed.
+- **Attach results to objects.** A status says whether the run passed; [object results](/developers/automate/function-results) say where.

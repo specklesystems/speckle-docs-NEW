@@ -2,24 +2,7 @@
 title: 'Checks'
 sidebarTitle: 'Checks'
 description: 'Author and run Validation Checks with WHERE/CHECK logic in Data Validation.'
-docs_status: changed
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/analytics/data-validation/overview
-change_scope: '2026.9 validation scope, property paths, relations, and removal of project standards'
 ---
-
-<Visibility for="agents">
-  Documentation status: changed for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: 2026.9 validation scope, property paths, relations, and removal of project standards.
-
-For these changes, read [2026.9 guidance](/next/analytics/data-validation/overview).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
 
 <Warning>
   Current limitation:
@@ -33,17 +16,13 @@ new check.
 Use this page for **Validation Check** authoring and execution.
 
 <Info>
-  Checks are executable validation definitions tied to tracked models. For reusable templates in the
-  current product, use [Standards](/analytics/data-validation/standards).
+  Checks are executable validation definitions tied to tracked models. They run against versions in
+  the data format introduced in 2026.9; see [Data
+  Validation](/analytics/data-validation/overview#versions-you-can-run-against).
 </Info>
 
 <Note>
-  2026.9 does not include project standards. See [Data Validation in
-  2026.9](/next/analytics/data-validation/overview#project-standards).
-</Note>
-
-<Note>
-  Checks can be defined and run against models in a project (plan caps apply). Editing an
+  Checks can be defined and run against models in a project. Editing an
   existing check is limited to name and description until model scope, rules, and trigger
   mode become editable.
 
@@ -79,6 +58,28 @@ real project data.
   </Step>
 </Steps>
 
+Rules display as short sentences, for example **category is Doors**. Select a sentence to edit
+it.
+
+### Import rules from IDS, COBie, or Speckle
+
+On an empty check, select **Import IDS**, **Import COBie**, or **Import Speckle** to turn an
+existing requirements file into rules. You can also drop an IDS or COBie file onto the check
+assistant to adapt it to the model. Always rerun preview on a representative version after import,
+then tune predicates if needed.
+
+- **IDS** — IFC-aligned facets map to rules. Most facets map to **Exists**, **Equals**, **In
+  list**, or **Between**. IDS `xs:pattern` values often land as **Contains** rather than full
+  regex, so verify naming rules after import. Advanced applicability or property mappings may need
+  manual fixes.
+- **COBie** — worksheet fields map to rules. Typical outcomes are sheet-scoped **Exists** checks
+  and pick-list **In list** assertions. Optional fields often arrive as **`info`** severity so they
+  do not drive the overall score. Unusual columns or macro-heavy sheets can lose fidelity, so
+  verify property paths, severities, and messages.
+- **Speckle** — JSON, TSV, or CSV exports from dashboards and related tooling. Supported dashboard
+  predicates map to Data Validation operators; unsupported negations (not exists, not in list,
+  does not contain) are skipped, and dashboard **warning** severity becomes **`info`**.
+
 ## Build a check with many rules
 
 One topical check can own many rules (e.g. fire ratings on walls/doors/windows) so failures
@@ -112,7 +113,7 @@ Each rule is filters plus one assertion.
 | `WHERE`         | Filter scope of objects evaluated by the rule                                 |
 | `AND`           | Optional additional filters within the same scope                             |
 | `CHECK`         | Final validation assertion                                                    |
-| Property path   | Target property (`category`, `baseline.length`, `parameters.Width.value`)     |
+| Property path   | Target property (`category`, `properties.Parameters.…`)                       |
 | Predicate       | Comparison operator (see [Predicates and matching](#predicates-and-matching)) |
 | Value           | Reference value for the predicate                                             |
 | Report severity | `error` or `info` (`info` does not drive the overall check score)             |
@@ -120,11 +121,24 @@ Each rule is filters plus one assertion.
 
 ## Default scope
 
-Default filter: `speckle_type` **Contains** `DataObject`, the connector-produced base BIM
-bucket (Revit, IFC, ...). `DataObject` is the base type Speckle connectors produce, so most BIM
-objects match it. Narrow with category/type/parameters—dropping `DataObject` widens noise risk.
+A new check starts with an **empty** global scope. The version already contains user-facing
+objects only, so no starting filter is needed. Narrow with category, type, or parameter filters in
+`WHERE` when you need a tighter rule. **Add condition** adds a scope filter above the check; it does
+not turn the existing check into a filter.
+
+An unsaved draft from before 2026.9 that still carries the earlier default filter loses it when
+you reopen the draft. Saved checks keep it; see the warning below.
 
 <Warning>One terminal `CHECK` per rule—extra assertions belong in extra rules.</Warning>
+
+<Warning>
+  A check saved before your project used the 2026.9 data format can return no objects: preview shows
+  empty counts and an empty object table. The stored rule still uses the earlier object filter,
+  which the editor does not show, so you cannot clear it in place. Create a new check, run preview,
+  then save.
+</Warning>
+
+{/* IMAGE_PLACEHOLDER: Check editor — empty global scope, rule sentences, preview counts. */}
 
 ## Thresholds and status
 
@@ -200,29 +214,209 @@ does not apply to **Greater than**, **Less than**, **Not equals**, list/text ope
 ### Property paths
 
 Pick paths from the path picker after a preview model loads so value suggestions come from
-real data. Common shapes:
+real data. Typical Revit parameters sit under `properties.Parameters`, for example type Width
+under `properties.Parameters.Type Parameters.Dimensions.Width`. Common shapes:
 
 - `category`
 - `name`
-- `baseline.length`
-- `parameters.Width.value`
+- `properties.Parameters.Type Parameters.Dimensions.Width`
+
+<Note>
+  Paths such as `parameters.Width.value` and `baseline.length` come from the data format used before
+  2026.9 and may not exist on your version. Use the path picker for the paths your model has.
+</Note>
+
+### Match a property wherever it sits
+
+{/* IMAGE_PLACEHOLDER: Path-matching control cycling exact (=), suffix (*.x), and regex (.*) on a Fire Rating condition. */}
+
+A Fire Rating parameter is not always on the same path. Click the path-matching control next to
+the path to cycle modes:
+
+- **Exact** (`=`) — the full path from the picker
+- **Suffix** (`*.x`) — every property whose path ends with that segment, for example **Fire
+  Rating**. Every matching value must pass
+- **Regex** (`.*`) — a regular expression over the full path
+
+That covers instance and type placements without a separate rule for each path. Path matching is
+not available on **Equals property** or **Equals template**. Those operators compare two specific
+paths.
 
 ### Short examples
 
 - Fire rating present: `WHERE` category Equals `Walls`, `CHECK` fire-rating path **Exists**
   (or **Equals** a required rating string).
-- Width band: `CHECK` `parameters.Width.value` **Between** `100` and `300`, with tolerance if
-  units are noisy.
+- Width band: `CHECK` the Width path **Between** `100` and `300`, with tolerance if units are
+  noisy.
 - Naming convention: `CHECK` `name` **Matches** `W-*`. In regex mode use `^W-.*` so characters
   after the prefix still match.
 - Consistency: `CHECK` one path **Equals property** against another path on the same object.
+
+## Checks against related objects
+
+{/* IMAGE_PLACEHOLDER: Check editor — Add related object; binding row with @name, relation Host element, forward arrow, all/any, where. */}
+
+A rule can check an object against something it is related to — a door against the wall that hosts
+it, or a wall against the rooms it bounds — because those relationships are in the published
+version.
+
+Use **Add related object** on the rule. The editor adds a binding row. The name on the left
+(`@host`, `@room`, `@connected`) is how later conditions address that object. Pick a relationship
+from the list the version actually carries. Friendly labels include **Host element**,
+**Sub-elements**, **Room**, **Bounded room**, **Assembly**, and **Connected element**.
+
+Then choose a property on that related object from the path picker. Related paths show as
+`@host · Fire Rating` in the sentence pills.
+
+<Note>
+  **Add related object** is disabled when the preview version has no relationship data. The tooltip
+  reads **This model has no relationship data — re-publish with a current connector to use
+  related-object rules.**
+</Note>
+
+### Direction, all versus any, and narrowing
+
+{/* IMAGE_PLACEHOLDER: Related-object binding — forward/back arrow tooltip, all and any, where expanded with Narrow related objects. */}
+
+The arrow on the binding follows the relation **forward** (for example a door toward its host
+wall) or **backward** (a wall toward the elements hosted on it). Click the arrow to reverse it.
+
+**all** (default) means every related object must satisfy the check. **any** means one related
+object is enough. That setting applies to the check only. A scope filter on a related path still
+keeps a subject when at least one related object matches, regardless of **all** or **any**.
+
+Open **where** and select **Narrow related objects** to keep only some related objects, for
+example hosts whose category is Walls. Those filters run on the related object. They do not use
+`@` prefixes.
+
+### When there is no related object
+
+A subject with no related object **fails** a check that reads that binding. If a door with no
+host should be not applicable instead of a fail, add a scope condition that the related path
+exists (for example `@host` is present) before the check.
+
+Examples you can author:
+
+- A door's fire rating must match the wall that hosts it
+- If the host wall is fire-rated, the door must be rated. Unrated walls are not applicable, not a
+  fail (scope on the host rating, then check the door)
+- Every door must be hosted on a wall
+- Every wall that bounds a room carries a rating (**all**), or at least one of them does
+  (**any**)
+- A door can be checked against a room reached through the host wall: add a second related
+  object, set **of** to `@host` instead of **this element**, and pick **Bounded room** or
+  **Room**
+
+You cannot remove a binding while a condition still uses `@name`, or while a later binding
+chains from it. Update those references first.
+
+## Map labels before you compare
+
+{/* IMAGE_PLACEHOLDER: Equals property comparison control — Compare = equals / ≥ at least / ≤ at most; This value maps / Other value maps; Add mapping; Seed N known values. */}
+
+When a check compares two properties (**Equals property**), you can map each side's raw labels
+onto shared values before the comparison. This is how `60 MIN` and `1 HR` become the same rating,
+and how a `2 HR` wall can require a door of at least `90 MIN`.
+
+Select **Equals property**, pick the other path, then open the comparison control beside it. The
+control shows `=` until you add a mapping or change the comparison.
+
+Set **Compare** to **= equals**, **≥ at least**, or **≤ at most**. Under **This value maps** and
+**Other value maps**, select **Add mapping**, pick a raw value from the list, and set what it
+**maps to**. Unmapped values stay as they are.
+
+Map both sides to the same numbers when the labels should count as equal. Map the other side to a
+required minimum and use **≥ at least** when one side must be stricter than the other. The same
+mapping works when the other path is on a related object, such as a host wall.
+
+<Tip>
+  If preview already lists known values, **Seed N known values** on that mapping list fills it so
+  you do not type every label. Seed one side at a time. The control is hidden when the list is empty
+  or too large to seed in one step.
+</Tip>
+
+## Check a calculated value
+
+{/* IMAGE_PLACEHOLDER: Check editor — CHECK row with a Σ Span-to-depth ratio subject and its popover showing the description, Unit, SQL, Edit SQL and Edit with AI. */}
+
+Some rules test a number no single property holds, such as a beam's span-to-depth ratio: its
+length divided by the depth parsed from a section name like `300x600`. A rule's scope or check can
+test a **computed value** calculated from each object's properties. The usual comparisons apply,
+so the threshold stays a value you can edit.
+
+Describe the calculation to the assistant to create it.
+
+<Steps>
+  <Step title="Describe the calculation">
+    In the check editor, select **Generate rule**, or ask [Speckle
+    Intelligence](/analytics/intelligence) in **Chat**. Name the inputs, how to combine them, their
+    units, and the threshold.
+  </Step>
+  <Step title="Review the value range">
+    Before it offers the rule, the assistant states the range of values, the units, and how many
+    objects have no value. Confirm the range fits what you asked for.
+  </Step>
+  <Step title="Save the rule">
+    Accept the rule the assistant proposes, then save the check. The rule shows the computed value
+    as **Σ** followed by its name.
+  </Step>
+</Steps>
+
+An example ask:
+
+```text
+Add a rule: for structural framing, the span-to-depth ratio must be at most 20. Divide Length by the
+depth, which is the second number in the type name (300x600 is 300 mm wide and 600 mm deep).
+Length is in metres.
+```
+
+<Tip>
+  If you already coloured a model by a calculated value in the 3D viewer, ask the viewer sparkle
+  **Make this a validation rule: the ratio must be at most 20** to reuse that calculation.
+</Tip>
+
+Select the **Σ** subject in the editor to see the description, the unit, and the SQL behind it. The
+comparison and threshold stay editable like any other condition.
+
+### Change the calculation
+
+Select the **Σ** subject, then **Edit with AI** to describe the change to the assistant, or **Edit
+SQL** to change it yourself. When you edit by hand, you can change the description, the unit, and
+the SQL.
+
+Select **Preview** to run the edited SQL in its rule. The preview shows the range of values, how
+many objects it checked, and how many have no value. **Apply** stays disabled until the preview has
+run on exactly the current SQL, no object has more than one value, and you confirm the description
+and unit still match.
+
+<Note>
+  The preview checks the calculation runs and gives one value per object. It cannot tell whether the
+  formula is right. Compare the range with what you expect before you apply.
+</Note>
+
+When you open a failing rule in results, the object table adds a first column with each failing
+object's value against the rule, for example `22.5, expected ≤ 20`.
+
+### When there is no value or more than one
+
+An object whose inputs are missing, or do not parse (a type name like `Custom beam`), has **no
+value**. A scope condition on the computed value drops it, and the check fails it. The object table
+shows `no value, expected ≤ 20`. To treat those objects as not applicable, ask the assistant to
+check only objects where the value can be calculated.
+
+The calculation must give one value per object. When it gives more than one for any object the rule
+checks, the rule shows **ERROR** with a message such as `3 objects have more than one computed
+value`, instead of pass or fail. Ask the assistant to fix the calculation.
+
+Computed values work in a rule's scope and check only, not in the global scope or on a related
+object. Each one reads the properties of the model the check runs on.
 
 ## Run a check on every submission automatically
 
 For the specific pattern of validating incoming consultant or subcontractor models against your
 standard at every milestone — author once, set **auto** trigger, and stop relying on someone to
 remember to run it — see [Validate incoming models
-automatically](/next/workflows/validate-incoming-models-automatically).
+automatically](/workflows/validate-incoming-models-automatically).
 
 ## Best practices
 
@@ -235,8 +429,24 @@ Run preview before save so you catch false positives before history is recorded.
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Can I create a check from a standard?">
-    Yes—pick models and triggers after choosing the standard as the base.
+  <Accordion title="Where did Project standards go?">
+    Project standards are being retired, and the Data Validation sidebar no longer lists them.
+    Author and save checks instead. See [Project standards](/analytics/data-validation/standards).
+  </Accordion>
+  <Accordion title="Why does my existing check show 0 objects?">
+    The check was saved before your project moved to the 2026.9 data format, and its stored rule
+    still uses the earlier object filter. Saved checks cannot change rules in place. Create a new
+    check, run preview, then save. See [Default scope](#default-scope).
+  </Accordion>
+  <Accordion title="Should I still filter on DataObject to widen scope?">
+    No. The object set is already the user-facing elements, so an empty global scope is the correct
+    starting point. Narrow with category, type, or parameter filters in `WHERE`.
+  </Accordion>
+  <Accordion title="Why does an object that has every input still show no value?">
+    The calculation could not read one of the inputs, for example a type name like `Custom beam`
+    that does not match the expected pattern. Fix the source data, or ask the assistant to handle
+    that format. See [When there is no value or more than
+    one](#when-there-is-no-value-or-more-than-one).
   </Accordion>
   <Accordion title="How do I know a check is too strict?">
     Noise usually means tighten `WHERE`, tune predicates, or downgrade severity to `info`.

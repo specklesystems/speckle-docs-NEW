@@ -28,22 +28,22 @@ The practical consequence: **code that creates a version and immediately reads i
 You do not create this ingestion yourself: on these calls the server creates and drives it, and your job is only to observe it. Creating your own ingestion is part of the upload paths that replace these calls, such as `SendPipeline` in the .NET SDK.
 
 <Note>
-  This applies to app.speckle.systems and to self-hosted servers running **v2026.9 or later**. It is
+  This applies to app.speckle.systems and to self-hosted servers running **2026.9 or later**. It is
   part of the wider [data model migration](/developers/migration/data-model-migration).
 </Note>
 
 ## What to call instead
 
-| You call today                                                                          | Status                     | What to do                                                                                                         |
-| --------------------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| specklepy: `operations.send` + `client.version.create`                                  | Deprecated, still accepted | Keep the call for now and [wait for the version](#wait-for-the-version). An ingestion-based publish API is coming. |
-| .NET: `Send2` + `client.Version.Create`                                                 | Deprecated, still accepted | Move to `SendPipeline` + `client.Ingestion`, or keep the call and [wait for the version](#wait-for-the-version).   |
-| Raw GraphQL: `versionMutations.create` or `commitCreate`                                | Deprecated, still accepted | Treat the returned id as reserved and [wait for the version](#wait-for-the-version).                               |
-| Automate: `CreateNewVersionInProject` (.NET) / `create_new_version_in_project` (Python) | Keeps working              | Nothing, unless your function reads back the version it created. An ingestion-backed publish helper is coming.     |
+| You call today                                                                          | Status                     | What to do                                                                                                                                       |
+| --------------------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| specklepy: `operations.send` + `client.version.create`                                  | Deprecated, still accepted | Build a bundle and publish it with `operations.send3`. Until you move, [wait for the version](#wait-for-the-version) after the call.             |
+| .NET: `Send2` + `client.Version.Create`                                                 | Deprecated, still accepted | Move to `Send3` with a `BundleBuilder`, or `SendPipeline` + `client.Ingestion`. Until you move, [wait for the version](#wait-for-the-version).   |
+| Raw GraphQL: `versionMutations.create` or `commitCreate`                                | Deprecated, still accepted | Publish a bundle through a model ingestion. Until you move, treat the returned id as reserved and [wait for the version](#wait-for-the-version). |
+| Automate: `CreateNewVersionInProject` (.NET) / `create_new_version_in_project` (Python) | Same call, 2026.9 SDK      | Nothing, unless your function reads back the version it created. In .NET, an overload also publishes a `BundleBuilder`.                          |
 
 ### specklepy scripts
 
-`client.version.create` keeps working and returns the same `Version` object, but its `id` is a reserved id: the version does not exist yet.
+`client.version.create` is deprecated but still accepted. It returns the same `Version` object, but its `id` is a reserved id: the version does not exist yet.
 
 ```python lines icon="python"
 from specklepy.api import operations
@@ -82,11 +82,11 @@ def wait_for_version(client, project_id: str, version_id: str, timeout: float = 
 ready = wait_for_version(client, project_id, version.id)
 ```
 
-A future specklepy release replaces this pattern with a publish API that runs on the ingestion rail directly.
+For new work, build a bundle with `BundleBuilder` and publish it with `operations.send3`, which runs on the ingestion rail directly and skips the server-side conversion. See [Publish a bundle from your own code](/developers/building-integrations/publish).
 
 ### .NET scripts (Speckle.Sdk)
 
-`client.Version.Create` keeps working the same way: the returned `Version.id` is reserved, not yet queryable.
+`client.Version.Create` is deprecated but still accepted in the same way: the returned `Version.id` is reserved, not yet queryable.
 
 The supported successor is the ingestion upload path the desktop connectors use: create an ingestion, run `SendPipeline`, and let the server create the version when processing completes. The ingestion is your progress and readiness surface, and there is no separate `Version.Create` call at all.
 
@@ -107,7 +107,7 @@ var updated = await client.Ingestion.Get(ingestion.id, project.id);
 
 See [Publish large models](/developers/sdks/dotnet/guides/building-connector-scale-sends) for the full walkthrough and [Model ingestion](/developers/sdks/dotnet/api-reference/resources/ingestion) for the API reference, including `client.Subscription.CreateProjectModelIngestionUpdatedSubscription` for push-based updates instead of polling.
 
-If you build the new-format data bundle yourself, an upcoming Speckle.Sdk release also exposes the v2 upload rail (`uploads/complete`), where the version is created as soon as your upload completes. Most integrations should use `SendPipeline` and let the server do the conversion.
+If you build the bundle yourself with a `BundleBuilder`, `Send3` publishes it over the v2 upload rail (`uploads/complete`), and `WaitForVersion` returns once the version exists. See [Publish a bundle from your own code](/developers/building-integrations/publish). Integrations that already produce a `Base` tree can keep using `SendPipeline` and let the server do the conversion.
 
 ### Raw GraphQL and v1-era scripts
 
@@ -115,7 +115,7 @@ Both `versionMutations.create` and the legacy `commitCreate` mutation (still use
 
 ### Automate functions
 
-`CreateNewVersionInProject` (.NET) and `create_new_version_in_project` (Python) keep working unchanged:
+`CreateNewVersionInProject` (.NET) and `create_new_version_in_project` (Python) keep their signatures in the 2026.9 Automate SDKs (`specklepy[bundle]==2026.9.0b3`, `Speckle.Automate.Sdk` 2026.9.0-beta.4 or later). The returned id is reserved:
 
 ```python lines icon="python"
 version = automate_context.create_new_version_in_project(root_object, model_id, "Analysis results")
@@ -127,7 +127,7 @@ var version = await context.CreateNewVersionInProject(rootObject, model, "Analys
 // version.id is reserved; the version appears once processing completes.
 ```
 
-Automation runs that trigger on `version_created` are unaffected: the trigger already fires only when the version exists. Your function is only affected if it reads back a version it just created in the same run. In that case, wait for it as shown below. An ingestion-backed publish helper for the Automate SDKs is planned; until it ships, the helpers above remain the supported path.
+Automation runs that trigger on `version_created` are unaffected: the trigger already fires only when the version exists. Your function is only affected if it reads back a version it just created in the same run. In that case, wait for it as shown below. In .NET, `CreateNewVersionInProject` also accepts a `BundleBuilder` and publishes it over the ingestion rail; call `context.WaitForVersion` on its result before the run ends.
 
 ## Wait for the version
 
@@ -182,7 +182,7 @@ For push-based updates instead of polling, use the `projectModelIngestionUpdated
 
 ## No removal date
 
-Legacy send stays accepted. The deprecation warnings mean "no longer the recommended path", not "scheduled for removal". Retirement will be criteria-driven and announced well in advance; no date is set. You can keep publishing through the deprecated calls as long as they are accepted, provided your code handles the deferred version visibility described above.
+No removal date is set for legacy send. Retirement will be criteria-driven and announced well in advance. Until then, servers with legacy-send support accept the deprecated calls, provided your code handles the deferred version visibility described above. Build new work on bundles: a server without legacy-send support already rejects these calls with `LEGACY_SEND_UNSUPPORTED`.
 
 ## FAQ
 
@@ -191,9 +191,10 @@ Legacy send stays accepted. The deprecation warnings mean "no longer the recomme
     The id you got back is reserved, not yet a real version. Add a wait as shown in [Wait for the
     version](#wait-for-the-version).
   </Accordion>
-  <Accordion title="Does operations.send still work?">
-    Yes, unchanged. Sending objects and receiving them by object id works exactly as before. Only
-    the version-creating step became asynchronous.
+  <Accordion title="Should I still publish with operations.send?">
+    Not for new work. `operations.send` still uploads objects, and only the version-creating step
+    became asynchronous, but publishing an object graph is deprecated. New publishes build a bundle
+    and use `operations.send3`.
   </Accordion>
   <Accordion title="How do I know a publish failed?">
     The ingestion ends in a failure status (`failed`, `cancelled`, `timeout`, or `invalidInput`) and

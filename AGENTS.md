@@ -4,26 +4,27 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 
 ## Repository layout
 
-- Pages are `.mdx`, routed by path. `docs.json` is the site config; navigation is `navigation.json` (version **Current**) plus `navigation.next.json` (version **2026.9**, the default, pages under `next/`); redirects in `redirects.json`.
-- User guides: `quickstart/`, `workspaces/`, `3d-viewer/`, `analytics/`, `workflows/`, `connectors/`, `beta/`. Developers: `developers/`. IT admins: `it-admin/`. `classic/` and `legacy/` are frozen redirect-target trees outside the nav: don't expand them.
+- Pages are `.mdx`, routed by path. Site config: `docs.json`; navigation: `navigation.json`; redirects: `redirects.json`.
+- User guides: `quickstart/`, `workspaces/`, `3d-viewer/`, `analytics/`, `workflows/`, `connectors/`, `beta/`. Developers: `developers/`. IT admins: `it-admin/`. Retired v2 URLs redirect to `migration/legacy-connectors`.
 - `snippets/` reusable MDX fragments, `images/` assets, `examples/` runnable sample apps (own pnpm root), `scripts/` CI checks.
-- `README.md` is the human contributor guide; `FRONTMATTER_SCHEMAS.md` defines the 2026.9 frontmatter.
+- `README.md` is the human contributor guide; `FRONTMATTER_SCHEMAS.md` defines the remaining custom frontmatter.
 
 ## Working rules
 
 - **Tooling:** `pnpm` for every script and dependency (`packageManager` pins the version), Node 22. `mise.toml` tasks: `mise run install|dev|validate|check-links|example-check|agents-sync`.
 - **Checks:** `pnpm check` is the CI gate: Prettier + markdownlint on changed files, `mint validate`, structure (redirects, orphans, framing, assets), broken links, a11y. Pre-commit (Husky) runs Prettier + markdownlint on staged files.
 - **Before a docs PR:** run the `docs-page-review` skill on every written or revised page, then `docs-ci-ready`.
+- **Technical changelog:** weekly changelog checks, monthly changelog pages, release-note reconciliation, and merge/release docs audits use `technical-changelog`.
 - **Area docs are not auto-loaded.** When a path you read, plan or edit matches a row under [Area docs](#area-docs), load that doc first, however small the task.
-- **Product truth:** document what exists today. When UI labels, operators, plan gates or enums look stale, verify against the product (`../speckle-server-internal`, FE3 = `packages/frontend-3`) before rewriting; multi-page parity audits use the `docs-product-capability-sweep` skill.
+- **Product truth:** document what exists today. Verify stale UI labels, operators, plan gates or enums against `../speckle-server-internal` (FE3 = `packages/frontend-3`); multi-page parity audits use `docs-product-capability-sweep`.
 
 ## Audience and voice
 
-| Doc type | Reader ("you") | Intent |
-|---|---|---|
-| User guides | the user | use the product: publish, load, share, view |
-| Developer docs | citizen developers / AEC hackers writing scripts, notebooks, small automations first; connector authors second | build, integrate, extend, debug |
-| IT admin docs | IT teams and workspace admins first, server admins last | deploy, configure, troubleshoot, support users |
+| Doc type       | Reader ("you")                                                                                                 | Intent                                         |
+| -------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| User guides    | the user                                                                                                       | use the product: publish, load, share, view    |
+| Developer docs | citizen developers / AEC hackers writing scripts, notebooks, small automations first; connector authors second | build, integrate, extend, debug                |
+| IT admin docs  | IT teams and workspace admins first, server admins last                                                        | deploy, configure, troubleshoot, support users |
 
 - Write for the reader, never for Speckle staff. User intent over system architecture; progressive disclosure, simple first, depth later.
 - Frame topics by the action (publish, load, share, view), not the plumbing (connectors, integrations). Everyone uses the web app; not everyone uses connectors.
@@ -43,22 +44,22 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 
 ## Content rules
 
-- **Version naming:** "Speckle Next" and other codenames never appear in reader-facing copy, nav or titles; `next/` is an internal path. Write `2026.9`, never `v2026.9` (same for `2026.8`); no placeholder disclaimer, no invented marketing name, no hiding the string. When product names the release, replace 2026.9 everywhere. "Current" names the version selector only: body copy says "before 2026.9" / "2026.8 and earlier" or names the mechanism; table columns `Before 2026.9` / `2026.9`. "Legacy" names the v2 → v3 migration, not the 2026.8 corpus.
+- **One corpus:** docs describe the product as it works today; 2026.9 is a release, not a docs version. No version selector, parallel page tree or agent-only `<Visibility for="agents">` version routing: one topic, one page (GRO-1035). Rewrite UI and workflow pages; a page documenting data published before 2026.9 (object graph, Proxies, `Receive2`, `operations.receive`) gets a visible top `<Note>` scoping it and linking the 2026.9 page.
+- **Version naming:** no "Speckle Next" or other codenames in reader-facing copy. Write `2026.9`, never `v2026.9` (same for `2026.8`), and only where the reader needs to know a change happened. Say "before 2026.9" / "2026.8 and earlier"; table columns `Before 2026.9` / `2026.9`. "Current" is not a version name; "Legacy" names the v2 → v3 migration.
 - **User pages stay user-facing:** feature flags, Helm values, env vars and docker-compose config never appear in user guides; state availability and link to the deployment guide.
-- **Enterprise-only features** (Workspaces, Admin Support Mode, Saved Views, Issues, Multi-regional Deployment, Automate, Intelligence, ACC Integration, extended Direct Uploads): the user-facing page carries its own `<Note>` (available only on Speckle Enterprise Server) linked to its setup in `developers/server/deployment/enterprise-license`; add role restrictions where they apply.
+- **Enterprise-only features** (Workspaces, Admin Support Mode, Saved Views, Multi-regional Deployment, Automate, Intelligence, ACC Integration, extended Direct Uploads): the user-facing page carries its own `<Note>` (available only on Speckle Enterprise Server) linked to its setup in `developers/server/deployment/enterprise-license`; add role restrictions where they apply.
 - **Plan labels:** frontmatter `tag` is for `Enterprise` and `Third-Party` only; Alpha/Beta go in a `<Badge>` atop the body. Keep billing light: no plan limits or prices, just "available on the **Enterprise** plan"; other plans contact sales@speckle.systems.
 
 ## Area docs
 
-| Doc | Load first for |
-|---|---|
-| `docs/agents/next.md` | ANY work under `next/` |
-| `docs/agents/connectors.md` | ANY work under `connectors/` or `next/connectors/` |
-| `docs/agents/sdk-dotnet.md` | ANY work under `developers/sdks/dotnet/` or `next/developers/sdks/dotnet/` |
-| `docs/agents/sdk-python.md` | ANY work under `developers/sdks/python/` or `next/developers/sdks/python/` |
-| `docs/agents/persona-audience.md` | writing or restructuring developer or IT admin pages, or a page for a multi-role feature |
-| `docs/agents/versioned-snippets.md` | a page that compares code before and after a release |
-| `docs/agents/server-config.md` | documenting server configuration (env vars, feature flags, Helm, docker-compose) |
+| Doc                                 | Load first for                                                                           |
+| ----------------------------------- | ---------------------------------------------------------------------------------------- |
+| `docs/agents/connectors.md`         | ANY work under `connectors/`                                                             |
+| `docs/agents/sdk-dotnet.md`         | ANY work under `developers/sdks/dotnet/`                                                 |
+| `docs/agents/sdk-python.md`         | ANY work under `developers/sdks/python/`                                                 |
+| `docs/agents/persona-audience.md`   | writing or restructuring developer or IT admin pages, or a page for a multi-role feature |
+| `docs/agents/versioned-snippets.md` | a page that compares code before and after a release                                     |
+| `docs/agents/server-config.md`      | documenting server configuration (env vars, feature flags, Helm, docker-compose)         |
 
 ## Agent config (ADR-0008)
 

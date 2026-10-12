@@ -1,6 +1,6 @@
 # Speckle.Sdk (.NET) Documentation
 
-Applies when creating or editing pages under `developers/sdks/dotnet/` or `next/developers/sdks/dotnet/`.
+Applies when creating or editing pages under `developers/sdks/dotnet/`.
 
 ## Audience (scripts first)
 
@@ -18,7 +18,7 @@ Full persona rules: see **Developer Docs Audience Hierarchy** in `docs/agents/pe
 | First full walkthrough | [Quickstart](/developers/sdks/dotnet/getting-started/quickstart) |
 | Connector / large host-app send | [Building Connector-Scale Sends](/developers/sdks/dotnet/guides/building-connector-scale-sends), [Dependency Injection](/developers/sdks/dotnet/concepts/dependency-injection) |
 
-Nav order in `navigation.json` / `navigation.next.json`: prefer **Scripts and Notebooks** before connector-oriented guides when adding Getting Started pages.
+Nav order in `navigation.json`: prefer **Scripts and Notebooks** before connector-oriented guides when adding Getting Started pages.
 
 ## Bootstrap vs dependency injection
 

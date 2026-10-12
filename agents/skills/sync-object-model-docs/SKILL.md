@@ -1,8 +1,8 @@
 ---
 name: sync-object-model-docs
 description: >-
-  Object-model doc drift: sync next/developers/object-model/* and
-  building-integrations/publish.mdx with the stack. Use when asked to update
+  Object-model doc drift: sync developers/object-model/* and
+  developers/building-integrations/publish.mdx with the stack. Use when asked to update
   or stale-check the 2026.9 object-model docs, or to document a new relation.
 argument-hint: '[optional: concept name, e.g. relations, SGEO, ingestion]'
 ---
@@ -48,7 +48,8 @@ exits 0.
 pnpm report:object-model-terms
 ```
 
-Lists every `next/` prose line using a legacy glossary term. For each hit
+Lists every prose line under `developers/object-model/` and
+`developers/building-integrations/` using a legacy glossary term. For each hit
 under `object-model/` or in `publish.mdx`: fix it when the legacy term
 stands in for the 2026.9 concept; leave it when it names what the reader
 migrates from ("historically called the commit object"). Done when every

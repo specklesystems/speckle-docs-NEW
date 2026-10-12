@@ -61,7 +61,7 @@ Do **not** paste product-specific catalogs into this skill—always re-discover.
 
 ## 3. Gap inventory (before edits)
 
-Read the live nav group in `navigation.json` (`navigation.next.json` for `next/`) and every page in scope. Produce a short
+Read the live nav group in `navigation.json` and every page in scope. Produce a short
 inventory:
 
 - Per page: covered / thin / wrong / missing

@@ -83,7 +83,7 @@ Prettier may indent a closing tag (`</Note>`, `</Tip>`, and similar) when it fol
 
 - OpenAPI: invalid fields on media types fail validate (keep schemas Mint-compatible)
 - Snippet JSX: Mintlify pre-injects React hooks; avoid unused `react` imports; match export style the MDX import expects (named vs default)
-- Nav (`navigation.json`, `navigation.next.json`) must point at real pages
+- Nav (`navigation.json`) must point at real pages
 
 ### Format / lint scope
 

@@ -127,7 +127,7 @@ Object-model drift checks (manual; not in CI because they read sibling checkouts
 ```bash
 pnpm check:bundle-spec             # relations.mdx names vs speckle-bundle-spec's rel_types catalog at origin/main (needs duckdb)
 pnpm check:object-model-freshness  # pinned source files behind object-model facts still match origin/main
-pnpm report:object-model-terms     # legacy glossary terms in next/ prose (not a gate)
+pnpm report:object-model-terms     # legacy glossary terms in object-model prose (not a gate)
 ```
 
 All three take `--checkout-root <path>`; the two `check:` scripts take `--warn-only`. The workflow around them is the `sync-object-model-docs` skill.

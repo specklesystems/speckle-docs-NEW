@@ -9,8 +9,8 @@ To publish and load Speckle models in Grasshopper, you need:
 - A link to the specific Speckle model.
 
 <Tip>
-  Not sure what Speckle workspaces, projects, models, and versions are? Brush up on Speckle basics
-  [here](../../workspaces/introduction).
+  Not sure what Speckle workspaces, projects, models, and versions are? See [Speckle
+  basics](/workspaces/introduction).
 </Tip>
 
 ## Signing in to your Speckle account
@@ -42,8 +42,8 @@ Outputs:
   </Accordion>
   <Accordion title="Why does the Sign-In node no longer work?">
     Grasshopper connector versions before 2026.9.1 sign in through Speckle Desktop Services, which
-    is deprecated. Update the connector, or sign in from another Speckle connector on the same
-    computer.
+    is deprecated. Update the connector: from 2026.9.1, the **Sign-In** node signs in without
+    Desktop Services.
   </Accordion>
 </AccordionGroup>
 
@@ -100,13 +100,22 @@ Inputs:
 
 Outputs:
 
-1. The **Collection** output contains your loaded model.
+1. The **Collection** output contains your loaded model: Speckle Objects and geometry, including property-only elements such as Revit rooms, levels, and areas. Materials and colors arrive on each object.
+2. The **Properties** output contains model-wide properties, such as project information.
 
 Additional Settings:
 `Right-click` the node for additional settings:
 
 - Set your node to **load automatically** whenever there is a new version of your Speckle model. Make sure your input Speckle Model node does not have a specific version set to enable this setting.
 - **View your model online** in your web browser.
+
+To find what a loaded object is connected to, such as its level, rooms, or host, use the [Explore](/connectors/grasshopper/explore) node.
+
+<Note>
+  A Load node placed in a script before 2026.9 now shows as **Load (legacy)**. It is no longer
+  supported, and objects it loads produce no Explore outputs. Switch to the current Load node: see
+  [Upgrade to 2026.9](/connectors/grasshopper/grasshopper#upgrade-to-2026-9).
+</Note>
 
 ## Publishing models
 
@@ -121,14 +130,22 @@ Inputs:
 1. Add a **Speckle Model** input of the Speckle Model you want to publish a new version to.
 2. Add a **Collection** input containing the Collection of objects you want to publish.
 3. Add an optional **Version Message** input to describe the version of the model you are about to publish.
-4. Click the **Publish** button to publish your model.
+4. Add an optional **Properties** input to attach model-wide properties, such as project information.
+5. Click the **Publish** button to publish your model.
 
 Outputs:
 
 1. The **Speckle Model** output contains the Model you just published.
+2. The **Version ID** output contains the ID of the version you just created.
 
 Additional Settings:
 `Right-click` the node for additional settings:
 
 - Set your node to **publish automatically** whenever there is a new solve of the Collection you are publishing.
 - **View your model online** in your web browser.
+
+<Warning>
+  Connectors from 2026.8 or earlier cannot load versions created by the **Publish** node. Update
+  together with the people who load your model. See [Upgrade to
+  2026.9](/connectors/grasshopper/grasshopper#upgrade-to-2026-9).
+</Warning>
