@@ -4,7 +4,7 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 
 ## Repository layout
 
-- Pages are `.mdx`, routed by path. `docs.json` is the site config (`markdown.instructions`: site-wide agent rules); navigation `navigation.json`; redirects `redirects.json`.
+- Pages are `.mdx`, routed by path. Site config: `docs.json`; navigation: `navigation.json`; redirects: `redirects.json`.
 - User guides: `quickstart/`, `workspaces/`, `3d-viewer/`, `analytics/`, `workflows/`, `connectors/`, `beta/`. Developers: `developers/`. IT admins: `it-admin/`. Retired v2 URLs redirect to `migration/legacy-connectors`.
 - `snippets/` reusable MDX fragments, `images/` assets, `examples/` runnable sample apps (own pnpm root), `scripts/` CI checks.
 - `README.md` is the human contributor guide; `FRONTMATTER_SCHEMAS.md` defines the remaining custom frontmatter.
@@ -14,16 +14,17 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 - **Tooling:** `pnpm` for every script and dependency (`packageManager` pins the version), Node 22. `mise.toml` tasks: `mise run install|dev|validate|check-links|example-check|agents-sync`.
 - **Checks:** `pnpm check` is the CI gate: Prettier + markdownlint on changed files, `mint validate`, structure (redirects, orphans, framing, assets), broken links, a11y. Pre-commit (Husky) runs Prettier + markdownlint on staged files.
 - **Before a docs PR:** run the `docs-page-review` skill on every written or revised page, then `docs-ci-ready`.
+- **Technical changelog:** weekly changelog checks, monthly changelog pages, release-note reconciliation, and merge/release docs audits use `technical-changelog`.
 - **Area docs are not auto-loaded.** When a path you read, plan or edit matches a row under [Area docs](#area-docs), load that doc first, however small the task.
-- **Product truth:** document what exists today. When UI labels, operators, plan gates or enums look stale, verify against the product (`../speckle-server-internal`, FE3 = `packages/frontend-3`) before rewriting; multi-page parity audits use the `docs-product-capability-sweep` skill.
+- **Product truth:** document what exists today. Verify stale UI labels, operators, plan gates or enums against `../speckle-server-internal` (FE3 = `packages/frontend-3`); multi-page parity audits use `docs-product-capability-sweep`.
 
 ## Audience and voice
 
-| Doc type | Reader ("you") | Intent |
-|---|---|---|
-| User guides | the user | use the product: publish, load, share, view |
-| Developer docs | citizen developers / AEC hackers writing scripts, notebooks, small automations first; connector authors second | build, integrate, extend, debug |
-| IT admin docs | IT teams and workspace admins first, server admins last | deploy, configure, troubleshoot, support users |
+| Doc type       | Reader ("you")                                                                                                 | Intent                                         |
+| -------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| User guides    | the user                                                                                                       | use the product: publish, load, share, view    |
+| Developer docs | citizen developers / AEC hackers writing scripts, notebooks, small automations first; connector authors second | build, integrate, extend, debug                |
+| IT admin docs  | IT teams and workspace admins first, server admins last                                                        | deploy, configure, troubleshoot, support users |
 
 - Write for the reader, never for Speckle staff. User intent over system architecture; progressive disclosure, simple first, depth later.
 - Frame topics by the action (publish, load, share, view), not the plumbing (connectors, integrations). Everyone uses the web app; not everyone uses connectors.
@@ -51,14 +52,14 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 
 ## Area docs
 
-| Doc | Load first for |
-|---|---|
-| `docs/agents/connectors.md` | ANY work under `connectors/` |
-| `docs/agents/sdk-dotnet.md` | ANY work under `developers/sdks/dotnet/` |
-| `docs/agents/sdk-python.md` | ANY work under `developers/sdks/python/` |
-| `docs/agents/persona-audience.md` | writing or restructuring developer or IT admin pages, or a page for a multi-role feature |
-| `docs/agents/versioned-snippets.md` | a page that compares code before and after a release |
-| `docs/agents/server-config.md` | documenting server configuration (env vars, feature flags, Helm, docker-compose) |
+| Doc                                 | Load first for                                                                           |
+| ----------------------------------- | ---------------------------------------------------------------------------------------- |
+| `docs/agents/connectors.md`         | ANY work under `connectors/`                                                             |
+| `docs/agents/sdk-dotnet.md`         | ANY work under `developers/sdks/dotnet/`                                                 |
+| `docs/agents/sdk-python.md`         | ANY work under `developers/sdks/python/`                                                 |
+| `docs/agents/persona-audience.md`   | writing or restructuring developer or IT admin pages, or a page for a multi-role feature |
+| `docs/agents/versioned-snippets.md` | a page that compares code before and after a release                                     |
+| `docs/agents/server-config.md`      | documenting server configuration (env vars, feature flags, Helm, docker-compose)         |
 
 ## Agent config (ADR-0008)
 
