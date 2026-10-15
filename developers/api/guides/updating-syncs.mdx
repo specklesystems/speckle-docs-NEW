@@ -1,7 +1,7 @@
 ---
 title: Updating Cloud Integration Syncs via GraphQL
 sidebarTitle: Updating Syncs
-description: Update existing ACC and ProjectWise sync configuration using the `syncMutations.update` GraphQL mutation.
+description: Update existing ACC and ProjectWise sync configuration with `syncMutations.update`, and import earlier ACC file versions with `syncMutations.importSourceVersions`.
 ---
 
 This guide shows how to update an existing cloud integration sync using GraphQL.
@@ -199,6 +199,83 @@ For batch operations:
 2. Filter target syncs in your client
 3. Run `syncMutations.update` once per sync
 4. Set `triggerNow` only where needed
+
+## Import earlier versions of an ACC file
+
+An ACC sync starts at the file version current when it was created. To bring earlier versions into the same model, list the file's version history on the sync and import the ones you want. Each imported version is dated at its ACC creation time, so it slots into the model's history and never becomes the latest version. ACC syncs only; the field is `null` for integrations that cannot list versions.
+
+Check first whether the caller may import, with the project permission check:
+
+```graphql
+query CanImport($projectId: String!) {
+  project(id: $projectId) {
+    permissions {
+      canImportSyncSourceVersions {
+        authorized
+        code
+        message
+      }
+    }
+  }
+}
+```
+
+List the versions, each paired with the latest sync run for it (`syncItem` is `null` for a version never synced):
+
+```graphql
+query SyncSourceVersions($projectId: String!, $syncId: ID!) {
+  project(id: $projectId) {
+    sync(id: $syncId) {
+      sourceVersions {
+        id
+        number
+        name
+        createdAt
+        createdBy
+        syncItem {
+          id
+        }
+      }
+    }
+  }
+}
+```
+
+Import the chosen versions by `id`:
+
+```graphql
+mutation ImportSourceVersions($input: ImportSourceVersionsInput!) {
+  syncMutations {
+    importSourceVersions(input: $input) {
+      id
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "id": "3d5085bbcc",
+    "projectId": "0d1f93ec13",
+    "sourceVersionIds": [
+      "urn:adsk.wipprod:fs.file:vf.abc123?version=2",
+      "urn:adsk.wipprod:fs.file:vf.abc123?version=3"
+    ]
+  }
+}
+```
+
+One sync run is queued per version, oldest first. The mutation is rejected as a whole, and nothing is queued, when:
+
+- more than five distinct ids are passed (`SYNC_SOURCE_VERSION_IMPORT_LIMIT`); import a longer history in rounds
+- the sync is paused (`SYNC_PAUSED`); resume it with `syncMutations.setActive` first
+- an id is not in the file's version list (`SYNC_SOURCE_VERSION_NOT_FOUND`)
+- a version predates the version history the workspace plan keeps (`SYNC_SOURCE_VERSION_BEYOND_HISTORY_LIMIT`)
+- ACC reports no creation time for a version (`SYNC_SOURCE_VERSION_UNDATED`)
+- the workspace runs in [compatibility mode](/next/it-admin/compatibility-mode) (`SYNC_SOURCE_VERSION_IMPORT_UNSUPPORTED_ON_RAIL`)
+
+Importing a version that already synced is allowed and creates a second Speckle version with the same date; the web app greys those out, so check `syncItem` before you import.
 
 ## Operational notes
 
