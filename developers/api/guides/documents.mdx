@@ -1,20 +1,22 @@
 ---
-title: 'Manage models and versions as documents'
+title: 'Manage models and versions through the documents API'
 description: "Create, rename, move and delete models and edit their versions through a project's Files tree over GraphQL."
 sidebarTitle: 'Documents'
 ---
 
 Scripts that create models or edit versions over GraphQL need the documents mutations from
-2026.10: `modelMutations` and `branchCreate`/`branchUpdate`/`branchDelete` are gone, and
-`versionMutations` is deprecated. The reason is one tree. A project's content is a tree of
+2026.10: `modelMutations` and `branchCreate`/`branchUpdate`/`branchDelete` are gone, and the
+version writes on `versionMutations` are deprecated. The reason is one tree. A project's content is a tree of
 **documents**: folders, uploaded files, dataset entries and **models**. Model versions are
 document versions. `Model` and `Version` stay as a read view over the same rows, so your
-queries keep working. Every write goes through `projectMutations.documents`.
+queries keep working. Every model and version write goes through `projectMutations.documents`;
+only `versionMutations.markReceived`, which an anonymous viewer of a public project may call,
+stays where it is.
 
-<Note>
-  `versionMutations` and the `Branch`/`Commit` fields are deleted on January 31st, 2027. Each one's
-  deprecation reason names its replacement on this page.
-</Note>
+<Warning>
+  The `Branch`/`Commit` fields and the three version writes on `versionMutations` are deleted on
+  January 31st, 2027. Each one's deprecation reason names its replacement on this page.
+</Warning>
 
 ## Read the tree
 
@@ -37,7 +39,8 @@ query ProjectRoot($projectId: String!) {
 }
 ```
 
-A model's full name in the `Model` view (`Building A/Floor 01`) is its `path` in the tree.
+A model's full name in the `Model` view (`Building A/Floor 01`) is its `path` in the tree without
+the leading slash (`/Building A/Floor 01`).
 Names are unique within a folder, whatever their case. A model may share a name with a file
 or a folder beside it: models have a namespace of their own.
 
@@ -51,10 +54,9 @@ or a folder beside it: models have a namespace of their own.
 | Describe | `setDescription(input: { projectId, documentId, description })`               | Null clears it.                                                                                                                                                   |
 | Delete   | `delete(input: { projectId, documentId })`                                    | See the warning below.                                                                                                                                            |
 
-<Warning>
-  Deleting a model deletes its versions and their artifacts. Models have no trash. A folder that
-  holds models cannot be deleted; move or delete the models first.
-</Warning>
+<Warning>Deleting a model deletes its versions and their artifacts. Models have no trash.</Warning>
+
+<Note>A folder that holds models cannot be deleted. Move or delete the models first.</Note>
 
 ```graphql
 mutation CreateModel($input: DocumentCreateModelInput!) {
@@ -86,12 +88,11 @@ The returned `id` is the model id everywhere else: file ingestion, the viewer UR
 
 ## Edit versions
 
-| Task            | Mutation                                                                         | Notes                                                                                                                             |
-| --------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Set the message | `setVersionMessage(input: { projectId, versionId, message })`                    | Returns the `Version`.                                                                                                            |
-| Delete          | `deleteVersions(input: { projectId, versionIds })`                               | Deletes the versions and their artifacts.                                                                                         |
-| Move            | `moveVersions(input: { projectId, versionIds, targetModelPath })`                | `targetModelPath` is the model's full path. A model that does not exist yet is created. Returns the target model as a `Document`. |
-| Record a load   | `markVersionLoaded(input: { projectId, versionId, sourceApplication, message })` | What connectors and the viewer send when they open a version. It shows on the activity timeline.                                  |
+| Task            | Mutation                                                          | Notes                                                                                                                                                                  |
+| --------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Set the message | `setVersionMessage(input: { projectId, versionId, message })`     | Returns the `Version`.                                                                                                                                                 |
+| Delete          | `deleteVersions(input: { projectId, versionIds })`                | Deletes the versions and their artifacts.                                                                                                                              |
+| Move            | `moveVersions(input: { projectId, versionIds, targetModelPath })` | `targetModelPath` is the model's full name, without the leading slash of `path`. A model that does not exist yet is created. Returns the target model as a `Document`. |
 
 ```graphql
 mutation MoveVersions($input: DocumentMoveVersionsInput!) {
