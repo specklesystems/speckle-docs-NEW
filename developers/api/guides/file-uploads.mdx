@@ -42,7 +42,7 @@ Uploading a file and triggering Speckle's automatic ingestion pipeline is a mult
    (simple HTTP PUT to the presigned URL)
 
 3. **Create a model (if needed)**
-   (GraphQL mutation: `modelMutations.create` - optional if you already have a model)
+   (GraphQL mutation: `projectMutations.documents.createModel` - optional if you already have a model)
 
 4. **Tell Speckle to parse and ingest the file**
    (GraphQL mutation: `fileUploadMutations.startFileIngestion`)
@@ -152,10 +152,12 @@ This step requires a target model, where the file data should be ingested to. If
 Mutation:
 
 ```graphql
-mutation CreateModel($input: CreateModelInput!) {
-  modelMutations {
-    create(input: $input) {
-      id
+mutation CreateModel($input: DocumentCreateModelInput!) {
+  projectMutations {
+    documents {
+      createModel(input: $input) {
+        id
+      }
     }
   }
 }
@@ -167,7 +169,8 @@ Variables example:
 {
   "input": {
     "projectId": "your-project-id",
-    "name": "model name"
+    "name": "model name",
+    "parentId": null
   }
 }
 ```
@@ -177,16 +180,18 @@ Response example:
 ```json
 {
   "data": {
-    "modelMutations": {
-      "create": {
-        "id": "the-target-model-id"
+    "projectMutations": {
+      "documents": {
+        "createModel": {
+          "id": "the-target-model-id"
+        }
       }
     }
   }
 }
 ```
 
-Store the `model.id` as it will be used as `modelId` in the next step.
+A model is a document in the project's Files tree: `parentId` is the folder to create it in (`null` for the root), and slashes in the name create the folders they name. See [Manage models and versions as documents](/developers/api/guides/documents). Store the returned `id`: it is the `modelId` of the next step.
 
 ## Step 4: Trigger the file ingestion
 
