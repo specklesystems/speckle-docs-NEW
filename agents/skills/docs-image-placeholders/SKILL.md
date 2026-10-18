@@ -39,6 +39,7 @@ Do not insert on code-only SDK or API pattern pages, date or comparison tables, 
 Do not write a reader-facing missing-screenshot disclaimer. Do not use a Frame that points at a missing placeholder.png.
 
 When a capture lands, replace the comment with a `<Frame>` around the asset and delete the comment.
+Use **capture-docs-screenshots** to fulfil browser-accessible markers against the live local product.
 
 ## Pass
 

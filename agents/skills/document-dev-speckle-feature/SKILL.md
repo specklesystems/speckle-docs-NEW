@@ -62,11 +62,10 @@ Ask the user with AskUserQuestion which approach to use:
 
 ### If automatic screenshots are chosen:
 
-1. Invoke the **open-dev-speckle-in-browser** skill (pass the speckle-server repo path as argument)
-2. Navigate to the relevant UI areas identified during exploration
-3. Capture **focused, well-cropped screenshots** — crop to the relevant UI element or section, not the full page (unless the full page view is what matters)
-4. Save screenshots to the appropriate `images/` subdirectory in the docs project
-5. Use descriptive filenames matching the doc structure (e.g. `images/workspaces/new-feature/settings-panel.png`)
+Invoke **capture-docs-screenshots** for the target pages and UI areas identified
+during exploration. It classifies browser and external-application captures and
+owns browser preparation, canonical asset reuse, deterministic paths, capture
+audit, `<Frame>` insertion, and verification.
 
 ### If placeholders are chosen:
 
