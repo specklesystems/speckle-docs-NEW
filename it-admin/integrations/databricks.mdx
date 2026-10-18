@@ -52,7 +52,7 @@ Speckle undertakes all Databricks actions via a **service principal** you create
 
   </Step>
   <Step title="Get your SQL warehouse connection details">
-    Open **SQL Warehouses \> your warehouse \> Connection details** and note the **Server hostname** (your *Workspace host*) and the **HTTP path**.
+    Use a **serverless** SQL warehouse: it starts in seconds and stops on its own when idle. Open **SQL Warehouses \> your warehouse \> Connection details** and note the **Server hostname** (your *Workspace host*) and the **HTTP path**.
 
     <Frame>
       <img src="/images/connectors/data-warehouses/databricks_warehouse_configs.png" alt="SQL warehouse connection details: server hostname and HTTP path" />
@@ -102,7 +102,7 @@ Speckle undertakes all Databricks actions via a **service principal** you create
 
   </Step>
   <Step title="Test the connection">
-    Select **Test connection**. Speckle runs a `SELECT 1` round-trip against your warehouse. Auto-stopped or Free-Edition warehouses can take a minute to wake on the first query — if the test times out on a cold warehouse, try again once it's running.
+    Select **Test connection**. Speckle runs a `SELECT 1` round-trip against your warehouse. If the test times out on a stopped warehouse, try again once it's running.
 
     You should see a success message with the response time, or an error explaining what failed.
 
@@ -111,6 +111,12 @@ Speckle undertakes all Databricks actions via a **service principal** you create
     Select **Connect** (or **Save changes**). The connection is now stored for your workspace and you can browse it.
   </Step>
 </Steps>
+
+<Note>
+  If you don't use a serverless SQL warehouse, expect longer start times. Pro and classic warehouses
+  can take several minutes to start after they stop, and Speckle waits about two minutes, so a test
+  or table refresh on a stopped warehouse can time out.
+</Note>
 
 <Note>
   **Speckle is read-only in Databricks.** It only runs `SELECT` queries against tables users register and never writes, alters, or deletes data in your warehouse.

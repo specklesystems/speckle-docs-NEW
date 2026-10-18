@@ -56,7 +56,7 @@ if (await client.Server.IsWorkspaceEnabled())
 }
 else
 {
-    // Personal-project flow — most self-hosted community servers land here
+    // Servers without workspace features list accessible projects directly
     var projects = await client.ActiveUser.GetProjects();
 }
 ```
@@ -87,7 +87,6 @@ if (!project.permissions.canLoad.authorized)
 For actions that aren't tied to an existing permission field on a resource, some methods ask the question directly and return a `PermissionCheckResult`:
 
 - `client.Model.CanCreateModelIngestion(projectId, modelId)`
-- `client.ActiveUser.CanCreatePersonalProjects()`
 
 `PermissionCheckResult` exposes `authorized`, `code`, `message`, and a convenience method:
 
@@ -128,7 +127,8 @@ Catch only the narrow exception that represents "this server doesn't know this c
     Many self-hosted and community servers run without the workspaces module. Code that only
     exercises `client.Workspace` and workspace-scoped `client.ActiveUser` methods will throw
     `SpeckleGraphQLWorkspaceNotEnabledException` (wrapped in `AggregateException`) on those servers.
-    Check `client.Server.IsWorkspaceEnabled()` and support the personal-project path too.
+    Check `client.Server.IsWorkspaceEnabled()` and use `client.ActiveUser.GetProjects()` when the
+    server has no workspace module.
   </Accordion>
   <Accordion title="Catching AggregateException without inspecting InnerExceptions">
     An unqualified `catch (AggregateException)` around a capability check treats old-server

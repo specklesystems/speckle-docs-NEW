@@ -8,7 +8,7 @@ description: 'Build your first Speckle integration in 5 minutes'
 In this quickstart, you'll learn how to:
 
 1. Authenticate with Speckle Server
-2. Create a project and model
+2. Create a workspace project and model
 3. Describe a wall and a door in code
 4. Publish them as a new version
 5. Load the version back and query it
@@ -73,19 +73,22 @@ First, let's authenticate with Speckle Server:
 
 <Check>If this works, you'll see your name printed!</Check>
 
-### Step 2: Create a Project and Model
+### Step 2: Create a Workspace Project and Model
 
 Projects are the top-level containers for your data. A model holds the versions you publish.
+Replace `your_workspace_id` with an id returned by `client.active_user.get_workspaces()`.
 
 ```python lines icon="python"
 from specklepy.api.enums import ProjectVisibility
 from specklepy.api.inputs.model_inputs import CreateModelInput
-from specklepy.api.inputs.project_inputs import ProjectCreateInput
+from specklepy.api.inputs.project_inputs import WorkspaceProjectCreateInput
 
-project = client.project.create(ProjectCreateInput(
+workspace_id = "your_workspace_id"
+project = client.project.create_in_workspace(WorkspaceProjectCreateInput(
     name="My First Speckle Project",
     description="Learning specklepy",
-    visibility=ProjectVisibility.PRIVATE
+    visibility=ProjectVisibility.PRIVATE,
+    workspaceId=workspace_id
 ))
 model = client.model.create(CreateModelInput(
     name="My first model",
@@ -191,7 +194,7 @@ from specklepy.api import operations
 from specklepy.api.client import SpeckleClient
 from specklepy.api.enums import ProjectVisibility
 from specklepy.api.inputs.model_inputs import CreateModelInput
-from specklepy.api.inputs.project_inputs import ProjectCreateInput
+from specklepy.api.inputs.project_inputs import WorkspaceProjectCreateInput
 from specklepy.bundle import BundleBuilder, Producer
 from specklepy.logging.exceptions import GraphQLException
 from specklepy.objects.geometry import Mesh
@@ -201,11 +204,13 @@ client = SpeckleClient(host="app.speckle.systems")
 client.authenticate_with_token("your_token_here")  # Replace with your token
 print(f"✓ Authenticated as {client.account.userInfo.name}")
 
-# 2. Create project and model
-project = client.project.create(ProjectCreateInput(
+# 2. Create workspace project and model
+workspace_id = "your_workspace_id"
+project = client.project.create_in_workspace(WorkspaceProjectCreateInput(
     name="My First Speckle Project",
     description="Learning specklepy",
-    visibility=ProjectVisibility.PRIVATE
+    visibility=ProjectVisibility.PRIVATE,
+    workspaceId=workspace_id
 ))
 model = client.model.create(CreateModelInput(
     name="My first model",

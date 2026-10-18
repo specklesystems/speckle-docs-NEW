@@ -30,8 +30,8 @@ Nav order in `navigation.json`: prefer **Scripts and Notebooks** before connecto
 
 | Reader | Prefer in examples |
 | --- | --- |
-| Scripts, notebooks, quick wins | `Send2` / `Receive2` (URL + project id + token; no `IServerTransportFactory`) |
-| Quickstart tour (transport teaching) | `Send` / `Receive` with `IServerTransportFactory` — acceptable when the page is explicitly a full walkthrough |
+| Scripts, notebooks, quick wins | `Send3` / `Receive3` (account + project, model, and version ids; no `IServerTransportFactory`) |
+| Migration from object graphs | `Send2` / `Receive2` or `Send` / `Receive`, clearly marked obsolete and scoped to versions that still expose an object graph |
 | Connectors only | `SendPipeline` + model ingestion — never the default on non-connector pages |
 
 ## Connector-only content (label upfront)
@@ -45,7 +45,7 @@ These topics are **secondary** — mark with `<Warning>` or `<Info>` at the top 
 
 ## Cross-links
 
-- Compare to specklepy where helpful — Python readers expect import-and-go; .NET readers need the bootstrap preamble explained once.
+- Compare to specklepy where helpful — Python readers expect import-and-go; .NET readers need the bootstrap preamble explained once before `Send3` / `Receive3`.
 - Link to [speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors) only on connector-scale pages, not on every SDK overview.
 
 ## Platform vs .NET scope (avoid overlap)

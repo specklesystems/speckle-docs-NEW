@@ -323,6 +323,126 @@ In case of an error, the error response would look like:
 }
 ```
 
+## Upload linked files with a model
+
+Some formats keep part of a model in separate files. To convert those files into the same version
+as the model, upload them as linked files of the model file.
+
+| Model file          | Linked files it takes                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| ETABS `.edb`        | The analysis result files ETABS saves beside the model: `.msh` and `.Y*`, such as `.Y01` |
+| Revit `.rvt`        | Linked models (`.rvt`)                                                                   |
+| AVEVA `.rvm`        | One attribute export (`.txt` or `.att`) and DEXPI P&IDs (`.xml`)                         |
+| QGIS `.qgz`, `.qgs` | One zip of the project folder: `.zip`, `.shp.zip`, or `.gdb.zip`                         |
+
+Upload the model file and its linked files in this order:
+
+1. Request an upload URL for the model file as in Step 1.
+2. Request an upload URL for each linked file. Set `linkedToFileType` to the extension of the
+   model file, without the dot, such as `"edb"`. Without `linkedToFileType`, the server refuses a
+   file that is not a model of its own, such as a `.msh` file.
+3. Upload each file as in Step 2 and record each ETag.
+4. In `startFileIngestion`, pass the linked files in `linkedFiles`, each with its `fileId` and
+   `etag`. One upload takes at most 100 linked files. For the ETABS file size limits, see [Upload
+   an ETABS model](/connectors/direct-uploads/introduction#upload-an-etabs-model).
+
+```json
+{
+  "input": {
+    "etag": "\"ad13b92e173...\"",
+    "fileId": "file-id-of-the-model-file",
+    "modelId": "the-target-model-id",
+    "projectId": "your-project-id",
+    "linkedFiles": [
+      { "fileId": "file-id-of-a-linked-file", "etag": "\"5f0c1e8a2b9...\"" },
+      { "fileId": "file-id-of-another-linked-file", "etag": "\"91d4b7c03ae...\"" }
+    ]
+  }
+}
+```
+
+<Note>
+  Self-hosted servers on 2026.9 and earlier do not accept `linkedToFileType` or `linkedFiles`.
+</Note>
+
+### Example: upload an ETABS model with its results
+
+This script uploads an `.edb` and the result files that share its name, then starts the
+ingestion. It needs `curl` and `jq`, and a model to upload into.
+
+<Note>
+  An ETABS upload without its result files publishes the model without analysis results and reports
+  no error. Upload every result file ETABS saved for the model.
+</Note>
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+: "${SPECKLE_SERVER:?}" "${SPECKLE_TOKEN:?}" "${PROJECT_ID:?}" "${MODEL_ID:?}"
+edb_path="$1"
+
+gql() {
+  curl -sS -f "$SPECKLE_SERVER/graphql" \
+    -H "Authorization: Bearer $SPECKLE_TOKEN" \
+    -H "Content-Type: application/json" \
+    --data "$(jq -n --arg query "$1" --argjson variables "$2" '{$query, $variables}')"
+}
+
+upload() {
+  local path="$1" linked_to="$2" input response url file_id etag
+  input=$(jq -n --arg projectId "$PROJECT_ID" --arg fileName "$(basename "$path")" \
+    --arg linkedTo "$linked_to" \
+    '{$projectId, $fileName} + if $linkedTo == "" then {} else {linkedToFileType: $linkedTo} end')
+  response=$(gql 'mutation($input: GenerateFileUploadUrlInput!) {
+    fileUploadMutations {
+      generateUploadUrl(input: $input) { url fileId additionalRequestHeaders { header value } }
+    }
+  }' "{\"input\": $input}")
+  url=$(jq -er '.data.fileUploadMutations.generateUploadUrl.url' <<<"$response") ||
+    { echo "$response" >&2; exit 1; }
+  file_id=$(jq -r '.data.fileUploadMutations.generateUploadUrl.fileId' <<<"$response")
+  headers=()
+  while IFS= read -r header; do headers+=(-H "$header"); done < <(jq -r \
+    '.data.fileUploadMutations.generateUploadUrl.additionalRequestHeaders[] | "\(.header): \(.value)"' \
+    <<<"$response" | tr -d '\r')
+  etag=$(curl -sS -f -X PUT -H "Content-Type: application/octet-stream" \
+    ${headers[@]+"${headers[@]}"} --data-binary "@$path" -D - -o /dev/null "$url" |
+    tr -d '\r' | awk 'tolower($1) == "etag:" { print $2 }') || exit 1
+  [[ -n $etag ]] || { echo "No ETag returned for $path" >&2; exit 1; }
+  jq -n --arg fileId "$file_id" --arg etag "$etag" '{$fileId, $etag}'
+}
+
+model=$(upload "$edb_path" "")
+
+result_file='^(msh|y([0-9a-f]*|_[0-9]*|\$\$))$'
+linked=""
+for path in "${edb_path%.*}".*; do
+  extension=$(tr '[:upper:]' '[:lower:]' <<<"${path##*.}")
+  if [[ $extension =~ $result_file ]]; then
+    linked+="$(upload "$path" edb)"$'\n'
+  fi
+done
+
+input=$(jq -n --argjson model "$model" --argjson linkedFiles "$(jq -s . <<<"$linked")" \
+  --arg projectId "$PROJECT_ID" --arg modelId "$MODEL_ID" \
+  '$model + {$projectId, $modelId, $linkedFiles}')
+response=$(gql 'mutation($input: StartFileImportInput!) {
+  fileUploadMutations { startFileIngestion(input: $input) { id statusData { status } } }
+}' "{\"input\": $input}")
+jq -er '.data.fileUploadMutations.startFileIngestion.id' <<<"$response" ||
+  { echo "$response" >&2; exit 1; }
+```
+
+Run it with the path to the `.edb`. The result files must be in the same folder:
+
+```bash
+SPECKLE_SERVER=https://app.speckle.systems SPECKLE_TOKEN=... PROJECT_ID=... MODEL_ID=... \
+  ./upload-etabs.sh ./Tower/Tower.edb
+```
+
+The script prints the ingestion ID. To follow the conversion, use it as in Step 5.
+
 ## What developers need to know
 
 <AccordionGroup>

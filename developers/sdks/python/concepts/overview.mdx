@@ -95,11 +95,13 @@ Project
 - Unique ID and name
 
 ```python lines icon="python"
-from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+from specklepy.core.api.inputs.project_inputs import WorkspaceProjectCreateInput
 
-project = client.project.create(ProjectCreateInput(
+workspace_id = "your_workspace_id"
+project = client.project.create_in_workspace(WorkspaceProjectCreateInput(
     name="Office Building Renovation",
-    description="Main project for the renovation"
+    description="Main project for the renovation",
+    workspaceId=workspace_id
 ))
 project_id = project.id
 ```
@@ -326,64 +328,44 @@ graph LR
     C --> D["Use Objects"]
 ```
 
-<Steps>
-  <Step title="Create">
-    Create Python objects using specklepy classes
+1. Create Python objects using specklepy classes.
 
-    ```python lines icon="python"
-    point = Point(x=1, y=2, z=3)
-    ```
+   ```python lines icon="python"
+   point = Point(x=1, y=2, z=3)
+   ```
 
-  </Step>
+1. Send objects through a transport.
 
-  <Step title="Send">
-    Send objects via a transport
+   ```python lines icon="python"
+   object_id = operations.send(base=point, transports=[transport])
+   ```
 
-    ```python lines icon="python"
-    object_id = operations.send(base=point, transports=[transport])
-    ```
+1. Create a version that references the object.
 
-  </Step>
+   ```python lines icon="python"
+   from specklepy.core.api.inputs.version_inputs import CreateVersionInput
 
-  <Step title="Version">
-    Create a version referencing the object
+   version_input = CreateVersionInput(
+       project_id=project_id,
+       model_id=model_id,
+       object_id=object_id,
+       message="Description of changes"
+   )
+   version = client.version.create(version_input)
+   ```
 
-    ```python lines icon="python"
-    from specklepy.core.api.inputs.version_inputs import CreateVersionInput
+1. Get the version and its referenced object ID.
 
-    version_input = CreateVersionInput(
-        project_id=project_id,
-        model_id=model_id,
-        object_id=object_id,
-        message="Description of changes"
-    )
-    version = client.version.create(version_input)
-    ```
+   ```python lines icon="python"
+   version = client.version.get(project_id=project_id, version_id=version.id)
+   object_id = version.referencedObject
+   ```
 
-  </Step>
+1. Receive the object by ID.
 
-  <Step title="Get Version">
-    Retrieve a version to access its data
-
-    ```python lines icon="python"
-    # Get the version by ID
-    version = client.version.get(project_id=project_id, version_id=version.id)
-
-    # Access the referenced object ID
-    object_id = version.referencedObject
-    ```
-
-  </Step>
-
-  <Step title="Receive">
-    Receive objects by ID
-
-    ```python lines icon="python"
-    received = operations.receive(obj_id=object_id, remote_transport=transport)
-    ```
-
-  </Step>
-</Steps>
+   ```python lines icon="python"
+   received = operations.receive(obj_id=object_id, remote_transport=transport)
+   ```
 
 ## The Type System
 

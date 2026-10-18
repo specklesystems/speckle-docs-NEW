@@ -200,7 +200,10 @@ account's main token does not enter the report.
 
 You can share your Power BI reports with Speckle models in two ways:
 
-- **Share the Power BI file directly**: Colleagues who open the .pbix file can view the report. Editing queries or refreshing data requires a Speckle account with access to the project.
+- **Share the Power BI file directly**: People can view the populated report, including its 3D
+  visual, without signing in to Speckle. The visual uses the restricted share token stored with the
+  report data and stops loading if that token is revoked or expires. Refreshing the source query is
+  a separate connector operation and requires a Speckle account with access to the source project.
 
 - **Publish to Power BI Service**: You can publish your report to Power BI web, making it accessible to others through the online platform where they can view the published report and interact with the 3D visual. If a data gateway has been configured, the Speckle connector and 3D visual support scheduled refresh, ensuring your reports reflect up-to-date data.
 
@@ -274,6 +277,12 @@ A `GetByUrl` report that points to a model URL fails on its next refresh once th
 version from a 2026.9 connector, a file upload, or a cloud sync. Those versions contain only
 artifact bundles, which `GetByUrl` cannot read, so the refresh fails with
 `JsonRepresentationUnavailable`. Rebuild the report before that happens.
+
+**If a report has already failed** and you need it working before you can rebuild, change the model
+URL in the `GetByUrl` query to `.../models/MODEL_ID@VERSION_ID`, using the last version published
+before 4.0. This is unsupported and temporary: the report stops following new publishes. It does
+not work for a model with no pre-4.0 version, such as a new IFC upload. Rebuild with Get Tables as
+soon as you can.
 
 ### Rebuild the queries
 
@@ -511,9 +520,10 @@ returned by `Speckle.GetTables`. Replace them when you rebuild the report.
     your models.
   </Accordion>
   <Accordion title="Why does GetByUrl still fail when I use a version URL?">
-    The version contains only artifact bundles, which `GetByUrl` cannot read. `GetByUrl` is no
-    longer supported: rebuild the query with **Connect to Speckle (Custom)**. See [Upgrade from
-    2026.8](#upgrade-from-2026-8).
+    The version contains only artifact bundles, which `GetByUrl` cannot read. The temporary recovery
+    step works only with a version published before 4.0 that still has JSON data. See [Why GetByUrl
+    reports fail](#why-getbyurl-reports-fail), then rebuild the query with **Connect to Speckle
+    (Custom)** as soon as you can.
   </Accordion>
   <Accordion title="Why does GetByUrl fail with DirectDownloadFailed and status 404?">
     If the error's `RootObjectId` starts with `bundle.`, the version contains only artifact bundles.

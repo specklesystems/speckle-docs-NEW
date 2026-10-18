@@ -24,19 +24,27 @@ Before reading [Operations](/developers/sdks/dotnet/api-reference/operations) me
 
 ## The paths at a glance
 
-| Your goal                                    | API                                 | When                                                               |
-| -------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------ |
-| **Load or publish model data (recommended)** | **`Receive3` / `Send3`**            | **Scripts, notebooks, Grasshopper C#, most AEC automation**        |
-| Load a version `Receive3` cannot load        | `Receive2`                          | Versions published before 2026.9 that the server has not converted |
-| Inspect JSON locally                         | `Serialize` / `DeserializeAsync`    | No server; debugging object shape                                  |
-| Move object graphs through a transport       | `Send` / `Receive` + `ITransport`   | Local-only tests; versions published before 2026.9                 |
-| Experimental serializer                      | `SerializeNew`                      | Avoid in production                                                |
-| Publish whole host-app model                 | `SendPipeline` + `client.Ingestion` | Desktop connectors only                                            |
+| Your goal                                        | API                                 | When                                                        |
+| ------------------------------------------------ | ----------------------------------- | ----------------------------------------------------------- |
+| **Load or publish model data (recommended)**     | **`Receive3` / `Send3`**            | **Scripts, notebooks, Grasshopper C#, most AEC automation** |
+| Load an exceptional older version with no bundle | `Receive2`                          | Only while that version's object graph remains available    |
+| Inspect JSON locally                             | `Serialize` / `DeserializeAsync`    | No server; debugging object shape                           |
+| Move object graphs through a transport           | `Send` / `Receive` + `ITransport`   | Local-only tests; versions published before 2026.9          |
+| Experimental serializer                          | `SerializeNew`                      | Avoid in production                                         |
+| Publish whole host-app model                     | `SendPipeline` + `client.Ingestion` | Desktop connectors only                                     |
 
 <Note>
   `Send2`, `Receive2`, `Send`, and `Receive` are marked `[Obsolete]`, and Speckle does not guarantee
   them for new work. Use them only to read versions published before 2026.9. To move existing code,
   see [Migrate to 2026.9](/developers/sdks/dotnet/migrate-to-2026-9).
+</Note>
+
+<Note>
+  `Receive3` works for every version that has a bundle, including older versions converted by the
+  server. If an older stored version has not been converted, or its conversion could not complete,
+  `Receive3` raises `SpeckleException`. Use `Receive2` only while that version's object graph
+  remains available. On current servers, sends from older connectors are bundled before the new
+  version becomes visible.
 </Note>
 
 ## Recommended: Receive3 / Send3

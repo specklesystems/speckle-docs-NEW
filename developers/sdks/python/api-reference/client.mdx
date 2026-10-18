@@ -177,7 +177,7 @@ The client provides access to various resource APIs through these properties. Ea
 Listing Projects: Workspace vs Non-Workspace Servers:
 The method for listing projects differs depending on your server deployment:
 
-- **Workspace-enabled servers** (e.g., app.speckle.systems): Use `client.workspace.get_projects(workspace_id)` to list projects within a workspace, or `client.active_user.get_projects(filter=UserProjectsFilter(personalOnly=True))` for personal projects.
+- **Workspace-enabled servers** (e.g., app.speckle.systems): Use `client.workspace.get_projects(workspace_id)` to list projects within a workspace.
 
 - **Non-workspace servers** (self-hosted/open-source): Use `client.active_user.get_projects()` to list all projects you have access to. The workspace resource is not available.
 
@@ -205,16 +205,17 @@ else:
 client.project: ProjectResource
 ```
 
-Access project operations (create, get, update, delete, list).
+Access project operations (create in a workspace, get, update, delete, list).
 
 Example:
 
 ```python
-from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+from specklepy.core.api.inputs.project_inputs import WorkspaceProjectCreateInput
 
-project = client.project.create(ProjectCreateInput(
+project = client.project.create_in_workspace(WorkspaceProjectCreateInput(
     name="My Project",
-    description="A new project"
+    description="A new project",
+    workspaceId="workspace_id"
 ))
 
 retrieved = client.project.get(project.id)
@@ -628,11 +629,6 @@ except Exception as e:
             projects = client.workspace.get_projects(ws.id)
             print(f"Workspace {ws.name}: {projects.totalCount} projects")
 
-        # List personal projects
-        from specklepy.core.api.inputs.user_inputs import UserProjectsFilter
-        personal = client.active_user.get_projects(
-            filter=UserProjectsFilter(personalOnly=True)
-        )
     else:
         # Non-workspace server (self-hosted/open-source)
         # List all accessible projects

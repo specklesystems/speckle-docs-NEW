@@ -1,6 +1,6 @@
 ---
 title: 'Publish and load a model from C#'
-description: 'Optional deep dive — create a project, publish a small model with Send3, wait for the version, and load it back with Receive3'
+description: 'Optional deep dive — create a workspace project, publish a small model with Send3, wait for the version, and load it back with Receive3'
 sidebarTitle: 'Quickstart'
 ---
 
@@ -14,7 +14,7 @@ In this optional deep dive, you will:
 
 1. Paste the one-time SDK bootstrap (dependency injection setup you copy, not a concept you study)
 2. Authenticate with Speckle Server
-3. Create a project and model
+3. Create a workspace project and model
 4. Describe a wall and a door with a `BundleBuilder`
 5. Publish them as a new version with `Send3`
 6. Load the version back with `Receive3`
@@ -83,18 +83,21 @@ Console.WriteLine($"✓ Authenticated as {account.userInfo.name}");
 
 <Check>If this works, you'll see your name printed!</Check>
 
-### Step 3: Create a project and model
+### Step 3: Create a workspace project and model
 
 Projects are the top-level containers for your data. A model holds the versions you publish.
+Replace `your_workspace_id` with an id returned by `client.ActiveUser.GetWorkspaces()`.
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using Speckle.Sdk.Api.GraphQL.Enums;
 using Speckle.Sdk.Api.GraphQL.Inputs;
 
-var project = await client.Project.Create(new ProjectCreateInput(
+var workspaceId = "your_workspace_id";
+var project = await client.Project.CreateInWorkspace(new WorkspaceProjectCreateInput(
     "My First Speckle Project",
     "Learning Speckle.Sdk",
-    ProjectVisibility.Private
+    ProjectVisibility.Private,
+    workspaceId
 ));
 var model = await client.Model.Create(new CreateModelInput("My first model", "This is my first model", project.id));
 
@@ -215,11 +218,13 @@ var account = await provider.GetRequiredService<IAccountFactory>()
 using var client = provider.GetRequiredService<IClientFactory>().Create(account);
 Console.WriteLine($"✓ Authenticated as {account.userInfo.name}");
 
-// 3. Create project and model
-var project = await client.Project.Create(new ProjectCreateInput(
+// 3. Create workspace project and model
+var workspaceId = "your_workspace_id";
+var project = await client.Project.CreateInWorkspace(new WorkspaceProjectCreateInput(
     "My First Speckle Project",
     "Learning Speckle.Sdk",
-    ProjectVisibility.Private
+    ProjectVisibility.Private,
+    workspaceId
 ));
 var model = await client.Model.Create(new CreateModelInput("My first model", "This is my first model", project.id));
 

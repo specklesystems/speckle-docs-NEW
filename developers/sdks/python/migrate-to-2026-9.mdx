@@ -72,9 +72,11 @@ Auth and version lookup stay as on [Authentication](/developers/sdks/python/gett
 </Tip>
 
 <Note>
-  `operations.receive3` reads the version's bundle. A version published before 2026.9 that the
-  server has not converted has no bundle, and `receive3` raises a `SpeckleException`. Load that
-  version with `operations.receive`.
+  `operations.receive3` works for every version that has a bundle, including older versions
+  converted by the server. If an older stored version has not been converted, or its conversion
+  could not complete, `receive3` raises a `SpeckleException`. Use `operations.receive` only while
+  that version's object graph remains available. On current servers, sends from older connectors are
+  bundled before the new version becomes visible.
 </Note>
 
 ## Count and filter objects
@@ -193,7 +195,8 @@ A 2026.9 version has no nested `elements` tree and no proxy `objects` lists. Do 
 
 ## Read versions published before 2026.9
 
-Keep `operations.receive` only to read versions published before 2026.9 that have no bundle; use `operations.receive3` for everything else.
+Use `operations.receive3` for every version that has a bundle. Keep `operations.receive` only as a
+fallback for an older stored version that has no bundle and whose object graph remains available.
 
 - **Versions published before 2026.9:** pass `referenced_object` as a content hash and get the object graph back.
 - **Versions published by a 2026.9 connector:** `referenced_object` is a bundle reference (`bundle.<projectId>.<modelId>.<versionId>`). A 2026.9 specklepy recognizes the prefix and returns a best-effort `Base` tree (`Model.to_base()`, DataObject idiom, `version = 4` on the root). That projection does not scale to the model sizes the bundle format is built for, and it is not a lossless round trip. It needs an authenticated `ServerTransport` for the reference's project. Do not build new work on it.

@@ -1,6 +1,6 @@
 ---
 title: Direct uploads
-description: 'Upload files directly to your Speckle projects and view them in your browser—no desktop software or connector needed. Supported formats, Tekla Structures, Vectorworks, Solibri, and TrimBIM uploads.'
+description: 'Upload files directly to your Speckle projects and view them in your browser—no desktop software or connector needed. Supported formats, Tekla Structures, Vectorworks, Solibri, TrimBIM, and ETABS uploads.'
 ---
 
 import CoordinationWorkflowRevit from '/snippets/connectors/coordination-workflow-revit.mdx'
@@ -36,7 +36,10 @@ The two routes serve different purposes. Uploads read a file, so they cover form
 
 ## Upload a file
 
-<Info>**Upload limits:** Maximum file size is **2 GB** for all plans and formats.</Info>
+<Info>
+  **Upload limits:** Maximum file size is **2 GB** for all plans and formats except ETABS. An ETABS
+  upload takes files up to 128 MiB each. See [Upload an ETABS model](#upload-an-etabs-model).
+</Info>
 
 <Warning>
   Fully download files from cloud-synced folders before uploading. Placeholder files from Google
@@ -103,6 +106,7 @@ Connect](/connectors/cloud-integrations/trimble-connect#supported-file-formats).
 | Vectorworks                        | .vwx                                                                     | Supported     | Not supported      |
 | Solibri                            | .smc                                                                     | Supported     | Not supported      |
 | TrimBIM                            | .trb                                                                     | Supported     | Not supported      |
+| ETABS                              | .edb                                                                     | Supported     | Not supported      |
 | Tekla Structures                   | .tekla, .db1                                                             | Where enabled | Not supported      |
 | Other mesh and interchange formats | .stl, .3mf, .3ds, .amf, .dxf, .x, .e57, .igs, .iges, .fbx, .ply, .sldprt | Not supported | Uploads only       |
 
@@ -139,11 +143,10 @@ Speckle detects and preserves the source units for these formats:
 
 Other formats have a different behaviour:
 
-| **Format** | **Behaviour**                |
-| ---------- | ---------------------------- |
-| DWG        | Geometry is scaled to meters |
-| 3DS        | Assuming file is in cm       |
-| OBJ        | Assuming file is in mm       |
+| **Format** | **Behaviour**                                                                                                                     |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| DWG        | Preserves the drawing unit. Civil 3D files use AEC Drawing Units; other DWGs use `INSUNITS`. Unitless DWGs are treated as metres. |
+| OBJ        | Treated as millimetres by the Rhino-based importer.                                                                               |
 
 ## File format details
 
@@ -330,6 +333,76 @@ If a TrimBIM upload fails:
 | --------------------------------------------- | ------------------------------------------------------------------------------ |
 | TrimBIM version _number_ is not supported yet | Export the model again from a current Trimble application, or contact support. |
 | Not a TrimBIM file                            | Check that the file is a TrimBIM file, not another file renamed to `.trb`.     |
+
+### Upload an ETABS model
+
+Upload an ETABS `.edb` file to publish the model without opening ETABS or installing its connector.
+Add the result files ETABS saves beside it to publish the analysis results too. For the steps, see
+[Upload a file](#upload-a-file). An upload publishes the whole model, with the same objects and
+properties as the [ETABS connector](/connectors/etabs).
+
+#### Files that convert
+
+Speckle reads files saved in ETABS 18 through 23.0. Files from other releases are not supported
+yet. Analysis results from ETABS 18 files are not supported.
+
+These limits apply to an ETABS upload:
+
+- Each file, including the `.edb`, can be up to 128 MiB.
+- The `.edb` and its result files together can be up to 640 MiB.
+- An upload can include up to 100 result files.
+
+#### Add the analysis results
+
+{/* IMAGE_PLACEHOLDER: Add the analysis results dialog after dropping an .edb — model name, Choose folder, Choose files, Upload with results, and Upload model only. */}
+
+The `.edb` holds the model, not its analysis results. ETABS saves the results beside it in result
+files with the same name as the model: a `.msh` file and `.Y` files, such as `.Y`, `.Y00`, `.Y01`,
+`.Y$$`, `.Y_` or `.Y_1`. Upper and lower case in file names do not matter.
+
+To upload a model with its results, do one of the following:
+
+- Drop the model folder, or select the `.edb` together with its result files. The upload starts
+  immediately.
+- Drop the `.edb` on its own. In **Add the analysis results**, drop the model folder or the result
+  files, or use **Choose folder** or **Choose files**. Then select **Upload with results**.
+
+A folder that holds the `.edb` but no result files also opens **Add the analysis results**. To
+publish the model without results, select **Upload model only**.
+
+Result files must be in the same folder as the `.edb`. Speckle leaves out files in subfolders and
+files that do not match the model, and does not upload them.
+
+<Note>
+  If a result file the analysis needs is missing, the model publishes without any analysis results.
+  The upload does not report an error. Upload every result file ETABS saved for the model.
+</Note>
+
+#### What is published
+
+- Joints, frames, tendons, shells and links, with their geometry, grouped by level.
+- Each object's type and properties, such as its section, material, length or area.
+- Section and material definitions.
+- Analysis results, when you upload the result files. An upload publishes them the same way as the
+  [ETABS connector](/connectors/etabs#publishing-a-model).
+
+An upload reads the data saved in the files. It does not open ETABS, rerun the analysis or
+recalculate the design.
+
+#### If an ETABS upload fails
+
+| Message                                                                                            | What to do                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "_name_" exceeds the ETABS limit of 128 MiB per file.                                              | If it is a result file, drop the `.edb` alone and select **Upload model only**. Otherwise, publish with the [ETABS connector](/connectors/etabs). |
+| This model and its result files exceed 640 MiB. Select a smaller model file set.                   | Drop the `.edb` alone and select **Upload model only**, or publish with the [ETABS connector](/connectors/etabs).                                 |
+| This selection has more than 100 result files. Select only the EDB and its result files.           | Select only the `.edb` and the result files that share its name.                                                                                  |
+| This selection contains multiple EDBs. Drop the .edb you want and add its results from the dialog. | Upload one model at a time. Drop its `.edb` and add its result files in the dialog.                                                               |
+| Duplicate ETABS filename: "_name_". Remove files that differ only in case.                         | Keep one copy of each file.                                                                                                                       |
+| No result files for "_model_" were found.                                                          | Choose the folder that holds the `.edb`, or result files with the same name as the model.                                                         |
+| No result files for "_model_". This selection contains "_other model_".                            | Choose the folder or result files of the model you are uploading.                                                                                 |
+
+If the upload fails after it starts, check that the file opens in ETABS before retrying. Contact
+Speckle support if it still fails.
 
 ## Move a workflow off a format the default path does not accept
 

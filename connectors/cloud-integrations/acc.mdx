@@ -85,6 +85,38 @@ formats](/connectors/direct-uploads/introduction#supported-file-formats).
 
 <CoordinationWorkflowRevit />
 
+## Import earlier versions
+
+{/* IMAGE_PLACEHOLDER: the Import earlier versions dialog from a sync's settings — the version list with synced versions marked and a few earlier versions ticked. */}
+
+A sync starts at the file version current when you create it. When the file already had a history in Forma Data Management, or a version failed to sync and a newer one has been published since, you can bring those earlier versions into the same Speckle model yourself.
+
+<Note>
+  The import is not offered when:
+
+- the version is older than the version history your plan keeps
+- you lack the permission to edit the sync
+- the sync is paused
+- the workspace runs in [compatibility mode](/it-admin/compatibility-mode)
+
+</Note>
+
+<Steps>
+  <Step title="Open the sync's settings">
+    Open the model and expand the settings on its sync card.
+  </Step>
+  <Step title="Select Import earlier versions">
+    A dialog lists the file's versions as Forma Data Management records them, newest first. Versions
+    already synced or currently syncing are marked and cannot be selected.
+  </Step>
+  <Step title="Select up to five versions, then Import">
+    Each version runs as its own sync attempt, oldest first. You should see the runs appear in the
+    sync activity below the card.
+  </Step>
+</Steps>
+
+An imported version is dated when it was created in Forma Data Management, so it takes its place in the model's history and the newest file version stays the latest version in Speckle. For a longer history, repeat the import in rounds of five.
+
 ## Revit options
 
 Expand a selected Revit (`.rvt`) file to set its options before you create the sync. These options
@@ -95,6 +127,12 @@ apply only to Revit files.
 Choose which Revit coordinate origin the model is aligned to: **Internal Origin** (default),
 **Project Base Point**, **Survey Point**, or **Shared Coordinates**. If you are aligning multiple
 models, use the same reference point across related Revit syncs to avoid placement mismatches.
+
+<Warning>
+  If your workspace uses compatibility mode, do not select **Shared Coordinates**. The older
+  conversion path cannot process it and the sync fails. Use **Internal Origin**, **Project Base
+  Point**, or **Survey Point** instead.
+</Warning>
 
 ### What to publish
 
@@ -119,7 +157,7 @@ To sync only part of the model, change the publish method:
     Yes. Speckle establishes a read-only connection with Autodesk Forma Data Management (ACC), which means we can sync and analyze your data but can't modify the original files. This ensures data integrity and security.
   </Accordion>
   <Accordion title="How often do files sync?">
-    Once you've created a sync model, each new version published to Autodesk Forma Data Management triggers one sync attempt. You don't need to manually trigger ongoing synchronization. A version whose attempt fails can be retried from the sync's status until a newer version is published; after that, re-publish it to sync it. See [Sync guarantees](/it-admin/integrations/introduction#sync-guarantees).
+    Once you've created a sync model, each new version published to Autodesk Forma Data Management triggers one sync attempt. You don't need to manually trigger ongoing synchronization. A version whose attempt fails can be retried from the sync's status until a newer version is published; after that, bring it in with [Import earlier versions](#import-earlier-versions). See [Sync guarantees](/it-admin/integrations/introduction#sync-guarantees).
   </Accordion>
   <Accordion title="Why are my models in the wrong location?">
     For **Revit** ACC syncs, use the reference point in the file's options to control placement for coordination workflows. If the selected reference point does not match your downstream model setup, placement can still appear offset. Reference point options are **not** available for IFC or Navisworks ACC syncs—adjust placement in those workflows using your authoring tool or the relevant connector where applicable.
@@ -134,7 +172,7 @@ To sync only part of the model, change the publish method:
 
     A failed attempt is not retried automatically. If it is the sync's most recent attempt, retry it
     from the sync's status once the cause is fixed; if a newer version has been published since,
-    re-publish the file instead. See [Sync
+    use [Import earlier versions](#import-earlier-versions) to sync it. See [Sync
     guarantees](/it-admin/integrations/introduction#sync-guarantees). Contact support if issues
     persist.
 
@@ -161,6 +199,7 @@ To sync only part of the model, change the publish method:
 | Automatic sync on file updates                             | ✅ Complete    |
 | Basic sync status monitoring                               | ✅ Complete    |
 | Enhanced UI/UX for sync management                         | ✅ Complete    |
+| Import earlier file versions from ACC history              | ✅ Complete    |
 | Advanced sync configuration options                        | 🔄 In Progress |
 | Improved error handling and reporting                      | 🔄 In Progress |
 
