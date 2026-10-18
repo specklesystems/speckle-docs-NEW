@@ -1,0 +1,132 @@
+---
+title: 'Manage models and versions through the documents API'
+description: "Create, rename, move and delete models and edit their versions through a project's Files tree over GraphQL."
+sidebarTitle: 'Documents'
+---
+
+Scripts that create models or edit versions over GraphQL need the documents mutations from
+2026.10: `modelMutations` and `branchCreate`/`branchUpdate`/`branchDelete` are gone, and the
+version writes on `versionMutations` are deprecated. The reason is one tree. A project's content is a tree of
+**documents**: folders, uploaded files, dataset entries and **models**. Model versions are
+document versions. `Model` and `Version` stay as a read view over the same rows, so your
+queries keep working. Every model and version write goes through `projectMutations.documents`;
+only `versionMutations.markReceived`, which an anonymous viewer of a public project may call,
+stays where it is.
+
+<Warning>
+  The `Branch`/`Commit` fields and the three version writes on `versionMutations` are deleted on
+  January 31st, 2027. Each one's deprecation reason names its replacement on this page.
+</Warning>
+
+## Read the tree
+
+List one level with `Project.documents`. `parentId: null` is the root.
+
+```graphql
+query ProjectRoot($projectId: String!) {
+  project(id: $projectId) {
+    documents(parentId: null) {
+      id
+      name
+      path
+      type # folder | file | dataset | model
+      parentId
+      description
+      currentVersionId
+      versionCount
+    }
+  }
+}
+```
+
+A model's full name in the `Model` view (`Building A/Floor 01`) is its `path` in the tree without
+the leading slash (`/Building A/Floor 01`).
+Names are unique within a folder, whatever their case. A model may share a name with a file
+or a folder beside it: models have a namespace of their own.
+
+`Project.recentDocuments(limit, folderId)` lists files by their last content activity
+(an upload, a sync, a new version, a conversion), newest first: the whole project, or
+what is under `folderId` at any depth. It is the Files page's Recent toggle.
+
+What was deleted is in `Project.trashedDocuments`: the top of each trashed subtree, newest
+first. `restore(input: { projectId, documentId })` brings a row back, a folder with its contents.
+
+## Create, rename, move and delete a model
+
+| Task     | Mutation                                                                      | Notes                                                                                                                                                             |
+| -------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Create   | `createModel(input: { projectId, parentId, name, description })`              | `parentId: null` is the project root. Slashes in the name create the folders they name (`Architecture/Level 1`).                                                  |
+| Rename   | `rename(input: { projectId, documentId, name })`                              | The new name.                                                                                                                                                     |
+| Move     | `move(input: { projectId, documentId, newParentId, newParentPath, newName })` | `newParentPath` (`Building A/Floor 01`) creates the folders it names; an empty string is the root. `newName` renames in the same write. Neither: rename in place. |
+| Describe | `setDescription(input: { projectId, documentId, description })`               | Null clears it.                                                                                                                                                   |
+| Delete   | `delete(input: { projectId, documentId })`                                    | See the warning below.                                                                                                                                            |
+
+<Warning>Deleting a model deletes its versions and their artifacts. Models have no trash.</Warning>
+
+<Note>A folder that holds models cannot be deleted. Move or delete the models first.</Note>
+
+```graphql
+mutation CreateModel($input: DocumentCreateModelInput!) {
+  projectMutations {
+    documents {
+      createModel(input: $input) {
+        id
+        name
+        path
+      }
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "projectId": "your-project-id",
+    "parentId": null,
+    "name": "Architecture/Level 1",
+    "description": "Architectural model, level 1"
+  }
+}
+```
+
+The returned `id` is the model id everywhere else: file ingestion, the viewer URL,
+`Project.model(id)`.
+
+## Edit versions
+
+| Task            | Mutation                                                          | Notes                                                                                                                                                                  |
+| --------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Set the message | `setVersionMessage(input: { projectId, versionId, message })`     | Returns the `Version`.                                                                                                                                                 |
+| Delete          | `deleteVersions(input: { projectId, versionIds })`                | Deletes the versions and their artifacts.                                                                                                                              |
+| Move            | `moveVersions(input: { projectId, versionIds, targetModelPath })` | `targetModelPath` is the model's full name, without the leading slash of `path`. A model that does not exist yet is created. Returns the target model as a `Document`. |
+
+```graphql
+mutation MoveVersions($input: DocumentMoveVersionsInput!) {
+  projectMutations {
+    documents {
+      moveVersions(input: $input) {
+        id
+        path
+      }
+    }
+  }
+}
+```
+
+New versions come from a file ingestion ([File uploads](/developers/api/guides/file-uploads))
+or from a connector publish, never from a mutation.
+
+## Work with files beside models
+
+The same `DocumentMutations` type holds the file operations: `createFolder`, `create` (a new
+file from an uploaded blob), `replaceContent` (a new version of a file), `restore`,
+`restoreVersion`, `setAttributes` and `setLabels`. A file's models, when a conversion made
+them, are listed under `Document.models`. A model version built from a file points back at
+that file version through `Version.sourceDocumentVersion`.
+
+## Subscribe to changes
+
+`projectDocumentsUpdated(id: $projectId)` fires for every write on the tree, models
+included. `projectModelsUpdated` and `projectVersionsUpdated` still fire for model and
+version events.
