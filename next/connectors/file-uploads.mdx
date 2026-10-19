@@ -1,7 +1,7 @@
 ---
 title: File uploads in 2026.9
 sidebarTitle: File uploads
-description: Changes to file uploads in 2026.9, including supported formats, Tekla Structures, Solibri, Vectorworks and ETABS support, and legacy/compatibility mode, which ends on 1 November 2026.
+description: Changes to file uploads in 2026.9, including supported formats, Tekla Structures, Solibri, Vectorworks, ETABS, AVEVA Review and GIS support, and legacy/compatibility mode, which ends on 1 November 2026.
 contextual:
   options: []
 docs_version: '2026.9'
@@ -62,6 +62,13 @@ In default 2026.9 mode, cloud file sync supports the same file formats as file u
 | Vectorworks            | .vwx                                                                     | Supported           | Not supported             |
 | Solibri                | .smc                                                                     | Supported           | Not supported             |
 | ETABS                  | .edb                                                                     | Supported           | Not supported             |
+| AVEVA Review           | .rvm                                                                     | Supported           | Not supported             |
+| GeoPackage             | .gpkg                                                                    | Supported           | Not supported             |
+| GeoJSON                | .geojson, .geojsonl                                                      | Supported           | Not supported             |
+| KML                    | .kml                                                                     | Supported           | Not supported             |
+| Shapefile (zipped)     | .shp.zip                                                                 | Supported           | Not supported             |
+| File geodatabase (zip) | .gdb.zip                                                                 | Supported           | Not supported             |
+| QGIS project           | .qgz, .qgs                                                               | Supported           | Not supported             |
 | Tekla Structures       | .tekla, .db1                                                             | Where enabled       | Not supported             |
 | Other retained formats | .stl, .3mf, .3ds, .amf, .dxf, .x, .e57, .igs, .iges, .fbx, .ply, .sldprt | Not supported       | Supported                 |
 
@@ -244,6 +251,210 @@ recalculate the design.
 
 If the upload fails after it starts, check that the file opens in ETABS before retrying. Contact
 Speckle support if it still fails.
+
+## Upload an AVEVA Review model
+
+Upload an AVEVA Review `.rvm` file to publish a plant model from AVEVA E3D or PDMS without
+installing a connector. Add the attribute export and the DEXPI P&IDs to publish the model's
+properties and its pipeline systems too. For the steps, see
+[Upload a file](/connectors/direct-uploads/introduction#upload-a-file).
+
+### Files that convert
+
+| File               | Extension      | What it adds                                                            |
+| ------------------ | -------------- | ----------------------------------------------------------------------- |
+| Review model       | `.rvm`         | Geometry, colours and the model tree. Required.                         |
+| Attribute export   | `.txt`, `.att` | Names, types and attributes of each element. Optional, at most one.     |
+| DEXPI P&ID exports | `.xml`         | Pipeline systems, flow connections and P&ID tags. Optional, any number. |
+
+Speckle reads binary RVM files. ASCII RVM files are not supported. The attribute export is the
+`CADC_Attributes_File` text file AVEVA writes beside the RVM, usually with the same name.
+
+### Add the attribute export and P&IDs
+
+Drop the `.rvm` on its own, or together with its attribute export and P&IDs. Speckle then asks
+for the companion files in two dialogs. Files you dropped together with the `.rvm` are already
+added.
+
+<Steps>
+  <Step title="Add the attribute export">
+    In **Add the attribute export**, drop the `.txt` or `.att` file and select **Continue**. To
+    publish geometry only, select **Upload without attributes**.
+  </Step>
+  <Step title="Add the P&IDs">
+    In **Add P&IDs**, drop the DEXPI `.xml` exports and select **Upload with _n_ P&IDs**. To publish
+    without them, select **Upload without P&IDs**.
+  </Step>
+</Steps>
+
+The upload starts, and the model appears in your project once it converts.
+
+Speckle checks each file before the upload. A check never blocks the upload: a file with a
+warning is still uploaded.
+
+| Badge            | Meaning                                                                                   |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| Attribute export | The file is an attribute export of this model.                                            |
+| Other model      | The attribute export belongs to another model. The dialog names both.                     |
+| Cited            | The attribute export cites this P&ID's drawing number.                                    |
+| Not cited        | The attribute export does not cite this drawing. Its items can still match by tag.        |
+| Not recognised   | The file is not an attribute export or a DEXPI export. A P&ID with this badge is skipped. |
+| Not checked      | Speckle could not read the file in the browser. It is uploaded unchecked.                 |
+
+When you add an attribute export, **Add P&IDs** lists the drawings it cites, marked **Included**
+or **Missing**. Use the list to find missing P&IDs. A drawing number can contain `*`, which file
+names cannot, so its file usually has `_` in that place.
+
+<Note>
+  Closing either dialog asks first. Select **Upload without attributes** or **Upload without P&IDs**
+  to continue without those files, **Cancel upload** to stop without creating anything, or **Go
+  back** to return to the dialog.
+</Note>
+
+### What is published
+
+- Every element of the model tree, such as sites, zones, equipment and pipes, grouped as in the
+  model, with its geometry, colour and transparency. Lengths are in millimetres.
+- With the attribute export: each element's name, type and attributes, under **Attributes**.
+  Elements the export lists without geometry, such as nozzles outside the exported level range,
+  arrive as objects with properties only.
+- With P&IDs: each pipeline on the P&IDs becomes a system holding its pipe and the components
+  on it. Matched objects get **P&ID** properties, such as tag, drawing number, line number,
+  fluid code, nominal diameter and piping class, and are connected in the flow direction the
+  P&ID draws.
+
+P&ID items are matched to model objects by tag. Items whose tags are not in the model, such as
+fittings and off-page connectors, are not published as objects.
+
+<Tip>
+  An attribute export that matches few elements of the model usually belongs to another model.
+  Export it again from the same model as the RVM and upload both.
+</Tip>
+
+<Note>
+  Cloud sync publishes an `.rvm` without its attribute export and P&IDs: geometry, colours and the
+  model tree only.
+</Note>
+
+### If an AVEVA Review upload fails
+
+If the upload fails, check that the file is a binary RVM export and that it opens in AVEVA
+Review or Navisworks before retrying. Contact Speckle support if it still fails.
+
+## Upload GIS data
+
+Upload GIS data to publish map layers in Speckle, without opening a GIS application. Speckle
+reads these formats:
+
+| Format                | Upload                                             |
+| --------------------- | -------------------------------------------------- |
+| GeoPackage            | `.gpkg`                                            |
+| GeoJSON               | `.geojson`                                         |
+| GeoJSON, line by line | `.geojsonl`                                        |
+| KML                   | `.kml`                                             |
+| Shapefile             | a zip named `.shp.zip`                             |
+| Esri file geodatabase | a zip named `.gdb.zip`                             |
+| QGIS project          | `.qgz` or `.qgs`, with a zip of its project folder |
+
+For the steps, see [Upload a file](/connectors/direct-uploads/introduction#upload-a-file). A QGIS
+project needs one more step; see [Upload a QGIS project](#upload-a-qgis-project).
+
+### Name zipped shapefiles and geodatabases
+
+A shapefile is several files and a file geodatabase is a folder, so upload each as a zip. The
+name tells Speckle what the zip holds:
+
+- Zip the shapefile's files, such as `.shp`, `.shx`, `.dbf`, `.prj` and `.cpg`, and name the zip
+  `<name>.shp.zip`. A zip can hold several shapefiles.
+- Zip the `.gdb` folder and name the zip `<name>.gdb.zip`.
+
+Speckle does not accept a zip with any other name. The model is named without the double
+suffix: `parcels.shp.zip` publishes the model `parcels`.
+
+### Upload a QGIS project
+
+A QGIS project holds the layers, groups and styling of a map, but not the data they show. Upload
+it together with a zip of its project folder: the folder that holds the project and every file
+its layers use, subfolders included.
+
+<Steps>
+  <Step title="Zip the project folder">
+    Save the project in QGIS, then zip the folder that holds the `.qgz` or `.qgs` file and its data.
+  </Step>
+  <Step title="Upload the project">
+    Upload the `.qgz` or `.qgs` file. To add the zip in the same step, drop both files together.
+  </Step>
+  <Step title="Add the project folder">
+    In **Add the project folder**, drop the zip. When the badge shows **Project folder**, select
+    **Continue**.
+  </Step>
+</Steps>
+
+If the zip does not contain the project, its badge shows **Project missing** and **Continue**
+stays unavailable. Zip the folder that holds the project, not only its data.
+
+<Note>
+  A QGIS project converts only together with its project folder, so there is no upload without it.
+  Closing the dialog asks whether to **Cancel upload** or **Go back**.
+</Note>
+
+The model shows the map as it looks in QGIS:
+
+- Layers keep their legend names, groups and order. The project CRS is the model's coordinate
+  system.
+- Single-symbol, categorized and graduated styles keep their colours. A rule-based style colours
+  the whole layer with its first symbol.
+- Layers unchecked in the legend are not published. Layer filters apply.
+- Polygon layers with a 3D renderer are extruded as in the QGIS 3D view.
+
+Only file-based vector layers are published. Raster, mesh and point cloud layers, database and
+web service layers such as PostGIS, WFS and XYZ tiles, and delimited text and memory layers are
+not imported. Labels, symbol sizes, line widths, layer opacity and joins are not published.
+
+<Tip>
+  Layers that point at files outside the project folder, such as absolute paths from your computer,
+  are found by file name inside the zip. If Speckle still cannot find a layer's data, the layer is
+  not published.
+</Tip>
+
+### What is published
+
+- Each layer as a collection, and each feature as an object with its fields as properties.
+- Points, lines and polygons, including 3D multipatch geometry. Curves are approximated with
+  straight segments.
+- A colour for each layer. KML features keep the colour of their style.
+- Building footprints with a height field, such as a building height, a roof and ground height,
+  or a storey count, are extruded to their height. Footprints without a usable height stay flat.
+- When a GeoPackage holds the same buildings in several levels of detail, such as `lod12_3d` and
+  `lod22_3d` layers, only the highest 3D level of detail is published, with every layer that is
+  not a level of detail, such as footprints.
+
+Speckle moves the data close to the model origin and stores its coordinate system and location
+on the model. Data in latitude and longitude is projected to a local metric system. Projected
+data keeps its units, except US survey feet, which are converted to metres.
+
+These parts of the data are not published:
+
+- KMZ files and KML network links.
+- 3D models in KML placemarks. The placemarks arrive with their properties and no geometry.
+- Raster data.
+
+### If a GIS upload fails
+
+| Message                                                                                           | What to do                                                                                     |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Unsupported file type. Name a zipped shapefile .shp.zip and a zipped file geodatabase .gdb.zip…   | Rename the zip by its content, or upload the QGIS project first and add the zip in the dialog. |
+| '_zip_' does not contain _project_ — zip the folder that contains the project and all of its data | Zip the folder that holds the project file, not only its data.                                 |
+| '_zip_' is empty                                                                                  | Zip the project folder again and check that it holds the project and its data.                 |
+| encrypted zip entries are not supported                                                           | Zip the folder again without a password.                                                       |
+
+If the upload fails after it starts, check that the file opens in QGIS before retrying. Contact
+Speckle support if it still fails.
+
+<Note>
+  Cloud sync publishes GIS files the same way, except QGIS projects: a synced project has no project
+  folder zip, so its conversion fails. Sync the data files instead.
+</Note>
 
 ## Update an affected workflow
 
