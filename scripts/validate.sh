@@ -6,7 +6,9 @@ set -euo pipefail
 HIDDEN=".worktrees-validating-$$"
 
 cleanup() {
-  [ -d "$HIDDEN" ] && mv "$HIDDEN" .worktrees
+  if [ -d "$HIDDEN" ]; then
+    mv "$HIDDEN" .worktrees
+  fi
 }
 trap cleanup EXIT INT TERM
 
