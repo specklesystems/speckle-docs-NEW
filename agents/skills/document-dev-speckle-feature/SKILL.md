@@ -54,13 +54,17 @@ Run an Explore agent with **CWD = the speckle-server repo path**. The agent shou
 
 ## 4. Screenshot Strategy
 
-Ask the user with AskUserQuestion which approach to use:
+Prompt the developer with AskUserQuestion; capture happens only on their
+confirmation:
 
-- **Automatic screenshots** — launch Speckle locally and capture screenshots via browser tooling
-- **Placeholders** — mark capture sites with IMAGE_PLACEHOLDER comments (fill in later)
+- **Capture now** — the developer confirms and gives the source (production, staging URL or their dev server URL) and a sample URL for each surface; then **capture-docs-screenshots** runs
+- **Placeholders** — mark capture sites with IMAGE_PLACEHOLDER comments; CI reports them as placeholder debt until captured
 - **Skip screenshots** — no images and no placeholder comments in the initial draft
 
-### If automatic screenshots are chosen:
+If capture is confirmed without a source or sample URLs, ask for them before
+starting. Unattended, or with no answer, use placeholders.
+
+### If capture now is confirmed:
 
 Invoke **capture-docs-screenshots** for the target pages and UI areas identified
 during exploration. It classifies browser and external-application captures and

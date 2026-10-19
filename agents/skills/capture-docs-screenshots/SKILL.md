@@ -3,11 +3,25 @@ name: capture-docs-screenshots
 description: >-
   Capture or retake browser-accessible Speckle product screenshots for
   documentation, fulfil IMAGE_PLACEHOLDER comments, and insert verified
-  Mintlify Frames in the docs house style. Use for a docs page, product area,
-  or screenshot brief, against a local deployment or a named hosted project.
+  Mintlify Frames in the docs house style. Runs only after the developer
+  confirms when prompted (docs tasks that leave IMAGE_PLACEHOLDER markers
+  offer it) and supplies the source and sample URLs; never starts on its own.
 ---
 
 # Capture docs screenshots
+
+**Prompt, then confirm.** Never start capturing on your own. A docs task that
+leaves `IMAGE_PLACEHOLDER` markers ends by offering capture (AskUserQuestion),
+and this skill runs only when the developer confirms and supplies:
+
+- the source: production, a staging URL, or their running dev server URL;
+- a sample URL for each surface to capture (workspace, project, model or
+  page), plus any feature flags the UI needs.
+
+Capture signs in to a real account, touches shared data and needs choices only
+a person can make, so missing details are asked for, not guessed. If the
+developer declines, or nobody is there to answer, leave the markers:
+`pnpm report:placeholders` reports them as debt on every PR.
 
 Turn the docs screenshot queue into finished, house-styled assets. Each marker
 is a **brief**: the shot is done when every item the brief names is visible,

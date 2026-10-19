@@ -66,6 +66,10 @@ Goal: every screenshot should look like a polished product demo, not a developer
 
 ## 5. Capture Screenshots
 
+Only after the developer has confirmed capture when prompted; opening the app
+for exploration or testing does not imply capturing. For docs shots, hand over to
+**capture-docs-screenshots**, which owns the house style.
+
 Once the environment is clean and professional:
 
 1. Navigate to the page/flow requested by the user (or explore as directed).
