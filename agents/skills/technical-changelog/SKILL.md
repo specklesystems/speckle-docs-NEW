@@ -73,6 +73,12 @@ avoid internal implementation terms such as extractor names when a plain
 capability statement is equally precise. Stay objective and do not infer a
 broader workflow than the evidence proves.
 
+For **Feature** entries only (not Fix or Improvement), link to the canonical
+docs page when one exists: embed the link on the most natural noun phrase in
+the statement, using a root-relative path with no `.mdx` extension (e.g.
+`[saved views](/3d-viewer/saved-views)`). Skip the link when no docs page for
+the feature exists yet.
+
 Apply [evidence-policy.md](references/evidence-policy.md) to each row. Collection
 counts prove corpus completeness, never an individual claim. Narrow or split a
 claim when its evidence covers only a library, package, connector, converter
