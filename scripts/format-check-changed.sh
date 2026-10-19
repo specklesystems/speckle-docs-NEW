@@ -8,12 +8,15 @@ set -euo pipefail
 RANGE="${1:-}"
 
 if [ -z "$RANGE" ]; then
-  if git rev-parse --verify origin/main >/dev/null 2>&1; then
+  BASE="${BASE_REF:-}"
+  if [ -n "$BASE" ] && git rev-parse --verify "$BASE" >/dev/null 2>&1; then
+    RANGE="$BASE...HEAD"
+  elif git rev-parse --verify origin/main >/dev/null 2>&1; then
     RANGE="origin/main...HEAD"
   elif git rev-parse --verify main >/dev/null 2>&1; then
     RANGE="main...HEAD"
   else
-    echo "No base ref found; pass a git range (e.g. origin/main...HEAD)." >&2
+    echo "No base ref found; pass a git range or set BASE_REF." >&2
     exit 1
   fi
 fi
