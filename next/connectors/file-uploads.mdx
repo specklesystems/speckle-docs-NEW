@@ -46,7 +46,10 @@ models stay readable; the change affects importing new files and uploading new v
 
 Availability depends on the conversion services enabled for your workspace.
 
-In default 2026.9 mode, cloud file sync supports the same file formats as file uploads.
+In default 2026.9 mode, cloud file sync supports the same file formats as file uploads, with two
+exceptions. A synced QGIS project fails to convert, because a sync cannot add its project folder
+zip: sync the project's data files instead. A synced `.rvm` publishes without its attribute
+export and P&IDs.
 
 | Format                 | Extensions                                                               | Default 2026.9 mode | Legacy/compatibility mode |
 | ---------------------- | ------------------------------------------------------------------------ | ------------------- | ------------------------- |
@@ -268,7 +271,8 @@ properties and its pipeline systems too. For the steps, see
 | DEXPI P&ID exports | `.xml`         | Pipeline systems, flow connections and P&ID tags. Optional, any number. |
 
 Speckle reads binary RVM files. ASCII RVM files are not supported. The attribute export is the
-`CADC_Attributes_File` text file AVEVA writes beside the RVM, usually with the same name.
+`CADC_Attributes_File` text file AVEVA writes beside the RVM, usually with the same stem as the
+RVM file: `HO-PIPE.rvm` and `HO-PIPE.txt`.
 
 ### Add the attribute export and P&IDs
 
@@ -292,18 +296,18 @@ The upload starts, and the model appears in your project once it converts.
 Speckle checks each file before the upload. A check never blocks the upload: a file with a
 warning is still uploaded.
 
-| Badge            | Meaning                                                                                   |
-| ---------------- | ----------------------------------------------------------------------------------------- |
-| Attribute export | The file is an attribute export of this model.                                            |
-| Other model      | The attribute export belongs to another model. The dialog names both.                     |
-| Cited            | The attribute export cites this P&ID's drawing number.                                    |
-| Not cited        | The attribute export does not cite this drawing. Its items can still match by tag.        |
-| Not recognised   | The file is not an attribute export or a DEXPI export. A P&ID with this badge is skipped. |
-| Not checked      | Speckle could not read the file in the browser. It is uploaded unchecked.                 |
+| Badge            | Meaning                                                                                                                                                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Attribute export | The file is an attribute export of this model.                                                                                                                                                                                  |
+| Other model      | The attribute export belongs to another model. The dialog names both.                                                                                                                                                           |
+| Cited            | The attribute export cites this P&ID's drawing number.                                                                                                                                                                          |
+| Not cited        | The attribute export does not cite this drawing. Its items can still match by tag.                                                                                                                                              |
+| Not recognised   | The file is not an attribute export or a DEXPI export. A P&ID with this badge is skipped.                                                                                                                                       |
+| Not checked      | Speckle could not read the file in the browser. It is uploaded, and the conversion checks it. If the model has no attributes or P&ID links afterwards, see [If an AVEVA Review upload fails](#if-an-aveva-review-upload-fails). |
 
 When you add an attribute export, **Add P&IDs** lists the drawings it cites, marked **Included**
 or **Missing**. Use the list to find missing P&IDs. A drawing number can contain `*`, which file
-names cannot, so its file usually has `_` in that place.
+names cannot, so its file usually has `_` in that place: drawing `P-100-*` is in `P-100-_.xml`.
 
 <Note>
   Closing either dialog asks first. Select **Upload without attributes** or **Upload without P&IDs**
@@ -314,14 +318,15 @@ names cannot, so its file usually has `_` in that place.
 ### What is published
 
 - Every element of the model tree, such as sites, zones, equipment and pipes, grouped as in the
-  model, with its geometry, colour and transparency. Lengths are in millimetres.
-- With the attribute export: each element's name, type and attributes, under **Attributes**.
-  Elements the export lists without geometry, such as nozzles outside the exported level range,
-  arrive as objects with properties only.
+  model, with its geometry, colour and transparency.
+- Lengths are in millimetres.
+- With the attribute export: each element's name and type, and its attributes in an
+  **Attributes** property group. Elements the export lists without geometry, such as nozzles
+  outside the exported level range, arrive as objects with properties only.
 - With P&IDs: each pipeline on the P&IDs becomes a system holding its pipe and the components
-  on it. Matched objects get **P&ID** properties, such as tag, drawing number, line number,
-  fluid code, nominal diameter and piping class, and are connected in the flow direction the
-  P&ID draws.
+  on it. Matched objects get a **P&ID** property group with the tag, drawing number, line
+  number, fluid code, nominal diameter and piping class, and are connected in the flow
+  direction the P&ID draws.
 
 P&ID items are matched to model objects by tag. Items whose tags are not in the model, such as
 fittings and off-page connectors, are not published as objects.
@@ -331,15 +336,13 @@ fittings and off-page connectors, are not published as objects.
   Export it again from the same model as the RVM and upload both.
 </Tip>
 
-<Note>
-  Cloud sync publishes an `.rvm` without its attribute export and P&IDs: geometry, colours and the
-  model tree only.
-</Note>
-
 ### If an AVEVA Review upload fails
 
 If the upload fails, check that the file is a binary RVM export and that it opens in AVEVA
 Review or Navisworks before retrying. Contact Speckle support if it still fails.
+
+If the model publishes without attributes or P&ID links, check that the attribute export starts
+with `CADC_Attributes_File` and that the P&IDs are DEXPI exports, then upload again.
 
 ## Upload GIS data
 
@@ -375,7 +378,8 @@ suffix: `parcels.shp.zip` publishes the model `parcels`.
 
 A QGIS project holds the layers, groups and styling of a map, but not the data they show. Upload
 it together with a zip of its project folder: the folder that holds the project and every file
-its layers use, subfolders included.
+its layers use, subfolders included. QGIS projects cannot be synced from cloud storage; see
+[Supported formats by upload mode](#supported-formats-by-upload-mode).
 
 <Steps>
   <Step title="Zip the project folder">
@@ -423,8 +427,8 @@ not imported. Labels, symbol sizes, line widths, layer opacity and joins are not
 - Points, lines and polygons, including 3D multipatch geometry. Curves are approximated with
   straight segments.
 - A colour for each layer. KML features keep the colour of their style.
-- Building footprints with a height field, such as a building height, a roof and ground height,
-  or a storey count, are extruded to their height. Footprints without a usable height stay flat.
+- Building footprints with height fields, such as a building height, a roof height and ground
+  elevation, or a storey count, are extruded to their height. Footprints without a usable height stay flat.
 - When a GeoPackage holds the same buildings in several levels of detail, such as `lod12_3d` and
   `lod22_3d` layers, only the highest 3D level of detail is published, with every layer that is
   not a level of detail, such as footprints.
@@ -450,11 +454,6 @@ These parts of the data are not published:
 
 If the upload fails after it starts, check that the file opens in QGIS before retrying. Contact
 Speckle support if it still fails.
-
-<Note>
-  Cloud sync publishes GIS files the same way, except QGIS projects: a synced project has no project
-  folder zip, so its conversion fails. Sync the data files instead.
-</Note>
 
 ## Update an affected workflow
 
