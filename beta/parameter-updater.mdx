@@ -1,138 +1,134 @@
 ---
-title: 'Parameter Updater'
-description: 'Review and batch-edit model parameters from a Speckle dashboard, then apply the changes back to Revit, Rhino, or Civil3D via Issues.'
+title: Update parameters from the model viewer
 sidebarTitle: Parameter Updater
-docs_status: changed
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/analytics/data-conditioning
-change_scope: 'Parameter editing moves from the dashboard widget to viewer Elements; connector apply steps remain applicable'
+description: Review and batch-edit model parameters in the 3D viewer Elements panel, then apply the changes back to Revit, Rhino, or Civil3D via Issues.
 ---
 
 <Badge>Beta</Badge>
 
-<Visibility for="agents">
-  Documentation status: changed for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: Parameter editing moves from the dashboard widget to viewer Elements; connector apply steps remain applicable.
-
-For these changes, read [2026.9 guidance](/next/analytics/data-conditioning).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
-
-<Warning>
-  Parameter Updater is in **public beta** and available on all workspaces. It currently supports
-  **Revit**, **Rhino**, and **Civil3D**.
-</Warning>
-
 <Note>
-  In 2026.9 you update parameters from the model viewer **Elements** panel, not from a dashboard
-  widget. See [Update parameters from the model viewer](/next/analytics/data-conditioning).
+  Parameter Updater is in **public beta** and available on all workspaces. It supports **Revit**,
+  **Rhino**, and **Civil3D**.
 </Note>
 
-Parameter Updater lets you review and batch-edit model parameters from a Speckle
-dashboard, then apply those changes back to your model. Each batch of edits is
+Parameter Updater lets you review and batch-edit model parameters from the **Elements** panel in
+the 3D viewer, then apply those changes back in Revit, Rhino, or Civil3D. Each batch of edits is
 logged as an Issue so you can track what changed and why.
-
-<Frame>
-  <img
-    src="/images/analytics/parameter-updater-connector-and-widget-side-by-side.png"
-    alt="Revit connector publishing a model alongside the Parameter Updater widget"
-  />
-</Frame>
 
 ## Prerequisites
 
 Before you begin, confirm you have:
 
 - The **Speckle connector** for your authoring tool (Revit, Rhino, or Civil3D) installed,
-  signed in, and updated to **v3.24.0 or later**.
-- A model that has been **published** to a Speckle project at least once.
+  signed in, and upgraded to 2026.9.
+- A model **published** with that connector, so the version is in the 2026.9 data format. Versions
+  published before 2026.9 still open in the viewer but can't be edited here. See [Speckle's new
+  data model](/workspaces/data-model-migration).
+- Permission to create issues on the project. Submitting changes creates an Issue.
 
-## Where to find Parameter Updater
+<Tip>
+  If you want to edit or populate empty parameters, enable **Send null/empty parameters** in the
+  connector settings before you publish the model to Speckle.
+</Tip>
 
-In any dashboard, open the widget sidebar and scroll to the **Data Conditioning**
-category at the bottom. Drag the **Parameter Updater** widget onto the canvas.
+## Example use cases
 
-## End-to-end workflow
+Use Parameter Updater when you know the values that model elements should carry and want to set
+or standardise them in bulk. Common examples include:
+
+- **Review and approval:** update an element's **Status** as work progresses, or set an
+  **Approval status** after a review.
+- **Responsibility and coordination:** assign elements to a discipline, team, owner, or
+  coordination zone.
+- **Delivery planning:** add a project phase, work package, milestone, or installation sequence
+  to selected elements.
+- **Asset information:** add or correct asset IDs, system references, locations, maintenance
+  zones, or handover fields.
+- **Quality checks:** fill missing required parameters or correct values found during model
+  review and validation.
+- **Data standardisation:** replace inconsistent names, codes, or allowed values with the agreed
+  project terminology.
+- **Known classification values:** apply an agreed classification code to a selection when you
+  already know which code is correct.
+
+These are data-conditioning workflows: you are maintaining parameter values on existing elements.
+Applying a known classification value is also data conditioning. It becomes autoclassification
+when the system infers which category or type an element belongs to.
+
+## What you can change
+
+With Parameter Updater, you can:
+
+- add a new parameter;
+- insert a value where an existing parameter is empty;
+- overwrite an existing parameter value; or
+- clear a parameter value.
+
+You cannot delete a parameter. Clearing removes its value but leaves the parameter on the
+element.
+
+## Update parameters
+
+{/* IMAGE_PLACEHOLDER: Elements toolbar — Update parameters (pencil) on, Add parameter (+) beside it; properties columns editable; grouped rows. */}
 
 <Steps>
-  <Step title="Publish a model">
-    Open your model and use the Speckle connector to publish it to your target
-    project and model. Wait for the publish to complete so you have at least one
-    model version available as a dashboard data source.
-    <Tip>
-      If you want to edit or populate empty parameters, make sure to enable
-      **Send null/empty parameters** in the connector settings before publishing
-      your model to Speckle.
-    </Tip>
+  <Step title="Open the model in the viewer">
+    Open the project and model in the Speckle web app so the 3D view loads. You should see the model
+    and the viewer panels, including **Elements** in the bottom dock.
   </Step>
-  <Step title="Create a dashboard with that model">
-    In the Speckle web app, go to your workspace **Dashboards**, create or open
-    a dashboard, and add a **Model Viewer** widget that points at the published
-    model and version. You should see the model rendered so the dashboard can
-    read elements and parameters.
+  <Step title="Open the Elements panel">
+    If **Elements** is not showing, open it from the viewer panel switcher, or press Shift+T. You
+    should see a table of elements for the models in the scene.
   </Step>
-  <Step title="Configure the Parameter Updater widget">
-    Add the **Parameter Updater** widget from the **Data Conditioning** category
-    and configure its settings. Pick one or more model versions as data sources,
-    choose editable and read-only columns (fields under `properties` are
-    editable), and optionally group rows by a property such as level or type so
-    you see a grouped table of elements.
-    <Frame>
-      <img
-        src="/images/analytics/parameter-updater-widget-configuration-sidebar.png"
-        alt="Widget configuration sidebar showing data sources, columns, and group by"
-      />
-    </Frame>
+  <Step title="Turn on Update parameters">
+    In the Elements toolbar, choose **Update parameters** (pencil). Columns under `properties`
+    become editable, headers show a pencil or lock, and you can group rows. Turning the mode off
+    does not discard staged edits.
   </Step>
-  <Step title="Review and edit parameters">
-    In the table, edit parameters directly in cells, set values for an entire
-    group from the group header, or update only selected elements using the
-    selection row; cells may be editable, read-only, or marked as "Missing
-    parameter" when the element does not have that field. When you have unsaved
-    edits, a footer bar appears at the bottom of the widget showing the number
-    of pending changes with **Discard** and **Submit change requests** actions.
-
-    To add a parameter that does not yet exist in the model, click the **+**
-    button at the end of the column headers, type a name in the dialog, and
-    click **Add**. The new column appears with a green indicator and behaves
-    like any other editable column — you can set values per group, per
-    selection, or per element. Removing a column from the sidebar discards any
-    staged values for it.
-    <Frame>
-      <img
-        src="/images/analytics/parameter-updater-editable-read-only-missing-parameter-cells.png"
-        alt="Parameter Updater table showing editable, read-only, and missing parameter cells with the footer bar"
-      />
-    </Frame>
-
+  <Step title="Edit parameters">
+    Scope the table to **All elements**, the current selection, or one loaded model. Edit cells, or
+    with grouping on use **Set all…** and **Set selected…**. Edited cells are marked as staged.
   </Step>
-  <Step title="Submit a change request as an Issue">
-    Click **Submit change requests** in the footer bar and fill in the dialog
-    with a title, status, optional tracking fields, and a description that
-    summarises the changes. When you submit, Speckle creates an **Issue** with a
-    screenshot, viewer state, and the parameter changes stored as `objectDeltas`
-    so you can track what changed and why.
-  </Step>
-  <Step title="Apply the approved changes">
-    Open the same project in your authoring tool, find the published model card
-    in the Speckle connector, and open the related Issue via the **Issues**
-    icon. Use the **Apply changes** action so the connector sends the batch of
-    parameter updates, validates each one, and applies them in a single
-    transaction, showing a toast that reports whether all, some, or none of the
-    parameters were updated.
-    <Frame>
-      <img
-        src="/images/analytics/parameter-updater-applying-changes.png"
-        alt="Connector Issue panel showing the Apply changes action and success toast"
-      />
-    </Frame>
+  <Step title="Submit change requests">
+    When you have unsaved edits, the footer shows the count with **Discard** and **Submit change
+    requests**. Fill in the title and optional Issue fields, then submit. You should see a success
+    confirmation, and the staged edits clear.
   </Step>
 </Steps>
+
+To add a parameter that does not exist yet, select **Add parameter** (**+**) next to the pencil
+while **Update parameters** is on, and type a name in **New parameter name…**. A name that is
+already a column or already exists on the objects is rejected. The new column is editable like any
+other.
+
+A cell whose object does not carry the column's parameter shows **Add parameter…**. A value typed
+there adds the parameter to that object. Use the same workflow for one cell or use **Set all…** and
+**Set selected…** to add it to every targeted cell that does not already carry the parameter.
+
+Submitting creates an Issue that stores the parameter changes. It does not change the published
+version until someone applies the Issue in the connector.
+
+{/* IMAGE_PLACEHOLDER: Elements footer — unsaved edit count, Discard, Submit change requests, Issue title fields. */}
+
+## Apply the approved changes
+
+<Steps>
+  <Step title="Open the Issue in the connector">
+    Open the same project in your authoring tool, find the published model card in the Speckle
+    connector, and open the related Issue with the **Issues** icon.
+  </Step>
+  <Step title="Apply changes">
+    Select **Apply changes**. The connector validates each parameter update and applies the batch in
+    a single transaction. A toast reports whether all, some, or none of the parameters were updated.
+  </Step>
+</Steps>
+
+<Frame>
+  <img
+    src="/images/analytics/parameter-updater-applying-changes.png"
+    alt="Connector Issue panel showing the Apply changes action and success toast"
+  />
+</Frame>
 
 ## What you can and cannot edit
 
@@ -141,59 +137,75 @@ category at the bottom. Drag the **Parameter Updater** widget onto the canvas.
 - Parameters exposed under `properties` in the object tree — including instance, type, and system type parameters (Revit).
 - Text, numeric, boolean (Yes/No), and some ElementId-backed parameters (for
   example materials and levels that can be resolved by name).
-- **New attributes** added via the **+** column button. Rhino writes them as
-  user strings. Revit creates a shared parameter under the **Data** group in
+- **New parameters** added with **Add parameter**, or typed into an **Add parameter…** cell. Rhino
+  writes them as user strings. Revit creates a shared parameter under the **Data** group in
   the Properties panel. Civil3D creates a property in a `Speckle`
-  PropertySetDefinition. All new attributes are **Text** type.
+  PropertySetDefinition. All new parameters are **Text** type.
 
 ### Not editable
 
 - **Read-only parameters** – system-controlled values that the native API does
   not allow you to change.
-- **Missing parameters** – elements that do not have the selected parameter. The
-  widget shows "Missing parameter" and skips these during bulk edits.
 - **Linked model elements** – elements from linked models are blocked. The
   connector reports "Cannot modify elements from a linked model".
 - **Parameters not published** – parameters that were not included when the
-  model was published will not appear in the widget.
+  model was published do not appear in the **Elements** table.
 
 ## Known limitations
 
 | Limitation                 | Detail                                                                                                                                                                       |
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Supported connectors       | Parameter Updater currently supports Revit, Rhino, and Civil3D. Other connectors are not yet supported.                                                                      |
-| Connector version          | Connector v3.24.0 or later is required. Earlier versions do not support the apply flow.                                                                                      |
+| Supported connectors       | Parameter Updater supports Revit, Rhino, and Civil3D. Other connectors are not supported.                                                                                    |
+| Connector version          | A connector in the 2026.9.x line is required. Connectors from 2026.8 or earlier can't apply the changes; upgrade the connector.                                              |
 | Path format                | The parameter path must resolve to three segments (scope, group, name) after stripping prefixes. If the path structure does not match, the update is rejected.               |
 | Renamed or removed params  | If a parameter no longer exists or has been renamed since the model was published, the connector reports "Parameter not found".                                              |
 | Linked models              | (Revit) Elements from linked models cannot be updated. Requests targeting linked elements are skipped with an error.                                                         |
-| Read-only enforcement      | (Revit) Some parameters appear editable in the dashboard but are marked read-only by the Revit API. The connector rejects these at apply time.                               |
+| Read-only enforcement      | (Revit) Some parameters appear editable in the **Elements** table but are marked read-only by the Revit API. The connector rejects these at apply time.                      |
 | Unit handling              | (Revit) Numeric values are scaled to Revit internal units. Extreme values or unit mismatches can produce failures.                                                           |
 | ElementId parameters       | (Revit) Setting ElementId values by raw ID is not yet supported. The connector attempts to resolve by element name (materials, levels, phases). Other types may not resolve. |
 | No automatic Issue polling | The connector does not automatically poll for Issues. You must open the UI and trigger the apply action.                                                                     |
-| New attribute type         | All attributes created via the **+** button are **Text**. Numeric, boolean, or ElementId types are not available for new attributes.                                         |
+| New parameter type         | All parameters created with **Add parameter** are **Text**. Numeric, boolean, or ElementId types are not available for new parameters.                                       |
 
 ## What to test
 
 For beta testing, focus on:
 
 - **Happy path** – update a small set of parameters and confirm they apply correctly in your authoring tool.
-- **Mixed results** – include parameters that should fail (read-only, missing,
-  linked elements) alongside valid edits. Confirm the widget flags uneditable
-  cells and the connector reports partial success with grouped errors.
+- **Mixed results** – include parameters that should fail (read-only, renamed,
+  linked elements) alongside valid edits. Confirm the **Elements** table flags
+  uneditable cells and the connector reports partial success with grouped errors.
 - **Scale** – try batches of tens to low hundreds of elements and check that the
   experience remains usable and messaging is clear.
 - **Issue traceability** – confirm each submission creates a single Issue with a
-  useful screenshot, viewer state, and description so you can audit what was
-  changed later.
+  useful title and description so you can audit what was changed later.
 
 ## Troubleshooting
 
-"Your token does not have the required scope for this action":
+### "Your token does not have the required scope for this action"
+
 This means the connector token is missing the `issues:write` scope needed to
 resolve the issue after applying changes. The parameter updates themselves will
 still have been applied. To fix it, go to **Manage Accounts** in the connector,
 sign out of the affected account, and sign back in. This refreshes the token and
 picks up any new scopes automatically.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Where did the Parameter Updater dashboard widget go?">
+    Parameter editing moved from the **Data Conditioning** dashboard widget to the **Elements**
+    panel in the 3D viewer. A saved Parameter Updater widget on a dashboard shows **Moved to the
+    model viewer**. See [Dashboard widget availability](/analytics/dashboards-widget-availability).
+  </Accordion>
+  <Accordion title="Why is Update parameters missing?">
+    Open a version published with a 2026.9 connector, then open **Elements**. **Update parameters**
+    is hidden when the panel is very narrow; widen the dock until the pencil control appears.
+  </Accordion>
+  <Accordion title="Does the Issue include a screenshot of the model?">
+    No. The Issue stores the parameter changes, title, and the fields you fill in. It does not
+    attach a 3D screenshot or viewer state.
+  </Accordion>
+</AccordionGroup>
 
 ## Feedback and next steps
 

@@ -1,0 +1,189 @@
+---
+title: Object model
+sidebarTitle: Overview
+description: How Speckle stores model data as a columnar property store and a relational layer, and how that differs from the tree-and-Proxy object graph of versions published before 2026.9.
+---
+
+If you write scripts, notebooks, or small automations against Speckle object data, this page is the
+shape of that data. Speckle stores a version as two things working together: a **columnar property
+store** for querying and aggregation, and an **explicit relational layer** for how elements relate.
+
+Versions published before 2026.9 use a different shape. As the [Data
+Schema](/developers/data-schema/overview) describes, that object graph is a directed tree of
+Collections and DataObjects, with [Proxies](/developers/data-schema/proxy-schema) at the Root
+Collection for shared resources. Both shapes can exist in one project, so check which one a version
+uses before you read it.
+
+This page is the conceptual model. Dates, compatibility mode, Automate SDK bumps, and who must act
+are on [Data model migration for developers](/developers/migration/data-model-migration). For a
+summary of everything that changed for developers in 2026.9, see [What's new for
+developers](/whats-new/developers).
+
+There is no Proxy type anywhere in bundle data: not renamed, not kept around as a compatibility
+shim. No `RenderMaterial`, `Level`, `Group`, `Definition`, `InstanceProxy`, or
+`InstanceDefinitionProxy` object exists in the format. Everything a Proxy used to carry is either a
+row in the columnar property store or an edge in the relational layer.
+
+Detached references go with them. In the object graph, assigning one object to a detached property
+on several parents stored it once and left a `{"speckle_type": "reference", "referencedId": ...}`
+pointer in each, resolved through the parent's `__closure`. A bundle has neither: there is no
+closure, and no reference object type. An object that several others need is an edge in the
+relational layer, and a value that several objects share is one row each in the property store.
+
+<Note>
+  Versions published before 2026.9 stay readable. To read bundle data, a script needs a 2026.9 SDK
+  build; this page matters most if it walks the nested object graph or unpacks Proxies itself. See
+  [Data model migration for developers](/developers/migration/data-model-migration).
+</Note>
+
+## What's different
+
+| Concern                  | Before 2026.9                                                                                              | 2026.9                                                                                                                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Object graph             | Directed tree: Root Collection → Collections → DataObjects                                                 | Flat objects plus typed relations. Hierarchy is not nested `elements`                                                                                                                        |
+| Properties               | Nested fields on `Base` / DataObject                                                                       | Columnar property store: one value per object and property path, built for filter and aggregate                                                                                              |
+| Shared resources         | Proxies at the root (`objects[]` of `applicationId`s) for materials, levels, groups, instances             | Relational layer: typed edges such as `ON_LEVEL`, `HAS_MATERIAL`, `IN_SYSTEM`                                                                                                                |
+| Version root             | `version.referencedObject` is the Root Collection (the commit object) carrying `units`, Proxies, and Info  | No root object. Identity stays on the version record; `units` is per object; model-wide facts are model-scoped properties. See [Version metadata](/developers/object-model/version-metadata) |
+| Topology                 | Reconstruct from Proxies and nested `elements`                                                             | Containment, connectivity, systems, and materials are first-class relations. Speckle Intelligence queries this layer                                                                         |
+| Publishing               | Build one root object whose `elements` holds everything, send it, then create a version pointing at its id | Build a bundle with no top, upload it through a model ingestion. The server creates the version when the upload completes                                                                    |
+| Script that walks a tree | Receive, traverse `Collection.elements`, resolve Proxy `objects`                                           | Identify objects, read properties from the columnar store, follow named relations. Do not unpack Proxies to rebuild those links                                                              |
+
+Project → Model → Version remains the address of a published snapshot. That addressing system is
+unchanged. What lives at a version is what changed.
+
+What a version points at also changed. There is no root object to start from; see [Where version
+metadata lives](/developers/object-model/version-metadata) for what carries the version's units,
+source application, and model-wide facts instead.
+
+## Columnar property store
+
+In the object graph, a wall's parameters live on the DataObject (and on nested geometry in
+`displayValue`). To total area or filter by type, a script walks the tree and reads nested fields.
+
+In bundle data, object identity stays stable (`applicationId` from the source application).
+Attributes are stored as rows in a columnar property store: each row is one object, one property
+path, and one value. That layout is what makes filter, group, and aggregate cheap on large models,
+instead of walking a reconstructed graph.
+
+<Tip>
+  Treat property paths as the public names of attributes (for example a category or type name), not
+  the JSON shape of a received `Base` object. Nested dictionaries belong to the object graph of
+  versions published before 2026.9.
+</Tip>
+
+This page does not document a query API or SQL surface. Use supported SDK accessors for the data you
+already read. If a tool assumes the object-graph shape and breaks, follow [Migration
+guidance](/developers/migration/data-model-migration#migration-guidance).
+
+## Relational layer
+
+Proxies solved overlapping membership without duplicating geometry: a wall could sit on a level, use
+a material, and belong to a group by appearing in each Proxy's `objects` list. The collection tree
+was still the only hierarchy a traversal walked.
+
+Bundle data puts those links beside the property store as **typed relations**. Containment,
+connectivity, systems, and materials are richer than Proxies were: they include host-to-child
+containment, MEP and spatial connectivity, and system membership, not only shared resources at the
+root.
+
+The named relation types, and how they compare to Proxies, are on
+[Relations](/developers/object-model/relations).
+
+Speckle Intelligence uses both halves. It looks up properties on objects, and it follows relations
+for questions such as what connects to what and what contains what.
+
+## Publishing creates the version on the server
+
+Before 2026.9, a publish is a client-side act in two steps. You assemble one [root
+object](/developers/data-schema/version-root-object), put every object under its `elements` (with
+Proxies beside them at the root), send that graph to get its id, then create a version that points
+at the id. The root object is both the data and the anchor, and the client decides the moment the
+version exists.
+
+A bundle has no root to assemble and no version to create. A bundle builder holds objects, grouping
+containers, and relations side by side, with no top. `send3` / `Send3` opens a model ingestion,
+which reserves a version id, uploads the bundle under that id, and completes the ingestion. The
+server creates the version at that point, in one step.
+
+Three habits change with this:
+
+- **There is no `elements` to fill.** Membership is a relation such as `IN_COLLECTION` or
+  `ON_LEVEL`, set on the object, not a list on a parent.
+- **Publish metadata is given up front.** The source application goes to the ingestion when it
+  opens. The current SDK uses `SendOptions.Message` as ingestion progress text and leaves
+  `Version.message` null.
+- **The version exists only after ingestion completes.** A publish returns a reserved id. Wait for
+  the version before you query, link, or receive it.
+
+The full sequence, and where each piece of metadata now lives, is on [Where version metadata
+lives](/developers/object-model/version-metadata). If you build a producer without a Speckle SDK,
+the file set, wire sequence, and bundle rules are on [Build integrations on the bundle
+format](/developers/building-integrations/bundles).
+
+## What a script should assume
+
+<Steps>
+  <Step title="Keep using the version address">
+    Resolve project, model, and version the same way as before. The snapshot you point at is still a
+    version. The outcome is a published model you can read.
+  </Step>
+  <Step title="Identify objects, then properties">
+    Key objects by source identity (`applicationId`). Read attributes from the columnar property
+    store by property path. The outcome is values you can filter or aggregate without walking nested
+    `Base` fields.
+  </Step>
+  <Step title="Follow typed relations for topology">
+    Use named relations for level, material, containment, connectivity, and systems. The outcome is
+    membership and connectivity without unpacking a Proxy's `objects` array. See
+    [Relations](/developers/object-model/relations).
+  </Step>
+</Steps>
+
+<Warning>
+  Tooling that reads Speckle data more directly than the standard SDK or API surface breaks on
+  bundle data until you update it. Compatibility mode keeps ACC sync and file uploads in the object
+  graph only until **1 November 2026**. See [Migration
+  guidance](/developers/migration/data-model-migration#migration-guidance).
+</Warning>
+
+## Related documentation
+
+Connector-specific dumps and a SQL or local query API are not documented here. Use the [Data
+Schema](/developers/data-schema/overview) for the object graph of versions published before 2026.9,
+the [.NET](/developers/sdks/dotnet/migrate-to-2026-9) and
+[Python](/developers/sdks/python/migrate-to-2026-9) migration pages for code, and the [developer
+migration page](/developers/migration/data-model-migration) for who is affected.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Does the Data Schema still describe my data?">
+    Yes, for versions published in the tree-and-Proxy format before 2026.9. Use [Data Schema
+    overview](/developers/data-schema/overview), [Concepts](/developers/data-schema/concepts), and
+    [Proxy schema](/developers/data-schema/proxy-schema) for that graph. Use this page for bundle
+    data.
+  </Accordion>
+  <Accordion title="Do I need to change a script that only uses the standard SDK receive path?">
+    Yes, at least its SDK dependency. An SDK build from before 2026.9 gets a 404 on a version
+    published by a 2026.9 connector. Move to a 2026.9 build, and to `receive3` / `Receive3` for the
+    full bundle shape; Automate functions need only the SDK bump. See [Who's
+    affected](/developers/migration/data-model-migration#whos-affected).
+  </Accordion>
+  <Accordion title="What happens if my script walks Collection.elements and unpacks Proxies?">
+    That reconstruction is the object graph of versions published before 2026.9. On bundle data,
+    containment and shared resources live on the relational layer, and properties live in the
+    columnar store. A missing nested `elements` tree or Proxy `objects` list is expected. Update the
+    script to identify objects, read property paths, and follow named relations.
+  </Accordion>
+  <Accordion title="Where do I learn the relation type names?">
+    See [Relations](/developers/object-model/relations). That page maps Proxies to typed edges such
+    as `ON_LEVEL`, `SUBELEMENT`, `CONNECTS_TO`, and `IN_SYSTEM`.
+  </Accordion>
+  <Accordion title="Do Proxies exist anywhere in bundle data, even as a compatibility shim?">
+    No. There is no `RenderMaterial`, `Level`, `Group`, `Definition`, `InstanceProxy`, or
+    `InstanceDefinitionProxy` object in the format: not hidden, not deprecated-but-present. If your
+    code checks for a Proxy type or a root-level `*Proxies` array on bundle data, it will find
+    nothing, not an empty compatibility stand-in. See
+    [Relations](/developers/object-model/relations) for what carries that information now.
+  </Accordion>
+</AccordionGroup>

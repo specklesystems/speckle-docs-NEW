@@ -25,7 +25,7 @@ Explore a recently developed feature in a local Speckle Server deployment, under
 
 ## 2. Determine Documentation Placement
 
-Read `navigation.json` (version **Current**) and `navigation.next.json` (version **2026.9**, pages under `next/`; rules in `docs/agents/next.md`). Both have these top-level dropdowns (Current adds Get Involved):
+Read `navigation.json`. Its top-level dropdowns (plus Get Involved):
 
 - **User Guides** — end-user documentation (workflows, UI features, connectors)
 - **Developers** — API, SDKs, server, automate, viewer, data schema
@@ -54,19 +54,22 @@ Run an Explore agent with **CWD = the speckle-server repo path**. The agent shou
 
 ## 4. Screenshot Strategy
 
-Ask the user with AskUserQuestion which approach to use:
+Prompt the developer with AskUserQuestion; capture happens only on their
+confirmation:
 
-- **Automatic screenshots** — launch Speckle locally and capture screenshots via browser tooling
-- **Placeholders** — mark capture sites with IMAGE_PLACEHOLDER comments (fill in later)
+- **Capture now** — the developer confirms and gives the source (production, staging URL or their dev server URL) and a sample URL for each surface; then **capture-docs-screenshots** runs
+- **Placeholders** — mark capture sites with IMAGE_PLACEHOLDER comments; CI reports them as placeholder debt until captured
 - **Skip screenshots** — no images and no placeholder comments in the initial draft
 
-### If automatic screenshots are chosen:
+If capture is confirmed without a source or sample URLs, ask for them before
+starting. Unattended, or with no answer, use placeholders.
 
-1. Invoke the **open-dev-speckle-in-browser** skill (pass the speckle-server repo path as argument)
-2. Navigate to the relevant UI areas identified during exploration
-3. Capture **focused, well-cropped screenshots** — crop to the relevant UI element or section, not the full page (unless the full page view is what matters)
-4. Save screenshots to the appropriate `images/` subdirectory in the docs project
-5. Use descriptive filenames matching the doc structure (e.g. `images/workspaces/new-feature/settings-panel.png`)
+### If capture now is confirmed:
+
+Invoke **capture-docs-screenshots** for the target pages and UI areas identified
+during exploration. It classifies browser and external-application captures and
+owns browser preparation, canonical asset reuse, deterministic paths, capture
+audit, `<Frame>` insertion, and verification.
 
 ### If placeholders are chosen:
 
@@ -100,7 +103,7 @@ Generate the doc pages following these rules:
 
 1. Write the `.mdx` file content
 2. Show the user the proposed content before writing
-3. After user approval, write the file and add the new page(s) to the navigation file (`navigation.json` or `navigation.next.json`)
+3. After user approval, write the file and add the new page(s) to `navigation.json`
 
 ## 6. Final Review
 
@@ -108,7 +111,7 @@ Run the `docs-page-review` skill on every created page, then present a
 summary:
 
 - Pages created (with file paths)
-- Navigation changes made to `navigation.json` / `navigation.next.json`
+- Navigation changes made to `navigation.json`
 - Screenshots captured or IMAGE_PLACEHOLDER comments to fill
 - Suggested cross-links to add in existing pages
 

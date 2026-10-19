@@ -45,12 +45,7 @@ function walk(dir, out = []) {
 }
 
 function bucket(rel) {
-  const parts = rel.split('/')
-  if (parts[0] === 'next') {
-    if (parts.length === 2) return 'next'
-    return `next/${parts[1]}`
-  }
-  return parts[0]
+  return rel.split('/')[0]
 }
 
 function extractFromText(text, file) {

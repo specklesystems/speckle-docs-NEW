@@ -1,13 +1,7 @@
 ---
-title: How to use Speckle for Navisworks
+title: Publish Navisworks models to Speckle
 sidebarTitle: Navisworks
-description: 'Step-by-step guide for using the Navisworks connector'
-docs_status: impacted
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/connectors/navisworks/introduction
-change_scope: '2026.8 is the last desktop installer and remains advised around 200 MB; larger files use upload'
+description: 'There is no 2026.9 Navisworks connector, and the 2026.8 connector is deprecated. Upload NWC and NWD files, up to 2 GB, or sync them from ACC.'
 ---
 
 import Versions from '/snippets/versions.mdx'
@@ -18,16 +12,46 @@ import PublishOnly from '/snippets/connectors/publish-only-connectors.mdx'
 import PublishFaq from '/snippets/connectors/publish-faq.mdx'
 import NoLoad from '/snippets/connectors/no-load.mdx'
 
-<Visibility for="agents">
-  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
+<Warning>
+  **There is no 2026.9 Navisworks desktop connector.** **2026.8** was the last one and is
+  deprecated. Upload or sync NWC and NWD files instead.
+</Warning>
 
-Affected guidance: 2026.8 is the last desktop installer and remains advised around 200 MB; larger files use upload.
+## Choose how to publish
 
-For these changes, read [2026.9 guidance](/next/connectors/navisworks/introduction).
+- **Upload a file.** Upload an **NWC** or **NWD** file. Speckle parses the file on the server, so
+  you do not leave Navisworks open on a publish progress bar. Direct uploads are limited to **2
+  GB** per file. See [Direct uploads](/connectors/direct-uploads/introduction).
+- **Files in Autodesk cloud storage.** Sync NWC and NWD files from ACC. ACC sync has no fixed file-size
+  limit, but very large files can exceed what one conversion can process. See [Autodesk Forma Data
+  Management (ACC)](/connectors/cloud-integrations/acc).
 
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
+<Warning>
+  A file uploaded directly and the same model published from the desktop connector do not produce
+  identical Speckle data. See [Uploads and connectors produce different
+  datasets](/connectors/direct-uploads/introduction#uploads-and-connectors-produce-different-datasets).
+</Warning>
 
-</Visibility>
+If a file is larger than the upload or ACC sizes above, or you have a workflow that only the desktop
+connector can do, tell Speckle in [speckle.community/help](https://speckle.community/help).
+
+## Data format of a 2026.8 publish
+
+The 2026.8 connector publishes the data model from before 2026.9. Speckle may convert that version
+to the 2026.9 format on the server. Treat that conversion as best effort, not a guarantee.
+
+- In the web app, versions stay readable either way.
+- Speckle Intelligence can query only versions that are in the 2026.9 format. See [Ask questions
+  about your models with Speckle Intelligence](/analytics/intelligence).
+- If you read this data in a script, notebook, Automate function, or other API consumer, follow
+  [Data model migration for developers](/developers/migration/data-model-migration). Do not assume
+  the version was converted, and do not assume it stayed on the earlier model.
+
+NWC and NWD uploads use the 2026.9 format, or the earlier format if the workspace is in
+compatibility mode. Compatibility mode does not apply to desktop connector publishes. See
+[Compatibility mode](/it-admin/compatibility-mode).
+
+## Install the 2026.8 connector
 
 <Versions
   app="Navisworks"
@@ -35,13 +59,9 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
   os="Windows"
 />
 
-<Warning>
-  **2026.8 is the last Navisworks desktop connector.** There is no 2026.9 installer. A publish
-  around **200 MB** still uses this connector. For larger files, upload an NWC or NWD. See
-  [Navisworks in 2026.9](/next/connectors/navisworks/introduction).
-</Warning>
-
-## Setup
+Download the **2026.8** Navisworks connector from
+[releases.speckle.systems](https://releases.speckle.systems/). For managed deployment, see [Manual
+installation for Navisworks](/connectors/manual-installation/navisworks).
 
 <Steps>
   <Setup app="Navisworks" />
@@ -59,7 +79,7 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
   <SetupFaq app="Navisworks" />
 </AccordionGroup>
 
-## Publishing a Model
+## Publish from the 2026.8 connector
 
 <PublishOnly app="Navisworks" />
 
@@ -126,16 +146,29 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
   that records their original hierarchy within the model.
 </Accordion>
 
-<Accordion title="How reliable are large file uploads in recent versions?">
-  Recent connector updates resolved a threading issue in upload handling and significantly reduced
-  memory pressure for large models. In practice, large Navisworks files that previously failed are
-  now more likely to publish successfully.
-</Accordion>
-
-<PublishFaq app="Archicad" />
+<PublishFaq app="Navisworks" />
 
 </AccordionGroup>
 
 ## Loading a Model
 
 <NoLoad app="Navisworks" />
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Will there be a 2026.9 Navisworks connector later?">
+    Not as of now. If a file above the upload or ACC sizes, or a desktop-only workflow, blocks you,
+    post in [speckle.community/help](https://speckle.community/help) so it can be considered.
+  </Accordion>
+  <Accordion title="Why is there no 2026.9 desktop connector?">
+    The desktop connector cannot match the throughput of server-side NWC and NWD ingest on large
+    files. Speckle does that processing so you do not watch a progress bar in Navisworks. The 2026.8
+    connector is deprecated and is not guaranteed to keep working with current servers.
+  </Accordion>
+  <Accordion title="Should I update the Navisworks connector in the 2026.9 upgrade window?">
+    No. There is no 2026.9 Navisworks package. Keep the 2026.8 connector, and update your other
+    connectors as usual. See [Upgrade window for
+    2026.9](/it-admin/connector-updates#upgrade-window-for-2026-9).
+  </Accordion>
+</AccordionGroup>

@@ -16,48 +16,54 @@ Object annotations enable attaching different types of messages (errors, warning
 
 ### Example
 
-```python
-from speckle_automate import AutomateContext
+Each attach method takes the objects themselves, not their ids. The examples assume `long_beams`, `loaded_beams`, and `optimized_items` are lists of objects your function picked from the version it received.
 
-def automate_function(runCtx: AutomateContext):
+```python main.py
+from speckle_automate import AutomationContext
+
+def automate_function(automate_context: AutomationContext):
+    version_root = automate_context.receive_version()
+
     # Example: Structural validation
-    runCtx.attach_error_to_objects(
+    automate_context.attach_error_to_objects(
         "Structural Analysis",
-        ["obj_id_1", "obj_id_2"],
+        long_beams,
         "Beam span exceeds maximum allowable length"
     )
 
-    runCtx.attach_warning_to_objects(
+    automate_context.attach_warning_to_objects(
         "Load Analysis",
-        ["obj_id_3"],
+        loaded_beams,
         "Load approaching maximum capacity"
     )
 
-    runCtx.attach_info_to_objects(
+    automate_context.attach_info_to_objects(
         "Cost Analysis",
-        ["obj_id_4", "obj_id_5"],
+        optimized_items,
         "Material cost optimized"
     )
 ```
 
-```csharp
-public static void Run(AutomationContext context)
+```csharp AutomateFunction.cs icon="/images/developers/sdks/csharp.svg"
+public async Task Run(IAutomationContext context)
 {
+    var versionRoot = await context.ReceiveVersion();
+
     context.AttachErrorToObjects(
         "Structural Analysis",
-        new[] { "obj_id_1", "obj_id_2" },
+        longBeams,
         "Beam span exceeds maximum allowable length"
     );
 
     context.AttachWarningToObjects(
         "Load Analysis",
-        new[] { "obj_id_3" },
+        loadedBeams,
         "Load approaching maximum capacity"
     );
 
     context.AttachInfoToObjects(
         "Cost Analysis",
-        new[] { "obj_id_4", "obj_id_5" },
+        optimizedItems,
         "Material cost optimized"
     );
 }
@@ -84,9 +90,9 @@ Annotations can be enriched with additional metadata to improve interpretability
 ### Example
 
 ```python
-runCtx.attach_info_to_objects(
+automate_context.attach_info_to_objects(
     "Cost Analysis",
-    ["obj_id_4", "obj_id_5"],
+    optimized_items,
     "Material cost optimized",
     metadata={"currency": "USD", "cost_saved": 5000}
 )
@@ -94,7 +100,7 @@ runCtx.attach_info_to_objects(
 
 ### Gradient Visualization
 
-Certain metadata keys affect how results are displayed in the model viewer:
+Certain metadata keys affect how results are displayed in the Dashboards **Automate results** widget:
 
 - `gradient: Bool`: Enables gradient-based visualization.
 - `gradientValues: List[str]`: Specifies values to apply to objects.
@@ -102,20 +108,40 @@ Certain metadata keys affect how results are displayed in the model viewer:
 Example:
 
 ```python
-runCtx.attach_info_to_objects(
+automate_context.attach_info_to_objects(
     "Gradient Visualization",
-    all_object_ids,
+    all_objects,
     "Values applied to objects in list order",
     metadata={"gradient": True, "gradientValues": gradient_values}
 )
 ```
+
+## Attach results to 2026.9 models
+
+Your function receives a version in the 2026.9 data model the same way as any other: `receive_version()` / `ReceiveVersion()` return a `Base` tree built from the version's bundle. The attach methods key each result by the object's `id` and store its `applicationId` alongside. On a tree built from a 2026.9 version, every object's `id` is set to its `applicationId`, so the call succeeds and the result matches the object in the model.
+
+- **Attach results to objects you received.** They carry both `id` and `applicationId`. An object your function builds itself has no `id`, and the attach call raises _You can only attach {level} results to objects with an id_.
+- **Treat `id` as an opaque key.** On a 2026.9 version it equals `applicationId`; on a version published before 2026.9 it is a content hash. Do not parse, compare, or cache it as a hash.
+- **Re-run automations after a model is migrated.** Results stored before migration reference the old content-hashed ids, which the migrated model no longer carries. A new run keys its results by `applicationId`. A migrated object that had no `applicationId` is keyed `spk:` followed by its old content hash.
+
+<Warning>
+  `id` equalling `applicationId` comes from how Automate receives 2026.9 versions today, not from a
+  documented contract. A future Automate release can change it, so do not build tooling that depends
+  on it.
+</Warning>
+
+To see the results a run recorded, see [Viewing Automation Results](/developers/automate/viewing-results).
+
+## Publish results as a new version
+
+When a result is new model data rather than a finding on existing objects, publish it to a different model with `create_new_version_in_project` / `CreateNewVersionInProject`. In C#, Speckle.Automate.Sdk **2026.9.0-beta.4** and later also take a `BundleBuilder` and publish it in the 2026.9 format; call `WaitForVersion` before your function returns. See [Publish a bundle](/developers/automate/api-reference#publish-a-bundle) and [Function Artefacts](/developers/automate/function-artefacts).
 
 ## Best Practices
 
 - Use the appropriate annotation type to convey severity accurately.
 - Group related annotations into categories for better organization.
 - Provide clear, actionable messages to aid decision-making.
-- Include relevant object IDs to maintain traceability.
+- Attach each result to the objects it concerns to maintain traceability.
 - Leverage metadata for richer annotations and better UI integration.
 
 By leveraging these methods, automation functions can provide structured feedback that enhances decision-making and workflow efficiency.

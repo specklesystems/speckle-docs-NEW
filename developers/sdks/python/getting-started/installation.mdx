@@ -13,27 +13,30 @@ specklepy requires:
 
 ## Install with pip
 
-You can install specklepy using pip in the current environment:
+Install specklepy with the `bundle` extra:
 
 ```bash
-pip install specklepy
+pip install "specklepy[bundle]==2026.9.0b3"
 ```
 
-### Install a Specific Version
+The `bundle` extra installs pyarrow, which specklepy needs to load and publish versions with `operations.receive3` and `operations.send3`.
 
-To install a specific version:
+<Warning>
+  An older specklepy gets a 404 when it loads a version published by a 2026.9 connector. Install
+  **2026.9.0b3** or later with the `bundle` extra. See [Who's
+  affected](/developers/migration/data-model-migration#whos-affected).
+</Warning>
 
-```bash
-pip install specklepy==3.0.10
-```
+<Note>
+  2026.9.0b3 is a prerelease; a plain `pip install specklepy` installs 2026.8, which has no
+  `operations.receive3`. A later stable 2026.9.0 replaces the pin without changing the calls.
+</Note>
 
-### Upgrade to Latest Version
+### Upgrade an existing installation
 
-To upgrade an existing installation:
+Run the same command. pip replaces the installed specklepy with 2026.9.0b3.
 
-```bash
-pip install --upgrade specklepy
-```
+Moving a script from `operations.receive` to `operations.receive3`? See [Migrate to 2026.9](/developers/sdks/python/migrate-to-2026-9).
 
 ## Virtual Environments (Recommended)
 
@@ -50,15 +53,11 @@ It's best practice to use a virtual environment to avoid dependency conflicts.
     cd my-speckle-project
 
     # Add specklepy
-    uv add specklepy
+    uv add "specklepy[bundle]==2026.9.0b3"
 
     # Run your script
     uv run python main.py
     ```
-
-    <Tip>
-    UV is blazingly fast and the preferred tool by the Speckle team!
-    </Tip>
 
   </Tab>
 
@@ -74,7 +73,7 @@ It's best practice to use a virtual environment to avoid dependency conflicts.
     source speckle_env/bin/activate
 
     # Install specklepy
-    pip install specklepy
+    pip install "specklepy[bundle]==2026.9.0b3"
     ```
 
   </Tab>
@@ -88,7 +87,7 @@ It's best practice to use a virtual environment to avoid dependency conflicts.
     conda activate speckle_env
 
     # Install specklepy
-    pip install specklepy
+    pip install "specklepy[bundle]==2026.9.0b3"
     ```
 
   </Tab>
@@ -96,41 +95,46 @@ It's best practice to use a virtual environment to avoid dependency conflicts.
 
 ## Verify Installation
 
-Confirm specklepy is installed correctly:
+Confirm which specklepy version is installed:
 
 ```python lines icon="python"
-import specklepy
-print(f"specklepy version: {specklepy.__version__}")
+from importlib.metadata import version
+
+print(f"specklepy version: {version('specklepy')}")
 ```
 
-You can also check available modules:
+You should see `specklepy version: 2026.9.0b3`. Then check that the modules you need import:
 
 ```python lines icon="python"
-from specklepy.api.client import SpeckleClient
-from specklepy.objects.geometry import Point
 from specklepy.api import operations
+from specklepy.api.client import SpeckleClient
+from specklepy.bundle import Model
 
-print("✓ specklepy installed successfully!")
+print("specklepy installed successfully")
 ```
+
+If the last import raises `ModuleNotFoundError: No module named 'pyarrow'`, install specklepy again with the `bundle` extra.
 
 ## Dependencies
 
 specklepy automatically installs these dependencies:
 
-| Package                    | Purpose                               |
-| -------------------------- | ------------------------------------- |
-| `gql[requests,websockets]` | GraphQL client for Speckle Server API |
-| `pydantic`                 | Data validation and serialization     |
-| `appdirs`                  | Cross-platform directory paths        |
-| `stringcase`               | String case conversion                |
-| `ujson`                    | Fast JSON parsing                     |
-| `deprecated`               | Deprecation warnings                  |
+| Package                    | Purpose                                                   |
+| -------------------------- | --------------------------------------------------------- |
+| `gql[requests,websockets]` | GraphQL client for Speckle Server API                     |
+| `httpx`                    | HTTP downloads and uploads                                |
+| `pydantic`                 | Data validation and serialization                         |
+| `pydantic-settings`        | Settings for Automate function tests                      |
+| `attrs`                    | Object traversal helpers                                  |
+| `ujson`                    | Fast JSON parsing                                         |
+| `deprecated`               | Deprecation warnings                                      |
+| `pyarrow`                  | Loads and publishes 2026.9 versions (with `bundle` extra) |
 
 <Info>You don't need to install these manually - pip handles them automatically.</Info>
 
 ## Development Installation
 
-If you want to contribute to specklepy or modify the source code refer to the [contributing guide](https://github.com/specklesystems/specklepy/blob/main/CONTRIBUTING.md).
+If you want to contribute to specklepy or modify the source code refer to the [contributing guide](https://github.com/specklesystems/specklepy/blob/main/.github/CONTRIBUTING.md).
 
 ## Next Steps
 

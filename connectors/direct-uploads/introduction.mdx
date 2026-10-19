@@ -1,26 +1,14 @@
 ---
 title: Direct uploads
-description: 'Upload files directly to your Speckle projects and view them in your browser—no desktop software or connector needed.'
-docs_status: impacted
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/it-admin/compatibility-mode
-change_scope: '2026.9 upload data format and temporary compatibility mode'
+description: 'Upload files directly to your Speckle projects and view them in your browser—no desktop software or connector needed. Supported formats, Tekla Structures, Vectorworks, Solibri, TrimBIM, and ETABS uploads.'
 ---
 
 import CoordinationWorkflowRevit from '/snippets/connectors/coordination-workflow-revit.mdx'
 
-<Visibility for="agents">
-  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: 2026.9 upload data format and temporary compatibility mode.
-
-For these changes, read [2026.9 guidance](/next/it-admin/compatibility-mode).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
+<Note>
+  On a self-hosted server running a release before 2026.9, the accepted formats differ. See
+  [Compatibility mode](/it-admin/compatibility-mode#self-hosted-servers).
+</Note>
 
 ## When to use file uploads
 
@@ -49,9 +37,8 @@ The two routes serve different purposes. Uploads read a file, so they cover form
 ## Upload a file
 
 <Info>
-  **Upload limits:** Maximum file size is **2 GB** for all plans and formats except ETABS. In
-  2026.9, an ETABS upload takes files up to 128 MiB each. See [Upload an ETABS
-  model](/next/connectors/file-uploads#upload-an-etabs-model).
+  **Upload limits:** Maximum file size is **2 GB** for all plans and formats except ETABS. An ETABS
+  upload takes files up to 128 MiB each. See [Upload an ETABS model](#upload-an-etabs-model).
 </Info>
 
 <Warning>
@@ -90,54 +77,56 @@ The two routes serve different purposes. Uploads read a file, so they cover form
 ## Supported file formats
 
 <Warning>
-  **2026.9 changes upload format support.** STL and several formats in the table below are no longer
-  accepted by the default upload path. These formats remain supported for direct uploads in
-  **legacy/compatibility mode**, until it ends on **1 November 2026**. See [2026.9 upload format
-  changes and compatibility
-  options](/next/connectors/file-uploads#breaking-change-supported-file-formats).
+  The default upload path does not accept **STL**, **3MF**, **3DS**, **AMF**, **DXF**, **X**,
+  **E57**, **IGS/IGES**, **FBX**, **PLY**, or **SLDPRT** files. Only compatibility mode accepts
+  them, and it ends on **1 November 2026**. Move affected workflows to a supported format before
+  then.
 </Warning>
 
-The format table and format-specific guidance below describe uploads before 2026.9.
+The format rules apply to drag-and-drop uploads in the web app and to uploads through the API.
+Existing models stay readable; the rules affect importing new files and uploading new versions.
+
+Availability depends on the conversion services enabled for your workspace. Cloud syncs (ACC,
+ProjectWise, and Trimble Connect) accept the same formats as uploads, except Tekla Structures:
+cloud syncs accept neither `.tekla` nor `.db1` files. Trimble Connect syncs additionally accept the
+formats Trimble Connect converts to TrimBIM; see [Sync models from Trimble
+Connect](/connectors/cloud-integrations/trimble-connect#supported-file-formats).
+
+| Format                             | Extensions                                                               | Default       | Compatibility mode |
+| ---------------------------------- | ------------------------------------------------------------------------ | ------------- | ------------------ |
+| IFC                                | .ifc                                                                     | Supported     | Supported          |
+| Revit                              | .rvt                                                                     | Supported     | Supported          |
+| Navisworks                         | .nwc, .nwd                                                               | Supported     | Supported          |
+| AutoCAD                            | .dwg                                                                     | Supported     | Supported          |
+| Rhino                              | .3dm                                                                     | Supported     | Uploads only       |
+| Wavefront                          | .obj                                                                     | Supported     | Uploads only       |
+| SketchUp                           | .skp                                                                     | Supported     | Uploads only       |
+| STEP                               | .step, .stp                                                              | Supported     | Uploads only       |
+| MicroStation                       | .dgn                                                                     | Supported     | Not supported      |
+| Vectorworks                        | .vwx                                                                     | Supported     | Not supported      |
+| Solibri                            | .smc                                                                     | Supported     | Not supported      |
+| TrimBIM                            | .trb                                                                     | Supported     | Not supported      |
+| ETABS                              | .edb                                                                     | Supported     | Not supported      |
+| Tekla Structures                   | .tekla, .db1                                                             | Where enabled | Not supported      |
+| Other mesh and interchange formats | .stl, .3mf, .3ds, .amf, .dxf, .x, .e57, .igs, .iges, .fbx, .ply, .sldprt | Not supported | Uploads only       |
+
+<Note>
+  Compatibility mode applies to the whole workspace and ends on **1 November 2026**. See
+  [Compatibility mode](/it-admin/compatibility-mode) and [Speckle's new data
+  model](/workspaces/data-model-migration).
+</Note>
 
 <Note>
   If your Autodesk (or other) software can export a Navisworks Cache file (`.nwc`) or a Navisworks
   Document file (`.nwd`), you can upload it to Speckle without owning a Navisworks license.
+  Navisworks uploads follow the **2 GB** upload limit. See [Navisworks](/connectors/navisworks) for
+  when to use the desktop connector or ACC sync instead.
 </Note>
 
 <Note>
   Want to help improve this flow? Join the user testing study for NWC and NWD uploads with ACC sync
-  on the [User testing opportunities page](/get-involved/user-testing#nwc-nwd-acc-sync).
+  on the [User testing opportunities page](/get-involved/user-testing#open-opportunities).
 </Note>
-
-<Note>
-  Navisworks file uploads support the **2 GB** upload limit. For ACC sync and desktop publishing
-  guidance, see [Navisworks in 2026.9](/next/connectors/navisworks/introduction).
-</Note>
-
-| Format                        | Extension | Status |
-| ----------------------------- | --------- | ------ |
-| IFC                           | .ifc      | ✔︎      |
-| Rhinoceros 3D                 | .3dm      | ✔︎      |
-| SketchUp                      | .skp      | ✔︎      |
-| AutoCAD                       | .dwg      | ✔︎      |
-| Drawing Exchange Format       | .dxf      | ✔︎      |
-| MicroStation                  | .dgn      | ✔︎      |
-| 3D Studio                     | .3ds      | ✔︎      |
-| SolidWorks Part               | .sldprt   | ✔︎      |
-| STEP                          | .stp      | ✔︎      |
-| STEP                          | .step     | ✔︎      |
-| Point Cloud                   | .e57      | ✔︎      |
-| 3D Manufacturing Format       | .3mf      | ✔︎      |
-| Additive Manufacturing Format | .amf      | ✔︎      |
-| Filmbox                       | .fbx      | ✔︎      |
-| IGES                          | .igs      | ✔︎      |
-| IGES                          | .iges     | ✔︎      |
-| Wavefront                     | .obj      | ✔︎      |
-| Polygon File Format           | .ply      | ✔︎      |
-| DirectX                       | .x        | ✔︎      |
-| Revit                         | .rvt      | ✔︎      |
-| Navisworks Cache              | .nwc      | ✔︎      |
-| Navisworks Document           | .nwd      | ✔︎      |
 
 <CoordinationWorkflowRevit />
 
@@ -154,11 +143,10 @@ Speckle detects and preserves the source units for these formats:
 
 Other formats have a different behaviour:
 
-| **Format** | **Behaviour**                |
-| ---------- | ---------------------------- |
-| DWG        | Geometry is scaled to meters |
-| 3DS        | Assuming file is in cm       |
-| OBJ        | Assuming file is in mm       |
+| **Format** | **Behaviour**                                                                                                                     |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| DWG        | Preserves the drawing unit. Civil 3D files use AEC Drawing Units; other DWGs use `INSUNITS`. Unitless DWGs are treated as metres. |
+| OBJ        | Treated as millimetres by the Rhino-based importer.                                                                               |
 
 ## File format details
 
@@ -187,7 +175,7 @@ Rhino files maintain geometry and layer structure when uploaded.
 
 <Note>
   If you need object names, user strings, render materials or named views, publish with the [Rhino
-  connector](/connectors/rhino) instead.
+  connector](/connectors/rhino/rhino) instead.
 </Note>
 
 Known limitations:
@@ -209,9 +197,9 @@ Known limitations:
 - Attributes aren't imported
 - Dynamic components may not transfer correctly
 
-### DWG and DXF
+### DWG
 
-Upload AutoCAD drawing files directly.
+Upload AutoCAD drawing files directly. DXF files are accepted only in compatibility mode.
 
 <Note>
   If you need object properties such as xdata carried through, publish with the [AutoCAD
@@ -231,11 +219,211 @@ Known limitations:
 
 - Materials aren't supported
 
+### Tekla Structures
+
+Speckle converts Tekla Structures model packages (`.tekla`) and model databases (`.db1`) on
+deployments where Tekla uploads are enabled. This is not enabled by default; confirm availability
+with Speckle before relying on it for your workflow.
+
+Upload the complete model folder to preserve profiles, shapes, and materials.
+
+<Tip>
+  A `.tekla` package contains the model folder and its supporting catalogs. A `.db1` file alone can
+  be converted, but missing catalogs can reduce profile, shape, and material fidelity.
+</Tip>
+
+### Vectorworks (VWX)
+
+If your design lives in Vectorworks, upload the `.vwx` file to publish it without opening
+Vectorworks or installing its connector. The [Vectorworks connector](/connectors/third-party/vectorworks)
+publishes the objects you select; an upload publishes the 3D content of every design layer.
+
+Speckle reads files last saved in Vectorworks 2021 through 2027. Files from other releases are not
+supported yet.
+
+What is published:
+
+- 3D objects on every design layer, including design layers hidden in the document, grouped by
+  story, layer, and type.
+- Each object's name, type, object properties, and IFC properties. An object whose 3D geometry
+  Speckle cannot read arrives with its properties and no geometry.
+
+These parts of the document are not published:
+
+- Objects in a class that is hidden in the document.
+- Sheet layers.
+- 2D-only objects, such as callouts, data tags, and section lines.
+
+<Note>
+  Speckle follows the class visibility saved in the file. To include a hidden class, make it visible
+  and save the file before you upload it.
+</Note>
+
+If a Vectorworks upload fails:
+
+| Message                                                  | What to do                                                                         |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Vectorworks file version _number_ is not supported       | Contact Speckle support.                                                           |
+| This is not a supported Vectorworks document             | Check that the file is a Vectorworks document, not another file renamed to `.vwx`. |
+| This Vectorworks document uses an unsupported byte order | Contact Speckle support.                                                           |
+
+### Solibri (SMC)
+
+Upload a Solibri `.smc` file to publish the whole federation saved in it, without opening Solibri
+or installing a connector. You do not need the original IFC files alongside it. After conversion,
+open the model in Speckle to view its geometry and inspect its properties.
+
+Files saved in Solibri 9.12 and 26.6 have been verified. Speckle attempts to read `.smc` files from
+other releases, but their compatibility has not been verified. `.smv` and `.smct` files are not
+supported.
+
+What is published:
+
+- The saved federation, grouped by source model and its spatial hierarchy.
+- Component geometry with original colours and transparency.
+- Source properties, Solibri-derived properties, and saved classification results, including
+  group, zone and system memberships.
+
+These parts of the document are not published:
+
+- Rule sets and checking results.
+- Presentations.
+- Issues and BCF data.
+
+An upload reads the data saved in the file; it does not run Solibri checks or re-evaluate
+classifications.
+
+For the closest match to Solibri's 3D view, save the file with **Save 3D Representations with Model**
+enabled under **Settings > 3D** in Solibri, and let the 3D view finish drawing before saving. When
+the file has no saved 3D representation for a component, Speckle tries to rebuild its geometry. This
+takes longer and can produce approximate geometry. Components that cannot be rebuilt keep their
+properties but have no geometry.
+
+A component's **Federated Floor** property is included only if Solibri computed and saved it. To
+populate it, open the file in Solibri, group the model tree by **Locations**, and use **Save As**
+before uploading again.
+
+If a Solibri upload fails, check that the file opens in Solibri and save it again before retrying.
+Contact Speckle support if it still fails.
+
+### TrimBIM (TRB)
+
+TrimBIM (`.trb`) is Trimble's model format. Trimble Connect converts every model it stores into
+TrimBIM for its 3D viewer, and Tekla Structures, Trimble Business Center and Trimble Connect for
+Windows export it. Upload a `.trb` file to publish the model without the application that made it.
+
+Speckle reads TrimBIM version 8, the version Trimble Connect writes. Files in another TrimBIM
+version are not supported yet.
+
+What is published:
+
+- Every element with its geometry, name, type and property sets, grouped by site, building and
+  storey, or by the groups saved in the file.
+- Materials and colours. Textures are not published.
+- Openings under the element they cut, and doors and windows linked to the wall that hosts them.
+- Elements whose geometry Speckle cannot read, such as alignments, grid lines, labels and bolts,
+  arrive with their properties and no geometry.
+
+Lengths, areas, volumes and masses are published in millimetres, square metres, cubic metres and
+kilograms, the units a TrimBIM file stores.
+
+If a TrimBIM upload fails:
+
+| Message                                       | What to do                                                                     |
+| --------------------------------------------- | ------------------------------------------------------------------------------ |
+| TrimBIM version _number_ is not supported yet | Export the model again from a current Trimble application, or contact support. |
+| Not a TrimBIM file                            | Check that the file is a TrimBIM file, not another file renamed to `.trb`.     |
+
+### Upload an ETABS model
+
+Upload an ETABS `.edb` file to publish the model without opening ETABS or installing its connector.
+Add the result files ETABS saves beside it to publish the analysis results too. For the steps, see
+[Upload a file](#upload-a-file). An upload publishes the whole model, with the same objects and
+properties as the [ETABS connector](/connectors/etabs).
+
+#### Files that convert
+
+Speckle reads files saved in ETABS 18 through 23.0. Files from other releases are not supported
+yet. Analysis results from ETABS 18 files are not supported.
+
+These limits apply to an ETABS upload:
+
+- Each file, including the `.edb`, can be up to 128 MiB.
+- The `.edb` and its result files together can be up to 640 MiB.
+- An upload can include up to 100 result files.
+
+#### Add the analysis results
+
+{/* IMAGE_PLACEHOLDER: Add the analysis results dialog after dropping an .edb — model name, Choose folder, Choose files, Upload with results, and Upload model only. */}
+
+The `.edb` holds the model, not its analysis results. ETABS saves the results beside it in result
+files with the same name as the model: a `.msh` file and `.Y` files, such as `.Y`, `.Y00`, `.Y01`,
+`.Y$$`, `.Y_` or `.Y_1`. Upper and lower case in file names do not matter.
+
+To upload a model with its results, do one of the following:
+
+- Drop the model folder, or select the `.edb` together with its result files. The upload starts
+  immediately.
+- Drop the `.edb` on its own. In **Add the analysis results**, drop the model folder or the result
+  files, or use **Choose folder** or **Choose files**. Then select **Upload with results**.
+
+A folder that holds the `.edb` but no result files also opens **Add the analysis results**. To
+publish the model without results, select **Upload model only**.
+
+Result files must be in the same folder as the `.edb`. Speckle leaves out files in subfolders and
+files that do not match the model, and does not upload them.
+
+<Note>
+  If a result file the analysis needs is missing, the model publishes without any analysis results.
+  The upload does not report an error. Upload every result file ETABS saved for the model.
+</Note>
+
+#### What is published
+
+- Joints, frames, tendons, shells and links, with their geometry, grouped by level.
+- Each object's type and properties, such as its section, material, length or area.
+- Section and material definitions.
+- Analysis results, when you upload the result files. An upload publishes them the same way as the
+  [ETABS connector](/connectors/etabs#publishing-a-model).
+
+An upload reads the data saved in the files. It does not open ETABS, rerun the analysis or
+recalculate the design.
+
+#### If an ETABS upload fails
+
+| Message                                                                                            | What to do                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "_name_" exceeds the ETABS limit of 128 MiB per file.                                              | If it is a result file, drop the `.edb` alone and select **Upload model only**. Otherwise, publish with the [ETABS connector](/connectors/etabs). |
+| This model and its result files exceed 640 MiB. Select a smaller model file set.                   | Drop the `.edb` alone and select **Upload model only**, or publish with the [ETABS connector](/connectors/etabs).                                 |
+| This selection has more than 100 result files. Select only the EDB and its result files.           | Select only the `.edb` and the result files that share its name.                                                                                  |
+| This selection contains multiple EDBs. Drop the .edb you want and add its results from the dialog. | Upload one model at a time. Drop its `.edb` and add its result files in the dialog.                                                               |
+| Duplicate ETABS filename: "_name_". Remove files that differ only in case.                         | Keep one copy of each file.                                                                                                                       |
+| No result files for "_model_" were found.                                                          | Choose the folder that holds the `.edb`, or result files with the same name as the model.                                                         |
+| No result files for "_model_". This selection contains "_other model_".                            | Choose the folder or result files of the model you are uploading.                                                                                 |
+
+If the upload fails after it starts, check that the file opens in ETABS before retrying. Contact
+Speckle support if it still fails.
+
+## Move a workflow off a format the default path does not accept
+
+If your workspace is in compatibility mode, you can keep uploading the formats only it accepts until
+it ends on **1 November 2026**. Before then, export to a supported format or publish through a
+supported desktop connector. Check the resulting model before switching your workflow: uploads and
+connector publishing can produce different geometry and properties. See [Uploads and connectors
+produce different datasets](#uploads-and-connectors-produce-different-datasets).
+
+For programmatic uploads, see [Uploading IFC and other files](/developers/api/guides/file-uploads).
+
 ## FAQ
 
 <AccordionGroup>
   <Accordion title="Why are my models in the wrong location?">
-    Direct uploads convert models using Internal Origin and do not apply Revit Shared Coordinates. Uploaded models are not placed in a coordinated space. For coordination workflows that rely on Shared Coordinates, use the [Revit connector](/connectors/revit/revit) to publish and load models so coordinate modifications are preserved.
+    When you upload a Revit (`.rvt`) file, **Revit upload settings** opens. Choose the **Reference
+    point**: **Internal Origin** (the default), **Project Base Point**, **Survey Point**, or **Shared
+    Coordinates**. Your choice becomes the default for the next Revit upload to that model. Other
+    formats are placed using the coordinates saved in the file. In compatibility mode, **Shared
+    Coordinates** is not offered. For connector-level control over placement, use the [Revit
+    connector](/connectors/revit/revit).
   </Accordion>
   <Accordion title="Can I download uploaded files?">
     Yes, file downloads are available. To download a file

@@ -10,7 +10,7 @@ Send derived analysis results — QA flags, health checks, computed metadata —
 
 ## What you will build
 
-A script that loads a model, runs property checks on each element, builds a `Collection` of `DataObject` results with `qaStatus` and `missingProperties`, and publishes a new version with `Send2`.
+A script that loads a model with `Receive3`, checks each object for a category and a level, records the result as `qaStatus` and `missingProperties` on a new object per source element, and publishes the report to a separate model with `Send3`.
 
 ## When to use this
 
@@ -20,85 +20,103 @@ Avoid this when a local CSV is enough — see [Export model data to CSV](/develo
 
 ## Recommended approach
 
-1. Load source model with `Receive2`
-2. Analyse with `Flatten()` and your rules
-3. Build results as `DataObject` / `Collection` graphs (not custom typed classes)
-4. `Send2` the result graph, then `client.Version.Create`
-5. Use `Send2`/`Receive2` — not `SendPipeline` unless you are building a connector
+1. Load the source model with `Receive3`
+2. Check each object with `GetString` and relation accessors such as `Level`
+3. Describe the results in a `BundleBuilder`, one object per source element
+4. Publish to a separate report model with `Send3`, then `WaitForVersion`
+5. Use `Send3` — not `SendPipeline` unless you are building a connector
 
 ## Complete example
 
+The example assumes the [bootstrap](/developers/sdks/dotnet/getting-started/scripts-and-notebooks), an `account`, and `projectId`, `sourceModelId`, `versionId`, and `reportModelId` are already in scope.
+
 ```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
-using Speckle.Objects.Data;
-using Speckle.Sdk.Api.GraphQL.Inputs;
-using Speckle.Sdk.Models;
-using Speckle.Sdk.Models.Collections;
-using Speckle.Sdk.Models.Extensions;
+using Speckle.Sdk;
+using Speckle.Sdk.Bundles;
 
-var requiredKeys = new[] { "category", "level" };
-
-var issues = root.Flatten()
-    .OfType<DataObject>()
-    .Select(obj =>
-    {
-        var missing = requiredKeys
-            .Where(k => !obj.properties.ContainsKey(k) || obj.properties[k] is null)
-            .ToList();
-        return new DataObject
-        {
-            name = obj.name ?? obj.applicationId ?? "unnamed",
-            properties = new Dictionary<string, object?>
-            {
-                ["sourceApplicationId"] = obj.applicationId,
-                ["qaStatus"] = missing.Count == 0 ? "pass" : "fail",
-                ["missingProperties"] = string.Join("; ", missing),
-            },
-        };
-    })
-    .ToList();
-
-var report = new Collection
-{
-    name = "Model health check",
-    elements = issues.Cast<Base>().ToList(),
-};
-
-var sendResult = await SpeckleBootstrap.Operations.Send2(
-    client.ServerUrl,
+using var source = await SpeckleBootstrap.Operations.Receive3(
+    account,
     projectId,
-    account.token,
-    report,
-    onProgressAction: null,
+    sourceModelId,
+    versionId,
+    options: null,
     cancellationToken: default
 );
 
-await client.Version.Create(
-    new CreateVersionInput(sendResult.RootId, modelId, projectId, "QA report from automation")
+using var builder = new BundleBuilder(
+    new SpeckleApplication
+    {
+        HostApplication = "QA Script",
+        HostApplicationVersion = "1.0",
+        Slug = "qa-script",
+        SpeckleVersion = "1.0.0",
+    },
+    "m"
 );
+var passed = builder.GetOrAddContainerPath(["Model health check", "Pass"]);
+var failed = builder.GetOrAddContainerPath(["Model health check", "Fail"]);
 
-Console.WriteLine($"Published {issues.Count} QA results ({issues.Count(i => i.properties["qaStatus"]?.ToString() == "fail")} failures)");
+var failures = 0;
+foreach (var obj in source.Objects)
+{
+    var missing = new List<string>();
+    if (obj.GetString("category") is null)
+    {
+        missing.Add("category");
+    }
+    if (obj.Level is null)
+    {
+        missing.Add("level");
+    }
+
+    var result = builder.GetOrAddObject(obj.ApplicationId).SetProperties(
+        new Dictionary<string, object?>
+        {
+            ["sourceApplicationId"] = obj.ApplicationId,
+            ["qaStatus"] = missing.Count == 0 ? "pass" : "fail",
+            ["missingProperties"] = string.Join("; ", missing),
+        },
+        name: obj.Name ?? obj.ApplicationId
+    );
+    result.Collection = missing.Count == 0 ? passed : failed;
+    failures += missing.Count == 0 ? 0 : 1;
+}
+
+var sent = await SpeckleBootstrap.Operations.Send3(
+    account,
+    projectId,
+    reportModelId,
+    builder,
+    new SendOptions(Message: "QA report from automation"),
+    cancellationToken: default
+);
+var version = await SpeckleBootstrap.Operations.WaitForVersion(account, sent);
+
+Console.WriteLine($"Published version {version.id}: {source.Objects.Count} results, {failures} failures");
 ```
 
+You should see the new version id and the result counts. If `Receive3` throws because the source version has no bundle, it was published before 2026.9 and not converted: see [Read versions published before 2026.9](/developers/sdks/dotnet/migrate-to-2026-9#read-versions-published-before-2026-9).
+
 <Warning>
-  You must call `client.Version.Create` after `Send2` — otherwise the sent graph is orphaned and
-  will not appear in the Speckle UI. See [Core concepts: orphaned
-  objects](/developers/sdks/dotnet/concepts/overview#orphaned-objects).
+  `Send3` returns as soon as the upload finishes, with a reserved version id. The version exists
+  only when the server finishes processing, so call `WaitForVersion` before you link to or load it.
 </Warning>
 
 ## How it works
 
-**Analysis stays local until you send.** `Flatten()` and your rules produce in-memory `DataObject` instances. `Send2` uploads the graph; `Version.Create` attaches it to the model's history.
+**Analysis stays local until you publish.** `Receive3` gives you a `Model` to query, and your rules run in memory. `BundleBuilder` writes the results to local files as you add them; `Send3` uploads them, and the server creates the version.
 
-Results use the same `DataObject` / `Collection` shapes connectors expect, so the viewer and other tools can consume them.
+The report objects carry properties only, with no geometry to render. Add geometry with `AddGeometry` if the report should show in the viewer.
 
 ## Common mistakes
 
-| Mistake                                        | Fix                                              |
-| ---------------------------------------------- | ------------------------------------------------ |
-| Calling `Send2` without `Version.Create`       | Always create a version after send               |
-| Using `SendPipeline` for a small report        | `Send2` is the recommended path for scripts      |
-| Custom `Wall`/`Door` C# types                  | Use `DataObject.properties` for interoperability |
-| Sending the entire source model back unchanged | Send only the analysis payload                   |
+| Mistake                                        | Fix                                                             |
+| ---------------------------------------------- | --------------------------------------------------------------- |
+| Reading the new version straight after `Send3` | Call `WaitForVersion` first                                     |
+| Publishing to the source model                 | Publish reports to a separate model, so they don't replace it   |
+| Using `SendPipeline` for a small report        | `Send3` is the publish path for scripts                         |
+| Reusing a `BundleBuilder` after `Send3`        | `Send3` finishes the builder; create a new one for each publish |
+| Sending the entire source model back unchanged | Publish only the analysis payload                               |
 
 ## Next steps
 
@@ -122,6 +140,6 @@ Results use the same `DataObject` / `Collection` shapes connectors expect, so th
     icon="route"
     href="/developers/sdks/dotnet/concepts/send-and-receive-paths"
   >
-    Send2 vs SendPipeline
+    Send3 vs SendPipeline
   </Card>
 </CardGroup>

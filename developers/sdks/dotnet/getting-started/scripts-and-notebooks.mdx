@@ -1,25 +1,8 @@
 ---
 title: 'Automate with scripts and notebooks'
-description: 'Copy-paste bootstrap and Receive2/Send2 for console apps, Grasshopper C#, and notebooks — no DI tutorial required'
+description: 'Copy-paste bootstrap and Receive3 for console apps, Grasshopper C#, and notebooks — no DI tutorial required'
 sidebarTitle: 'Scripts'
-docs_status: impacted
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/developers/sdks/dotnet/breaking-changes
-change_scope: 'Receive2 to Receive3 and 2026.9 properties and relations'
 ---
-
-<Visibility for="agents">
-  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: Receive2 to Receive3 and 2026.9 properties and relations.
-
-For these changes, read [2026.9 guidance](/next/developers/sdks/dotnet/breaking-changes).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
 
 ## Goal
 
@@ -38,7 +21,7 @@ Use this page when you write:
 - A C# cell in a **polyglot notebook** (Jupyter, Visual Studio, Rider)
 - A small automation that is **not** a desktop connector
 
-You do **not** need to understand dependency injection, service lifetimes, or ASP.NET Core. Paste the bootstrap once, then write normal C# against `client`, `operations`, and `Base` objects.
+You do **not** need to understand dependency injection, service lifetimes, or ASP.NET Core. Paste the bootstrap once, then write normal C# against `client`, `operations`, and the `Model` you receive.
 
 <Info>
   If you are building a production desktop connector (Revit, Rhino, AutoCAD, and similar), start
@@ -49,18 +32,17 @@ You do **not** need to understand dependency injection, service lifetimes, or AS
 
 ## Recommended approach
 
-**The recommended approach for server-facing AEC automation scripts is `Receive2`/`Send2`** — no transport factory required. Paste the bootstrap below, authenticate with a PAT from `SPECKLE_TOKEN`, and call `IOperations` methods directly.
+**Load model data with `Receive3`.** Paste the bootstrap below, authenticate with a PAT from `SPECKLE_TOKEN`, and call `IOperations.Receive3`. It returns a `Model`: a flat list of objects with path-keyed properties and relation accessors such as `Level` and `Host`.
 
-<Warning>
-  After a connector publishes 2026.9 data, receive it with a Speckle.Sdk **2026.9** build. An older
-  SDK 404s. Versions from older connectors keep working. See [Who's
-  affected](/developers/migration/data-model-migration#whos-affected).
-</Warning>
+Install a 2026.9 build of the SDK. 2026.9.0-beta.7 is the current one; a later stable 2026.9.0 replaces the pin without changing the code:
+
+```bash
+dotnet add package Speckle.Sdk --version 2026.9.0-beta.7
+```
 
 <Note>
-  In 2026.9, `Receive2` is obsolete and scripts should call `Receive3`, which returns a columnar
-  `Model` instead of a `Base` tree. See [Assess .NET SDK breaking
-  changes](/next/developers/sdks/dotnet/breaking-changes).
+  Updating a script that uses `Receive2` and `Flatten()`? See [Migrate to
+  2026.9](/developers/sdks/dotnet/migrate-to-2026-9) for each change side by side.
 </Note>
 
 For Grasshopper object construction without server calls, see [Use SpeckleSharp in a Grasshopper C# node](/developers/sdks/dotnet/guides/use-speckle-sdk-in-grasshopper-csharp). For connector Publish/Load on the canvas, use the Grasshopper connector — the SDK complements those components; it does not replace them.
@@ -107,11 +89,6 @@ static class SpeckleBootstrap
 Load an existing model and count elements by category:
 
 ```csharp Complete example lines icon="/images/developers/sdks/csharp.svg" expandable
-using Speckle.Objects.Data;
-using Speckle.Sdk.Credentials;
-using Speckle.Sdk.Models;
-using Speckle.Sdk.Models.Extensions;
-
 var token = Environment.GetEnvironmentVariable("SPECKLE_TOKEN")
     ?? throw new InvalidOperationException("Set SPECKLE_TOKEN");
 var projectId = Environment.GetEnvironmentVariable("SPECKLE_PROJECT_ID")
@@ -126,74 +103,81 @@ var account = await SpeckleBootstrap.AccountFactory.CreateAccount(
 using var client = SpeckleBootstrap.ClientFactory.Create(account);
 
 var versions = await client.Version.GetVersions(modelId, projectId, limit: 1);
-var latest = versions.items.First()
+var latest = versions.items.FirstOrDefault()
     ?? throw new InvalidOperationException("No versions on this model");
 
-var root = await SpeckleBootstrap.Operations.Receive2(
-    client.ServerUrl,
+using var model = await SpeckleBootstrap.Operations.Receive3(
+    account,
     projectId,
-    latest.referencedObject!,
-    account.token,
-    onProgressAction: null,
+    modelId,
+    latest.id,
+    options: null,
     cancellationToken: default
 );
 
-static string GetCategory(Base obj) =>
-    obj is DataObject d && d.properties.TryGetValue("category", out var cat) && cat is string s
-        ? s
-        : obj["category"] as string ?? obj.speckle_type ?? "Unknown";
+var counts = model.Objects
+    .GroupBy(o => o.GetString("category") ?? o.Name ?? "Unknown")
+    .OrderByDescending(g => g.Count());
 
-var counts = root.Flatten().GroupBy(GetCategory).OrderByDescending(g => g.Count());
-
-Console.WriteLine($"Model: {latest.message} — {root.Flatten().Count()} objects");
+Console.WriteLine($"Model: {latest.message} — {model.Objects.Count} objects");
 foreach (var group in counts.Take(15))
     Console.WriteLine($"  {group.Key}: {group.Count()}");
 ```
 
+You should see the version message, the object count, and up to 15 categories with their counts.
+
 <Note>
-  `onProgressAction` and `cancellationToken` are for long-running host applications (connectors with
-  progress UI). For scripts, `null` and `default` are correct — not placeholders to replace.
+  `options` and `cancellationToken` are for long-running host applications (connectors with progress
+  UI and cancel buttons). For scripts, `null` and `default` are correct — not placeholders to
+  replace.
 </Note>
+
+<Tip>
+  `Receive3` also takes the model URL you copy from the web app: `Receive3(account, new
+  Uri(modelUrl), options: null, cancellationToken: default)`. Without `@versionId` in the URL it
+  loads the latest version.
+</Tip>
 
 ## How it works
 
 | What you want                                  | Resolve from bootstrap               | Then use                                                     |
 | ---------------------------------------------- | ------------------------------------ | ------------------------------------------------------------ |
 | GraphQL API (`Project`, `Model`, `Version`, …) | `IClientFactory` → `Create(account)` | `client.Version.GetVersions(...)`, `client.Project.Get(...)` |
-| Load / send object graphs                      | `IOperations`                        | `Receive2`, `Send2`, `Serialize`                             |
+| Load or publish model data                     | `IOperations`                        | `Receive3`, `Send3`                                          |
 | Build an account from a PAT                    | `IAccountFactory`                    | `CreateAccount(serverUrl, token)`                            |
 | Reuse a desktop login                          | `IAccountManager` (optional)         | `GetAccounts()`, `GetDefaultAccount()`                       |
 
-See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) for when to use `Send`/`Receive` with transports instead.
+`Receive3` returns a `Model`. Query it with `model.Objects`, `model.ObjectsWith("path")`, and `model.ObjectByApplicationId(id)`. Read properties with dotted paths (`obj.GetDouble("Constraints.Base Offset")`) and follow relations with accessors (`obj.Level`, `obj.Host`, `obj.Material`). See [Object model](/developers/object-model/overview) for how the data is shaped, and [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) for the other paths.
 
 ## Common mistakes
 
-| Mistake                                                     | Fix                                                   |
-| ----------------------------------------------------------- | ----------------------------------------------------- |
-| Creating a new `ServiceProvider` on every notebook cell run | Define the static bootstrap once per session          |
-| Using `Send` + `IServerTransportFactory` in a script        | Prefer `Send2`/`Receive2` for server work             |
-| Reading `obj["category"]` on connector data                 | Use `DataObject.properties` for BIM fields            |
-| Skipping `Speckle.Objects` in bootstrap assemblies          | Pass `typeof(Point).Assembly` when receiving geometry |
+| Mistake                                                     | Fix                                                                                                |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Creating a new `ServiceProvider` on every notebook cell run | Define the static bootstrap once per session                                                       |
+| Installing `Speckle.Sdk` without a version                  | You get 2026.8, which has no `Receive3`. Reinstall with `--version 2026.9.0-beta.7`                |
+| Calling `Receive3` without `using`                          | The downloaded bundle files stay on disk. Write `using var model = …`                              |
+| `Receive3` throws because the version has no bundle         | The version was published before 2026.9 and not converted. Load it with `Receive2`                 |
+| Walking `Flatten()` or proxy lists on 2026.9 data           | Query `model.Objects` and relation accessors — see [Relations](/developers/object-model/relations) |
 
 ## What to skip (unless you are building a connector)
 
-| Page / topic                                                                                       | Why scripts can skip it                                  |
-| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection)         | Deep dive for host apps sharing a container              |
-| [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends) | `SendPipeline` — production connector upload only        |
-| [Working with Proxies](/developers/sdks/dotnet/guides/working-with-proxies)                        | Only when receiving connector data with groups/instances |
+| Page / topic                                                                                       | Why scripts can skip it                           |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| [Dependency injection (connectors)](/developers/sdks/dotnet/concepts/dependency-injection)         | Deep dive for host apps sharing a container       |
+| [Publish large models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends) | `SendPipeline` — production connector upload only |
+| [Working with Proxies](/developers/sdks/dotnet/guides/working-with-proxies)                        | Only for versions published before 2026.9         |
 
 ## Grasshopper and hosted scripts
 
 **Speckle connector components** (Publish, Load): use the components for transport.
 
-**Custom analysis in Grasshopper C#:** see [Use SpeckleSharp in a Grasshopper C# node](/developers/sdks/dotnet/guides/use-speckle-sdk-in-grasshopper-csharp) for `DataObject` construction; return here for `Send2`/`Receive2`.
+**Custom analysis in Grasshopper C#:** see [Use SpeckleSharp in a Grasshopper C# node](/developers/sdks/dotnet/guides/use-speckle-sdk-in-grasshopper-csharp) for object construction; return here for `Receive3`.
 
 ## Polyglot notebooks
 
 1. Paste the bootstrap in the **first** cell and run it once per kernel session.
 2. In later cells, call `SpeckleBootstrap.Operations`, `SpeckleBootstrap.ClientFactory`, and so on directly.
-3. Store `account` or `client` in notebook variables if you reuse them — `IClient` is `IDisposable`.
+3. Store `account`, `client`, or `model` in notebook variables if you reuse them — `IClient` and `Model` are `IDisposable`.
 
 ## Next Steps
 
@@ -213,11 +197,11 @@ See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-rece
     PAT and environment variables
   </Card>
   <Card
-    title="Load and publish model data"
-    icon="route"
-    href="/developers/sdks/dotnet/concepts/send-and-receive-paths"
+    title="Migrate to 2026.9"
+    icon="arrow-right-arrow-left"
+    href="/developers/sdks/dotnet/migrate-to-2026-9"
   >
-    Send2 vs Send decision guide
+    Move a Receive2 script to Receive3
   </Card>
 </CardGroup>
 
@@ -231,8 +215,13 @@ See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-rece
   <Accordion title="Which quickstart should I follow?">
     [Build your first model analysis
     tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) for a complete
-    automation. This page for the bootstrap snippet. [Full send/receive
-    tour](/developers/sdks/dotnet/getting-started/quickstart) if you want to understand publishing
+    automation. This page for the bootstrap snippet. [Publish and load a model from
+    C#](/developers/sdks/dotnet/getting-started/quickstart) if you want to publish your own data
     from scratch.
+  </Accordion>
+  <Accordion title="What if the model was published before 2026.9?">
+    `Receive3` loads it when the server holds that version in the 2026.9 format. If it throws
+    because the version has no bundle, load it with `Receive2`. See [Read versions published before
+    2026.9](/developers/sdks/dotnet/migrate-to-2026-9#read-versions-published-before-2026-9).
   </Accordion>
 </AccordionGroup>

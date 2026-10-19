@@ -5,7 +5,7 @@ description: >-
   future screenshots on instructional steps and new-concept section intros, when
   the user asks for image placeholders, a screenshot shot list, or a placeholder
   pass, or before a later visual-assets wave.
-argument-hint: '[optional: path or section, e.g. next/analytics]'
+argument-hint: '[optional: path or section, e.g. analytics]'
 ---
 
 # Docs image placeholders
@@ -39,10 +39,11 @@ Do not insert on code-only SDK or API pattern pages, date or comparison tables, 
 Do not write a reader-facing missing-screenshot disclaimer. Do not use a Frame that points at a missing placeholder.png.
 
 When a capture lands, replace the comment with a `<Frame>` around the asset and delete the comment.
+After marking, prompt the developer to capture: ask whether to capture now and, if they confirm, for the source (production, staging URL or their dev server URL) and a sample URL for each surface; then hand over to **capture-docs-screenshots**. If they decline, or nobody is there to answer, the markers stand and `pnpm report:placeholders` reports them as placeholder debt on every PR.
 
 ## Pass
 
-1. Scope to `$ARGUMENTS` if given, otherwise the files in the current docs change set, or `next/` when the work is the 2026.9 preview.
+1. Scope to `$ARGUMENTS` if given, otherwise the files in the current docs change set.
 2. Search existing `IMAGE_PLACEHOLDER` comments so you do not double-mark.
 3. Read each page. Insert comments only at the criteria above.
 4. Put comments **adjacent** to Steps, not inside a Step.

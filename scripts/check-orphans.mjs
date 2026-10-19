@@ -28,7 +28,7 @@ const ALLOWLIST = path.join(__dirname, 'orphan-allowlist.txt')
  * Trees that are not part of the live navigation by design: historical content
  * kept for redirect targets, and include-only fragments.
  */
-const EXCLUDED_TREES = ['snippets', 'legacy', 'classic', 'node_modules', '.git', '.mintlify']
+const EXCLUDED_TREES = ['snippets', 'legacy', 'node_modules', '.git', '.mintlify']
 
 function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

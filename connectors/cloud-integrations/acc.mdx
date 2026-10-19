@@ -2,34 +2,16 @@
 title: 'Autodesk Forma Data Management'
 sidebarTitle: 'Forma Data Management (ACC)'
 description: 'Connect and sync models from Autodesk Forma Data Management — the Autodesk cloud platform still widely known as ACC — with Speckle for analytics, dashboards, and automation workflows.'
-docs_status: impacted
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/it-admin/compatibility-mode
-change_scope: '2026.9 upload data format and temporary compatibility mode'
 tag: Enterprise
 ---
 
 import CoordinationWorkflowRevit from '/snippets/connectors/coordination-workflow-revit.mdx'
 
-<Visibility for="agents">
-  Documentation status: impacted for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: 2026.9 upload data format and temporary compatibility mode.
-
-For these changes, read [2026.9 guidance](/next/it-admin/compatibility-mode).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
-
 <Note>
   **Autodesk Forma Data Management** is the current name for **Autodesk Construction Cloud (ACC)**;
   labels and URLs may still say ACC. Before anyone can sign in, the integration must be enabled on
-  your **ACC Hub**. If workspace settings do not show a Forma / ACC login option, ask your IT
-  administrator to follow [Enable Autodesk Forma Data Management
-  integration](/it-admin/integrations/acc).
+  your **ACC Hub**. If no hubs appear after you sign in, ask your IT administrator to follow [Enable
+  Autodesk Forma Data Management integration](/it-admin/integrations/acc).
 </Note>
 
 <Info>
@@ -46,60 +28,46 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
 
 <Tip>
   Help shape Navisworks workflows: join the NWC/NWD user testing study
-  ([details](/get-involved/user-testing#nwc-nwd-acc-sync)).
+  ([details](/get-involved/user-testing#open-opportunities)).
 </Tip>
 
 ## Setup
 
 These steps assume the Speckle integration has already been enabled on your organisation's ACC Hub for Forma Data Management. If it hasn't, your IT administrator must complete [Enable Autodesk Forma Data Management integration](/it-admin/integrations/acc) first.
 
+{/* IMAGE_PLACEHOLDER: Project sidebar Integrations → ACC page — Connect to ACC before sign-in; then hub and project selectors, folder tree, selected files panel with Create sync. */}
+
 <Steps>
-  <Step title="Sign in to Autodesk Forma Data Management">
-    1. Select **workspace settings** from the workspace dropdown (top left).
-
-       <Frame>
-         <img src="/images/connectors/cloud-integrations/acc/acc-workspace settings.png" alt="Workspace settings" />
-       </Frame>
-    2. Select **Log in** next to Forma Data Management or **Autodesk Construction Cloud (ACC)** — the label may not have updated yet.
-
-       <Frame>
-         <img src="/images/connectors/cloud-integrations/acc/acc-login.png" alt="Login" />
-       </Frame>
-    3. Sign in to your Autodesk account and select **Allow** from the authorization dialog.
-
-       <Frame>
-         <img src="/images/connectors/cloud-integrations/acc/acc-authorize app.png" alt="Authorize app" />
-       </Frame>
-
-    Your integration is now set up.
-
+  <Step title="Open ACC in your project">
+    Open the project in Speckle, then select **Integrations** → **ACC** in the project sidebar. You
+    should see **Connect to ACC** the first time.
   </Step>
-  <Step title="Sync your first model">
-    1. From your project in Speckle, select **Add model \> Sync from ACC** (command may still use the **ACC** name).
-
-       <Frame>
-         <img src="/images/connectors/cloud-integrations/acc/acc-add model.png" alt="Add model" />
-       </Frame>
-    2. Select the file you want to sync. Your hubs, projects, folders and files from Forma Data Management will be listed here.
-       <Frame>
-         <img src="/images/connectors/cloud-integrations/acc/acc-select file.png" alt="Select file" />
-       </Frame>
-    3. For **Revit** files (`.rvt`) only, optionally define the view to export, choose the **coordination system**, and set a reference point for coordinated placement. Coordination system and reference point selection are not offered for IFC, Navisworks, or other formats in ACC sync. See [View Selection](#view-selection) and [Coordination system](#coordination-system).
-      <Frame>
-         <img src="/images/connectors/cloud-integrations/acc/acc-confirm selection.png" alt="Confirm selection" />
-       </Frame>
-    4. Select **Create**.
-
-    This connects your Forma Data Management file to your Speckle model. Changes in Autodesk cloud storage sync automatically to Speckle.
-
+  <Step title="Sign in to Autodesk">
+    Select **Connect to ACC**, sign in to your Autodesk account, and select **Allow** in the
+    authorization dialog. You should see your hubs and projects in the selectors at the top.
+  </Step>
+  <Step title="Pick files to sync">
+    Choose a hub and project, browse the folders, and select the files you want to sync. For Revit
+    files, optionally set the reference point and what to publish. See [Revit
+    options](#revit-options).
+  </Step>
+  <Step title="Create the sync">
+    Select **Create sync**. Each file gets its own Speckle model, and changes in Autodesk cloud
+    storage sync automatically. You should see the new syncs in the **Syncs** panel.
   </Step>
 </Steps>
 
-## Supported File Formats
+## Supported file formats
 
-In default 2026.9 mode, cloud sync supports the same file formats as file uploads. For available
-formats and compatibility-mode restrictions, see
-[Supported formats by upload mode](/next/connectors/file-uploads#supported-formats-by-upload-mode).
+Cloud sync accepts the same file formats as file uploads. See [Supported file
+formats](/connectors/direct-uploads/introduction#supported-file-formats).
+
+<Note>
+  ACC sync writes the 2026.9 data format. If a script or report downstream of Speckle still needs
+  the earlier format, your workspace can use compatibility mode until **1 November 2026**, and it
+  accepts fewer formats. See [Compatibility mode](/it-admin/compatibility-mode) and [Speckle's new
+  data model](/workspaces/data-model-migration).
+</Note>
 
 <Info>
   Navisworks files (`.nwc` and `.nwd`) are supported for manual upload and Forma Data Management
@@ -108,68 +76,14 @@ formats and compatibility-mode restrictions, see
 </Info>
 
 <Note>
-  ACC sync of Navisworks files (`.nwc` and `.nwd`) has been tested to **6 GB**. Direct upload of
-  those files follows the general **2 GB** limit. A publish around **200 MB** is still advised from
-  the 2026.8 desktop connector. See [Navisworks in
-  2026.9](/next/connectors/navisworks/introduction).
+  ACC sync has no fixed file-size limit, unlike the **2 GB** direct upload limit. Very large files
+  can stress the conversion process: Speckle monitors the conversion queue and scales resources to
+  demand, but a single conversion that exceeds the capacity of one conversion process can fail. If
+  that happens, we follow up with you. If you plan to sync files around **5 GB** regularly, [talk to
+  us](mailto:support@speckle.systems) first.
 </Note>
 
 <CoordinationWorkflowRevit />
-
-## View Selection
-
-When syncing a Revit file from Forma Data Management, you can optionally specify a view name to control which elements are included in the sync.
-
-### No view specified (default)
-
-When you don't specify a view name, **all supported elements from the entire model are synced**. This includes every element across all model.
-
-This is the recommended option when you want:
-
-- A complete representation of your model
-- Access to all elements for analytics and dashboards
-- Maximum data availability for downstream workflows
-
-### Specifying a view name
-
-When you enter a specific view name, **only elements visible in that view are synced**. The view name must match exactly (case-sensitive) with a view in your Revit model.
-
-This is useful when you want to:
-
-- Sync only a portion of your model
-- Focus on specific areas or disciplines
-- Match the scope of a particular coordination view
-- Sync views that correspond to different design options
-
-<Warning>
-  If the specified view name doesn't exist in the model, the sync will fail. Make sure the view name
-  matches exactly.
-</Warning>
-
-## Coordination system
-
-<Note>
-  In ACC sync, coordination system and reference point controls apply **only** to **Revit** (`.rvt`)
-  files. They do not apply when syncing IFC or Navisworks files from Forma Data Management.
-</Note>
-
-When creating a sync **for a Revit model**, you can choose which coordination system to use from the sync setup UI. This setting controls how the model is positioned for downstream coordination and review workflows.
-
-### Default behavior
-
-If you do not change this setting, the Revit sync uses the default coordination system shown in the UI.
-
-### Choosing a coordination system explicitly
-
-Choose a specific coordination system when you need predictable placement across models, disciplines, or tools.
-
-This is useful when you want to:
-
-- Align multiple synced Revit-linked models to the same spatial baseline
-- Match a known project coordination setup
-- Reduce placement drift between different source files
-
-If you are aligning multiple models, use the same coordination system approach across related Revit syncs to avoid placement mismatches.
 
 ## Import earlier versions
 
@@ -178,12 +92,12 @@ If you are aligning multiple models, use the same coordination system approach a
 A sync starts at the file version current when you create it. When the file already had a history in Forma Data Management, or a version failed to sync and a newer one has been published since, you can bring those earlier versions into the same Speckle model yourself.
 
 <Note>
-The import is not offered when:
+  The import is not offered when:
 
 - the version is older than the version history your plan keeps
 - you lack the permission to edit the sync
 - the sync is paused
-- the workspace runs in [compatibility mode](/next/it-admin/compatibility-mode)
+- the workspace runs in [compatibility mode](/it-admin/compatibility-mode)
 
 </Note>
 
@@ -203,6 +117,41 @@ The import is not offered when:
 
 An imported version is dated when it was created in Forma Data Management, so it takes its place in the model's history and the newest file version stays the latest version in Speckle. For a longer history, repeat the import in rounds of five.
 
+## Revit options
+
+Expand a selected Revit (`.rvt`) file to set its options before you create the sync. These options
+apply only to Revit files.
+
+### Reference point
+
+Choose which Revit coordinate origin the model is aligned to: **Internal Origin** (default),
+**Project Base Point**, **Survey Point**, or **Shared Coordinates**. If you are aligning multiple
+models, use the same reference point across related Revit syncs to avoid placement mismatches.
+
+<Warning>
+  If your workspace uses compatibility mode, do not select **Shared Coordinates**. The older
+  conversion path cannot process it and the sync fails. Use **Internal Origin**, **Project Base
+  Point**, or **Survey Point** instead.
+</Warning>
+
+### What to publish
+
+**Publish method** is **Entire model** by default: all supported elements from the entire model
+are synced. This is the recommended option for a complete representation of your model and the
+most data for analytics and dashboards.
+
+To sync only part of the model, change the publish method:
+
+- **By View**: enter a view name to sync only the elements visible in that view. The name must match
+  a view in your Revit model exactly (case-sensitive). Once you enter a view, you can also choose to
+  append rooms, areas, or both.
+- **By Category**: pick the Revit categories to sync.
+
+<Warning>
+  If the specified view name doesn't exist in the model, the sync will fail. Make sure the view name
+  matches exactly.
+</Warning>
+
 <AccordionGroup>
   <Accordion title="Is the connection read-only?">
     Yes. Speckle establishes a read-only connection with Autodesk Forma Data Management (ACC), which means we can sync and analyze your data but can't modify the original files. This ensures data integrity and security.
@@ -211,7 +160,7 @@ An imported version is dated when it was created in Forma Data Management, so it
     Once you've created a sync model, each new version published to Autodesk Forma Data Management triggers one sync attempt. You don't need to manually trigger ongoing synchronization. A version whose attempt fails can be retried from the sync's status until a newer version is published; after that, bring it in with [Import earlier versions](#import-earlier-versions). See [Sync guarantees](/it-admin/integrations/introduction#sync-guarantees).
   </Accordion>
   <Accordion title="Why are my models in the wrong location?">
-    For **Revit** ACC syncs, use the reference point input in the sync configuration to control placement for coordination workflows. If the selected reference point does not match your downstream model setup, placement can still appear offset. Reference point and coordination system options are **not** available for IFC or Navisworks ACC syncs—adjust placement in those workflows using your authoring tool or the relevant connector where applicable.
+    For **Revit** ACC syncs, use the reference point in the file's options to control placement for coordination workflows. If the selected reference point does not match your downstream model setup, placement can still appear offset. Reference point options are **not** available for IFC or Navisworks ACC syncs—adjust placement in those workflows using your authoring tool or the relevant connector where applicable.
     For project-by-project control and advanced receive options, you can also use the [Revit connector](/connectors/revit/revit).
   </Accordion>
   <Accordion title="What if my sync fails?">
@@ -228,8 +177,8 @@ An imported version is dated when it was created in Forma Data Management, so it
     persist.
 
   </Accordion>
-  <Accordion title="Can I use the integration on the Team plan?">
-    The integration is available on the **Enterprise** plan. To use it on the Team plan, talk to sales at
+  <Accordion title="Can I use the integration on another plan?">
+    The integration is available on the **Enterprise** plan. To use it on another plan, talk to sales at
     [sales@speckle.systems](mailto:sales@speckle.systems).
   </Accordion>
   <Accordion title="What's the difference between the Forma Data Management integration and other integrations?">
@@ -254,6 +203,6 @@ An imported version is dated when it was created in Forma Data Management, so it
 | Advanced sync configuration options                        | 🔄 In Progress |
 | Improved error handling and reporting                      | 🔄 In Progress |
 
-## Getting Help
+## Getting help
 
 For questions, contact Speckle support or visit the [Speckle Community](https://speckle.community/).

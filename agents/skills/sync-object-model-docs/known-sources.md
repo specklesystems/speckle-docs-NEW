@@ -1,7 +1,7 @@
 # Known sources for object-model facts read from source
 
 Which repo owns the ground truth for each concept on
-`next/developers/object-model/*` and `publish.mdx` that has no generated
+`developers/object-model/*` and `publish.mdx` that has no generated
 catalog, and which page already covers it. Step 3 of [`SKILL.md`](SKILL.md)
 reads the concept's section here first and appends what a research pass
 finds. Hashes and dates live in `scripts/object-model-freshness-manifest.json`.
@@ -22,10 +22,10 @@ by parsing generated source or loading it in its language's runtime.
 
 Covered in full by:
 
-- `next/developers/object-model/version-metadata.mdx` — the root-object
+- `developers/object-model/version-metadata.mdx` — the root-object
   metadata split (version record / ingestion / `meta` row / model-scoped
   properties), with a before-and-after table and FAQ.
-- `next/developers/building-integrations/publish.mdx` — the ingestion
+- `developers/building-integrations/publish.mdx` — the ingestion
   sequence (create → build → sign → upload → complete → wait), GraphQL/REST
   wire detail, and bundle-correctness rules.
 
@@ -59,9 +59,13 @@ the version-created signal). Ground truth is `speckle-server-internal`,
   create.
 - `modules/data/rest/upload.ts` — v2 `uploads/sign` and `uploads/complete`
   (paths, body schemas, ETag equality, `additionalRequestHeaders`
-  passthrough, `.dat` gating). `download.ts` beside it is the artifacts
+  passthrough, optional version summary, `.dat` gating). `download.ts` beside it is the artifacts
   endpoint; `multipartUpload.ts` the multipart start/complete/abort trio
   (rationale: the 5 GB single-PUT ceiling).
+- `assets/data/typedefs/versionSummary.graphql` and
+  `modules/core/helpers/versionSummary.ts` — `Version.summary`, its
+  namespaced flat-scalar shape, key grammar, and 16 KiB limit. The summary
+  is handed over at bundle completion and is null when the producer sends none.
 - `modules/data/services/envelopeVersion.ts` — the version is born at
   complete: reserved id, `objectId` = bundle reference, `schemaVersion`
   `3`, `sourceApplication` from the ingestion's `sourceData`.
@@ -85,7 +89,7 @@ real values; the 1536 MiB shard cap.
 
 ## SGEO geometry encoding and the viewer `.dat`
 
-`next/developers/object-model/geometry-encoding.mdx`. Every header, body,
+`developers/object-model/geometry-encoding.mdx`. Every header, body,
 flag and code table on the page matched source byte-for-byte at the last
 verification. Ground truth, by repo:
 
@@ -105,16 +109,20 @@ verification. Ground truth, by repo:
   column (lowercase primitive name for SGEO rows, host label like `3dm`
   for solids), `DEFAULT_SHARD_MB = 1536` rolled *before* a blob would
   exceed it. The three 0-based ordinal counters lived in
-  `src/Speckle.Sdk/Bundles/BundleHandles.cs`, split one-class-per-file
-  under `Bundles/Handles/` in sharp-sdk #578. Round-trip and cross-language
+  `src/Speckle.Sdk/Bundles/BundleHandles.cs`; after sharp-sdk #578 their
+  current sources are `Bundles/Handles/BundleObject.cs` for the per-relation
+  counters and `BundleDefinition.cs` for shared definition-member ordinals.
+  Round-trip and cross-language
   parity tests in `tests/Speckle.Objects.Tests.Unit/Geometry/Sgeo*.cs`.
 - `specklepy`: `src/specklepy/bundle/sgeo.py`, `geometries_writer.py` —
   identical contract; `tests/bundle/test_sgeo.py`.
 - Viewer `.dat`: builder is **datgen** in `speckle-converters/datgen/`
   (the server orchestrates it as a job; there is no in-server builder).
-  Layout in `speckle-viewer-webgpu/.claude/DAT_FORMAT.md` (geometry region,
-  index region with **seven** sections — meta, primitives, chunks,
-  placements, materials, colors, realizations — 128-byte trailer);
+  The product-code reader at `speckle-viewer-webgpu/packages/viewer-webgpu/
+  src/format/datReader.ts` owns the consumed layout: geometry region, index
+  region with **seven** sections — meta, primitives, chunks, placements,
+  materials, colors, realizations — optional v4 extension table, and a
+  128-byte trailer;
   realization identity in `speckle-converters/docs/
   dat-v3-realization-contract.md`; the visibility gate (no version row
   until `{versionId}.viewer.dat` is in the artifact list) in

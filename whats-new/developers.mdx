@@ -1,0 +1,88 @@
+---
+title: "What's new in 2026.9 for developers"
+sidebarTitle: "What's new"
+description: 'The 2026.9 data format and the SDK, API, Viewer, and Automate changes for code that reads or writes Speckle data, and what to update.'
+---
+
+Code that walks the object graph, reads the root object, or calls the objects endpoints stops
+working on versions in the 2026.9 data format. Speckle 2026.9 introduced that format: a version is
+a bundle of parquet files, with a columnar property store, typed relations, and no root object.
+Versions in the earlier format keep their object graph. Each item links to the page that documents
+it. For dates and who is affected, see [Data model migration for
+developers](/developers/migration/data-model-migration).
+
+## New
+
+- **Object model.** Properties live in a columnar store, and relationships are typed relations
+  rather than a tree of Collections and DataObjects. See [Object
+  model](/developers/object-model/overview).
+- **Relations.** Typed edges for containment, levels, rooms, hosts, systems, and materials replace
+  Proxies. The new format has no Proxy objects. See [Relations](/developers/object-model/relations).
+- **Geometry encoding.** Geometry is stored as SGEO binary blobs in a geometry table, not as
+  `displayValue` JSON. See [Geometry encoding](/developers/object-model/geometry-encoding).
+- **Version metadata.** There is no root object. Source application and model-wide facts live on
+  the version record, the model ingestion, a provenance row in the bundle, and model-scoped
+  properties. Every object carries its own `units`. See [Version metadata](/developers/object-model/version-metadata).
+- **Bundles and model ingestion.** Integrations publish by opening a model ingestion and uploading
+  a bundle, and load by downloading a version's bundle files. See
+  [Bundles](/developers/building-integrations/bundles),
+  [Publish](/developers/building-integrations/publish), and
+  [Load](/developers/building-integrations/load).
+- **Bundle loading for Viewer apps.** Sample code lets an app built on `@speckle/viewer` render
+  bundle versions with the published packages. See [Load bundles in your Viewer
+  app](/developers/viewer/loading-bundles).
+
+## Changed
+
+- **.NET SDK.** `Receive3` loads a version as a disposable `Model` with columnar properties and
+  typed relations, and `Send3` publishes through a `BundleBuilder`. `Receive2` is obsolete and reads
+  only object-graph versions, and `Speckle.Objects` is merged into `Speckle.Sdk`. See
+  [Migrate a Speckle.Sdk script](/developers/sdks/dotnet/migrate-to-2026-9).
+- **Python SDK.** `operations.receive3` loads a version as a `Model` with columnar properties and
+  typed relations, and `operations.send3` publishes through a `BundleBuilder`. Both need the
+  `bundle` extra. See [Migrate a specklepy script](/developers/sdks/python/migrate-to-2026-9).
+- **GraphQL and REST.** On a 2026.9 version, `referencedObject` starts with `bundle.`, the objects
+  endpoints return 404, and `object.children` filtering, `totalChildrenCount`, and JSON geometry
+  are not available. Read element properties from the version's EAV query endpoint instead. See
+  [Get element data from a version](/developers/api/graphql#get-element-data-from-a-version).
+- **Viewer package.** `@speckle/viewer` has no published loader for bundles, so an app that
+  constructs a `Viewer` and a loader renders nothing for 2026.9 versions. Embeds of the hosted
+  viewer and API-only apps are not affected. See [Viewer](/developers/viewer/introduction).
+- **objectloader.** `@speckle/objectloader` and `@speckle/objectloader2` cannot read 2026.9
+  versions. A data-only app reads the bundle directly. See [Building
+  apps](/developers/building-apps).
+- **Revit model placement.** Revit publishes keep geometry in internal coordinates and store the
+  chosen datum as a separate model placement, instead of `referencePointTransform` on the root
+  object. Read `modelPlacement.*` and apply it yourself unless the sender turned on **Apply
+  Transform**. See [Model placement](/connectors/revit/revit#model-placement).
+- **Automate in the web app.** Functions live on the workspace **Functions** page, and you create
+  automations from project **Settings → Automations**. See
+  [Automate](/developers/automate/introduction).
+- **Automate results.** Runs on 2026.9 models complete and record their results, but the results
+  icon does not appear in the viewer or the project's model list. Use the Dashboards **Automate
+  results** widget to see them. See [Viewing results](/developers/automate/viewing-results).
+
+## Action required
+
+- **Update .NET scripts.** Update every Speckle NuGet package to the same 2026.9 build
+  (`dotnet add package Speckle.Sdk --version 2026.9.0-beta.7`), remove the
+  `Speckle.Objects` reference, and replace `Receive2` with `Receive3`. An older SDK gets a 404 on
+  versions published by a 2026.9 connector. See [Migrate a Speckle.Sdk script](/developers/sdks/dotnet/migrate-to-2026-9).
+- **Update Python scripts.** Install a 2026.9 specklepy with the `bundle` extra
+  (`pip install "specklepy[bundle]==2026.9.0b3"`) and use
+  `operations.receive3`. An older specklepy gets a 404 on versions published by a 2026.9 connector.
+  See [Migrate a specklepy script](/developers/sdks/python/migrate-to-2026-9).
+- **Replace `object.children` queries.** Move filters to the EAV query endpoint. When
+  compatibility mode ends on **1 November 2026**, every cloud sync and file upload produces
+  versions that `object.children` cannot query. See [Get element data from a version](/developers/api/graphql#get-element-data-from-a-version).
+- **Move Viewer and objectloader apps to bundles.** Render bundles with the bundle-loading sample,
+  or read the bundle directly in a data-only app. See [Load bundles in your Viewer
+  app](/developers/viewer/loading-bundles).
+- **Bump Automate function SDKs.** A function that processes 2026.9 versions needs
+  `specklepy[bundle]==2026.9.0b3` or `Speckle.Automate.Sdk` 2026.9.0-beta.4 or later. The received
+  tree is `Collection` and `DataObject` objects with `id` equal to the `applicationId`, so code that
+  filters on `speckle_type` changes. See [Automate](/developers/automate/introduction).
+- **Test functions that attach results to objects.** The attach methods work on 2026.9 versions, but
+  they rely on `id` equalling `applicationId`, which is not a documented contract. Treat `id` as
+  opaque, and re-run automations after a model is migrated. See [Attach results to 2026.9
+  models](/developers/automate/function-results#attach-results-to-2026-9-models).

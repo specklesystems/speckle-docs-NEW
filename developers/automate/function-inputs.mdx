@@ -28,16 +28,17 @@ class FunctionInputs(AutomateBase):
 ```
 
 ```csharp
-public class FunctionInputs
+public readonly struct FunctionInputs
 {
     [DisplayName("Project Name")]
     [Description("Enter the project identifier")]
-    public string ProjectName { get; set; }
+    public string ProjectName { get; init; }
 
     [Range(0, 100)]  // Validates user input
+    [DefaultValue(10.0)]
     [DisplayName("Maximum Length")]
     [Description("Maximum allowed length in meters")]
-    public double MaxLength { get; set; } = 10.0;
+    public double MaxLength { get; init; }
 }
 ```
 
@@ -74,10 +75,11 @@ public enum AnalysisType
     Cost
 }
 
-public class FunctionInputs
+public readonly struct FunctionInputs
 {
     [DisplayName("Analysis Type")]
-    public AnalysisType Type { get; set; } = AnalysisType.Structural;
+    [DefaultValue(AnalysisType.Structural)]
+    public AnalysisType Type { get; init; }
 }
 ```
 
@@ -117,11 +119,11 @@ class FunctionInputs(AutomateBase):
 ```
 
 ```csharp
-public class FunctionInputs
+public readonly struct FunctionInputs
 {
     [Secret]  // Marks this as sensitive data
     [DisplayName("API Key")]
-    public string ApiKey { get; set; }
+    public string ApiKey { get; init; }
 }
 ```
 
@@ -138,9 +140,10 @@ The SDK uses Pydantic validation:
 - `min_length`, `max_length`: Control text length
 - `pattern`: Match text against a regex pattern
 
-### C
+### .NET
 
-Use standard .NET validation attributes:
+`FunctionInputs` is a struct, so set defaults with `[DefaultValue]` rather than a property
+initializer. Use standard .NET validation attributes:
 
 - `[Range]`: Set minimum and maximum numbers
 - `[MinLength]`, `[MaxLength]`: Control text length

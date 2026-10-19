@@ -1,11 +1,105 @@
 ---
 title: 'Operations'
-description: 'API reference for send, receive, serialize, and deserialize operations'
+description: 'API reference for receive3, send3, and the send, receive, serialize, and deserialize operations'
 ---
 
 ## Overview
 
-The operations module provides the core functions for working with Speckle data: sending objects to transports, receiving them back, and serializing/deserializing for custom workflows.
+The operations module loads and publishes Speckle data. `receive3()` loads a version as a `Model` and `send3()` publishes a new one. `send()`, `receive()`, `serialize()`, and `deserialize()` work with `Base` object graphs, the shape of versions published before 2026.9.
+
+```python lines icon="python"
+from specklepy.api import operations
+
+# Load a version
+with operations.receive3(account, project_id, model_id, version_id) as model:
+    print(len(model.objects))
+
+# Publish a new version from a BundleBuilder
+sent = operations.send3(account, project_id, model_id, builder)
+```
+
+<Note>
+  `receive3()` and `send3()` need the `bundle` extra: `pip install "specklepy[bundle]==2026.9.0b3"`.
+  To move existing `send()` / `receive()` code, see [Migrate to
+  2026.9](/developers/sdks/python/migrate-to-2026-9).
+</Note>
+
+## Load and Publish
+
+### receive3()
+
+Load a version as a `Model`: objects with path-keyed properties and relation accessors.
+
+```python lines icon="python"
+operations.receive3(
+    account: Account,
+    project_id: str,
+    model_id: str,
+    version_id: str,
+    *,
+    include_geometry: bool = True,
+    mark_received: bool = True
+) -> Model
+```
+
+Parameters:
+
+<ResponseField name="account" type="Account" required>
+  An authenticated account, for example `client.account` after `authenticate_with_token`, or
+  `get_default_account()`
+</ResponseField>
+
+<ResponseField name="project_id, model_id, version_id" type="str" required>
+  The version to load
+</ResponseField>
+
+<ResponseField name="include_geometry" type="bool" default="True">
+  Set to `False` to skip downloading geometry when you only need properties and relations
+</ResponseField>
+
+<ResponseField name="mark_received" type="bool" default="True">
+  Record that this version was received, for the version's activity
+</ResponseField>
+
+Returns:
+
+<ResponseField name="model" type="Model">
+  The loaded version. Use it as a context manager, or call `model.close()`, to delete the downloaded
+  files. Query it with `model.objects`, `model.objects_with(path)`, and
+  `model.object_by_application_id(id)`.
+</ResponseField>
+
+<Warning>
+  `receive3()` raises a `SpeckleException` when the version has no bundle — a version published
+  before 2026.9 that the server has not converted. Load that version with `receive()`.
+</Warning>
+
+### send3()
+
+Publish the objects described in a `BundleBuilder` as a new version.
+
+```python lines icon="python"
+operations.send3(
+    account: Account,
+    project_id: str,
+    model_id: str,
+    builder: BundleBuilder,
+    options: SendOptions | None = None
+) -> SendResult
+```
+
+Returns:
+
+<ResponseField name="result" type="SendResult">
+  Includes `version_id`, a reserved id. The version appears when the server finishes processing the
+  upload. The builder cannot be reused.
+</ResponseField>
+
+See the [Quickstart](/developers/sdks/python/getting-started/quickstart) for a complete `BundleBuilder` example.
+
+## Object-graph Operations (before 2026.9)
+
+`send()` and `receive()` move `Base` object graphs through transports. Keep `receive()` to read versions published before 2026.9; on a 2026.9 version it returns only a best-effort `Base` projection and needs an authenticated `ServerTransport`. Publishing with `send()` is deprecated, and Speckle does not guarantee it for new work: publish with `send3()`. After `send()`, `client.version.create` returns a reserved version id — see [Publish through model ingestions](/developers/migration/publish-through-ingestions).
 
 ```python lines icon="python"
 from specklepy.api import operations
@@ -20,8 +114,6 @@ object_id = operations.send(point, [transport])
 # Receive it back
 received = operations.receive(object_id, remote_transport=transport)
 ```
-
-## Principal Operations
 
 ### send()
 
@@ -451,7 +543,7 @@ Examples:
 
 ## Detachment and Chunking
 
-Large objects are automatically optimized during send:
+When `send()` writes an object graph, it detaches and chunks large objects automatically:
 
 ```python lines icon="python"
 from specklepy.api import operations
@@ -549,7 +641,7 @@ object_id = operations.send(mesh, [transport])
     from specklepy.transports.memory import MemoryTransport
     from specklepy.transports.sqlite import SQLiteTransport
 
-    # For sending to Speckle
+    # Object graphs on a server (to publish new versions, use send3)
     server = ServerTransport(stream_id="id", client=client)
     operations.send(obj, [server])
 
@@ -567,14 +659,12 @@ object_id = operations.send(mesh, [transport])
 
 ## Summary
 
-The operations module provides four essential functions:
+The operations module provides:
 
-- ✅ **send()** - Send objects to transports with automatic chunking/detachment
-- ✅ **receive()** - Receive and recompose objects from transports
-- ✅ **serialize()** - Convert objects to JSON strings
-- ✅ **deserialize()** - Convert JSON strings back to objects
-
-These operations are the foundation of all Speckle data workflows!
+- ✅ **receive3()** - Load a version as a queryable `Model`
+- ✅ **send3()** - Publish a `BundleBuilder` as a new version
+- ✅ **send()** / **receive()** - Move `Base` object graphs through transports (versions published before 2026.9)
+- ✅ **serialize()** / **deserialize()** - Convert `Base` objects to and from JSON strings
 
 ## Next Steps
 

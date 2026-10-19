@@ -9,7 +9,7 @@ description: Understand the fundamental concepts behind Speckle's developer plat
 Speckle uses **objects** as the fundamental unit of data exchange, not files. This means:
 
 - **Data is structured and queryable** - Objects have defined schemas and properties
-- **Objects can reference each other** - Build complex hierarchical data structures
+- **Objects relate to each other** - Typed relations carry containment, connectivity, and systems
 - **Version history is built-in** - Every change creates a traceable version
 - **No file format conversions needed** - Work directly with structured data
 
@@ -21,11 +21,11 @@ Speckle uses **objects** as the fundamental unit of data exchange, not files. Th
 
 ## Open & Extensible
 
-Speckle is fully open source and designed to be extended:
+Speckle is designed to be extended:
 
-- **Open source** - All core components are available on [GitHub](https://github.com/specklesystems)
+- **Open source** - SDKs, connectors, and the bundle spec are available on [GitHub](https://github.com/specklesystems)
 - **API-first** - Everything is accessible via REST and GraphQL APIs
-- **SDKs available** - Python SDK with more coming
+- **SDKs available** - Python and .NET SDKs
 - **Customizable** - Deploy your own server with custom branding and workflows
 
 ## Version Control for AEC
@@ -34,25 +34,27 @@ Every change creates a new **version**, giving you:
 
 - **Complete history and traceability** - See who changed what and when
 - **Ability to compare versions** - Diff models to understand changes
-- **Branching and merging workflows** - Work on parallel development tracks
 - **Collaboration features** - Built-in commenting and review tools
 
 ## Data Model
 
-Speckle represents building data as a **directed acyclic graph (DAG)**:
+Speckle stores each version as a **bundle**:
 
-- Objects reference other objects but never themselves
-- Properties can be primitive (strings, numbers) or references to other objects
-- References are one-way (parent → child)
-- Common structures include `elements`, `parameters`, `units`, `applicationId`
+- Objects are identified by `applicationId`, the id the source application gave them
+- Properties are rows in a columnar store: one object, one property path, one value
+- Containment, connectivity, systems, and materials are typed relations between objects
+- Geometry is binary SGEO, attached to objects through relations
+
+Versions published before 2026.9 use an object graph instead: a tree of collections and objects
+with Proxies for shared resources, described in the [Data Schema](/developers/data-schema/overview).
 
 <Info>
-  For a deep dive into Speckle's data model, see the [Data Schema
-  documentation](/developers/data-schema/overview).
+  For a deep dive into Speckle's data model, see the [Object
+  model](/developers/object-model/overview).
 </Info>
 
 ## Next Steps
 
-- [Data Schema Overview](/developers/data-schema/overview) - Learn about Speckle's data structures
+- [Object model](/developers/object-model/overview) - Learn about Speckle's data structures
 - [Getting Started](/developers/getting-started) - Build your first integration
 - [Python SDK](/developers/sdks/python/introduction) - Start working with Speckle data

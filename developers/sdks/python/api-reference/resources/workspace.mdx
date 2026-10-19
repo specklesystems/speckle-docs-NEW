@@ -315,40 +315,18 @@ Fields:
 
   </Accordion>
 
-  <Accordion title="What's the difference between workspace projects and personal projects?">
-    - **Workspace projects**: Owned by a workspace, shared with workspace members, managed by workspace admins
-    - **Personal projects**: Owned by individual users, independent of workspaces
-
-    <Warning>
-      **Critical:** All personal projects will be permanently deleted on **January 1, 2026**.
-      Personal projects must be migrated to a workspace before this deadline.
-    </Warning>
-
-    On workspace-enabled servers, projects can belong to either a workspace or a user. Check the `workspaceId` field on a project to determine ownership.
-
-    ```python
-    project = client.project.get("project_id")
-    if project.workspaceId:
-        print(f"Workspace project: {project.workspaceId}")
-    else:
-        print("Personal project")
-    ```
-
-  </Accordion>
-
   <Accordion title="Can I create workspace projects?">
-    Project creation happens through the `ProjectResource`, but you can specify the workspace:
+    Project creation happens through the `ProjectResource`:
 
     ```python
-    from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
+    from specklepy.core.api.inputs.project_inputs import WorkspaceProjectCreateInput
 
     # Check permission first
     workspace = client.workspace.get("workspace_id")
     if not workspace.permissions.canCreateProject.authorized:
         print("Cannot create projects in this workspace")
     else:
-        # Create through project resource with workspaceId
-        project = client.project.create(ProjectCreateInput(
+        project = client.project.create_in_workspace(WorkspaceProjectCreateInput(
             name="My Project",
             workspaceId="workspace_id"
         ))
