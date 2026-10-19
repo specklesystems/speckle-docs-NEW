@@ -76,8 +76,12 @@ broader workflow than the evidence proves.
 For **Feature** entries only (not Fix or Improvement), link to the canonical
 docs page when one exists: embed the link on the most natural noun phrase in
 the statement, using a root-relative path with no `.mdx` extension (e.g.
-`[saved views](/3d-viewer/saved-views)`). Skip the link when no docs page for
-the feature exists yet.
+`[saved views](/3d-viewer/saved-views)`). Where the page has a dedicated
+section anchor for the feature, link to that anchor rather than the page root
+(e.g. `[TrimBIM](/connectors/direct-uploads/introduction#trimbim-trb)`). Do
+not repeat the same URL across consecutive entries; prefer linking the format
+or feature name rather than a generic verb. Skip the link when no docs page
+for the feature exists yet.
 
 Apply [evidence-policy.md](references/evidence-policy.md) to each row. Collection
 counts prove corpus completeness, never an individual claim. Narrow or split a
