@@ -1,16 +1,16 @@
 ---
 title: 'Version'
-description: 'client.Version — load the latest snapshot or publish after Send2'
+description: 'client.Version — find the version to load, and the older Create call after Send2'
 sidebarTitle: 'Version'
 ---
 
-Use **`client.Version`** to list versions on a model, read `referencedObject` for `Receive2`, or create a version after `Send2` so data appears in the Speckle UI.
+Use **`client.Version`** to list versions on a model and pick the version id you pass to `Receive3`. `Version.Create` is the pre-2026.9 way to publish after `Send2`; new scripts publish with `Send3`, which creates the version for you.
 
-**Guide:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) loads the latest version · [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart) shows publish after send
+**Guide:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) loads the latest version · [Publish and load a model from C#](/developers/sdks/dotnet/getting-started/quickstart) publishes with `Send3`
 
 <Note>
-  After **`SendPipeline`** (connectors only), the server creates the version asynchronously — do not
-  call `Version.Create` on that path.
+  After **`Send3`** or **`SendPipeline`**, the server creates the version asynchronously — do not
+  call `Version.Create` on those paths.
 </Note>
 
 ## Methods
@@ -30,7 +30,7 @@ Use **`client.Version`** to list versions on a model, read `referencedObject` fo
 </ResponseField>
 
 <ResponseField name="Create" type="Task<Version> Create(CreateVersionInput input, CancellationToken cancellationToken = default)">
-  Creates a version pointing at an already-sent object. `CreateVersionInput(string objectId, string modelId, string projectId, string? message = null, string? sourceApplication = ".net", int? totalChildrenCount = null, IReadOnlyList<string>? parents = null)`.
+  Marked `[Obsolete]`. Creates a version pointing at an object sent with `Send` or `Send2`. The returned `Version` is a reservation: the version becomes queryable when the server finishes processing — see [Publish through model ingestions](/developers/migration/publish-through-ingestions). `CreateVersionInput(string objectId, string modelId, string projectId, string? message = null, string? sourceApplication = ".net", int? totalChildrenCount = null, IReadOnlyList<string>? parents = null)`.
 </ResponseField>
 
 <ResponseField
@@ -58,7 +58,7 @@ Use **`client.Version`** to list versions on a model, read `referencedObject` fo
   Marks a version as received by the current application, for telemetry/analytics purposes.
 </ResponseField>
 
-## Usage
+## Usage (before 2026.9 publish path)
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
@@ -68,11 +68,11 @@ var version = await client.Version.Create(new CreateVersionInput(objectId, model
 ```
 
 <Note>
-  Sending with `Send` or `Send2` does not create a version by itself — follow up with
-  `client.Version.Create` to publish data to a model's history and viewer. The
-  [`SendPipeline`](/developers/sdks/dotnet/guides/building-connector-scale-sends) path is different:
-  after `WaitForUpload`, the server creates the version asynchronously — do not call
-  `Version.Create` on that pathway.
+  On this obsolete path, `Send` or `Send2` does not create a version by itself;
+  `client.Version.Create` reserves one. Speckle does not guarantee this path for new work: publish
+  with `Send3`. The [`SendPipeline`](/developers/sdks/dotnet/guides/building-connector-scale-sends)
+  path also creates the version on the server after `WaitForUpload`, so do not call `Version.Create`
+  there.
 </Note>
 
 ## FAQ
@@ -85,9 +85,10 @@ var version = await client.Version.Create(new CreateVersionInput(objectId, model
     models (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends).
   </Accordion>
   <Accordion title="How do I receive the data behind a version?">
-    Call `client.Version.Get` to read `referencedObject`, then `IOperations.Receive2` with that id.
-    See [Build your first model analysis
-    tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool).
+    Pass the version id with the project and model ids to `IOperations.Receive3`. See [Build your
+    first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool).
+    For a version published before 2026.9 that `Receive3` cannot load, pass `referencedObject` to
+    `Receive2`.
   </Accordion>
 </AccordionGroup>
 
@@ -102,9 +103,9 @@ var version = await client.Version.Create(new CreateVersionInput(objectId, model
     icon="chart-bar"
     href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool"
   >
-    Load latest version with Receive2
+    Load latest version with Receive3
   </Card>
   <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
-    Send and Send2 entry points
+    Receive3 and Send3 entry points
   </Card>
 </CardGroup>

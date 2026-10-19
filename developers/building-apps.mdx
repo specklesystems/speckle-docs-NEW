@@ -1,7 +1,7 @@
 ---
 title: Building Custom Applications
 sidebarTitle: Building Custom Apps
-description: Build browser-based products on Speckle using the GraphQL API, viewer, and JavaScript packages.
+description: Build browser-based products on Speckle using the GraphQL API, the viewer, and version data read from bundles.
 ---
 
 Build custom web applications that integrate with Speckle to display, analyze, and interact with your AEC data. This guide will walk you through creating a complete application using Speckle's APIs.
@@ -19,7 +19,7 @@ By the end of this guide, you'll have a working application that can:
 - Authenticate users with Speckle Server
 - Fetch and display user information
 - Search and browse projects
-- Display project versions and commits
+- Display project versions
 - Persist user preferences locally
 
 ## Prerequisites
@@ -56,28 +56,98 @@ To build a Speckle application, you'll need to:
 
 1. **Set up authentication** - Choose between Personal Access Tokens or OAuth2
 2. **Initialize a client** - Use the appropriate SDK or API client
-3. **Fetch data** - Access user information, projects, models, and versions
+3. **Fetch data** - Access user information, projects, models, versions, and version data
 4. **Build your UI** - Use the Viewer API or UI components to display data
 
 For detailed implementation examples, see the SDK and API documentation linked below.
 
 ## Fetching Data
 
-Your app needs to authenticate users with Speckle Server. See more information on authentication methods in the [Authentication guide](/developers/authentication).
+Your app needs to authenticate users with Speckle Server. See more information on authentication methods in the [Authentication guide](/developers/authentication/introduction).
 
-Once authenticated, you can fetch data from Speckle:
+Once authenticated, the [GraphQL API](/developers/api/graphql) gives you:
 
-- **User Information**: Access the current user's profile, email, and account information through the API.
-- **Projects and Models**: List projects available to the authenticated user, access specific project details, and browse models within projects.
-- **Versions and Data**: Retrieve version history for models, access specific version data, and load the actual Speckle objects referenced by versions.
+- **User Information**: The current user's profile, email, and account information.
+- **Projects and Models**: Projects available to the authenticated user, project details, and the models within them.
+- **Versions**: Version history for each model, with the message, author, source application, and creation date of each version.
 
-For detailed API documentation and code examples, see the [GraphQL API](/developers/api/graphql) or [Python SDK](/developers/sdks/python/introduction) documentation.
+Your token, the GraphQL API for projects, models, and versions, webhooks, permissions, and sharing
+work the same for every version. The version's data is different: a version is a
+[bundle](/developers/building-integrations/bundles) of parquet files, not an object graph you fetch
+from the objects endpoints. Which path your app takes depends on whether it renders.
+
+<CardGroup cols={2}>
+  <Card title="My app renders models" icon="cube" href="/developers/viewer/loading-bundles">
+    You import `@speckle/viewer`. Bridge the bundle to the object shape the viewer converts, with
+    sample code you copy into your app.
+  </Card>
+  <Card title="My app only reads data" icon="table" href="/developers/building-integrations/load">
+    You read properties, quantities, or geometry without the viewer. Read the bundle directly. The
+    load mechanics are the same ones every non-SDK consumer uses.
+  </Card>
+</CardGroup>
+
+<Note>
+  Writing scripts with a Speckle SDK instead? The SDK applies every bundle rule for you. Start from
+  the [.NET](/developers/sdks/dotnet/migrate-to-2026-9) or
+  [Python](/developers/sdks/python/migrate-to-2026-9) migration pages.
+</Note>
+
+<Warning>
+  A loader that fetches `referencedObject` from the objects endpoints gets a 404 on every bundle
+  version. Dispatch on `Version.schemaVersion` before you fetch (`3` is a bundle, `null` is an
+  object graph), and keep your existing reader for versions published before 2026.9.
+</Warning>
+
+### Why there is no drop-in object-graph loader
+
+If your app is built on `@speckle/objectloader` or `@speckle/objectloader2`, the natural ask is a
+version of those packages that reads bundles and hands you the same object graph:
+`getRootObject()`, `__closure`, `getObjectIterator()`, unchanged. That is not coming, on purpose.
+
+Emulating that surface would mean rebuilding the object graph that bundles replace: a third
+implementation of the receive fidelity contract, kept in step with the .NET and Python SDKs
+forever, reconstructing hashes and closures that no longer exist in the data. It would also teach
+new apps a shape the platform is moving away from.
+
+What to do instead depends on what you were using the graph for.
+
+| What you used the object graph for | With bundles                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| Reading properties across objects  | Read the eav tables. Objects are keyed by `applicationId`, properties by dotted path        |
+| Walking hierarchy                  | Read typed relations. Grouping is `IN_COLLECTION` and the scene view, not nested `elements` |
+| Getting geometry to draw           | Decode SGEO from the geometry shards, or bridge to the viewer                               |
+| Object identity across versions    | `applicationId`, not a content hash                                                         |
+
+The mechanics for all four are in [Load a bundle in your own
+code](/developers/building-integrations/load). That page is written for any non-SDK consumer,
+which includes you. It is not connector-specific.
+
+## Writing Data
+
+Publishing is the harder half. A version is a bundle built and uploaded through an ingestion, and
+there is no published JavaScript bundle builder. .NET and Python are the only SDKs that build
+bundles today. [`@speckle/objectsender`](/developers/packages/objectsender) sends an object graph
+that the server converts to a bundle before the version appears. That path is superseded: do not
+build new work on it.
+
+For new work, consider these options in this order:
+
+| Option                                                     | When it fits                                                                                           |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Publish from .NET or Python instead                        | The writing half can move process or language                                                          |
+| Implement the bundle contract yourself                     | You must stay in JavaScript, and can carry a parquet writer and the SGEO encoder                       |
+| [Ask for compatibility mode](/it-admin/compatibility-mode) | Your consumers read ACC sync or file-upload data as object graphs and need time, until 1 November 2026 |
+
+The wire sequence, the correctness rules, and a build order are in [Publish a bundle from your own
+code](/developers/building-integrations/publish). Read it before choosing the second option: it is
+a real piece of work, and unlike the read path there is no worked sample.
 
 ## Building the UI
 
 You can build your application's user interface using any frontend framework. Here are some options for integrating Speckle's capabilities into your UI:
 
-- **Using Speckle Viewer**: Embed the 3D viewer in your application to display interactive 3D models. The Viewer API provides full control over rendering, navigation, and interaction. For complete Viewer documentation and examples, see the [Viewer API guide](/developers/viewer/introduction).
+- **Using Speckle Viewer**: Embed the 3D viewer in your application to display interactive 3D models. The Viewer API provides full control over rendering, navigation, and interaction. The published package has no bundle loader, so follow [Load a bundle in your Viewer app](/developers/viewer/loading-bundles). For complete Viewer documentation and examples, see the [Viewer API guide](/developers/viewer/introduction).
 - **Using Speckle UI Components** For Vue.js and Nuxt.js applications, use the official UI components to quickly build Speckle-branded interfaces with pre-built components for projects, models, and authentication. See [@speckle/ui-components](https://www.npmjs.com/package/@speckle/ui-components) and [@speckle/ui-components-nuxt](https://www.npmjs.com/package/@speckle/ui-components-nuxt) for available components and documentation.
 
 ## Data Persistence
@@ -106,9 +176,10 @@ Configure these in your deployment platform:
 
 ## Next Steps
 
-- [Authentication Guide](/developers/authentication) - Learn about tokens and OAuth
+- [Authentication Guide](/developers/authentication/introduction) - Learn about tokens and OAuth
 - [GraphQL API](/developers/api/graphql) - Direct API access
 - [Viewer API](/developers/viewer/introduction) - Embed 3D models
+- [Load a bundle in your own code](/developers/building-integrations/load) - Read version data without an SDK
 - [Python SDK](/developers/sdks/python/introduction) - Server-side integrations
 - [NPM packages](/developers/connectivity/resources#npm-packages) - Available JavaScript packages
 

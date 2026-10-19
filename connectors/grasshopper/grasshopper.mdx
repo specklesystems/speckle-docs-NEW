@@ -2,12 +2,6 @@
 title: How to use Speckle for Grasshopper
 sidebarTitle: Quickstart
 description: 'Step-by-step guide for using the Grasshopper connector'
-docs_status: changed
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/connectors/grasshopper/upgrading
-change_scope: 'Load and Publish node upgrades and 2026.9 data compatibility'
 ---
 
 import Versions from '/snippets/versions.mdx'
@@ -15,23 +9,12 @@ import Setup from '/snippets/connectors/setup.mdx'
 import SetupFaq from '/snippets/connectors/setup-faq.mdx'
 import LoadFaq from '/snippets/connectors/load-faq.mdx'
 
-<Visibility for="agents">
-  Documentation status: changed for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: Load and Publish node upgrades and 2026.9 data compatibility.
-
-For these changes, read [2026.9 guidance](/next/connectors/grasshopper/upgrading).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
-
 <Versions app="Grasshopper" versions="Rhino 7 & 8" os="Windows" />
 
 <Note>
-  Grasshopper connector updates for 2026.9 run from **1 September 2026** through **1 November
-  2026**. For node names, Explore, and what Load returns, see [Grasshopper in
-  2026.9](/next/connectors/grasshopper/introduction).
+  The 2026.9 upgrade window is open until **1 November 2026**. Update the Grasshopper connector
+  before then, and switch your scripts to the current **Load** and **Publish** nodes. See [Upgrade
+  to 2026.9](#upgrade-to-2026-9).
 </Note>
 
 ## Setup
@@ -61,28 +44,23 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
 
 <Tip>
   You only need to sign in to an account once from any Speckle connector. To switch accounts in
-  Grasshopper, you can select the correct account by right-clicking the **Speckle Model URL** node.
+  Grasshopper, you can select the correct account by right-clicking the **Speckle Model** node.
 </Tip>
 
 <AccordionGroup>
   <SetupFaq app="Grasshopper" />
 </AccordionGroup>
 
-## Getting Started
+## Start from a sample or template
 
-<Tip>
-  **Template File**: Download our [Grasshopper template file](/connectors/assets) to get started
-  quickly with common Speckle nodes and workflows.
-</Tip>
+Documentation for every Speckle node, and sample scripts, install with the connector. In
+Grasshopper, go to **File** > **Special Folders** > **Components Folder** > **Speckle Sample
+Files**.
+
+For a quick start, download the [Grasshopper template file](/connectors/assets) with common Speckle
+nodes and workflows.
 
 ## Publishing a Model
-
-<Tip>
-  **Sample Files**: Full documentation of all Grasshopper nodes and sample scripts is installed with your connector.
-  Navigate to **File** > **Special Folders** > **Components Folder** > **Speckle Sample Files** in Grasshopper to find them.
-  
-  **Template File**: For a quick start, download our [Grasshopper template file](/connectors/assets) with common Speckle nodes and workflows.
-</Tip>
 
 <Steps>
   <Step title="Create a Collection with objects">
@@ -91,16 +69,19 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
   </Step>
 
 <Step title="Get your Speckle model link">
-  1. Add a **Speckle Model URL** node to the canvas. 2. Choose a project: - Click on the **Project**
-  button to select a project from the dropdown - or use the search bar to find another project. 3.
-  Choose a model: - Click on the **Model** button to select a model from the dropdown - or use the
-  search bar to find another model.
+
+1. Add a **Speckle Model** node to the canvas.
+2. Choose a project: click the **Project** button and pick one from the dropdown, or use the search
+   bar to find another project.
+3. Choose a model: click the **Model** button and pick one from the dropdown, or use the search bar
+   to find another model.
+
 </Step>
 
   <Step title="Publish your model">
     1. Add a **Publish** node to the canvas and connect your inputs:
       - Add your **Create Collection** output to the Collection input.
-      - Add your **Speckle Model URL** output to the Model Link input.
+      - Add your **Speckle Model** output to the **Speckle Model** input.
     2. Click **Publish**.
     Your model is now published to Speckle and is available to the rest of your team.
     <Frame title="Publish">
@@ -131,29 +112,26 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
     </Accordion>
 
     <Accordion title="Can I create specific objects for other applications like Revit or ETABs?">
-      You can create **Data Objects** which are a simplified version of the objects that are published from other connectors.
-      If you assign a **builtInCategory** property to a Data Object, it will be loaded as a generic model with that category in Revit.
+      Wrap your geometry in a **Speckle Object** and set the properties there.
+      If you assign a **builtInCategory** property to a Speckle Object, it will be loaded as a generic model with that category in Revit.
       However, there is currently no way to create elements that will be received as native types like walls and beams in BIM or structural applications.
     </Accordion>
 
+    <Accordion title="Where do I set an object's name and properties?">
+      On the **Speckle Object**, not on its geometry. A wall is one thing with one name and one set of properties, even when it has three meshes. If each mesh carried its own copy, summing a volume across the model would count that wall three times. The **Speckle Geometry** node has no Name or Properties inputs; to set them, wire geometry into a **Speckle Object**.
+    </Accordion>
+
     <Accordion title="How do I change my account?">
-      Right-click your **Speckle Model** node and select **Change accounts** to change your account.
+      Right-click your **Speckle Model** node and choose an account under **Account**.
     </Accordion>
 
 </AccordionGroup>
 
 ## Loading a Model
 
-<Tip>
-  **Sample Files**: Full documentation of all Grasshopper nodes and sample scripts is installed with your connector.
-  Navigate to **File** > **Special Folders** > **Components Folder** > **Speckle Sample Files** in Grasshopper to find them.
-  
-  **Template File**: For a quick start, download our [Grasshopper template file](/connectors/assets) with common Speckle nodes and workflows.
-</Tip>
-
 <Steps>
   <Step title="Get your Speckle model link">
-    1. Add a **Speckle Model URL** node to the canvas.
+    1. Add a **Speckle Model** node to the canvas.
     2. Choose a project:
         - Click on the **Project** button to select a project from the dropdown
         - or use the search bar to find another project. 
@@ -166,13 +144,15 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
   </Step>
 
 <Step title="Load your model">
-  1. Add a **Load** node to the canvas and connect your input: - Add your **Speckle Model URL**
-  output to the Model Link input. 2. Click **Load**. Your selected model version is now loaded in
-  Grasshopper.
+
+1. Add a **Load** node to the canvas and connect your **Speckle Model** output to its **Speckle
+   Model** input.
+2. Click **Load**. Your selected model version is now loaded in Grasshopper.
+
 </Step>
 
   <Step title="Get your model objects">
-    1. Add a **Query objects** node to the canvas and connect your input:
+    1. Add a **Query Speckle Objects** node to the canvas and connect your input:
         - Add your **Load** output to the collection input.
     2. You can now work with your loaded objects in Grasshopper.
     <Frame>
@@ -183,16 +163,150 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
 
 <AccordionGroup>
 
+    <Accordion title="What does the Load node return?">
+      The **Collection** output holds Speckle Objects and geometry, including property-only elements such as Revit rooms, levels, and areas. Materials and colours arrive on each object. Model-wide properties, such as project information, arrive on the **Properties** output. The **Publish** node has a matching optional **Properties** input.
+    </Accordion>
+
+    <Accordion title="How do I find the level, room, or host of a loaded object?">
+      Use the **Explore** node. It creates an output for each relationship the model records for an object, such as its level, rooms, host, or block definition. See [Explore what an object is connected to](/connectors/grasshopper/explore).
+    </Accordion>
+
     <Accordion title="How do I access object fields that I see in the web browser, but that are not in my Grasshopper object properties?">
-    If you want to access geometry properties like what you would see in **dev mode** in your browser, you can use the **Deconstruct** node.
+    Use the **Deconstruct** node. It exposes fields such as the application ID and geometric attributes, the same data the **Inspector** panel shows in the [3D viewer](/3d-viewer/exploration#inspect-raw-data-and-relations).
     </Accordion>
 
     <Accordion title="Can I load a model via URL?">
-    Yes. Copy your URL to a **Panel** and connect it to your **Speckle Model URL** node.
+    Yes. Copy your URL to a **Panel** and connect it to your **Speckle Model** node.
     </Accordion>
 
     <Accordion title="How do I change my account?">
-      Right-click your **Speckle Model URL** node and select **Change accounts** to change your account.
+      Right-click your **Speckle Model** node and choose an account under **Account**.
     </Accordion>
 
+</AccordionGroup>
+
+## Upgrade to 2026.9
+
+Updating the connector renames the Load, Publish, and Speckle Geometry nodes already on your canvas
+to their **(legacy)** versions and hides them from the ribbon. Nothing is deleted and no wires
+break. The legacy nodes are no longer supported: switch every script to the current nodes. Versions
+you already published stay in your models, and the current **Load** node reads them.
+
+{/* IMAGE_PLACEHOLDER: Grasshopper Speckle ribbon — current Load and Publish nodes; canvas showing an older definition with Load (legacy) and Publish (legacy) nicknames. */}
+
+| If your script has...         | Then...                                                                                                           |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Load (legacy)**             | Switch it to the current Load node now. This affects only you.                                                    |
+| **Publish (legacy)**          | Switch it to the current Publish node together with the people who load your model: they need updated connectors. |
+| **Speckle Geometry (legacy)** | Replace it with a **Speckle Object** to keep a name and properties, or with the current Speckle Geometry.         |
+| No Speckle nodes yet          | Use the current nodes. The ribbon only offers those.                                                              |
+
+### What changed on the canvas
+
+| On your canvas                           | What it is                                                                                                  |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Load** / **Publish**                   | The current nodes. Publish writes the 2026.9 data format; Load reads versions from before and after 2026.9. |
+| **Load (legacy)** / **Publish (legacy)** | Your earlier nodes, renamed and hidden from the ribbon. No longer supported: switch to the current nodes.   |
+| **Speckle Object**                       | Formerly **Speckle Data Object**. Same node, same ports.                                                    |
+| **Speckle Geometry (legacy)**            | Your earlier Speckle Geometry node, renamed and hidden. No longer supported.                                |
+| **Speckle Geometry**                     | New. Geometry, colour, and material — no Name or Properties.                                                |
+
+The same rename applies to **(Sync) Load** and **(Sync) Publish**. The **Speckle Object** node's
+**Geometries** input does not accept Block Instances, because a Block Instance is already its own
+object.
+
+| Output         | **Load (legacy)**                  | **Load**                     |
+| -------------- | ---------------------------------- | ---------------------------- |
+| **Collection** | Data Objects and geometry          | Speckle Objects and geometry |
+| **Properties** | Model-wide properties              | Model-wide properties        |
+| **Proxies**    | Materials, colours, levels, groups | Not available                |
+
+### Switch a script to the current nodes
+
+{/* IMAGE_PLACEHOLDER: Grasshopper canvas — Speckle Model wire moved onto a current Load node; Load (legacy) still on the canvas, unwired. */}
+
+<Steps>
+  <Step title="Add the current Load node">
+    Place a **Load** node from the ribbon and move your Speckle Model wire onto it. You should see
+    the same **Collection** output as before.
+  </Step>
+  <Step title="Reconnect anything downstream">
+    Check that nodes reading that Collection still resolve. Objects come through as **Speckle
+    Objects** rather than Data Objects — the same shape under a new name — so most wires carry
+    straight over.
+  </Step>
+  <Step title="Delete the old node">
+    Remove the **Load (legacy)** node once nothing is wired to it. The definition should now load
+    through the current node only.
+  </Step>
+  <Step title="Switch the Publish node">
+    Coordinate this with the people who load your model, who need updated connectors. Place a
+    current **Publish** node, move your wires onto it, and delete **Publish (legacy)**. You should
+    see a new version in the web app after you publish.
+  </Step>
+</Steps>
+
+<Warning>
+  Older nodes and connectors cannot fully read versions from the current **Publish** node. A **Load
+  (legacy)** node returns them with empty **Properties** and **Proxies**, and connectors from 2026.8
+  or earlier cannot load them at all.
+</Warning>
+
+### Messages you might see
+
+| Message                                                                  | What it means                                                                                               |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| This Load component is deprecated / This Publish component is deprecated | The node is a legacy node, which is no longer supported. Switch to the current node.                        |
+| This version was published before Speckle 2026.9.0                       | An older version loaded. Grouping and collection paths may differ from newer versions.                      |
+| This version needs the current Load component                            | A legacy Load node hit a version it cannot fully read. Switch to the current Load node.                     |
+| This component publishes versions that older connectors can still read   | A reminder from **Publish (legacy)**. Switch to the current Publish node, together with your collaborators. |
+| The name or properties on the incoming geometry were replaced            | The Speckle Object's name and properties win. Set them on the object.                                       |
+| Replacing the geometry dropped its properties                            | Swapping a shape does not carry properties across. Use a Speckle Object.                                    |
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can I keep using Load (legacy) and Publish (legacy)?">
+    No, not any longer. The legacy nodes are no longer supported. If your canvas shows **Load
+    (legacy)** or **Publish (legacy)**, or the message *This Load component is deprecated*, switch
+    to the current nodes. See [Switch a script to the current
+    nodes](#switch-a-script-to-the-current-nodes).
+  </Accordion>
+  <Accordion title="What happens to my saved scripts when I update the connector?">
+    The Load, Publish, and Speckle Geometry nodes on your canvas are renamed to their **(legacy)**
+    versions. Nodes are matched by identity, not by name, so no node turns into a placeholder and no
+    wire is dropped. Then switch them to the current nodes.
+  </Accordion>
+  <Accordion title="Do I have to switch Load and Publish together?">
+    No. Switch Load first, because it affects only you. Switch Publish together with the people who
+    load your model: connectors from 2026.8 or earlier cannot load versions from the current Publish
+    node.
+  </Accordion>
+  <Accordion title="Where did the Name and Properties inputs on Speckle Geometry go?">
+    The current **Speckle Geometry** node has none: a name and properties belong to a **Speckle
+    Object**, so wire the geometry into one. A node placed before 2026.9 shows as **Speckle Geometry
+    (legacy)** with its old inputs. It is no longer supported, so replace it.
+  </Accordion>
+  <Accordion title="Why is Load no longer in the ribbon?">
+    The ribbon shows the current **Load** node. If you are looking for the node from an older
+    script, it is now **Load (legacy)**, which is hidden from the ribbon and no longer supported.
+    Use the current **Load** node. See [Switch a script to the current
+    nodes](#switch-a-script-to-the-current-nodes).
+  </Accordion>
+  <Accordion title="Where did Speckle Data Object go?">
+    It is now **Speckle Object**: the same node with the same ports, under a new name.
+  </Accordion>
+  <Accordion title="Can I copy a legacy node from an old script into a new one?">
+    No, not any longer. Legacy nodes are no longer supported. Replace a copied **Load (legacy)**,
+    **Publish (legacy)**, or **Speckle Geometry (legacy)** node with the current node.
+  </Accordion>
+  <Accordion title="Why does Explore produce no outputs?">
+    The usual cause is a version published before 2026.9, or a **Load (legacy)** node. Republish
+    with the current Publish node, then load with the current Load node.
+  </Accordion>
+  <Accordion title="Why do my coloured meshes show as grey in the viewer?">
+    This is a known issue in the 3D viewer. Mesh colours and colours set with the **Color** input
+    are published correctly, but the viewer does not draw them yet. Loading the model back into
+    Grasshopper or Rhino keeps the colours. See [3D viewer](/3d-viewer/introduction).
+  </Accordion>
 </AccordionGroup>

@@ -3,24 +3,7 @@ title: Powering Your Automation Workflows
 sidebarTitle: Overview
 description: Speckle Automate is a fully fledged CI/CD platform designed to run custom code on Speckle models whenever a new version is available.
 tag: Enterprise
-docs_status: changed
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/developers/automate/introduction
-change_scope: '2026.9 Functions and project Settings Automations replace the old tab wizard'
 ---
-
-<Visibility for="agents">
-  Documentation status: changed for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: 2026.9 Functions and project Settings Automations replace the old tab wizard.
-
-For these changes, read [2026.9 guidance](/next/developers/automate/introduction).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
 
 <Frame caption="Automate covers three loops: continuous integration, continuous delivery, and continuous communication.">
   <img
@@ -29,12 +12,23 @@ For Speckle 2026.9, prefer the linked guidance only for the affected topics. Thi
   />
 </Frame>
 
-Speckle Automate is a CI/CD platform for model intelligence and data automation.  
+Speckle Automate is a CI/CD platform for model intelligence and data automation.
 It runs your code automatically whenever a new version of a Speckle model is published,
 enabling tasks such as validation, reporting, or data transformation to happen instantly.
 
-As a developer, you can [create Functions](/developers/automate/create-function) that define what runs,  
-and package them as [Automations](/developers/automate/create-automation) for others in your workspace to use.
+As a developer, you [create Functions](/developers/automate/create-function) that define what runs. Functions live at workspace level, on the workspace **Functions** page. You then [create an Automation](/developers/automate/create-automation) from a project's **Settings → Automations**; it runs a function whenever a chosen model gets a new version.
+
+<Note>
+  Speckle Automate is available only on Speckle Enterprise Server. For deployment setup, see
+  [Enterprise license —
+  Automate](/developers/server/deployment/enterprise-license#optional-automate).
+</Note>
+
+<Warning>
+  The 3D viewer and the project model list do not show Automate results. Runs still complete and
+  record their results; see [Viewing Automation Results](/developers/automate/viewing-results) for
+  where to find them.
+</Warning>
 
 <Note>
   **No Server Required**: Automate runs on Speckle's infrastructure, so you don't need to deploy or
@@ -42,9 +36,46 @@ and package them as [Automations](/developers/automate/create-automation) for ot
   you can use [webhooks](/developers/api/webhooks) to trigger workflows on your own infrastructure.
 </Note>
 
+## Where Automate lives in the web app
+
+| What you want                          | Where to find it                                                                  |
+| -------------------------------------- | --------------------------------------------------------------------------------- |
+| Browse or create functions             | Workspace **Functions** page: project **Settings → Automations → View functions** |
+| Create, edit, or trigger an automation | Project **Settings → Automations**                                                |
+| Check runs and their status            | Project **Settings → Automations**, then open the automation                      |
+| Manage functions and their tokens      | Workspace **Settings → Automate → Functions**                                     |
+
+### Find functions
+
+Functions are not in the workspace sidebar. Open them from a project, or go to `/workspaces/{slug}/functions`.
+
+{/* IMAGE_PLACEHOLDER: Workspace Functions page — search field, New function, function card grid. */}
+
+<Steps>
+  <Step title="Open project Automations">
+    Open the project, then **Settings → Automations**. You should see a search field, **View
+    functions**, and **New Automation**.
+  </Step>
+  <Step title="Open Functions">
+    Select **View functions**. The workspace **Functions** page opens with a search field and a
+    **New function** button above a card grid.
+  </Step>
+</Steps>
+
+**New function** starts the create-function flow; see [Create a function](/developers/automate/create-function).
+
+### Manage functions in workspace Settings
+
+Workspace **Settings → Automate → Functions** lists the functions that projects in this workspace can use, with each function's name, owner, and ID. The row menu includes **Regenerate token...** when you are allowed to rotate that function's token.
+
+<Note>
+  The **Open docs** button on that page opens an older documentation site. Use [Create a
+  function](/developers/automate/create-function) instead.
+</Note>
+
 ## Availability
 
-Speckle Automate is now available an Enterprise-only offering on [app.speckle.systems](https://app.speckle.systems).  
+Speckle Automate is an Enterprise-only offering on [app.speckle.systems](https://app.speckle.systems).
 Enterprise plans include custom automation support by Speckle engineers.
 
 ## Capabilities
@@ -53,4 +84,30 @@ Enterprise plans include custom automation support by Speckle engineers.
 - Generate reports or perform data checks without manual effort
 - Deploy reusable workflows across multiple projects
 - Integrate with GitHub or other version control systems
-- Review detailed logs and results directly within Speckle
+- Review run status and logs directly within Speckle
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Why is there no Automations tab on the project?">
+    Automations live in project **Settings → Automations**. That page lists the project's
+    automations and has **New Automation** and **View functions**.
+  </Accordion>
+  <Accordion title="How do I open Functions if they are not in the sidebar?">
+    From project **Settings → Automations**, select **View functions**. That opens the workspace
+    Functions page, where **New function** lives.
+  </Accordion>
+  <Accordion title="Why don't I see Settings → Automations on my project?">
+    The entry appears only when Automate is enabled for your workspace and your project role lets
+    you list automations. Ask a workspace admin, or contact sales@speckle.systems about the
+    **Enterprise** plan.
+  </Accordion>
+  <Accordion title="Do my functions run on versions published in 2026.9?">
+    Yes, once the function depends on specklepy **2026.9.0b3** with the `bundle` extra
+    (`specklepy[bundle]==2026.9.0b3`) or Speckle.Automate.Sdk **2026.9.0-beta.4** or later. Older
+    SDK builds are not guaranteed to receive those versions. If your function filters on
+    `speckle_type`, see [Handling Data in Functions](/developers/automate/function-data) for the
+    shape of a 2026.9 version; if it attaches results, see [Attach results to 2026.9
+    models](/developers/automate/function-results#attach-results-to-2026-9-models).
+  </Accordion>
+</AccordionGroup>

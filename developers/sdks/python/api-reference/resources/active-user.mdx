@@ -108,9 +108,7 @@ Get all projects you have access to.
 <Note>
 When to use this method:
 - **Non-workspace servers** (self-hosted/open-source): Use this method to list all projects you have access to.
-- **Workspace-enabled servers** (e.g., app.speckle.systems): Use this method with filters to list personal projects, or use `client.workspace.get_projects(workspace_id)` to list projects within a specific workspace.
-
-For workspace-enabled servers, consider using `UserProjectsFilter(personalOnly=True)` to explicitly get only your personal projects, or filter by `workspaceId` for workspace projects.
+- **Workspace-enabled servers** (e.g., app.speckle.systems): Use `client.workspace.get_projects(workspace_id)` to list projects in a workspace.
 
 **Note:** In earlier versions of specklepy, this functionality was provided by the `stream` resource with a `list()` method.
 
@@ -261,41 +259,6 @@ else:
   Use the Speckle web interface to accept or decline invitations. This method only retrieves pending
   invitations. See [PendingStreamCollaborator](#pendingstreamcollaborator) for property details.
 </Note>
-
-### can_create_personal_projects()
-
-Check if you have permission to create personal (non-workspace) projects.
-
-```python lines icon="python"
-client.active_user.can_create_personal_projects() -> PermissionCheckResult
-```
-
-**Parameters:** None
-
-Returns:
-
-<ResponseField name="permission" type="PermissionCheckResult">
-  Permission check result. See
-  [PermissionCheckResult](/developers/sdks/python/api-reference/resources/project#permissioncheckresult)
-</ResponseField>
-
-Example:
-
-```python lines icon="python"
-permission = client.active_user.can_create_personal_projects()
-
-if permission.authorized:
-    print("✓ You can create personal projects")
-
-    # Safe to create project
-    from specklepy.core.api.inputs.project_inputs import ProjectCreateInput
-    project = client.project.create(ProjectCreateInput(
-        name="My Personal Project"
-    ))
-else:
-    print(f"✗ Cannot create personal projects: {permission.message}")
-    print(f"   Code: {permission.code}")
-```
 
 ### get_workspaces()
 
@@ -493,7 +456,6 @@ UserProjectsFilter(
     search: Optional[str] = None,
     only_with_roles: Optional[Sequence[str]] = None,
     workspace_id: Optional[str] = None,
-    personal_only: Optional[bool] = None,
     include_implicit_access: Optional[bool] = None
 )
 ```
@@ -505,7 +467,6 @@ Fields:
 - `search` (str, optional) - Search by project name or description
 - `only_with_roles` (List[str], optional) - Filter by user roles
 - `workspace_id` (str, optional) - Filter to specific workspace
-- `personal_only` (bool, optional) - Only return personal (non-workspace) projects
 - `include_implicit_access` (bool, optional) - Include projects with implicit access
 
 ### UserWorkspacesFilter

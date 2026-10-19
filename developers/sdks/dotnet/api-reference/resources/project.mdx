@@ -1,10 +1,10 @@
 ---
 title: 'Project'
-description: 'client.Project — list, create, and manage Speckle projects'
+description: 'client.Project — list, create in a workspace, and manage Speckle projects'
 sidebarTitle: 'Project'
 ---
 
-Use **`client.Project`** to list projects, create a new project, or check permissions before you load or publish model data.
+Use **`client.Project`** to list projects, create a project in a workspace, or check permissions before you load or publish model data.
 
 ## Methods
 
@@ -39,14 +39,6 @@ Use **`client.Project`** to list projects, create a new project, or check permis
 </ResponseField>
 
 <ResponseField
-  name="Create"
-  type="Task<Project> Create(ProjectCreateInput input, CancellationToken cancellationToken = default)"
->
-  Creates a personal (non-workspace) project. `ProjectCreateInput(string? name, string? description,
-  ProjectVisibility? visibility)`.
-</ResponseField>
-
-<ResponseField
   name="CreateInWorkspace"
   type="Task<Project> CreateInWorkspace(WorkspaceProjectCreateInput input, CancellationToken cancellationToken = default)"
 >
@@ -77,10 +69,11 @@ Use **`client.Project`** to list projects, create a new project, or check permis
 ## Usage
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
-var project = await client.Project.Create(new ProjectCreateInput(
+var project = await client.Project.CreateInWorkspace(new WorkspaceProjectCreateInput(
     "My Project",
     "Description",
-    ProjectVisibility.Private
+    ProjectVisibility.Private,
+    workspaceId
 ));
 
 var withModels = await client.Project.GetWithModels(project.id);
@@ -93,12 +86,11 @@ Console.WriteLine($"{withModels.name}: {withModels.models.totalCount} models");
 
 <AccordionGroup>
   <Accordion title="How do I create a project inside a workspace?">
-    Call `CreateInWorkspace` with a `WorkspaceProjectCreateInput` on a workspace-enabled server. Use
-    `Create` for personal (non-workspace) projects. Check `client.Server.IsWorkspaceEnabled()`
-    first.
+    Call `CreateInWorkspace` with a `WorkspaceProjectCreateInput` on a workspace-enabled server.
+    Check `client.Server.IsWorkspaceEnabled()` first.
   </Accordion>
   <Accordion title="Create failed — workspace at project limit">
-    Delete unused projects or upgrade the workspace plan before calling `Create` again.
+    Delete unused projects or upgrade the workspace plan before calling `CreateInWorkspace` again.
   </Accordion>
 </AccordionGroup>
 
@@ -109,7 +101,7 @@ Console.WriteLine($"{withModels.name}: {withModels.models.totalCount} models");
     Project → model → version hierarchy
   </Card>
   <Card title="Quickstart" icon="rocket" href="/developers/sdks/dotnet/getting-started/quickstart">
-    Create a project in Step 3
+    Create a workspace project in Step 3
   </Card>
   <Card
     title="ModelResource"

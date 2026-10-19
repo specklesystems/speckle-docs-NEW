@@ -71,9 +71,9 @@ Prettier may indent a closing tag (`</Note>`, `</Tip>`, and similar) when it fol
 
 **Fix:** put a short normal paragraph (or other non-list prose) after the list, then the closing tag at column 0. Re-run Prettier and `pnpm valid`. Do not leave an indented close tag as the last child after bullets.
 
-### Deep-link anchors Mintlify actually indexes
+### Deep-link anchors
 
-`mint broken-links --check-anchors` indexes empty fragment targets like `<div id="my-anchor" />` or `<a id="my-anchor"></a>`. It often **misses** the same id on elements that wrap visible text (`<a id="x">label</a>`, `<span id="x">…</span>`, `<h3 id="x">…</h3>`). Prefer empty `<div id="…" />` so links stay green and `mint a11y` does not flag empty `<a>` text.
+Do not add an empty `<div id="…">` or `<a id="…">`. The link checker treats them as anchors, and the page renders them as a blank gap. Link to the heading Mintlify already slugs. When the target is an accordion or a card, set `id` on that component (`<Accordion id="…">`, `<Card id="…">`). Do not wrap visible text in `<a id>` or `<span id>` to satisfy the checker.
 
 ### Agent config is not docs content
 
@@ -83,7 +83,7 @@ Prettier may indent a closing tag (`</Note>`, `</Tip>`, and similar) when it fol
 
 - OpenAPI: invalid fields on media types fail validate (keep schemas Mint-compatible)
 - Snippet JSX: Mintlify pre-injects React hooks; avoid unused `react` imports; match export style the MDX import expects (named vs default)
-- Nav (`navigation.json`, `navigation.next.json`) must point at real pages
+- Nav (`navigation.json`) must point at real pages
 
 ### Format / lint scope
 

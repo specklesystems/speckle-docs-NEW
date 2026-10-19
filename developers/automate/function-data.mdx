@@ -1,196 +1,156 @@
 ---
 title: Handling Data in Functions
-description: Comprehensive guide to working with Speckle data structures in Automate functions. Learn data handling strategies including flattening, filtering, hierarchical analysis, and model augmentation with practical examples in Python and C#.
+description: How to work with the model data an Automate function receives. Learn what receive_version returns, how to walk and filter it, and how to group objects, with examples in Python and C#.
 ---
 
-## Core Concepts
+`receive_version()` / `ReceiveVersion()` returns the version that triggered the run as a `Base` tree. Your function walks that tree, picks the objects it cares about, and reports on them. This page shows the shape of the tree and the patterns that work on it.
 
-Once you've called `receive_version()`, you're now working with standard Speckle data structures. No special Speckle Automate handling is required—everything behaves just like it would in any Speckle-enabled workflow.
+<Note>
+  Versions published before 2026.9 come back in the shape they were published in, unless the server
+  has converted them: often the same `Collection` and `DataObject` tree with content-hash `id`s, and
+  in older versions typed objects such as `Objects.BuiltElements.Wall`. For that object graph, see
+  [Data Schema](/developers/data-schema/overview). The patterns below work on both.
+</Note>
 
-Speckle represents building data as a **directed acyclic graph (DAG)**:
+## What your function receives
 
-- **Objects reference other objects** but never themselves.
-- **Properties can be primitive** (strings, numbers) or references to other objects.
-- **References are one-way** (parent → child).
-- **Common structures** include `elements`, `parameters`, `units`, `applicationId`, and legacy `@` prefixed properties.
+For a version published in 2026.9, the tree is a projection of the version's bundle:
 
-[→ Deep dive into Speckle's data model](https://speckle.guide/dev/decomposition.html)
+- **A `Collection` root.** Its `elements` hold nested `Collection`s (layers, categories, or levels, depending on the source application) and the model's objects.
+- **`DataObject`s.** Each object has a `name`, its geometry in `displayValue`, and its attributes in `properties`: a nested dictionary with the type's properties and the instance's on top. They all share one `speckle_type`, `Objects.Data.DataObject`, so filter on `properties`, not on the type.
+- **`id` equals `applicationId`.** Treat `id` as an opaque key. See [Attach results to 2026.9 models](/developers/automate/function-results#attach-results-to-2026-9-models).
+- **Shared resources as proxies on the root.** Materials sit in `renderMaterialProxies` and instance definitions in `instanceDefinitionProxies`; placed instances are `InstanceProxy` objects.
 
-## Strategy Selection
+The tree carries objects, geometry, and properties. It does not carry the relations of the [object model](/developers/object-model/overview), such as an object's level, host, or system. Objects without display geometry can also be missing from it.
 
-When working with Speckle data, selecting the right strategy for data handling is crucial. Depending on your specific needs, you may choose from various strategies such as filtering and collection, hierarchical analysis, or model augmentation.
+<Tip>
+  For relations, or for large models, load the version as a `Model` with `operations.receive3` /
+  `Receive3`, passing the run's project, model, and version IDs from `automation_run_data`. See
+  [Migrate to 2026.9](/developers/sdks/python/migrate-to-2026-9) (Python) or [Migrate to
+  2026.9](/developers/sdks/dotnet/migrate-to-2026-9) (.NET).
+</Tip>
 
-### Flattening: When You Just Need Everything in One List
+## Walk the tree
 
-Sometimes, all you need is every single object in a model—no hierarchy, no context, just a flat list of elements to work with. This is especially useful when:
+Most functions start by flattening the tree into one list. Walk `elements` from the root: that reaches every collection and object without descending into geometry or proxies.
 
-#### When to use?
+```python flatten.py
+from collections.abc import Iterator
 
-- You need to apply a bulk operation across all objects (e.g., tagging, filtering).
-- You're exporting data and don't care about parent-child relationships.
-- You want to run quick queries without navigating complex nested structures.
+from specklepy.objects.base import Base
 
-Unlike filtering and collection, which extracts only relevant objects, and hierarchical analysis, which considers relationships, flattening is a brute-force but effective strategy when structure doesn't matter.
 
-```python
-def flatten(base):
-    """Recursively flattens all objects in a Speckle model into a list."""
-    flattened = []
+def iter_elements(obj: Base) -> Iterator[Base]:
+    yield obj
+    for child in getattr(obj, "elements", None) or []:
+        yield from iter_elements(child)
 
-    def traverse(obj):
-        if obj is None:
-            return
-        flattened.append(obj)
-        for key, value in obj.__dict__.items():
-            if isinstance(value, list):
-                for item in value:
-                    traverse(item)
-            elif hasattr(value, "__dict__"):  # Check if it's a nested object
-                traverse(value)
 
-    traverse(base)
-    return flattened
+all_objects = list(iter_elements(automate_context.receive_version()))
+print(f"Flattened model contains {len(all_objects)} items.")
 ```
 
-Usage example:
-
-```python
-all_objects = flatten(my_speckle_model)
-print(f"Flattened model contains {len(all_objects)} elements.")
-```
-
-```csharp
-using System.Collections.Generic;
-using Speckle.Core.Models;
+```csharp Flatten.cs icon="/images/developers/sdks/csharp.svg"
+using Speckle.Sdk.Models;
+using Speckle.Sdk.Models.Collections;
 
 public static class SpeckleUtils
 {
-    public static List<Base> Flatten(Base baseObject)
+    public static IEnumerable<Base> IterElements(Base obj)
     {
-        var flattened = new List<Base>();
-
-        void Traverse(Base obj)
+        yield return obj;
+        if (obj is not Collection collection)
         {
-            if (obj == null) return;
-            flattened.Add(obj);
-
-            foreach (var prop in obj.GetDynamicMembers())
+            yield break;
+        }
+        foreach (var child in collection.elements)
+        {
+            foreach (var nested in IterElements(child))
             {
-                var value = obj[prop];
-
-                if (value is List<Base> list)
-                {
-                    foreach (var item in list)
-                        Traverse(item);
-                }
-                else if (value is Base nestedObj)
-                {
-                    Traverse(nestedObj);
-                }
+                yield return nested;
             }
         }
-
-        Traverse(baseObject);
-        return flattened;
     }
 }
+
+var allObjects = SpeckleUtils.IterElements(await context.ReceiveVersion()).ToList();
+Console.WriteLine($"Flattened model contains {allObjects.Count} items.");
 ```
 
-Usage Example:
+## Filter by property
 
-```csharp
-List<Base> allObjects = SpeckleUtils.Flatten(mySpeckleModel);
-Console.WriteLine($"Flattened model contains {allObjects.Count} elements.");
+To find the objects a rule applies to, keep the `DataObject`s and test their `properties`. Property names and values come from the source application: check a version in the web app to see what yours carries.
+
+```python filter.py
+from specklepy.objects.data_objects import DataObject
+
+
+def collect(root, category: str) -> list[DataObject]:
+    return [
+        obj
+        for obj in iter_elements(root)
+        if isinstance(obj, DataObject)
+        and (obj.properties or {}).get("category") == category
+    ]
+
+
+walls = collect(root, "Walls")
 ```
 
-<Tip>
-💡 **Hacker Tip**: You can be a lot simpler in crafting a flatten function for Speckle data, essentially you define the logic to finding children and then recursively call the function on each child, dumping what you find into a list.
+```csharp Filter.cs icon="/images/developers/sdks/csharp.svg"
+using Speckle.Objects.Data;
 
-- **Simple & Universal** – Works on any Speckle model, regardless of complexity.
-- **Fast Querying** – Once flattened, any filtering or analysis can be done without recursion.
-- **Great for Bulk Operations** – Need to tag, validate, or extract properties? Just loop over the list.
-
-Think of this as your "data dump" function—it won't give you structure, but it will give you everything. and probably the best way to get started.
-
-</Tip>
-
-### Filtering and Collection: Extracting Meaningful Data
-
-Sometimes, you don't care about the full model structure—you just need specific objects based on criteria. This is where **filtering and collection** strategies come in handy.
-
-#### When to use?
-
-- You need a quick inventory of elements (e.g., all beams over 10m long).
-- You want to run rule-based validation (e.g., missing materials in structural elements).
-
-```python
-def collect_elements(base):
-    # Define reusable conditions
-    is_beam = lambda obj: obj.speckle_type == "Objects.BuiltElements.Beam"
-    is_long = lambda obj: getattr(obj, "length", 0) > 10.0
-    has_material = lambda obj: "material" in obj.parameters
-
-    # Combine for complex queries
-    return base.query(lambda obj:
-        is_beam(obj) and is_long(obj) and has_material(obj)
-    )
+var walls = SpeckleUtils.IterElements(root)
+    .OfType<DataObject>()
+    .Where(o => o.properties.TryGetValue("category", out var c) && c as string == "Walls")
+    .ToList();
 ```
 
-```csharp
-public IEnumerable<Base> CollectElements(Base baseObject)
-{
-    return baseObject.Traverse<Beam>()
-        .Where(b => b.length > 10.0)
-        .Where(b => b.Parameters.ContainsKey("material"));
-}
+A dotted property path such as `Constraints.Base Offset` is a nested dictionary in the tree: `properties["Constraints"]["Base Offset"]`.
+
+```python property_path.py
+def get_path(properties: dict, path: str):
+    value = properties
+    for part in path.split("."):
+        if not isinstance(value, dict):
+            return None
+        value = value.get(part)
+    return value
+
+
+offset = get_path(wall.properties or {}, "Constraints.Base Offset")
 ```
 
-<Tip>
-  💡 **Hacker Tip**: - This method is blazing fast because it avoids unnecessary traversal. -
-  Combine multiple filters at once to cut down processing time.
-</Tip>
+## Group by collection
 
-### Hierarchical Analysis: Understanding Model Relationships
+The collections in the tree are the model's own grouping: Rhino layers, Revit categories or levels, Blender collections. To report per group, walk the tree and carry the collection each object sits in.
 
-Not all elements exist in isolation—especially in structural, MEP, or nested families workflows. Sometimes, relationships are the critical factor.
+```python group.py
+from specklepy.objects.data_objects import DataObject
+from specklepy.objects.models.collections import Collection
 
-#### When to use?
 
-- Structural stability checks (e.g., "Does every floor have enough supporting columns?").
-- MEP system validation (e.g., "Are ducts properly supported?").
-- Logical grouping validation (e.g., "Are walls properly associated with rooms?").
+def iter_with_collection(obj, collection=None):
+    if isinstance(obj, Collection):
+        for child in obj.elements:
+            yield from iter_with_collection(child, obj)
+    elif isinstance(obj, DataObject):
+        yield collection, obj
 
-```python
-def analyze_structure(base):
-    # Define context-specific rules
-    def has_sufficient_support(floor, columns):
-        return len(columns) >= 4
 
-    for floor in base.query(lambda o: o.speckle_type == "Objects.BuiltElements.Floor"):
-        beams = floor.query(lambda o: o.speckle_type == "Objects.BuiltElements.Beam")
-        columns = floor.query(lambda o: o.speckle_type == "Objects.BuiltElements.Column")
-
-        if not has_sufficient_support(floor, columns):
-            floor.parameters["structural_review"] = "insufficient_support"
+counts: dict[str, int] = {}
+for collection, obj in iter_with_collection(root):
+    name = collection.name if collection else "Unknown"
+    counts[name] = counts.get(name, 0) + 1
 ```
 
 <Tip>
-  💡 **Hacker Tip**: - Instead of querying the whole model (slow!), query only relevant objects. -
-  Add metadata ("structural_review": "insufficient_support") so later steps can flag these floors.
+  Rules about how objects relate, such as "every floor has a level" or "every door has a host", need
+  the relations a `Model` carries. Load the version with `receive3` / `Receive3` for those.
 </Tip>
 
-### Model Augmentation: Adding Intelligence to Models
+## Report findings, don't edit the model
 
-Adding custom insights to a model can be a game-changer—whether for validation, compliance, or optimization.
+Record what your function finds as results on the objects it concerns: see [Annotating Function Results](/developers/automate/function-results). Results show in the Dashboards **Automate results** widget and leave the model untouched.
 
-#### When to use?
-
-- You want to tag elements for review based on logic.
-- You need to enrich models with additional properties for later use.
-
-```python
-async def analyze_and_tag(base, automate_context):
-    # Define reusable tagging function
-    def tag_element(elem, result):
-        elem.parameters["analysis_status"] = result
-```
+To publish derived data, build a new version in a different model: see [Function Artefacts](/developers/automate/function-artefacts). Don't change the received tree and send it back. For a 2026.9 version, that tree is a compatibility view of the bundle, not the published data.

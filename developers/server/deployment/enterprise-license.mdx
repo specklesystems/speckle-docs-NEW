@@ -209,20 +209,11 @@ Workspaces is on by default since 2026.7 and depends on the Gatekeeper module an
 
 1. Verify that the Saved Views feature is available by following our [documentation](/3d-viewer/saved-views).
 
-### (Optional) Issues
+### Issues
 
-The [Issues](/3d-viewer/issues) feature allows users to create and manage issues directly within the Speckle Server interface, providing a streamlined way to track and resolve problems related to their models.
-
-1. To enable Issues, update the Helm values.yaml file to include the following feature flag:
-
-   ```yaml
-   featureFlags:
-     issuesModuleEnabled: true
-   ```
-
-1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
-
-1. Verify that the Issues feature is available by following our [documentation](/3d-viewer/issues).
+[Issues](/3d-viewer/issues) does not need an Enterprise license. It is on by default on every
+server: the chart sets `featureFlags.issuesModuleEnabled: true`. To turn it off, set the value to
+`false` and upgrade your Helm deployment.
 
 ### (Optional) Multi-regional deployment
 
@@ -351,28 +342,72 @@ Automate requires additional infrastructure - including databases, caches, and k
 
 We provide a separate guide for enabling Automate, available in our documentation under [Self-hosting Automate for Speckle Enterprise](/developers/server/deployment/enterprise-license-automate).
 
-### (Optional) Intelligence
+### Enable Intelligence
+
+Intelligence contains two separately configured features: the AI assistant and dashboards. Enable
+only the parts your deployment uses.
+
+#### Assistant
+
+The assistant needs the AI chat module, the query engine, and an AI provider. OpenRouter is the
+recommended default because it gives you a choice of models behind one provider configuration.
+Speckle also supports `anthropic`, `bedrock`, `vertex`, and `openai-compatible` providers.
+
+Choose models that support tool calling. The assistant uses tools to query model data; a model that
+only returns text cannot complete that workflow. Configure model ids for the `reasoning`, `fast`,
+and `reasoningEscalated` roles.
+
+1. Create a Kubernetes Secret containing the provider API key. The example below expects a Secret
+   named `speckle-ai` with a key named `openrouter_api_key`.
+1. Add the assistant configuration to your Helm `values.yaml`:
+
+   ```yaml
+   featureFlags:
+     aiChatModuleEnabled: true
+     queryEngineEnabled: true
+
+   ai:
+     provider:
+       kind: 'openrouter'
+       openrouter:
+         apiKey:
+           secretName: 'speckle-ai'
+           secretKey: 'openrouter_api_key'
+     models:
+       openrouter:
+         reasoning: '<tool-calling-model>'
+         fast: '<fast-tool-calling-model>'
+         reasoningEscalated: '<strong-tool-calling-model>'
+   ```
+
+   When you choose another provider, fill in that provider's block and the matching section under
+   `ai.models` instead. For `openai-compatible`, the values block is named `openaiCompatible`.
+
+1. Upgrade the Helm deployment to apply the changes.
+1. In the web app, a workspace administrator opens **Chat** and selects **Enable AI for this
+   workspace** to accept the AI terms for that workspace. The administrator can later turn **AI
+   features** on or off under workspace **Settings** → **General**.
+
+#### Dashboards
 
 <Note>
-  Intelligence features can be enabled on their own, but are limited without the Automate module,
-  which provides the necessary backend support. For a full experience, we recommend enabling both
-  features together.
+  Dashboards can run without Automate. Dashboard widgets that display Automate results require the
+  Automate module and its supporting infrastructure.
 </Note>
 
 <Note>
-  Intelligence currently requires access to an external Content Delivery Network (CDN) for the
-  feature to work. If your cluster is in an environment without access to external networks, please
-  contact your Speckle representative to discuss options for enabling this feature.
+  Dashboards currently require access to an external Content Delivery Network (CDN). If your cluster
+  cannot reach external networks, contact your Speckle representative to discuss deployment options.
 </Note>
 
-1. To enable Intelligence features, update the Helm values.yaml file to include the following feature flag:
+1. Enable dashboards in your Helm `values.yaml`:
 
    ```yaml
    featureFlags:
      dashboardsModuleEnabled: true
    ```
 
-1. Upgrade your existing Helm deployment to apply the changes (see above for instructions on how to upgrade).
+1. Upgrade the Helm deployment to apply the change.
 
 ### (Optional) ACC integration
 
@@ -492,7 +527,7 @@ With the runner on, the server accepts `ifc`, `rvt`, `nwd`, `nwc`, `dwg`, `dgn`,
 
 #### Node pool contract
 
-Conversion Jobs are placed by the node selector `purpose: <nodePool>` and nothing else. Hand this contract to whoever provisions the pool.
+Conversion Jobs are placed only by the node selector `purpose: <nodePool>`. Hand this contract to whoever provisions the pool.
 
 - **Label and taint.** The `purpose` label is mandatory. A taint is optional and must use the `PreferNoSchedule` effect: Jobs carry no tolerations, so a `NoSchedule` or `NoExecute` taint strands every Job, including the `helm test` canary, in `Pending`.
 - **Three chart values must match the pool.** The chart does not validate any of them.

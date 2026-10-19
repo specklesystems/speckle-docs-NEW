@@ -37,4 +37,4 @@ replacement.
 
 `overview.mdx` names node kinds only in prose. Every kind it names must
 be in the check's "Live node kinds" line; fix any that don't. Keep it prose:
-`next/` pages stay sparse (`docs/agents/next.md`).
+the overview is a concept page, not a node-kind reference.

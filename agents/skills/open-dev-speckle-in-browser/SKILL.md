@@ -6,7 +6,7 @@ description: >-
   locally, wants screenshots captured or retaken for a docs page, wants an app flow
   verified against the real UI, or when another skill needs a live local deployment
   in the browser.
-argument-hint: "[optional: path to speckle-server repo]"
+argument-hint: "[optional: path to speckle-server repo] [launch|attach]"
 ---
 
 # Open Local Speckle Dev Environment for Documentation
@@ -19,7 +19,11 @@ Check for a saved path first, then fall back to asking:
 
 1. Read the auto-memory file at the memory directory path for this project. Look for a `speckle-server-repo-path` entry.
 2. If $ARGUMENTS contains a path, use it and update memory.
-3. If no saved path and no argument, use `../speckle-server-internal` when it exists (the server's source of truth in the standard atlas checkout); otherwise ask the user with AskUserQuestion for the absolute path to their local server repo.
+3. If no saved path and no path argument, use
+   `$ATLAS_ROOT/speckle-server-internal` when `ATLAS_ROOT` is set and that repo
+   exists. This resolves correctly from docs worktrees. Otherwise use
+   `../speckle-server-internal` when it exists, then ask the user for the
+   absolute path.
 4. Validate the path exists and contains a recognizable Speckle Server repo (e.g. check for `packages/` directory or `package.json` with speckle references).
 5. Save/update the path in your auto-memory file for subsequent invocations.
 
@@ -40,6 +44,10 @@ Follow the instructions from the **open-app-in-browser** skill exactly, executin
 - Creating/preparing test user accounts
 - Opening the app in a browser via MCP or Playwright tooling
 
+Pass through `launch` or `attach` when supplied. Use `launch` when the caller
+requires a repeatable documentation capture; otherwise let
+**open-app-in-browser** choose or ask as documented.
+
 Delegate this work to a sub-agent or run the skill directly within the speckle-server repo context as the open-app-in-browser skill prescribes.
 
 ## 4. Prepare Data for Professional Screenshots
@@ -57,6 +65,10 @@ Before capturing any screenshots, audit visible workspace data:
 Goal: every screenshot should look like a polished product demo, not a developer's test environment.
 
 ## 5. Capture Screenshots
+
+Only after the developer has confirmed capture when prompted; opening the app
+for exploration or testing does not imply capturing. For docs shots, hand over to
+**capture-docs-screenshots**, which owns the house style.
 
 Once the environment is clean and professional:
 

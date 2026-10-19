@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
 
-const SKIP_DIRS = ['node_modules', '.git', '.mintlify']
+const SKIP_DIRS = ['node_modules', '.git', '.mintlify', 'agents']
 
 /** Extensions treated as assets rather than page routes. */
 const ASSET_EXT = /\.(png|jpe?g|gif|svg|webp|avif|mp4|webm|mov|pdf|zip|ipynb|csv)$/i

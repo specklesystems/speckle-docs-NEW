@@ -1,16 +1,70 @@
 ---
 title: 'Operations'
-description: 'Load and publish object graphs — Receive2, Send2, Serialize, and connector-scale paths'
+description: 'Load and publish model data — Receive3, Send3, the object-graph methods, and connector-scale paths'
 sidebarTitle: 'Operations'
 ---
 
-Use **`IOperations`** to load model data from Speckle Server (`Receive2`), publish results back (`Send2`), or serialize graphs locally. For most AEC scripts, **`Receive2`/`Send2`** is the recommended path — see [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) before reading signatures here.
+Use **`IOperations`** to load model data from Speckle Server (`Receive3`), publish results back (`Send3`), or serialize object graphs locally. For most AEC scripts, **`Receive3`** is the recommended path — see [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) before reading signatures here.
 
-**Guides:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) · [Send analysis results back](/developers/sdks/dotnet/guides/send-analysis-results-back)
+**Guides:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) · [Migrate to 2026.9](/developers/sdks/dotnet/migrate-to-2026-9)
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 var operations = provider.GetRequiredService<IOperations>();
 ```
+
+## Receive3 / Send3
+
+<ResponseField
+  name="Receive3"
+  type="Task<Model> Receive3(Account account, string projectId, string modelId, string versionId, ReceiveOptions? options, CancellationToken cancellationToken)"
+>
+  Downloads the version's bundle and returns a `Speckle.Sdk.Bundles.Model`: a flat list of objects
+  with path-keyed properties and relation accessors. `Model` is `IDisposable` and owns the
+  downloaded files until you dispose it. Pass `null` for `options` to use the defaults.
+</ResponseField>
+
+<ResponseField
+  name="Receive3 (model URL)"
+  type="Task<Model> Receive3(Account account, Uri modelUrl, ReceiveOptions? options, CancellationToken cancellationToken)"
+>
+  Same as above, addressed by the URL the web app copies: `{server}/projects/{projectId}/models/
+  {modelId}[@{versionId}]`. Without `@versionId` it loads the latest version. Throws
+  `ArgumentException` when the URL is on a different server than `account`.
+</ResponseField>
+
+<ResponseField
+  name="Send3"
+  type="Task<SendResult> Send3(Account account, string projectId, string modelId, BundleBuilder builder, SendOptions? options, CancellationToken cancellationToken)"
+>
+  Publishes the objects described in `builder` as a new version. Returns once the upload finishes,
+  with a reserved `VersionId`; the version appears when the server finishes processing. The builder
+  cannot be reused.
+</ResponseField>
+
+<ResponseField
+  name="Send3 (model URL)"
+  type="Task<SendResult> Send3(Account account, Uri modelUrl, BundleBuilder builder, SendOptions? options, CancellationToken cancellationToken)"
+>
+  Same as above, addressed by the model URL the web app copies.
+</ResponseField>
+
+<ResponseField
+  name="WaitForVersion"
+  type="Task<Version> WaitForVersion(Account account, SendResult sent, TimeSpan? timeout = null, CancellationToken cancellationToken = default)"
+>
+  Waits until the server has created the version from a `Send3` result and returns it. Throws when
+  processing fails or `timeout` elapses.
+</ResponseField>
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using var model = await operations.Receive3(account, projectId, modelId, versionId, options: null, cancellationToken: default);
+var walls = model.ObjectsWith("category").Where(o => o.GetString("category") == "Walls");
+```
+
+<Note>
+  `Receive3` throws a `SpeckleException` when the version has no bundle — a version published before
+  2026.9 that the server has not converted. Load that version with `Receive2`.
+</Note>
 
 ## Serialize / Deserialize
 
@@ -30,7 +84,9 @@ var operations = provider.GetRequiredService<IOperations>();
   Reconstructs a `Base` graph from a JSON string previously produced by `Serialize`.
 </ResponseField>
 
-## Send / Receive
+## Send / Receive (transports, before 2026.9)
+
+Transport-based `Send` and `Receive` are marked `[Obsolete]`. They work only with versions published before 2026.9: `Receive` throws `NotSupportedException` when you pass a 2026.9 bundle reference.
 
 <ResponseField name="Send" type="Task<(string rootObjId, IReadOnlyDictionary<string, ObjectReference> convertedReferences)> Send(Base value, IReadOnlyCollection<ITransport> transports, IProgress<ProgressArgs>? onProgressAction = null, CancellationToken cancellationToken = default)">
   Sends `value` to every transport in `transports`. Returns the root object's id and a map of converted references.
@@ -60,21 +116,25 @@ var received = await operations.Receive(objectId, remoteTransport: transport);
   `IServerTransportFactory.Create(account, projectId)`, not `new ServerTransport(...)`.
 </Warning>
 
-## Send2 / Receive2
+## Send2 / Receive2 (before 2026.9)
+
+`Send2` and `Receive2` are marked `[Obsolete]`, and Speckle does not guarantee them for new work. Keep `Receive2` to read versions published before 2026.9 as an object graph; on a 2026.9 version it returns only a best-effort `Base` projection. Publish with `Send3` instead of `Send2`: after `Send2`, the version a following `Version.Create` returns is reserved until the server finishes processing. See [Publish through model ingestions](/developers/migration/publish-through-ingestions).
 
 <ResponseField
   name="Send2"
   type="Task<SerializeProcessResults> Send2(Uri url, string streamId, string? authorizationToken, Base value, IProgress<ProgressArgs>? onProgressAction, CancellationToken cancellationToken, SerializeProcessOptions? options = null)"
 >
   Sends `value` directly to the server at `url` for project `streamId` (the project id), using the
-  newer V2 serialization pipeline. Recommended over `Send` for new server-facing work.
+  V2 serialization pipeline.
 </ResponseField>
 
 <ResponseField
   name="Receive2"
   type="Task<Base> Receive2(Uri url, string streamId, string objectId, string? authorizationToken, IProgress<ProgressArgs>? onProgressAction, CancellationToken cancellationToken, DeserializeProcessOptions? options = null)"
 >
-  Receives an object graph directly from the server, using the V2 deserialization pipeline.
+  Receives an object graph directly from the server, using the V2 deserialization pipeline. When
+  `objectId` is a 2026.9 bundle reference (`bundle.<projectId>.<modelId>.<versionId>`), it returns
+  a projected `Base` tree instead.
 </ResponseField>
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
@@ -125,20 +185,20 @@ See [Exceptions](/developers/sdks/dotnet/api-reference/exceptions) for the full 
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Should I call Send or Send2 for a new script?">
-    Use **Send2**/`Receive2` — see [Automate with
-    scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). Use **Send**/`Receive`
-    when you follow the [Full send/receive
-    tour](/developers/sdks/dotnet/getting-started/quickstart), need
-    `MemoryTransport`/`SQLiteTransport`, or integrate with existing transport-based code.
+  <Accordion title="Which method should a new script call?">
+    `Receive3` to load and `Send3` to publish — see [Automate with
+    scripts](/developers/sdks/dotnet/getting-started/scripts-and-notebooks). Use `Receive2` only for
+    a version published before 2026.9 that `Receive3` cannot load, and `Send`/`Receive` only for
+    local `MemoryTransport`/`SQLiteTransport` work or to read versions published before 2026.9.
   </Accordion>
-  <Accordion title="Does Send create a version automatically?">
-    No for **`Send`** and **`Send2`** — call `client.Version.Create` after send. **`SendPipeline`**
-    creates the version on the server after upload — see [Publish large models
-    (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends) and
-    [VersionResource](/developers/sdks/dotnet/api-reference/resources/version).
+  <Accordion title="Does Send3 create a version automatically?">
+    Yes. The server creates the version when it finishes processing the upload; call
+    `WaitForVersion` if your script needs it. For `Send` and `Send2` you call
+    `client.Version.Create` yourself, and the id it returns is reserved until processing completes.
+    **`SendPipeline`** also creates the version on the server — see [Publish large models
+    (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends).
   </Accordion>
-  <Accordion title="When do I need SendPipeline instead of Send2?">
+  <Accordion title="When do I need SendPipeline instead of Send3?">
     When uploading a **whole host-application model** from a connector — thousands of elements
     converted incrementally. See [Publish large models
     (connectors)](/developers/sdks/dotnet/guides/building-connector-scale-sends).
@@ -153,20 +213,20 @@ See [Exceptions](/developers/sdks/dotnet/api-reference/exceptions) for the full 
     icon="route"
     href="/developers/sdks/dotnet/concepts/send-and-receive-paths"
   >
-    Choose Receive2, Send2, or SendPipeline
+    Choose Receive3, Send3, or SendPipeline
   </Card>
   <Card
     title="Build your first model analysis tool"
     icon="chart-bar"
     href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool"
   >
-    Receive2 worked example
+    Receive3 worked example
   </Card>
   <Card
-    title="Version"
-    icon="code-branch"
-    href="/developers/sdks/dotnet/api-reference/resources/version"
+    title="Migrate to 2026.9"
+    icon="arrow-right-arrow-left"
+    href="/developers/sdks/dotnet/migrate-to-2026-9"
   >
-    Publish after Send2
+    Receive2 and Send2 side by side with Receive3 and Send3
   </Card>
 </CardGroup>

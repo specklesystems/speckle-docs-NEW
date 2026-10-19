@@ -1,12 +1,12 @@
 ---
 title: 'How your code talks to Speckle Server'
-description: 'The SpeckleSharp mental model — projects, models, versions, object graphs, and the recommended automation workflow'
+description: 'The SpeckleSharp mental model — projects, models, versions, objects and relations, and the recommended automation workflow'
 sidebarTitle: 'Core concepts'
 ---
 
-When you automate AEC workflows from C#, your code uses **SpeckleSharp** to talk to **Speckle Server**. Speckle Server stores **projects**, **models**, **versions**, and **objects** — structured model data instead of files.
+When you automate AEC workflows from C#, your code uses **SpeckleSharp** to talk to **Speckle Server**. Speckle Server stores **projects**, **models**, and **versions**. Each version holds the model's **objects**, their properties, and the **relations** between them — structured model data instead of files.
 
-**When to read this:** before deep dives into guides or API reference. **Read next:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) for a complete script, or [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) to pick a send method.
+**When to read this:** before deep dives into guides or API reference. **Read next:** [Build your first model analysis tool](/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool) for a complete script, or [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) to pick a load or publish method.
 
 ## The mental model
 
@@ -20,7 +20,7 @@ Your C# code  ──SpeckleSharp──►  Speckle Server
                     │                 └────► Version ◄──┘
                     │                        │
                     │                        ▼
-                    │                   Object graph
+                    │              Objects + relations
                     │              (walls, doors, rooms, meshes…)
                     ▼
 ```
@@ -33,17 +33,17 @@ flowchart LR
   subgraph sdk [SpeckleSharp]
     Auth[Authenticate]
     Load[Load version]
-    Traverse[Traverse objects]
+    Query[Query objects]
     Analyse[Analyse or transform]
-    SendBack[Optionally send back]
+    SendBack[Optionally publish back]
   end
   subgraph server [Speckle Server]
     Project[Project]
     Model[Model]
     Version[Version]
-    Objects[Object graph]
+    Objects[Objects and relations]
   end
-  App --> Auth --> Load --> Traverse --> Analyse --> SendBack
+  App --> Auth --> Load --> Query --> Analyse --> SendBack
   Auth --> Project
   Load --> Version
   Version --> Objects
@@ -58,25 +58,27 @@ Most AEC automation scripts follow these steps:
 1. **Authenticate** — personal access token from an environment variable (recommended for scripts)
 2. **Choose a project and model** — IDs from the Speckle web app URL
 3. **Load a version** — usually the latest published version on that model
-4. **Traverse objects** — `Flatten()` or `GraphTraversal` over the received graph
+4. **Query objects** — `model.Objects`, `ObjectsWith`, and relation accessors such as `Level` and `Host` on the `Model` that `Receive3` returns
 5. **Analyse or transform data** — counts, QA checks, CSV export, custom logic
-6. **Optionally send results back** — `Send2` plus `Version.Create` when you want a new published snapshot
+6. **Optionally publish results back** — `Send3` with a `BundleBuilder` when you want a new version
 
 <Tip>
-  The recommended approach for most AEC automation scripts: PAT via env var → `Receive2` latest
-  version → `Flatten` → analyse → optional `Send2` + `Version.Create`.
+  The recommended approach for most AEC automation scripts: PAT via env var → `Receive3` latest
+  version → query `model.Objects` → analyse → optional `Send3`.
 </Tip>
 
 ## Platform concepts
 
-Speckle organizes data as **projects → models → versions → object graphs**, not files. The GraphQL API exposes projects, models, and versions; `IOperations` moves object graphs to and from storage. Full hierarchy: [Data Schema Overview](/developers/data-schema/overview#projects-models-and-versions-as-addresses).
+Speckle organizes data as **projects → models → versions**, not files. The GraphQL API exposes projects, models, and versions; `IOperations` loads and publishes the data inside a version. How that data is shaped: [Object model](/developers/object-model/overview).
 
 `IClient` exposes each level as a typed resource:
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
-var project = await client.Project.Create(new ProjectCreateInput("Office Renovation", null, ProjectVisibility.Private));
+var workspaceId = "your_workspace_id";
+var project = await client.Project.CreateInWorkspace(
+    new WorkspaceProjectCreateInput("Office Renovation", null, ProjectVisibility.Private, workspaceId));
 var model = await client.Model.Create(new CreateModelInput("Structural Model", null, project.id));
-var version = await client.Version.Create(new CreateVersionInput(objectId, model.id, project.id, "Updated beam sizing"));
+var versions = await client.Version.GetVersions(model.id, project.id, limit: 1);
 ```
 
 <Info>
@@ -84,9 +86,26 @@ var version = await client.Version.Create(new CreateVersionInput(objectId, model
   calls `projectId`. Pass your project's `id` — they are the same value.
 </Info>
 
-Object modeling (`Base`, `DataObject`, `Collection`, detachment, `displayValue`): [Work with model objects](/developers/sdks/dotnet/concepts/objects-and-traversal).
+Object modeling for versions published before 2026.9 (`Base`, `DataObject`, `Collection`, detachment, `displayValue`): [Work with model objects](/developers/sdks/dotnet/concepts/objects-and-traversal).
 
-## Object IDs (hashes)
+## Load and publish model data
+
+`IOperations` loads and publishes model data. For scripts and notebooks, **`Receive3`** loads a version and **`Send3`** publishes one. See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) for every entry point.
+
+```csharp Example lines icon="/images/developers/sdks/csharp.svg"
+using var received = await operations.Receive3(account, project.id, model.id, versionId, options: null, cancellationToken: default);
+var byLevel = received.Objects.GroupBy(o => o.Level?.Name ?? "Unknown");
+```
+
+## Object graphs before 2026.9
+
+<Note>
+  The sections below apply to the object-graph path (`Send`, `Send2`, `Receive2`) used by versions
+  published before 2026.9. A 2026.9 version identifies objects by `applicationId` only. See [Object
+  model](/developers/object-model/overview).
+</Note>
+
+### Object IDs (hashes)
 
 Every sent object has a unique **object ID**, deterministically generated from its content.
 
@@ -96,11 +115,9 @@ Every sent object has a unique **object ID**, deterministically generated from i
   `SendPipeline`) rather than computing it separately.
 </Warning>
 
-## Load and publish model data
+### Transports
 
-`IOperations` provides the core methods for moving object graphs. See [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths) for when to use which entry point.
-
-For scripts and notebooks, **`Receive2`/`Send2`** is the recommended choice. The [Full send/receive tour](/developers/sdks/dotnet/getting-started/quickstart) teaches the classic `Send`/`Receive` + `ServerTransport` pair if you want to understand transports:
+The classic `Send`/`Receive` + `ServerTransport` pair moves object graphs through a transport:
 
 ```csharp Example lines icon="/images/developers/sdks/csharp.svg"
 using var transport = provider.GetRequiredService<IServerTransportFactory>().Create(client.Account, project.id);
@@ -109,7 +126,7 @@ var (objectId, _) = await operations.Send(myData, transport, useDefaultCache: tr
 var received = await operations.Receive(objectId, remoteTransport: transport);
 ```
 
-## Orphaned objects
+### Orphaned objects
 
 <Warning>
   Objects sent to the server but not referenced by any version are **orphaned** — stored with an
@@ -125,7 +142,7 @@ var version = await client.Version.Create(new CreateVersionInput(objectId, model
 
 Always create a version after sending data you want users to find.
 
-## The type system
+### The type system
 
 Every object carries a `speckle_type`, derived from its .NET type, which lets `Receive` reconstruct the correct concrete type:
 
@@ -143,7 +160,7 @@ Console.WriteLine(point.speckle_type); // "Objects.Geometry.Point"
   Geometry](/developers/sdks/dotnet/guides/working-with-geometry).
 </Info>
 
-## Local cache
+### Local cache
 
 Speckle.Sdk maintains a local SQLite cache under the current user's application data folder (`.../Speckle/`), used automatically by `Send`/`Receive` when `useDefaultCache: true`.
 
@@ -151,15 +168,15 @@ Speckle.Sdk maintains a local SQLite cache under the current user's application 
 
 <AccordionGroup>
   <Accordion title="What happens if I send data but never create a version?">
-    The object is stored on the server with an object ID, but it is **orphaned** until a version
-    references it. Always create a version after sending data you want others to find.
+    With `Send` or `Send2`, the object is stored on the server with an object ID, but it is
+    **orphaned** until a version references it. `Send3` creates the version for you when the server
+    finishes processing the upload.
   </Accordion>
-  <Accordion title="Should I use Send or Send2?">
-    Use **Send2**/`Receive2` for scripts, notebooks, and most new server-facing code. Use
-    **Send**/`Receive` with an `ITransport` when you follow the [Full send/receive
-    tour](/developers/sdks/dotnet/getting-started/quickstart), need
-    `MemoryTransport`/`SQLiteTransport`, or integrate with code that already uses transports. See
-    [Load and publish model data](/developers/sdks/dotnet/concepts/send-and-receive-paths).
+  <Accordion title="Should I use Send, Send2, or Send3?">
+    Use **`Send3`** to publish and **`Receive3`** to load. `Send`, `Send2`, and the old receive
+    calls are obsolete, and Speckle does not guarantee them for new work; keep `Receive2` or a
+    transport `Receive` only to read versions published before 2026.9. See [Load and publish model
+    data](/developers/sdks/dotnet/concepts/send-and-receive-paths).
   </Accordion>
   <Accordion title="Why does streamId appear in transport code?">
     Older transport APIs use `streamId` for what the GraphQL API calls `projectId`. Pass your
@@ -175,16 +192,16 @@ Speckle.Sdk maintains a local SQLite cache under the current user's application 
     icon="chart-bar"
     href="/developers/sdks/dotnet/guides/build-your-first-model-analysis-tool"
   >
-    Load, traverse, and export a CSV report
+    Load, query, and export a CSV report
   </Card>
   <Card
     title="Load and publish model data"
     icon="route"
     href="/developers/sdks/dotnet/concepts/send-and-receive-paths"
   >
-    Choose Send2, Send, or SendPipeline
+    Choose Receive3, Send3, or SendPipeline
   </Card>
   <Card title="Operations API" icon="code" href="/developers/sdks/dotnet/api-reference/operations">
-    Send, Receive, and Send2 signatures
+    Receive3 and Send3 signatures
   </Card>
 </CardGroup>

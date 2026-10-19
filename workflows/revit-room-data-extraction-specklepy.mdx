@@ -1,25 +1,14 @@
 ---
-title: 'Extracting Room Data from Revit using SpecklePy'
-sidebarTitle: 'Revit Room Data Extraction'
+title: 'Extract Revit room data with SpecklePy'
+sidebarTitle: 'Revit room data extraction'
 description: 'Extract room data from Revit models using SpecklePy.'
-docs_status: changed
-changes_in_version: '2026.9'
-changes_from: '2026-09'
-next_docs:
-  - /next/connectors/revit/introduction
-change_scope: 'Revit placement and Apply Transform'
 ---
 
-<Visibility for="agents">
-  Documentation status: changed for the changes in Speckle 2026.9 (from 2026-09).
-
-Affected guidance: Revit placement and Apply Transform.
-
-For these changes, read [2026.9 guidance](/next/connectors/revit/introduction).
-
-For Speckle 2026.9, prefer the linked guidance only for the affected topics. This page remains applicable to earlier experiences and unchanged guidance. Do not treat the whole page or feature as deprecated.
-
-</Visibility>
+<Note>
+  This workflow reads versions published before 2026.9 with `operations.receive`. It does not read
+  versions published with a 2026.9 connector. For new work, use the 2026.9 path in [Migrate a
+  specklepy script to 2026.9](/developers/sdks/python/migrate-to-2026-9).
+</Note>
 
 In this workflow, we will demonstrate how to extract room data from Revit models using SpecklePy SDK to a Pandas DataFrame.
 
@@ -28,8 +17,8 @@ In this workflow, we will demonstrate how to extract room data from Revit models
 Before you begin, ensure you have the following:
 
 - A Revit model with room data.
-- Send your model to Speckle using the Speckle Revit Connector. (Learn how [here](https://docs.speckle.systems/connectors/revit/revit))
-- [SpecklePy SDK](https://docs.speckle.systems/developers/sdks/python/introduction) installed in your Python environment.
+- Send your model to Speckle using the Speckle Revit Connector. See [Revit](/connectors/revit/revit).
+- [SpecklePy SDK](/developers/sdks/python/introduction) installed in your Python environment.
 - Pandas library for data manipulation.
 
 ## Step 1: Install SpecklePy SDK and Pandas
@@ -47,6 +36,7 @@ First, import the required libraries and authenticate with Speckle.
 ```python
 
 import os
+from typing import Iterable
 
 from dotenv import load_dotenv
 from specklepy.api.client import SpeckleClient
@@ -69,7 +59,7 @@ client.authenticate_with_token(SPECKLE_TOKEN)
 
 ## Step 3: Retrieve the full object graph
 
-Next, we will retrieve the full object graph of the Revit model that contains the room data. To do this, we need the project ID and version ID of the model we sent to Speckle. You can find these IDs in the URL of your project and version in the Speckle web interface. Learn more about the core concepts [here](https://docs.speckle.systems/core/concepts/).
+Next, we will retrieve the full object graph of the Revit model that contains the room data. To do this, we need the project ID and version ID of the model we sent to Speckle. You can find these IDs in the URL of your project and version in the Speckle web interface.
 
 ```python
 project_id = "your_project_id" # here add your project ID, you can find it in the URL of your project, after "projects/", for example in "https://app.speckle.systems/projects/e23d2d5041/models/ab02b98507" the project ID is "e23d2d5041"
@@ -220,7 +210,7 @@ df_rooms = pd.DataFrame(data)
 df_rooms.head()
 ```
 
-## Results should look like this
+## Check the results
 
 | id                                | Number | Name                   | Occupant       | Floor Finish          | Level         | Area        | Volume       | Perimeter  | Unbounded Height |
 | --------------------------------- | ------ | ---------------------- | -------------- | --------------------- | ------------- | ----------- | ------------ | ---------- | ---------------- |
