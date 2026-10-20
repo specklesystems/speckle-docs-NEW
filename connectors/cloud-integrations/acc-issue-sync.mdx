@@ -1,0 +1,288 @@
+---
+title: 'Sync issues with Autodesk Forma Data Management (ACC)'
+sidebarTitle: 'ACC issue sync'
+description: 'Bring pinned ACC issues onto the synced Speckle model, send Speckle issues to ACC, and keep their status in step both ways.'
+tag: Enterprise
+---
+
+With issue sync, the ACC issues pinned to a synced file appear on its Speckle model, and issues your team raises in Speckle can go to ACC with one action. After that, status moves both ways: resolve an issue in Speckle and it closes in ACC; close it in ACC and it resolves in Speckle. Reviewers see ACC's open work where they review the model, and project partners who work in ACC get Speckle findings without anyone retyping them.
+
+<Note>
+  **Autodesk Forma Data Management** is the current name for **Autodesk Construction Cloud (ACC)**.
+  Speckle labels this feature **ACC issue sync**, and an issue linked to ACC shows an **ACC #n**
+  chip.
+</Note>
+
+<Info>
+  Issue sync is part of the Forma Data Management integration on the **Enterprise** plan. It is
+  rolling out on Speckle Cloud; if you don't see it in your workspace, [contact
+  us](mailto:support@speckle.systems). To use it on another plan, [talk to
+  sales](mailto:sales@speckle.systems?subject=ACC%20issue%20sync%20request).
+</Info>
+
+<Note>
+  On self-hosted deployments, issue sync requires Speckle Enterprise Server with a [license
+  key](/developers/server/deployment/enterprise-license#license-key), and your server administrator
+  turns it on. See [ACC
+  integration](/developers/server/deployment/enterprise-license#optional-acc-integration).
+</Note>
+
+## Before you start
+
+- The model comes from an [ACC sync](/connectors/cloud-integrations/acc). Issue sync is a setting on that sync.
+- A workspace admin has connected an Autodesk account for issue sync. See [Connect an account](#connect-an-account).
+- That account has **Manage issues** in the ACC project the synced file lives in.
+
+## Connect an account
+
+Speckle reads and writes ACC issues for every project in your workspace through one Autodesk account, the **connected account**. Only a workspace admin can connect it. Other members see the page with the buttons disabled and the reason.
+
+{/* IMAGE_PLACEHOLDER: Workspace settings → Integrations → Autodesk ACC — the Connected account card in the connected state (Autodesk user, Connected by …, Change account and Disconnect) and the Used by list. */}
+
+<Steps>
+  <Step title="Open the ACC settings">
+    Open **Workspace settings** and select **Autodesk ACC** under **Integrations**. You should see
+    the **Connected account** card reading **Not connected**.
+  </Step>
+  <Step title="Connect ACC">
+    Select **Connect ACC** and sign in to Autodesk with the account Speckle should use. Finish the
+    sign-in in the same browser where you started it.
+  </Step>
+  <Step title="Check the account">
+    Back in Speckle, the card shows the Autodesk account, who connected it, and when. **Used by**
+    lists the syncs with issue sync on once someone turns it on.
+  </Step>
+</Steps>
+
+The card lists what connecting means before you do it:
+
+- **Speckle's issue permissions, not each person's ACC role, decide what reaches ACC.** Anyone who can change an issue's status in Speckle can send it to ACC or change its status there.
+- **Every write appears as the connected user in ACC.** Speckle names the Speckle person in the text it writes: a footer on sent issues and a comment on each status change.
+- **The account needs Manage issues** in each ACC project whose files are synced. Turning issue sync on checks this first.
+- **It is separate from the ACC sign-in** people use to pick files to sync.
+
+<Tip>
+  Use a dedicated Autodesk account, such as a service mailbox, with Manage issues only in the ACC
+  projects you want to sync. Writes then read as that account in ACC, and access stays with the
+  role, not with a person who may leave.
+</Tip>
+
+To replace the account, select **Change account**. To stop issue sync from writing as this account, select **Disconnect**: issue sync pauses on every sync until an admin connects an account again. See [Pause and reconnect](#pause-and-reconnect).
+
+## Turn on issue sync for a sync
+
+Anyone who can edit the sync can turn issue sync on, once the workspace has a working connected account.
+
+{/* IMAGE_PLACEHOLDER: a sync's Settings expanded — the ACC issue sync switch on, the Default ACC type select, and the ACC issue sync row among the sync's facts. */}
+
+<Steps>
+  <Step title="Open the sync's settings">
+    Open the sync and expand **Settings**. You should see **ACC issue sync** at the top.
+  </Step>
+  <Step title="Turn on ACC issue sync">
+    Turn on the switch. Speckle checks that the connected account can manage issues in the file's
+    ACC project, then brings over the file's pinned issues.
+  </Step>
+  <Step title="Pick a default ACC type">
+    Choose a **Default ACC type**. It is preselected when someone sends an issue that has no
+    matching type label.
+  </Step>
+  <Step title="Check the issues">
+    Open the model's issues. You should see the imported issues, each with an **ACC #n** chip.
+  </Step>
+</Steps>
+
+If the switch is unavailable, the reason shows beside it: **No ACC account is connected for issue sync in this workspace**, **The connected ACC account needs reconnecting**, or you can't edit the sync. If the connected account lacks Manage issues in that ACC project, turning it on fails with the permissions that are missing.
+
+The sync's status shows an **ACC issue sync** row: whether it is **Healthy**, **Failing**, **Paused**, or **Off**, when it last checked ACC, and how many issues are linked and failed.
+
+Turning issue sync off keeps every imported issue in Speckle, with its status and replies, and unlocks it. Turning it on again re-attaches those issues instead of creating copies. Deleting the sync, or its model, also keeps the issues and unlinks them.
+
+## What comes over from ACC
+
+Speckle brings over every ACC issue pinned to the synced file that is not **Closed** and not a **Draft**. It checks ACC every five minutes, so new issues and changes made in ACC arrive within minutes.
+
+| ACC                | Speckle                                                                                                   |
+| ------------------ | --------------------------------------------------------------------------------------------------------- |
+| Title, description | Title, description (plain text)                                                                           |
+| Status             | Mapped to Open, Ready for Review or Resolved. See [Status in both directions](#status-in-both-directions) |
+| Due date           | Due date                                                                                                  |
+| Type and subtype   | A workspace issue label named `Type: Subtype`, created if it doesn't exist                                |
+| Assignee           | The Speckle user with the same email. Otherwise unassigned, with the ACC name in the chip's hover card    |
+| Creator            | Shown as the author, as **ACC · name**                                                                    |
+
+An assignee matched by email gets the usual assignment notification. An assignee that is an ACC role or company stays unassigned.
+
+### Where an imported issue opens
+
+Speckle anchors each imported issue from its ACC pin, so opening it in the viewer takes you to the right place:
+
+1. **The pinned element**, selected, when the element is in the latest version of the model.
+2. **The pin's position**, when the element can't be matched.
+3. **The model**, when the pin has no usable position, for example a pin on a 2D sheet.
+4. **The project**, as a general issue, when the model has no version yet.
+
+No issue is dropped because its pin can't be placed.
+
+### What stays in ACC
+
+- Issues that are not pinned, pinned to a file that isn't synced, or drafts.
+- ACC comments and attachments. Open the issue in ACC from its chip to see them.
+
+## Send Speckle issues to ACC
+
+Sending creates an ACC issue in the synced file's ACC project and links it to the Speckle issue. You can send an issue that is on a model with issue sync on, is not resolved, and is not already linked. Anyone who can change the issue's status can send it.
+
+{/* IMAGE_PLACEHOLDER: the Send issue to ACC dialog — the ACC project line, the ACC issue type select preselected from a label, and an assignee warning. */}
+
+<Steps>
+  <Step title="Open the issue's menu">
+    Open the issue and select **⋯** (**More actions**), then **Send to ACC…**.
+  </Step>
+  <Step title="Pick the type">
+    Choose the **ACC issue type**. It is preselected from a matching `Type: Subtype` label, or from
+    the sync's default type. If the model has several syncs with issue sync on, also choose the
+    **Sync**.
+  </Step>
+  <Step title="Send it">
+    Select **Send to ACC**. The issue shows **Sending to ACC…**, then an **ACC #n** chip once the
+    ACC issue exists.
+  </Step>
+</Steps>
+
+To send several issues at once, select them on the project's **Issues** page, right-click the selection, and select **Send n issues to ACC…**. The dialog lists the issues to send and the ones it skips, with the reason. One type applies to the whole batch. When the selection spans several syncs, the issues on syncs other than the one you choose are skipped with **Needs a different sync**: send them in a second batch.
+
+To send a new issue as you create it in the viewer, tick **Also send to ACC** and choose a type. The issue is created even if the send can't go ahead; a message tells you why.
+
+### What the ACC issue contains
+
+- The title, and the description as plain text, cut to fit ACC's limit. It ends with a footer: **From Speckle · author · link to the issue**.
+- The type and subtype you chose, the due date, and the assignee, matched by email to a user of the ACC project.
+- One comment with the full description and the Revit UniqueIds of the elements selected in the issue's view.
+
+The ACC issue opens as **Open**. It is not pinned or attached to the file in ACC; the footer link is the way back to Speckle.
+
+If the Speckle assignee has no account in the ACC project, the dialog warns you, and the ACC issue goes to ACC unassigned.
+
+### After sending
+
+- The type is fixed once sent.
+- Speckle owns the title, description, assignee, and due date. Changes made in Speckle update the ACC issue; changes made to them in ACC are not brought back.
+- Status moves both ways, like an imported issue.
+- To stop syncing it, select **⋯** → **Unlink from ACC**. The ACC issue stays in ACC.
+
+## Fields ACC owns
+
+An issue that came from ACC belongs to ACC. Its title, description, assignee, due date, and type label carry a lock in Speckle, with the reason: for example, **The assignee is owned by ACC: change it in ACC.** Change them in ACC; Speckle picks the change up within minutes.
+
+These stay editable in Speckle: status, priority, other labels, the view the issue opens in, and replies.
+
+You can't delete an issue that came from ACC in Speckle: **This issue is owned by ACC: delete it in ACC.** Deleting an issue you sent from Speckle is allowed and leaves its ACC issue in place.
+
+## Status in both directions
+
+ACC has more statuses than Speckle, so several ACC statuses map to one Speckle status.
+
+| ACC status                                           | Speckle status   |
+| ---------------------------------------------------- | ---------------- |
+| Open, Pending, In progress, Not approved, In dispute | Open             |
+| In review, Completed                                 | Ready for Review |
+| Closed                                               | Resolved         |
+| Draft                                                | Not brought over |
+
+| You set in Speckle | Speckle sets in ACC                                                 |
+| ------------------ | ------------------------------------------------------------------- |
+| Resolved           | Closed                                                              |
+| Ready for Review   | In review, if ACC allows that move for the issue; otherwise nothing |
+| Open (reopen)      | Open                                                                |
+
+- A move in ACC between statuses that map to the same Speckle status, such as Pending to In dispute, leaves the Speckle issue alone. Hover the **ACC #n** chip to see ACC's exact status.
+- Each status change Speckle makes in ACC adds an ACC comment: **Status changed in Speckle by name · link**.
+- When ACC refuses a change, for example a close that only the issue's creator may make, the issue keeps your status and shows **Not synced to ACC** with ACC's reason and **Retry**. Speckle never reverts your status silently.
+- When ACC can't be reached, Speckle retries for about an hour before showing **Not synced to ACC**.
+
+### When both sides change the status
+
+If the status changed in Speckle and in ACC before the two met, **ACC's status stands**. The Speckle issue takes the status that matches ACC's, nothing is written to ACC, and the issue's timeline gets an entry naming ACC's status and the change that was not applied.
+
+## When an issue is unlinked
+
+An unlinked issue stays in Speckle with its status and replies. It loses the chip and the locks, and its timeline records why:
+
+- someone selected **Unlink from ACC**
+- issue sync was turned off
+- the sync or its model was deleted
+- the issue was deleted in ACC
+- the issue was unpinned from the file in ACC
+
+A link comes back on the same Speckle issue, never as a second one:
+
+- **An issue that came from ACC** links again when it is restored or pinned to the synced file again in ACC, and when issue sync is turned on for its file while the ACC issue is still pinned and not closed. It can't be sent to ACC, because its ACC issue still exists.
+- **An issue you sent from Speckle** links again when its ACC issue is restored after a delete. After any other unlink, you can send it again; that creates a new ACC issue, and the old one stays in ACC.
+
+## When something goes wrong
+
+A linked issue shows one line under its status when something is in progress or wrong. The project's issue list marks the issue with the same state.
+
+| Line                                                           | What to do                                                                                                |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Sending to ACC…**, **Updating ACC…**                         | Nothing. It settles on its own                                                                            |
+| **Not sent to ACC**, with the reason · **Retry** · **Discard** | Fix the cause and select **Retry**, or **Discard** to drop the send. Discarding leaves the issue unlinked |
+| **Not synced to ACC**, with the reason · **Retry**             | Fix the cause in ACC, then select **Retry**                                                               |
+| **No access in ACC**                                           | The connected account can no longer see the issue. Give it access in ACC                                  |
+| **Issue sync paused until a workspace admin reconnects ACC**   | Ask a workspace admin to reconnect. See [Pause and reconnect](#pause-and-reconnect)                       |
+
+A send is never retried automatically. Retry is safe: if ACC created the issue but Speckle missed the answer, Retry links that issue instead of creating a second one.
+
+## Pause and reconnect
+
+If the connected account stops working, for example because its Autodesk sign-in expired or was revoked, issue sync pauses in both directions on every sync in the workspace, and every workspace admin gets one email. Disconnecting the account pauses it the same way, without an email.
+
+While issue sync is paused:
+
+- Linked issues and the sync's **ACC issue sync** row read **Paused**.
+- Nothing is sent to ACC or read from it. **Send to ACC…** and turning issue sync on are unavailable; turning it off still works.
+- Status changes you make in Speckle are kept.
+
+To resume, a workspace admin opens **Workspace settings** → **Autodesk ACC** and selects **Reconnect**. Nothing needs to be set up again. Within five minutes, every linked issue catches up with ACC as it stands, and the status changes made during the pause reach ACC, unless ACC changed the same issue meanwhile; then ACC's status stands. A send that was underway when the account stopped working shows **Not sent to ACC**: select **Retry** after reconnecting.
+
+## Known limits
+
+- Comments and attachments don't sync in either direction.
+- Only issues pinned to a synced file come over. Project-level issues and issues on files that aren't synced stay in ACC.
+- Issues sent from Speckle are not pinned to the file in ACC, and a pin added to them later in ACC is ignored.
+- Every change appears in ACC as the connected user; Speckle names the person in the footer and comments.
+- ACC role and company assignees show as unassigned, without a name.
+- Changes take up to five minutes to arrive from ACC.
+- Anyone who can view the Speckle project can read the imported issues, whatever their ACC permissions.
+
+<AccordionGroup>
+  <Accordion title="Why is Send to ACC… disabled?">
+    The menu item shows the reason. The most common are **Resolved issues cannot be sent**,
+    **Already linked to ACC**, **Not on a model with ACC issue sync turned on**, and **It came from
+    ACC, so it cannot be sent there again**, for an imported issue that was unlinked. An issue you
+    sent whose ACC issue was deleted can't be sent again either; it links again only if the ACC
+    issue is restored.
+  </Accordion>
+  <Accordion title="Why did connecting the account fail?">
+    The page shows **Couldn't connect the ACC account** when the Autodesk sign-in was cancelled, or
+    when it was completed in a browser signed in to Speckle as someone else. The connect must be
+    completed by the workspace admin who started it: sign in to Speckle as that admin and select
+    **Connect ACC** again.
+  </Accordion>
+  <Accordion title="Can people without an ACC account change ACC issues?">
+    Yes, through Speckle. Speckle's issue permissions decide what reaches ACC, and the change is
+    made as the connected account. Anyone who can change an issue's status in Speckle can send it,
+    unlink it, and move its status in ACC. Scope this by choosing which projects the connected
+    account can manage issues in.
+  </Accordion>
+  <Accordion title="I marked an issue Ready for Review, but ACC didn't change. Why?">
+    Speckle moves the ACC issue to **In review** only when ACC allows that move for the issue.
+    Otherwise nothing is written, and no error is shown. The ACC issue keeps its status until
+    someone changes it in ACC or resolves the issue in Speckle.
+  </Accordion>
+  <Accordion title="An issue I resolved in Speckle went back to Open. Why?">
+    Someone changed the issue's status in ACC before your change reached it. ACC's status stands in
+    a conflict. The issue's timeline names ACC's status and the change that was not applied.
+  </Accordion>
+</AccordionGroup>

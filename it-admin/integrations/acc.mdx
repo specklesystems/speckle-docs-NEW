@@ -54,16 +54,18 @@ Until your organisation enables the Speckle integration on its ACC hub, users ca
 
 <Note>
   **The warning in step 6 comes from Autodesk, not Speckle.** Autodesk does not offer granular
-  permission controls for Custom Integrations, so the dialog cannot show the actual scope. Speckle
-  requests only read-only scopes (`account:read`, `user-profile:read`, `data:read`, `data:search`,
-  `bucket:read`, `viewables:read`, `openid`) to reach files and metadata for conversion. See
-  [Autodesk scope definitions](https://aps.autodesk.com/en/docs/oauth/v2/developers_guide/scopes/)
-  for details.
+  permission controls for Custom Integrations, so the dialog cannot show the actual scope. To sync
+  files, Speckle requests only read-only scopes (`account:read`, `user-profile:read`, `data:read`,
+  `data:search`, `bucket:read`, `viewables:read`, `openid`). The account a workspace admin connects
+  for [issue sync](#connect-an-account-for-issue-sync) also gets `data:write`, so Speckle can write
+  ACC issues. See [Autodesk scope
+  definitions](https://aps.autodesk.com/en/docs/oauth/v2/developers_guide/scopes/) for details.
 </Note>
 
 <Note>
-  **Speckle inherits each user's existing permissions in Autodesk Forma Data Management (ACC).**
-  Users can see only hubs, projects, and folders they already have access to in Autodesk.
+  **To sync files, Speckle inherits each user's existing permissions in Autodesk Forma Data
+  Management (ACC).** Users can see only hubs, projects, and folders they already have access to in
+  Autodesk. Issue sync works differently: it acts as one connected account for the whole workspace.
 </Note>
 
 <Tip>
@@ -72,3 +74,37 @@ Until your organisation enables the Speckle integration on its ACC hub, users ca
 </Tip>
 
 After this is enabled, users can continue with [Autodesk Forma Data Management (ACC) user setup](/connectors/cloud-integrations/acc).
+
+## Connect an account for issue sync
+
+[ACC issue sync](/connectors/cloud-integrations/acc-issue-sync) brings the ACC issues pinned to a synced file into Speckle and sends Speckle issues to ACC. It needs the custom integration above, plus one Autodesk account that a workspace admin connects for the whole workspace. It is part of the integration on the **Enterprise** plan.
+
+Speckle reads and writes ACC issues for every project in the workspace as this one Autodesk account. This changes who decides what reaches ACC:
+
+- **Speckle's issue permissions decide, not each person's ACC role.** Anyone who can change an issue's status in Speckle can send it to ACC, unlink it, and change its status there, even without an ACC account.
+- **Every write appears in ACC as the connected user.** Speckle names the Speckle person in a footer on sent issues and in a comment on each status change.
+- **Imported issues are visible to everyone who can view the Speckle project**, whatever their ACC permissions.
+- **The account needs Manage issues** in each ACC project whose files have issue sync on. Turning issue sync on for a sync checks this first. Project Admin is not needed.
+
+<Steps>
+  <Step title="Choose the account">
+    Use a dedicated Autodesk account with Manage issues only in the ACC projects you want to sync.
+    Access then belongs to the role, not to a person who may leave.
+  </Step>
+  <Step title="Connect it in Speckle">
+    As a workspace admin, open **Workspace settings** → **Autodesk ACC**, select **Connect ACC**,
+    and sign in to Autodesk with that account in the same browser. You should see the account, who
+    connected it, and when.
+  </Step>
+  <Step title="Check which syncs use it">
+    **Used by** lists the syncs with issue sync on. These are what disconnecting or replacing the
+    account affects.
+  </Step>
+</Steps>
+
+Speckle keeps the connection alive while nobody uses it. If the account stops working, for example because its sign-in was revoked or it lost access, issue sync pauses in both directions on every sync in the workspace, and every workspace admin gets one email. Select **Reconnect** to resume: each linked issue then catches up with ACC, with nothing to reconfigure. **Change account** replaces the account; **Disconnect** pauses issue sync without an email until an admin connects an account again.
+
+<Warning>
+  Disconnecting pauses issue sync on every sync listed in **Used by**. Replacing the account changes
+  who later ACC writes appear as, and the new account needs Manage issues in the same ACC projects.
+</Warning>

@@ -425,7 +425,7 @@ The integration runs on Speckle's Autodesk application, so enabling it involves 
 #### What the integration needs from you
 
 - **Credentials issued by Speckle.** The client ID and client secret belong to Speckle's Autodesk application. You do not create an application in the Autodesk developer portal. Speckle issues both when it enables the integration for your deployment.
-- **Your public origin, registered by Speckle.** After a user signs in, Autodesk redirects them to `https://<DOMAIN>/api/v1/acc/auth/callback`, and it accepts that redirect only if Speckle has registered it on the application. `<DOMAIN>` is the `domain` value of your chart.
+- **Your public origin, registered by Speckle.** After a user signs in, Autodesk redirects them to `https://<DOMAIN>/api/v1/acc/auth/callback`, and it accepts that redirect only if Speckle has registered it on the application. `<DOMAIN>` is the `domain` value of your chart. For [ACC issue sync](#acc-issue-sync), Speckle also registers `https://<DOMAIN>/api/v1/acc/issue-sync/connect/callback`, where a workspace admin returns after connecting the issue sync account.
 - **A server that Autodesk can reach.** Syncs are webhook-driven: Autodesk posts to `https://<DOMAIN>/api/v1/acc/webhook/callback` when a new file version is published. A deployment reachable only from inside your network lets users sign in but never picks up new versions.
 - **The client secret in a Kubernetes Secret**, named in `accIntegration.clientSecret`. The client ID is a plain chart value.
 
@@ -479,6 +479,23 @@ accIntegration:
 ```
 
 `enableNwd` and `enableDwg` are the chart's switches for NWD/NWC and DWG syncs. Leave them on unless you want those formats off.
+
+#### ACC issue sync
+
+[ACC issue sync](/connectors/cloud-integrations/acc-issue-sync) brings ACC issues pinned to a synced file into Speckle and sends Speckle issues to ACC. It runs on the same Autodesk application and needs no extra credentials. To offer it:
+
+1. Ask Speckle to register `https://<DOMAIN>/api/v1/acc/issue-sync/connect/callback` on its Autodesk application, alongside the sign-in callback.
+1. Turn on `featureFlags.accIssueSyncEnabled`. It takes effect only with `featureFlags.accIntegrationEnabled` and `featureFlags.issuesModuleEnabled` also on.
+1. Upgrade the release. Workspace admins then see **Autodesk ACC** under **Integrations** in **Workspace settings**, where they connect the account issue sync uses.
+
+```yaml
+featureFlags:
+  accIntegrationEnabled: true
+  issuesModuleEnabled: true
+  accIssueSyncEnabled: true
+```
+
+Issue sync checks ACC for changes every five minutes from your cluster; it needs outbound access to Autodesk but no extra inbound URL.
 
 Two steps remain outside your cluster before a user can create a sync. An Autodesk account admin at your organisation adds Speckle as a custom integration on the ACC hub, following [Enable Autodesk Forma Data Management integration](/it-admin/integrations/acc). Users then sign in and create syncs from their workspace, following the [user guide](/connectors/cloud-integrations/acc).
 
