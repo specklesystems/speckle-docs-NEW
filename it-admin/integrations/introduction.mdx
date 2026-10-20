@@ -17,12 +17,12 @@ Two consequences follow:
 
 ## Two kinds of integration
 
-|                          | Syncs                                                                                          | Subscriptions                                                                                                |
-| ------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Source**               | BIM and CAD files in a CDE — Autodesk Forma Data Management (ACC), Bentley ProjectWise         | Tables and views in a data platform — Databricks, Snowflake                                                  |
-| **What Speckle does**    | Reads the file, converts it into Speckle objects, and stores the result in the Speckle project | Registers the table and runs read-only `SELECT` queries against it on demand                                 |
-| **Where the data lives** | A converted copy lives in Speckle; the source file is untouched                                | Data stays in your platform; Speckle stores the query results it needs to render a view or answer a question |
-| **Direction**            | Read only. Speckle never writes back to the CDE                                                | Read only. Speckle never writes, alters, or deletes                                                          |
+|                          | Syncs                                                                                                      | Subscriptions                                                                                                |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Source**               | BIM and CAD files in a CDE — Autodesk Forma Data Management (ACC), Bentley ProjectWise                     | Tables and views in a data platform — Databricks, Snowflake                                                  |
+| **What Speckle does**    | Reads the file, converts it into Speckle objects, and stores the result in the Speckle project             | Registers the table and runs read-only `SELECT` queries against it on demand                                 |
+| **Where the data lives** | A converted copy lives in Speckle; the source file is untouched                                            | Data stays in your platform; Speckle stores the query results it needs to render a view or answer a question |
+| **Direction**            | Read only. Speckle never writes files back to the CDE; [ACC issue sync](#acc-issue-sync) writes ACC issues | Read only. Speckle never writes, alters, or deletes                                                          |
 
 ### Syncs (BIM and CAD)
 
@@ -76,18 +76,25 @@ This section applies to every sync integration — Autodesk Forma Data Managemen
 
 This is where the integrations differ, and it determines where you scope access.
 
-| Integration                              | Identity Speckle uses                                                                  | What a user can reach                                                                             |
-| ---------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Autodesk Forma Data Management (ACC)** | The signed-in user's own Autodesk account, via OAuth with read-only scopes             | Exactly the hubs, projects, and folders that user already has in Autodesk — no more, no less      |
-| **Bentley ProjectWise**                  | A Speckle service account you add to projects, plus the user's own Bentley credentials | Only projects the service account has been added to **and** the user is permitted to see          |
-| **Databricks**                           | A service principal you create, with SQL grants you assign                             | Whatever the service principal has `SELECT` on — the same for every user in the Speckle workspace |
-| **Snowflake**                            | A service user you create, with a role you grant                                       | Whatever the role can read — the same for every user in the Speckle workspace                     |
+| Integration                              | Identity Speckle uses                                                                  | What a user can reach                                                                                              |
+| ---------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Autodesk Forma Data Management (ACC)** | The signed-in user's own Autodesk account, via OAuth with read-only scopes             | Exactly the hubs, projects, and folders that user already has in Autodesk — no more, no less                       |
+| **Bentley ProjectWise**                  | A Speckle service account you add to projects, plus the user's own Bentley credentials | Only projects the service account has been added to **and** the user is permitted to see                           |
+| **Databricks**                           | A service principal you create, with SQL grants you assign                             | Whatever the service principal has `SELECT` on — the same for every user in the Speckle workspace                  |
+| **Snowflake**                            | A service user you create, with a role you grant                                       | Whatever the role can read — the same for every user in the Speckle workspace                                      |
+| **ACC issue sync**                       | One Autodesk account a workspace admin connects for the workspace, with `data:write`   | Issues in the ACC projects where that account has Manage issues — the same for every user in the Speckle workspace |
 
 **For ACC, permissions are per user and follow the user.** If Sarah is a member of two hubs — full read on one, a single project on the other — she can sync anything she can read across both, and nothing else. Change her Autodesk permissions and her Speckle reach changes with them. There is nothing for you to enable beyond registering the Speckle integration on the hub once.
 
 **For Databricks and Snowflake, permissions are per workspace and follow the service identity.** Everyone in the Speckle workspace sees the same set of tables: the ones you granted. This is deliberate — it lets you publish a curated, governed surface (specific schemas, views with row filtering applied on your side) without mirroring individual user entitlements into Speckle. If different teams need different data, use separate Speckle workspaces with separate service identities.
 
 **ProjectWise is both.** The service account must be added to a project for it to be reachable at all, and within that the user's own ProjectWise permissions still apply.
+
+### ACC issue sync
+
+[ACC issue sync](/connectors/cloud-integrations/acc-issue-sync) is the one place Speckle writes to a source platform, and it writes issues, never files. It does not use each user's sign-in. A workspace admin connects one Autodesk account, and Speckle reads and writes ACC issues for every project in the workspace as that account. Speckle's issue permissions decide who can send an issue to ACC or change its status there, and every write appears in ACC as the connected user, with the Speckle person named in the text. Scope it by giving that account Manage issues only in the ACC projects you want synced. See [Connect an account for issue sync](/it-admin/integrations/acc#connect-an-account-for-issue-sync).
+
+Issue sync is not forward-only like file syncs: after an outage or a pause, it brings every linked issue to its current state in ACC.
 
 <Note>
   Speckle's own project roles govern what happens *after* data is in Speckle — who can view,
@@ -96,7 +103,7 @@ This is where the integrations differ, and it determines where you scope access.
 
 ## What Speckle never does
 
-- **Write back.** No integration modifies, uploads, or deletes anything in the source platform. Scopes and grants are read-only by design; in ACC, the requested scopes are `account:read`, `user-profile:read`, `data:read`, `data:search`, `bucket:read`, `viewables:read`, and `openid`.
+- **Write back files.** No integration modifies, uploads, or deletes files in the source platform. Scopes and grants for syncing are read-only by design; in ACC, the requested scopes are `account:read`, `user-profile:read`, `data:read`, `data:search`, `bucket:read`, `viewables:read`, and `openid`. The one write is [ACC issue sync](#acc-issue-sync): its connected account also has `data:write`, and Speckle uses it only to create and update ACC issues and add comments to them. It never deletes an ACC issue.
 - **Crawl or enumerate beyond the identity's permissions.** Speckle lists only what the identity can list, and only when a user opens the browser view.
 - **Escalate.** Speckle cannot request broader access on a user's behalf; broadening access is always an action you take in your own admin console.
 - **Expose credentials.** Service principal secrets and private keys are encrypted in the browser before they are sent, stored encrypted at rest, and never displayed again after you save them.
@@ -130,8 +137,10 @@ For **ProjectWise**, add the service account only to the projects that need sync
 
 <AccordionGroup>
   <Accordion title="Can a Speckle user see something in our hub they can't see in Autodesk?">
-    No. ACC access is the user's own Autodesk permission set, requested read-only. If they cannot
-    open it in Autodesk, they cannot sync it.
+    Files, no. ACC access for syncing is the user's own Autodesk permission set, requested
+    read-only. If they cannot open a file in Autodesk, they cannot sync it. Issues are the
+    exception: with [ACC issue sync](#acc-issue-sync) on, the issues pinned to a synced file appear
+    to everyone who can view the Speckle project, whatever their ACC role.
   </Accordion>
   <Accordion title="If I revoke a user's access on our side, does Speckle keep the data?">
     New syncs and queries stop immediately. Data already converted into a Speckle project stays
