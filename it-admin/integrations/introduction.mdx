@@ -4,7 +4,7 @@ sidebarTitle: 'Introduction'
 description: 'How Speckle cloud integrations authenticate, what they can see, and what they never do — for IT administrators governing a CDE or data platform.'
 ---
 
-This page explains what is common to every Speckle cloud integration before you enable a specific one. It is written for administrators who govern access on the source side — an Autodesk hub, a ProjectWise datasource, a Databricks or Snowflake account — and need to know what Speckle will and will not be able to reach.
+This page explains what is common to every Speckle cloud integration before you enable a specific one. It is written for administrators who govern access on the source side — an Autodesk hub, a ProjectWise datasource, a Microsoft 365 organization, a Databricks or Snowflake account — and need to know what Speckle will and will not be able to reach.
 
 ## The rule that applies everywhere
 
@@ -17,12 +17,12 @@ Two consequences follow:
 
 ## Two kinds of integration
 
-|                          | Syncs                                                                                          | Subscriptions                                                                                                |
-| ------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Source**               | BIM and CAD files in a CDE — Autodesk Forma Data Management (ACC), Bentley ProjectWise         | Tables and views in a data platform — Databricks, Snowflake                                                  |
-| **What Speckle does**    | Reads the file, converts it into Speckle objects, and stores the result in the Speckle project | Registers the table and runs read-only `SELECT` queries against it on demand                                 |
-| **Where the data lives** | A converted copy lives in Speckle; the source file is untouched                                | Data stays in your platform; Speckle stores the query results it needs to render a view or answer a question |
-| **Direction**            | Read only. Speckle never writes back to the CDE                                                | Read only. Speckle never writes, alters, or deletes                                                          |
+|                          | Syncs                                                                                                               | Subscriptions                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Source**               | BIM and CAD files in a CDE — Autodesk Forma Data Management (ACC), Bentley ProjectWise, Trimble Connect, SharePoint | Tables and views in a data platform — Databricks, Snowflake                                                  |
+| **What Speckle does**    | Reads the file, converts it into Speckle objects, and stores the result in the Speckle project                      | Registers the table and runs read-only `SELECT` queries against it on demand                                 |
+| **Where the data lives** | A converted copy lives in Speckle; the source file is untouched                                                     | Data stays in your platform; Speckle stores the query results it needs to render a view or answer a question |
+| **Direction**            | Read only. Speckle never writes back to the CDE                                                                     | Read only. Speckle never writes, alters, or deletes                                                          |
 
 ### Syncs (BIM and CAD)
 
@@ -34,14 +34,14 @@ A subscription points at a table or view in your warehouse. Speckle presents a b
 
 ## Sync guarantees
 
-This section applies to every sync integration — Autodesk Forma Data Management (ACC), Bentley ProjectWise, Trimble Connect, and any integration added later. It states what Speckle guarantees when a sync runs and what it does when a sync does not.
+This section applies to every sync integration — Autodesk Forma Data Management (ACC), Bentley ProjectWise, Trimble Connect, SharePoint, and any integration added later. It states what Speckle guarantees when a sync runs and what it does when a sync does not.
 
 ### Terms
 
 - **Source platform** — the system Speckle reads from. It is the system of record for its own files and version history; Speckle never is.
 - **Sync** — a standing link between one file in the source platform and one Speckle model. Created once, it produces Speckle versions over time. Pausing or disconnecting a sync stops new versions; existing versions stay.
 - **Source version** — one saved state of a file in the source platform. The source platform numbers and retains these.
-- **Change detection** — how Speckle learns a new source version exists. ACC notifies Speckle at publish time. ProjectWise and Trimble Connect are checked on a schedule, so Speckle sees only the source version current at check time; versions superseded between checks are never seen.
+- **Change detection** — how Speckle learns a new source version exists. ACC notifies Speckle at publish time. ProjectWise, Trimble Connect, and SharePoint are checked on a schedule, so Speckle sees only the source version current at check time; versions superseded between checks are never seen.
 - **Sync attempt** — one run of a sync against one source version Speckle has seen: download, convert, store. Each seen source version gets exactly one attempt, which either succeeds (a Speckle version now exists) or fails (it does not).
 - **Speckle version** — the converted copy a successful attempt stores. Speckle versions are ordered by their creation date, not by source version number. A version from an automatic sync is dated when Speckle created it; a version from a historical import is dated when the source version was created in the source platform.
 - **Latest version** — the most recently created Speckle version of a model, and what the viewer, dashboards, and API show by default.
@@ -76,18 +76,21 @@ This section applies to every sync integration — Autodesk Forma Data Managemen
 
 This is where the integrations differ, and it determines where you scope access.
 
-| Integration                              | Identity Speckle uses                                                                  | What a user can reach                                                                             |
-| ---------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Autodesk Forma Data Management (ACC)** | The signed-in user's own Autodesk account, via OAuth with read-only scopes             | Exactly the hubs, projects, and folders that user already has in Autodesk — no more, no less      |
-| **Bentley ProjectWise**                  | A Speckle service account you add to projects, plus the user's own Bentley credentials | Only projects the service account has been added to **and** the user is permitted to see          |
-| **Databricks**                           | A service principal you create, with SQL grants you assign                             | Whatever the service principal has `SELECT` on — the same for every user in the Speckle workspace |
-| **Snowflake**                            | A service user you create, with a role you grant                                       | Whatever the role can read — the same for every user in the Speckle workspace                     |
+| Integration                              | Identity Speckle uses                                                                                                                                        | What a user can reach                                                                                      |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| **Autodesk Forma Data Management (ACC)** | The signed-in user's own Autodesk account, via OAuth with read-only scopes                                                                                   | Exactly the hubs, projects, and folders that user already has in Autodesk — no more, no less               |
+| **Bentley ProjectWise**                  | A Speckle service account you add to projects, plus the user's own Bentley credentials                                                                       | Only projects the service account has been added to **and** the user is permitted to see                   |
+| **SharePoint**                           | Speckle's Microsoft Entra app, which a Microsoft admin approves once with read-only access to every site, plus the user's own Microsoft account for browsing | The sites and files that user can open in SharePoint. Background checks and downloads run as Speckle's app |
+| **Databricks**                           | A service principal you create, with SQL grants you assign                                                                                                   | Whatever the service principal has `SELECT` on — the same for every user in the Speckle workspace          |
+| **Snowflake**                            | A service user you create, with a role you grant                                                                                                             | Whatever the role can read — the same for every user in the Speckle workspace                              |
 
 **For ACC, permissions are per user and follow the user.** If Sarah is a member of two hubs — full read on one, a single project on the other — she can sync anything she can read across both, and nothing else. Change her Autodesk permissions and her Speckle reach changes with them. There is nothing for you to enable beyond registering the Speckle integration on the hub once.
 
 **For Databricks and Snowflake, permissions are per workspace and follow the service identity.** Everyone in the Speckle workspace sees the same set of tables: the ones you granted. This is deliberate — it lets you publish a curated, governed surface (specific schemas, views with row filtering applied on your side) without mirroring individual user entitlements into Speckle. If different teams need different data, use separate Speckle workspaces with separate service identities.
 
 **ProjectWise is both.** The service account must be added to a project for it to be reachable at all, and within that the user's own ProjectWise permissions still apply.
+
+**SharePoint browses as the user and syncs as Speckle's app.** A user picks files with their own Microsoft account, so they see only what they can open. The approval covers every site in your organization, and you cannot narrow it to chosen sites today. Speckle reads only the files users picked for a sync, but Microsoft does not enforce that limit. See [Approve Speckle for SharePoint](/it-admin/integrations/sharepoint).
 
 <Note>
   Speckle's own project roles govern what happens *after* data is in Speckle — who can view,
@@ -109,6 +112,8 @@ For **Databricks and Snowflake**, treat the service identity as a publishing sur
 
 For **ProjectWise**, add the service account only to the projects that need syncing; unlisted projects are invisible regardless of user permissions.
 
+For **SharePoint**, the approval cannot be scoped to sites. To stop all access, remove Speckle's app in Microsoft Entra, as described in [Remove Speckle's access](/it-admin/integrations/sharepoint#remove-speckles-access).
+
 ## Enable a specific integration
 
 <CardGroup cols={2}>
@@ -117,6 +122,9 @@ For **ProjectWise**, add the service account only to the projects that need sync
   </Card>
   <Card title="Bentley ProjectWise" icon="cloud" href="/it-admin/integrations/projectwise">
     Add the service account, or configure an on-premises WSG server
+  </Card>
+  <Card title="SharePoint" icon="cloud" href="/it-admin/integrations/sharepoint">
+    Approve Speckle for your Microsoft 365 organization
   </Card>
   <Card title="Databricks" icon="database" href="/it-admin/integrations/databricks">
     Create a service principal and grant it read access
