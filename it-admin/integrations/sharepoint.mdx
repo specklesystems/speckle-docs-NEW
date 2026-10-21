@@ -1,0 +1,133 @@
+---
+title: 'Approve Speckle for SharePoint'
+sidebarTitle: 'SharePoint'
+description: 'Microsoft admin steps to approve Speckle in Microsoft Entra, so members of your organization can sync SharePoint files to Speckle.'
+---
+
+<Badge>Beta</Badge>
+
+Before anyone in your organization can sign in to SharePoint from Speckle, a Microsoft admin approves
+Speckle's app once for the whole organization. This page says what you approve, who can approve it,
+and how to remove it. Approving needs no Speckle account.
+
+<Note>
+  SharePoint sync is in beta. Speckle turns it on for each workspace that takes part, and it runs on
+  Speckle's hosted service only.
+</Note>
+
+## What Speckle can read
+
+- **Every SharePoint site, read-only.** The approval lets Speckle's app read every SharePoint site
+  in your organization. Speckle downloads only the files that members pick for a sync. That limit
+  is how Speckle behaves, not a limit Microsoft enforces. You cannot narrow the approval to chosen
+  sites today.
+- **Members browse as themselves.** To pick files, each member signs in with their own Microsoft
+  365 work account. They see only the sites and files they can open in SharePoint.
+- **Background checks run as Speckle's app.** Every 5 minutes, Speckle reads each synced file to
+  check for a new published version, and downloads it when one exists.
+- **Nothing is written.** Speckle never changes, uploads, or deletes anything in SharePoint.
+
+Speckle asks for these Microsoft Graph permissions:
+
+| Permission                            | Type        | What Speckle uses it for                                          |
+| ------------------------------------- | ----------- | ----------------------------------------------------------------- |
+| `Sites.Read.All`                      | Application | Checks synced files for changes and downloads new versions        |
+| `Sites.Read.All`                      | Delegated   | Lists the sites, libraries, and files a signed-in member can open |
+| `User.Read`                           | Delegated   | Shows the signed-in member's name                                 |
+| `openid`, `profile`, `offline_access` | Delegated   | Signs the member in and keeps them signed in                      |
+
+## Who can approve
+
+Approval needs a **Privileged Role Administrator** or a **Global Administrator** in Microsoft Entra. The approval
+includes an application permission for Microsoft Graph, so an **Application Administrator** or a
+**Cloud Application Administrator** cannot complete it.
+
+## Approve Speckle
+
+<Steps>
+  <Step title="Open the approval link">
+    Sign in to Microsoft as an admin who can approve. Then open [Approve Speckle for your
+    organization](https://login.microsoftonline.com/organizations/v2.0/adminconsent?client_id=d4c3a7d4-8421-4973-9055-98ab0da083cc&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default&redirect_uri=https%3A%2F%2Fapp.speckle.systems%2Fapi%2Fv1%2Fsharepoint%2Fauth%2Fapproval&state=docs).
+    Microsoft's approval screen opens.
+  </Step>
+  <Step title="Check that the screen is Speckle's">
+    Check that the application ID on the screen matches Speckle's application ID, shown below these
+    steps. Speckle's publisher is verified, so the app also carries Microsoft's verified publisher
+    badge.
+  </Step>
+  <Step title="Review the permissions">
+    The screen lists the permissions in the table above. **Read items in all site collections**
+    (`Sites.Read.All`) appears twice. One entry is for members who sign in, and the other is for
+    Speckle's app.
+  </Step>
+  <Step title="Accept">Select **Accept**. You land on a page that confirms the approval.</Step>
+</Steps>
+
+Speckle's application ID:
+
+```text
+d4c3a7d4-8421-4973-9055-98ab0da083cc
+```
+
+The approval link above, to copy into another browser:
+
+```text
+https://login.microsoftonline.com/organizations/v2.0/adminconsent?client_id=d4c3a7d4-8421-4973-9055-98ab0da083cc&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default&redirect_uri=https%3A%2F%2Fapp.speckle.systems%2Fapi%2Fv1%2Fsharepoint%2Fauth%2Fapproval&state=docs
+```
+
+## Approved
+
+Speckle is approved for your organization. Members can now sign in with their Microsoft account on
+a Speckle project and sync files from SharePoint. Point them to [Sync models from
+SharePoint](/connectors/cloud-integrations/sharepoint).
+
+You need no Speckle account, and there is nothing else to set up.
+
+## Approval not completed
+
+Speckle was not approved, and nothing changed in your organization. This happens when you select
+**Cancel**, or when your account cannot approve apps for the organization. Check [who can
+approve](#who-can-approve), then open the approval link again.
+
+## Remove Speckle's access
+
+<Steps>
+  <Step title="Find Speckle in Entra">
+    In the [Microsoft Entra admin center](https://entra.microsoft.com/), go to **Enterprise
+    applications** and search for Speckle's application ID. Speckle's app appears in the results.
+  </Step>
+  <Step title="Delete the app">
+    Open the app, go to **Properties**, and select **Delete**. The app no longer appears under
+    **Enterprise applications**.
+  </Step>
+</Steps>
+
+Within about 15 minutes, Speckle pauses every SharePoint sync from your organization. Each sync's
+creator gets one email. Models and versions already in Speckle stay there.
+
+To restore access, approve Speckle again. Each sync's creator then resumes their syncs.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can we limit Speckle to some SharePoint sites?">
+    Not today. The approval covers every site in your organization. Speckle reads only the files
+    members pick for a sync, but Microsoft does not enforce that limit.
+  </Accordion>
+  <Accordion title="Do members need an admin role to sync files?">
+    No. After you approve Speckle, any member with access to a file in SharePoint can sync it from a
+    Speckle project where they can create syncs.
+  </Accordion>
+  <Accordion title="A member says Speckle is not approved yet. What do I check?">
+    Search **Enterprise applications** in the Microsoft Entra admin center for Speckle's application
+    ID. If the app does not appear, approve Speckle again. If it does, ask the member to select
+    **Sign out** on the SharePoint page and connect again.
+  </Accordion>
+  <Accordion title="What happens to synced models if we remove Speckle?">
+    Syncs pause and stop creating versions. Models and versions already in Speckle stay, under
+    Speckle's project roles, until a project owner removes them.
+  </Accordion>
+</AccordionGroup>
+
+For how every Speckle cloud integration handles access, see [Cloud Integrations: Access and
+Governance](/it-admin/integrations/introduction).
