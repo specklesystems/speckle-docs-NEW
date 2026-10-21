@@ -1,7 +1,7 @@
 ---
 title: Updating Cloud Integration Syncs via GraphQL
 sidebarTitle: Updating Syncs
-description: Update existing ACC and ProjectWise sync configuration with `syncMutations.update`, and import earlier ACC file versions with `syncMutations.importSourceVersions`.
+description: Update existing cloud integration syncs with `syncMutations.update`, and import earlier ACC file versions with `syncMutations.importSourceVersions`.
 ---
 
 This guide shows how to update an existing cloud integration sync using GraphQL, and how to import earlier versions of an ACC file into it.
@@ -171,6 +171,17 @@ Typical context payload shape for ACC and ProjectWise syncs:
   fields. Common keys in ACC and ProjectWise flows include `referencePoint` and `viewName`.
 </Note>
 
+### Keys the server owns on SharePoint syncs
+
+A SharePoint sync's `context` also carries keys the server sets and maintains:
+
+- `tenantId`, `siteId`, `driveId`, and `itemId` locate the file in Microsoft 365.
+- `checkpoint` identifies the last published content Speckle synced.
+- `lastPolledAt` is when Speckle last checked the file.
+- `consecutiveMisses`, `consecutiveProbeFailures`, and `pauseReason` track failed checks and why the sync paused.
+
+`syncMutations.update` drops these keys from the `context` you send, without an error. Send only the settings keys, such as `referencePoint`.
+
 Response example:
 
 ```json
@@ -326,6 +337,18 @@ Importing a version that already synced is allowed and creates a second Speckle 
   Older ACC syncs may still exist only in legacy storage until migrated. Run
   `syncMutations.migrateLegacy` with the sync id and project id, then run `syncMutations.update`
   again. The web app may expose a migrate action for the same step.
+</Accordion>
+
+<Accordion title="Which GraphQL error codes should I handle?">
+
+| Code                           | When                                                                                                                                                                                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `BAD_REQUEST_ERROR`            | `create` with an `integration` slug the server does not know. The slugs are `acc`, `projectWise`, `sharePoint`, and `trimbleConnect`. Also returned when the integration is turned off on the server.                                                  |
+| `NOT_FOUND_ERROR`              | `update`, `delete`, or `setActive` with an `id` that matches no sync, for a caller who can read the project's syncs.                                                                                                                                   |
+| `FORBIDDEN`                    | The workspace plan does not include the integration, or the caller's project role is below **Contributor**. A caller who cannot read the project's syncs also gets this code for an unknown `id`, so the code does not reveal whether the sync exists. |
+| `UNAUTHORIZED`                 | The request has no valid token.                                                                                                                                                                                                                        |
+| `SHAREPOINT_NOTHING_PUBLISHED` | `update` with `triggerNow: true` on a SharePoint sync whose current content is a draft or an empty file. The server saves none of the `context` sent in the same call.                                                                                 |
+
 </Accordion>
 
   <Accordion title="Can I automate sync updates with SpecklePy?">

@@ -1,0 +1,205 @@
+---
+title: Sync models from SharePoint
+sidebarTitle: SharePoint
+description: Keep Speckle models up to date with files in SharePoint document libraries, without uploading them again.
+---
+
+<Badge>Beta</Badge>
+
+Link a file in a SharePoint document library to a Speckle model. Each time someone publishes a change
+to the file in SharePoint, Speckle creates a new version of the model. Nobody has to upload the file
+again.
+
+<Note>
+  During the beta, Speckle turns on SharePoint sync for each workspace that takes part. To take
+  part, [contact sales](mailto:sales@speckle.systems?subject=SharePoint%20Integration%20request).
+  SharePoint sync runs on Speckle's hosted service only. It is not available on self-hosted servers.
+</Note>
+
+## How SharePoint sync works
+
+- **A Microsoft admin approves Speckle once.** Until an admin in your organization approves
+  Speckle's app, nobody in your organization can sign in to SharePoint from Speckle. Send your
+  admin [Approve Speckle for SharePoint](/it-admin/integrations/sharepoint). During the beta, your
+  Speckle contact can also arrange the approval.
+- **You browse as yourself.** You sign in with your own Microsoft 365 work account, so you see only
+  the sites and files you can open in SharePoint.
+- **Speckle checks for changes every 5 minutes.** Speckle reads each synced file in the background
+  and creates a version when the file's published content changes.
+
+## Before you start
+
+- Your workspace takes part in the SharePoint beta.
+- A Microsoft admin in your organization has approved Speckle.
+- You are a project **Owner** or **Contributor**. Any workspace member can sign in and browse, but
+  only these roles can create syncs.
+- You can open the file in SharePoint with your Microsoft 365 work account.
+
+## Create a sync
+
+{/* IMAGE_PRERELEASE: main@5fe785d732 — recheck against the released UI. */}
+
+<Frame caption="1 SharePoint under Integrations">
+  <img
+    src="/images/connectors/cloud-integrations/sharepoint/connect-card.png"
+    alt="Project sidebar with Integrations expanded and SharePoint marked Beta, beside the Connect to SharePoint card with the Microsoft admin approval notice and the Connect to SharePoint button"
+  />
+</Frame>
+
+<Steps>
+  <Step title="Open SharePoint in your project">
+    In the project sidebar, go to **Integrations** → **SharePoint**. You see the **Connect to
+    SharePoint** card.
+  </Step>
+  <Step title="Sign in to Microsoft">
+    Select **Connect to SharePoint** and sign in with your Microsoft 365 work account. You return to
+    Speckle, and the header shows **Signed in as** with your name.
+  </Step>
+  <Step title="Choose a site and a library">
+    Choose a site from **Select a SharePoint site...**, then a document library from **Library**.
+    The list holds every site you can open. Next time, it opens on the site you used last.
+  </Step>
+  <Step title="Select the files">
+    In the **Folders** column, open a folder. Then select files in the list beside it. They appear
+    under **Selected**.
+  </Step>
+  <Step title="Create the sync">
+    Select **Create sync**. Speckle creates a model for each file and imports the file's latest
+    published version.
+  </Step>
+</Steps>
+
+{/* IMAGE_PRERELEASE: main@5fe785d732 — recheck against the released UI. */}
+
+<Frame caption="1 Select a SharePoint site · 2 Library">
+  <img
+    src="/images/connectors/cloud-integrations/sharepoint/picker-browse.png"
+    alt="SharePoint file browser with the Riverside Tower site and the Documents library chosen, the Models folder open, and two Revit files ticked"
+  />
+</Frame>
+
+Speckle names each model after the file's folder path and file name. The models appear under
+**Models** in the project, and you open them in the [3D viewer](/3d-viewer/introduction) like any
+other model. If the project already has a model with that name, Speckle does not create the sync.
+
+The file list shows only the formats Speckle can sync. Cloud sync accepts the same formats as file
+uploads. See [Supported file formats](/connectors/direct-uploads/introduction#supported-file-formats).
+
+### Revit and Navisworks options
+
+For a Revit file, expand it under **Selected**, then set **Reference point** and **Publish
+method** before you create the sync. **Publish method** is **Entire model**, **By View**, or **By Category**. For a
+Navisworks file, set **Reference point**. These options work as they do for ACC. See [Revit
+options](/connectors/cloud-integrations/acc#revit-options).
+
+{/* IMAGE_PRERELEASE: main@5fe785d732 — recheck against the released UI. */}
+
+<Frame>
+  <img
+    src="/images/connectors/cloud-integrations/sharepoint/selected-revit-options.png"
+    alt="Selected panel with two Revit files and the Create sync button. The Architecture file is expanded to show Reference point set to Internal Origin and Publish method set to Entire model"
+  />
+</Frame>
+
+## What creates a new version
+
+Speckle syncs published content only. A change that does not publish new content creates nothing.
+
+| You do this in SharePoint                                            | Speckle                                       |
+| -------------------------------------------------------------------- | --------------------------------------------- |
+| Save or upload the file, in a library that keeps only major versions | Creates a new version                         |
+| Publish a major version, in a library that keeps drafts              | Creates a new version                         |
+| Restore an earlier version                                           | Creates a new version with the restored file  |
+| Save a draft (minor version)                                         | Nothing, until someone publishes it           |
+| Check out the file and upload changes                                | Nothing, until someone checks the file in     |
+| Submit a change for content approval, or have a change rejected      | Nothing. Speckle keeps the last approved file |
+| Rename the file                                                      | Renames the sync. No new version              |
+| Edit a column, or move the file inside the library                   | Nothing                                       |
+
+<Note>
+  SharePoint raises its version number for renames and column edits too. Consecutive Speckle
+  versions can skip SharePoint version numbers.
+</Note>
+
+If a file has nothing published yet, Speckle creates the sync and then waits. The sync shows
+**Active** and has no version until someone publishes a major version.
+
+## Keep models in sync
+
+{/* IMAGE_PRERELEASE: main@5fe785d732 — recheck against the released UI. */}
+
+<Frame>
+  <img
+    src="/images/connectors/cloud-integrations/sharepoint/syncs-panel.png"
+    alt="Syncs panel with a Revit sync marked by an amber dot and an IFC sync marked by a green dot. A tooltip on the IFC sync shows Synced, Last updated 27 minutes ago, By Alex Morgan, and the Models folder."
+  />
+</Frame>
+
+- Speckle checks each synced file every 5 minutes. A published change appears as a new Speckle
+  version within about 5 minutes, plus the time it takes to convert the file.
+- The **Syncs** panel lists every SharePoint sync in the project. The dot beside each file shows
+  its status. Green means **Synced**, amber means **Paused** or **Queued**, blue means
+  **Processing**, and red means **Failed**. Hover over a row to see its status, when it last
+  updated, who last changed the file, and the file's folder. Select the link icon on a row to open
+  the model's versions.
+- For a Revit file, select its row to open the sync's settings. There you can **Pause** the sync,
+  **Resume** it, or select **Trigger now** to sync the file's published content at once. For other
+  file types, the row opens the model's versions.
+- Speckle does not check a paused sync. After you resume it, the next check syncs the file's
+  current content. Speckle skips any earlier changes published during the pause. See [Sync
+  guarantees](/it-admin/integrations/introduction#sync-guarantees).
+
+### When Speckle pauses a sync
+
+Speckle pauses a sync and emails the person who created it in two cases:
+
+- **Speckle cannot read the file for three checks in a row**, about 15 minutes. This happens when
+  the file was deleted or moved to another library or site, when it has no approved version left,
+  or when access to its site was restricted. Fix it in SharePoint and resume the sync, or create a
+  new sync at the file's new location.
+- **Your Microsoft admin removed Speckle's approval.** Speckle pauses every SharePoint sync from
+  your organization, and each sync's creator gets one email. A Microsoft admin must approve Speckle
+  again before you can resume them.
+
+If you resume a sync before you fix the cause, Speckle pauses it again at the next check and sends
+another email.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Why does Speckle say my organization hasn't approved Speckle yet?">
+    A Microsoft admin in your organization must approve Speckle's app before anyone can browse or
+    sync. Send your admin [Approve Speckle for SharePoint](/it-admin/integrations/sharepoint). Then
+    select **Sign out** and connect again.
+  </Accordion>
+  <Accordion title="I saved the file, but no new version appeared. Why?">
+    Speckle syncs published content only. If your library keeps drafts, publish a major version. If
+    the file is checked out, check it in. If neither applies, wait for the next check, up to 5
+    minutes, plus conversion time.
+  </Accordion>
+  <Accordion title="Why does Trigger now say there is nothing published to sync?">
+    The file's current content is a draft, or the file is empty. Speckle does not run the sync and
+    does not save settings you changed in the same step. The sync picks up the next published
+    version.
+  </Accordion>
+  <Accordion title="Why can't I create a sync on this file?">
+    If Speckle says it cannot read the file, the file was never checked in or has no approved
+    version. Check it in or approve it in SharePoint, then try again. If Speckle says your Microsoft
+    account cannot open the file, ask the site owner for access.
+  </Accordion>
+  <Accordion title="Is the connection read-only?">
+    Yes. Speckle only reads and downloads files from SharePoint. It never changes, uploads, or
+    deletes anything in SharePoint.
+  </Accordion>
+  <Accordion title="Can I sync the same file into several Speckle projects?">
+    Yes. Create a sync for the file in each project. Each sync runs on its own.
+  </Accordion>
+  <Accordion title="Does deleting a Speckle model stop the sync?">
+    Yes. Deleting the model deletes its sync. The file in SharePoint does not change.
+  </Accordion>
+</AccordionGroup>
+
+## Getting help
+
+Having trouble with the setup? Contact support or ask in the
+[Speckle Community forum](https://speckle.community/).
