@@ -11,9 +11,10 @@ description: Filter and colour objects by property, browse and export them in El
 
 ## Filter and color
 
-**Filters** is a stack of property cards, not a single search box. Each card has operators that
-match the property type. Applied filters stay in place when you change selection or close and
-reopen panels. Open **Filters** with Shift+F.
+**Filters** is a stack of cards, not a single search box. A property card has operators that match
+the property type. A SQL card shows a query instead — see [Narrow a SQL
+filter](#narrow-a-sql-filter). Applied filters stay in place when you change selection or close
+and reopen panels. Open **Filters** with Shift+F.
 
 {/* IMAGE_PLACEHOLDER: Filters panel — two property cards, All/Any tabs, Color by values on a string card, empty state No filters yet. */}
 
@@ -27,8 +28,9 @@ reopen panels. Open **Filters** with Shift+F.
     nothing matches, **Filters** shows **No objects match — everything is hidden**.
   </Step>
   <Step title="Color by values">
-    On a text or relation card, select **Color by values**. Matching objects take colours for those
-    values. Only one card colours the scene at a time.
+    On a text, relation, or SQL card, select **Color by values**. Matching objects take colours.
+    Only one card colours the scene at a time. For a SQL card, see [Narrow a SQL
+    filter](#narrow-a-sql-filter).
   </Step>
 </Steps>
 
@@ -50,6 +52,34 @@ where the property exists. **Is not set** matches objects where it is missing.
 
 {/* IMAGE_PLACEHOLDER: Filters card — operator menu open on a text or number property showing type-specific operators. */}
 
+### Narrow a SQL filter
+
+<Frame caption="Two buckets checked on a SQL filter. Color by values colours those buckets.">
+  <img
+    src="/images/3d-viewer/exploration/sql-filter-buckets.png"
+    alt="Filters panel with a SQL card titled Network Component. The query is read-only. Select all shows 2 of 18. EX SW – Main and PR FW-GF – Main are checked, each with a count and a colour swatch."
+  />
+</Frame>
+
+A SQL filter narrows the model to the objects a query returns. It is not in **Add filter**, and it
+has no operator menu. [Speckle Intelligence](/analytics/intelligence) adds one from Chat, or a
+[saved view](/3d-viewer/saved-views) restores one. The card shows the query, and you cannot edit
+the statement there. Its title is the filter's name, or **SQL filter**.
+
+When the query returns a `bucket` column, each bucket is a checkbox with a count. Search and
+select all work as they do on a text card. The list follows the current value sort (**A–Z** unless
+you changed it on another card). This card has no sort menu of its own.
+
+Leave every box unchecked to keep every object the query matches, including objects with no bucket
+value. Those objects are not in the list. With **Color by values** on, each listed bucket is
+coloured and the objects with no bucket value stay uncoloured. Check one or more buckets to keep
+only those buckets. Objects with no bucket value then drop out of the view, and **Color by
+values** colours only the checked buckets.
+
+When the query has no `bucket` column, the card still filters the scene. **Color by values**
+colours every match as one group. The group uses the card's name, or **Matches** when the title is
+**SQL filter**.
+
 ### Combine and manage filters
 
 With two or more cards, **All** keeps objects that match every card. **Any** keeps objects that
@@ -68,8 +98,9 @@ While a model is still being attached, the panel shows **Attaching model…**. I
 to load properties** or **Failed to resolve filter matches**, reload the page.
 
 <Tip>
-  Speckle Intelligence can also filter and colour the model from Chat. See [Ask questions about your
-  models with Speckle Intelligence](/analytics/intelligence).
+  Speckle Intelligence can also filter and colour the model from Chat, including a SQL filter. See
+  [Narrow a SQL filter](#narrow-a-sql-filter) and [Ask questions about your models with Speckle
+  Intelligence](/analytics/intelligence).
 </Tip>
 
 ## Browse objects in Elements
@@ -179,8 +210,8 @@ model. See [Saved views](/3d-viewer/saved-views).
     tree instead to add it as a whole.
   </Accordion>
   <Accordion title="Can I color the model from a numeric filter?">
-    No. **Color by values** is on text and relation cards only. Ask [Speckle
-    Intelligence](/analytics/intelligence) if you want to colour by a number.
+    No. A number card does not colour the scene. **Color by values** is on text, relation, and SQL
+    cards. Ask [Speckle Intelligence](/analytics/intelligence) if you want to colour by a number.
   </Accordion>
   <Accordion title="Can I filter by a property that doesn't exist?">
     No, the property must exist in the model. **Is not set** finds objects where it is missing.
