@@ -152,6 +152,23 @@ To sync only part of the model, change the publish method:
   matches exactly.
 </Warning>
 
+## Linked Revit models
+
+Sync only the host Revit file: its linked Revit models come with it. Each time the sync runs,
+Speckle fetches the models the host links from Forma Data Management and converts them together
+with the host into **one version of one Speckle model**, the host's. You don't select the linked
+files or create syncs for them.
+
+- **Which version of a link**: the version the host file was published or uploaded against.
+- **Which links**: Revit (`.rvt`) links only, up to 100 per version. Other linked or imported
+  files, such as DWG, IFC, point clouds, or PDFs, are left out.
+- **When links update**: a new version of a linked model does not run the host's sync. The next
+  host version picks it up, or select **Trigger now** on the host's sync to bring it in sooner.
+
+A link that cannot be fetched does not fail the sync: the host converts with the links that
+remain. To see which links a version includes, open the version in the viewer and check
+**Linked files** in its health details.
+
 <AccordionGroup>
   <Accordion title="Is the connection read-only?">
     Yes. Speckle establishes a read-only connection with Autodesk Forma Data Management (ACC), which means we can sync and analyze your data but can't modify the original files. This ensures data integrity and security.
@@ -162,6 +179,16 @@ To sync only part of the model, change the publish method:
   <Accordion title="Why are my models in the wrong location?">
     For **Revit** ACC syncs, use the reference point in the file's options to control placement for coordination workflows. If the selected reference point does not match your downstream model setup, placement can still appear offset. Reference point options are **not** available for IFC or Navisworks ACC syncs—adjust placement in those workflows using your authoring tool or the relevant connector where applicable.
     For project-by-project control and advanced receive options, you can also use the [Revit connector](/connectors/revit/revit).
+  </Accordion>
+  <Accordion title="Can I get a linked model as its own Speckle model?">
+    Yes. Create a separate sync for the linked file. It gets its own Speckle model and version
+    history, and it still appears inside the host's versions. See [Linked Revit
+    models](#linked-revit-models).
+  </Accordion>
+  <Accordion title="Why is a linked model missing from my version?">
+    Only Revit links are included, and a link that cannot be fetched is left out without failing
+    the sync. Check that the linked file is still in Forma Data Management and that the Autodesk
+    account connected to the sync can open it, then select **Trigger now** on the host's sync.
   </Accordion>
   <Accordion title="What if my sync fails?">
     Common causes include file access issues, authorization problems, or unsupported file formats. Check that:
@@ -200,6 +227,7 @@ To sync only part of the model, change the publish method:
 | Basic sync status monitoring                               | ✅ Complete    |
 | Enhanced UI/UX for sync management                         | ✅ Complete    |
 | Import earlier file versions from ACC history              | ✅ Complete    |
+| Linked Revit models synced with the host file              | ✅ Complete    |
 | Advanced sync configuration options                        | 🔄 In Progress |
 | Improved error handling and reporting                      | 🔄 In Progress |
 
