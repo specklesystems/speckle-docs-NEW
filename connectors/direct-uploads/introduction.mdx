@@ -89,8 +89,10 @@ Existing models stay readable; the rules affect importing new files and uploadin
 Availability depends on the conversion services enabled for your workspace. Cloud syncs (ACC,
 ProjectWise, Trimble Connect, and SharePoint) accept the same formats as uploads, except Tekla Structures:
 cloud syncs accept neither `.tekla` nor `.db1` files. A synced QGIS project fails to convert,
-because a sync cannot add its project folder zip: sync the project's data files instead. A synced
-`.rvm` publishes without its attribute export and P&IDs. Trimble Connect syncs additionally accept the
+because a sync cannot add its project folder zip: sync the project's data files instead. An ACC
+sync of an `.rvm` can carry its attribute export and P&IDs; see [AVEVA Review
+files](/connectors/cloud-integrations/acc#aveva-review-files). Other cloud syncs publish an `.rvm`
+without them. Trimble Connect syncs additionally accept the
 formats Trimble Connect converts to TrimBIM; see [Sync models from Trimble
 Connect](/connectors/cloud-integrations/trimble-connect#supported-file-formats).
 
@@ -458,14 +460,17 @@ warning is still uploaded.
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Attribute export | The file is an attribute export of this model.                                                                                                                                                                                  |
 | Other model      | The attribute export belongs to another model. The dialog names both.                                                                                                                                                           |
-| Cited            | The attribute export cites this P&ID's drawing number.                                                                                                                                                                          |
-| Not cited        | The attribute export does not cite this drawing. Its items can still match by tag.                                                                                                                                              |
+| P&ID             | The file is a DEXPI P&ID export. Shown when there is no attribute export to compare it with.                                                                                                                                    |
+| Not cited        | The attribute export cites no drawings, so the P&ID is kept. Its items can still match by tag.                                                                                                                                  |
 | Not recognised   | The file is not an attribute export or a DEXPI export. A P&ID with this badge is skipped.                                                                                                                                       |
 | Not checked      | Speckle could not read the file in the browser. It is uploaded, and the conversion checks it. If the model has no attributes or P&ID links afterwards, see [If an AVEVA Review upload fails](#if-an-aveva-review-upload-fails). |
 
-When you add an attribute export, **Add P&IDs** lists the drawings it cites, marked **Included**
-or **Missing**. Use the list to find missing P&IDs. A drawing number can contain `*`, which file
-names cannot, so its file usually has `_` in that place: drawing `P-100-*` is in `P-100-_.xml`.
+When you add an attribute export, **Add P&IDs** lists every drawing it cites, marked **Included**
+or **Missing**, under **P&IDs (_x_) included of (_y_) cited**. Use the list to find missing P&IDs.
+P&IDs the export does not cite, and files that are not DEXPI exports, are left out of the upload,
+and the dialog names them. An export that cites no drawings leaves nothing out. A drawing number
+can contain `*`, which file names cannot, so its file usually has `_` in that place: drawing
+`P-100-*` is in `P-100-_.xml`.
 
 <Note>
   Closing either dialog asks first. Select **Upload without attributes** or **Upload without P&IDs**
