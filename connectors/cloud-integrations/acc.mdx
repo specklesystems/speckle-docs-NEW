@@ -49,7 +49,8 @@ These steps assume the Speckle integration has already been enabled on your orga
   <Step title="Pick files to sync">
     Choose a hub and project, browse the folders, and select the files you want to sync. For Revit
     files, optionally set the reference point and what to publish. See [Revit
-    options](#revit-options).
+    options](#revit-options). For AVEVA Review files, check the attribute export and P&IDs. See
+    [AVEVA Review files](#aveva-review-files).
   </Step>
   <Step title="Create the sync">
     Select **Create sync**. Each file gets its own Speckle model, and changes in Autodesk cloud
@@ -169,6 +170,47 @@ A link that cannot be fetched does not fail the sync: the host converts with the
 remain. To see which links a version includes, open the version in the viewer and check
 **Linked files** in its health details.
 
+## AVEVA Review files
+
+{/* IMAGE_PLACEHOLDER: ACC page with an .rvm selected — the AVEVA Review files card showing the attribute export row and the P&IDs (x) included of (y) cited list with Included and Missing rows. */}
+
+An AVEVA Review (`.rvm`) sync can carry the model's attribute export and its DEXPI P&IDs, as an
+[AVEVA Review upload](/connectors/direct-uploads/introduction#upload-an-aveva-review-model) does.
+Forma Data Management does not record which files belong to an `.rvm`, so you pick them yourself.
+The sync keeps your pick.
+
+| File             | Extension      | How many    |
+| ---------------- | -------------- | ----------- |
+| Attribute export | `.txt`, `.att` | At most one |
+| DEXPI P&IDs      | `.xml`         | Any number  |
+
+When you select an `.rvm`, an **AVEVA Review files** card opens. Speckle pre-picks the `.txt` or
+`.att` file with the same name as the `.rvm` and every `.xml` in the same folder.
+
+- **Attribute export**: select **Choose** or **Change** to pick it from any folder. It shows a badge
+  only when something is wrong, such as **Other model** or **Not recognised**. Removing it asks
+  first: without it, the model converts without attributes.
+- **P&IDs**: select **Add** to pick them from any folder, or **Select all** in a folder. Once
+  the attribute export is checked, the list shows every drawing it cites, marked **Included** or
+  **Missing**, under **P&IDs (_x_) included of (_y_) cited**. P&IDs the export does not cite are left
+  out, and the card says how many.
+
+The badges mean the same as for uploads; see [Upload an AVEVA Review
+model](/connectors/direct-uploads/introduction#upload-an-aveva-review-model).
+
+### How the files sync
+
+- **Which version**: each run converts the **latest** version of every picked file with the `.rvm`,
+  also when you [import an earlier version](#import-earlier-versions) of the `.rvm`.
+- **When they update**: only a new `.rvm` version runs the sync. A new version of the attribute
+  export or a P&ID waits for the next `.rvm` version, or select **Trigger now** on the sync to bring
+  it in sooner.
+- **If a file is gone**: a picked file that cannot be fetched does not fail the sync. The `.rvm`
+  converts with the files that remain.
+
+To change the pick of an existing sync, expand its settings in the **Syncs** panel. On the model
+page, you can remove picked files but not add them; open **Integrations** → **ACC** to add files.
+
 <AccordionGroup>
   <Accordion title="Is the connection read-only?">
     Yes. Speckle establishes a read-only connection with Autodesk Forma Data Management (ACC), which means we can sync and analyze your data but can't modify the original files. This ensures data integrity and security.
@@ -228,6 +270,7 @@ remain. To see which links a version includes, open the version in the viewer an
 | Enhanced UI/UX for sync management                         | ✅ Complete    |
 | Import earlier file versions from ACC history              | ✅ Complete    |
 | Linked Revit models synced with the host file              | ✅ Complete    |
+| AVEVA Review attribute export and P&IDs synced with `.rvm` | ✅ Complete    |
 | Advanced sync configuration options                        | 🔄 In Progress |
 | Improved error handling and reporting                      | 🔄 In Progress |
 
