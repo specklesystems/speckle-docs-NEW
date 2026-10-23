@@ -45,3 +45,29 @@ this configuration can be written to either `HKEY_CURRENT_USER\Software\Speckle\
 - Value name: `SPECKLE_DUI_URL`
 - Value type: `REG_SZ`
 - Value data: `https://dui.myenterprise.example` (replace with url of your ui deployment)
+
+### Self-hosting OpenTelemetry Collector / ClickStack
+
+Connectors by default will send telemetry to Speckle's internal OpenTelemetry collector.
+For enterprise customers who are self hosting their server and Desktop UI, you may prefer for connector telemetry to go to your own collector.
+
+This configuration can be written to either `HKEY_CURRENT_USER\Software\Speckle\Connector Config\Global` or `HKEY_LOCAL_MACHINE\Software\Speckle\Connector Config\Global`, or as an environment variable.
+
+- Value name: `SPECKLE_OTEL_EXPORTER_OTLP_ENDPOINT`
+- Value type: `REG_SZ`
+- Value data: `https://collector.speckle.myenterprise.example` (replace with URL of your OTel collector or ClickStack deployment)
+  {/* separate lists */}
+- Value name: `SPECKLE_OTEL_EXPORTER_OTLP_HEADERS`
+- Value type: `REG_SZ`
+- Value data: `authorization=asdfasdfasdfasdfasdf` (replace with your OTel ingestion token)
+
+For additional information, see [OpenTelemetry Documentation](https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/). Other advanced configuration is not available.
+
+Alternatively, you can set `SPECKLE_OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` and `SPECKLE_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`,
+and `SPECKLE_OTEL_EXPORTER_OTLP_TRACES_HEADERS` and `SPECKLE_OTEL_EXPORTER_OTLP_LOGS_HEADERS` individually.
+`SPECKLE_OTEL_ENABLED` can be set to `false` to disable OTel entirely.
+
+Please note these configurations only affect logs/traces from
+.NET connectors ([speckle-sharp-connectors](https://github.com/specklesystems/speckle-sharp-connectors)).
+Independently, Desktop UI also produces OTel telemetry,
+your Desktop UI instance should be configured separately in order to send OTel telemetry to the same collector.
