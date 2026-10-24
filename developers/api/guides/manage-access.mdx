@@ -242,8 +242,8 @@ Variables example:
 }
 ```
 
-- `roleId` defaults to `viewer`. A Viewer link needs **Editor** or above; any other role needs
-  **Owner**.
+- `roleId` defaults to `viewer`. A Viewer link needs **Editor** or above on the node. Any other
+  role needs share rights: **Owner** on the node, or workspace admin.
 - `additionalNodes` adds further nodes of the same project the link opens, for example the other
   models of a federated view.
 - An expiry date never goes past the end of your own access.
@@ -270,9 +270,119 @@ mutation UpdateLink($input: AccessLinkUpdateInput!) {
 `revokeLink(linkId:)` revokes one link and returns `true`. `revokeLinks(node:)` revokes every live
 link that opens a `PROJECT` or `WORKSPACE` node or anything in it, and returns how many it revoked.
 
+To revoke every link to a project as you change it, for example when making it private, pass
+`revokeLinks: true` in `ProjectUpdateInput` to `projectMutations.update`. It needs share rights on
+the project.
+
+### List and read links
+
 To list links, read `Project.accessLinks` or `Workspace.accessLinks` (paginated with `cursor` and
-`limit`). Each `AccessLink` has `label`, `lastChars`, `role`, `nodes`, `hasPassword`, `expiresAt`,
-`lastUsedAt` and `createdBy`.
+`limit`). `Workspace.accessLinks` takes a `filter` with `projectId` or `dashboardId`. To read one
+link by ID, use `Query.accessLink(id:)`; it answers only callers who may revoke the link, and
+reports any other link as not found.
+
+```graphql
+query ProjectLinks($projectId: String!) {
+  project(id: $projectId) {
+    accessLinks(limit: 25) {
+      totalCount
+      cursor
+      items {
+        id
+        label
+        lastChars
+        role {
+          name
+        }
+        nodes {
+          type
+          id
+          name
+        }
+        source {
+          type
+          id
+        }
+        hasPassword
+        expiresAt
+        lastUsedAt
+        createdBy {
+          name
+        }
+        canUpdate {
+          authorized
+        }
+        canRevoke {
+          authorized
+        }
+      }
+    }
+  }
+}
+```
+
+- `nodes` lists what the link opens. It is empty once the link is revoked, and `role` is then
+  `null`.
+- `source` is set when a feature minted the link: `type` is `dashboard`, `report`,
+  `aiConversation`, `savedViewGroup` or `embed` (links minted before node links), and `id` is the
+  dashboard, report or chat. It is `null` for a link to a project, folder, file or model.
+- `canUpdate` and `canRevoke` say whether you may edit or revoke the link.
+- `loadActivity` returns the version loads made through the link: `loads` (paginated) and a daily
+  `timeline` for the last 30 days.
+
+### Link a dashboard
+
+`createDashboardLink` mints a Viewer link to a dashboard. The link opens the projects the dashboard
+reads and follows them as the dashboard changes. It needs the dashboard's share permission.
+
+```graphql
+mutation DashboardLink($input: AccessDashboardLinkCreateInput!) {
+  accessMutations {
+    createDashboardLink(input: $input) {
+      secret
+      link {
+        id
+        expiresAt
+      }
+    }
+  }
+}
+```
+
+```json
+{ "input": { "dashboardId": "your-dashboard-id", "label": "Client board", "expiresAt": null } }
+```
+
+`AccessDashboardLinkCreateInput` also takes an optional `password`.
+
+### Report and chat links
+
+Reports and chats mint their links with their own mutations,
+`projectMutations.reports.createShareLink` and `aiChatMutations.createShareLink`. Those links are
+listed in `accessLinks` with their `source`. To revoke one, call `revokeLink`, or
+`sharingMutations.revokeShareToken(tokenId:)`, which remains for report and chat links. Its creator,
+or whoever may share what it opens, can revoke it.
+
+### Check a link before opening it
+
+`Query.shareTokenInfo(token:)` needs no authentication. It returns `null` for an unknown, revoked or
+expired link, and otherwise `id`, `hasPassword`, `sourceType` and `sourceId`. `sourceType` and
+`sourceId` are `null` for a link to a project, folder, file or model, so do not treat them as
+required.
+
+## Read access on projects, documents and groups
+
+Some access facts sit on the objects themselves, so you can read them while listing:
+
+| Field                         | Meaning                                                                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `Project.onlySharedDocuments` | `true` when you reach the project only through folders or files given to you inside it; you see those and nothing else |
+| `Document.restricted`         | `true` when grants from above stop at this folder or file, except those of project owners and workspace admins         |
+| `Document.permissions`        | `canRead`, `canCreateChild`, `canUpdate`, `canDelete`, `canShare`, `canRestrict` and `canCreateLink`                   |
+| `AccessGroup.memberCount`     | How many people are in a group that appears as a grant holder                                                          |
+| `WorkspaceGroup.shares`       | Where a group holds a role: `node`, `role`, `grantedBy`, `createdAt` and `expiresAt`                                   |
+
+`WorkspaceGroup.shares` lists only nodes you can read.
 
 ## Read the audit log
 
@@ -381,22 +491,28 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 
 ## Permissions
 
-| Call                                 | Who is authorized                                   |
-| ------------------------------------ | --------------------------------------------------- |
-| `access`                             | Anyone who can read the node                        |
-| `grant`, `changeRole`, `revoke`      | **Owner** on the node, giving roles up to their own |
-| `restrict`, `unrestrict`             | **Owner** on the document                           |
-| `createLink` with `viewer`           | **Editor** or **Owner** on the node                 |
-| `createLink` with another role       | **Owner** on the node                               |
-| `updateLink`, `revokeLink`           | **Owner** on every node the link opens              |
-| `revokeLinks`, `Project.accessLinks` | Project **Owner** or workspace admin                |
-| `Workspace.accessLinks`              | Workspace admin                                     |
-| `accessAuditLog`, CSV export         | Workspace admin                                     |
-| `accessRoles`, `accessBaseRoles`     | Workspace members, where custom roles are turned on |
-| `workspaceMutations.accessRoles`     | Workspace admin                                     |
+Share rights mean **Owner** on the node (given there, or on a folder or project above it) or
+workspace admin. A custom role that includes **Share** also has them.
 
-Check `access.permissions` (`canShare`, `canRestrict`, `canCreateLink`) before calling a mutation,
-and `Workspace.permissions.canReviewAccess` before reading the audit log.
+| Call                                                      | Who is authorized                                                 |
+| --------------------------------------------------------- | ----------------------------------------------------------------- |
+| `access`                                                  | Anyone who can read the node                                      |
+| `grant`, `changeRole`, `revoke`                           | Share rights on the node, giving roles up to their own            |
+| `restrict`, `unrestrict`                                  | **Owner** on the document, or workspace admin                     |
+| `createLink` with `viewer`                                | **Editor** or above on the node                                   |
+| `createLink` with another role                            | Share rights on the node                                          |
+| `updateLink`, `revokeLink`, `accessLink`                  | Share rights on every node the link opens                         |
+| `revokeLinks`, `Project.accessLinks`, `revokeLinks: true` | Share rights on the project: project **Owner** or workspace admin |
+| `Workspace.accessLinks`, `revokeLinks` on a workspace     | Workspace admin                                                   |
+| `createDashboardLink`                                     | The dashboard's share permission                                  |
+| `accessAuditLog`, CSV export                              | Workspace admin                                                   |
+| `accessRoles`, `accessBaseRoles`                          | Workspace members, where custom roles are turned on               |
+| `workspaceMutations.accessRoles`                          | Workspace admin                                                   |
+
+Check `access.permissions` (`canShare`, `canRestrict`, `canCreateLink`) or
+`Document.permissions` before calling a mutation, `Project.permissions.canManageLinks` or
+`Workspace.permissions.canManageLinks` before listing links, a link's `canUpdate` and `canRevoke`
+before changing it, and `Workspace.permissions.canReviewAccess` before reading the audit log.
 
 ## Errors
 
