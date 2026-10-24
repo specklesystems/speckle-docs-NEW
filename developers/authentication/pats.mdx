@@ -51,6 +51,32 @@ PATs can be used with any Speckle SDK or API:
 
 When creating tokens or registering applications, request only the minimum necessary scopes. This principle of least privilege reduces potential security risks.
 
+## Choose scopes
+
+Each scope allows its own set of actions, and scopes do not imply each other. Select every scope
+your code needs.
+
+<Warning>
+  A write scope no longer includes reading. A token with only `streams:write` cannot read project
+  data: add `streams:read` too. Tokens created earlier with `streams:write` alone now fail on reads
+  until you create a new token with both scopes.
+</Warning>
+
+| Scope              | Allows                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| `streams:read`     | Open and list projects, models and versions; load into connectors; export the data            |
+| `streams:write`    | Publish and edit, comment, share, create view links, change settings, delete, create projects |
+| `profile:read`     | Read your own profile, notifications and invites                                              |
+| `profile:email`    | Read your own email address                                                                   |
+| `users:read`       | Look up other users' profiles                                                                 |
+| `workspace:read`   | Read workspaces, use AI, read usage                                                           |
+| `workspace:update` | Change workspace settings, security and AI settings; review access                            |
+
+A token never does more than its owner can. The scopes cap what the token may do; the owner's roles
+decide where. See [Roles and permissions](/workspaces/roles-and-seats).
+
+Commenting needs `streams:write`; `streams:read` alone can view comments but not post them.
+
 ## Using the Token
 
 When making API requests, include the token in the `Authorization` header:

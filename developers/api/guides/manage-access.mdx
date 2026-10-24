@@ -1,0 +1,410 @@
+---
+title: Manage access with GraphQL
+sidebarTitle: Access and sharing
+description: Read who has access to a project, folder or file, give and remove roles, restrict folders, manage view links, read the audit log and export access as CSV.
+---
+
+This guide shows how to read and change access with the GraphQL API: who reaches a project,
+folder, file or model and why, and how to give roles, restrict folders and manage view links. It
+also covers the workspace audit log, roles and the CSV export.
+
+Use it to script an access review, to give a consultant group a role on a folder from your project
+setup script, or to revoke stale links on a schedule.
+
+For the complete GraphQL schema, see [Apollo Studio — Speckle Server
+API](https://studio.apollographql.com/public/Speckle-Server/variant/app-speckle-systems). The
+concepts behind each call are on [Roles and permissions](/workspaces/roles-and-seats).
+
+<Note>
+  Workspaces are available on Speckle Cloud and on Speckle Enterprise Server. For self-hosted setup,
+  see [Enterprise license](/developers/server/deployment/enterprise-license#enable-workspaces).
+</Note>
+
+## Prerequisites
+
+- A [personal access token](/developers/authentication/pats). Reads need `streams:read`. Changes
+  need `streams:write` as well: it no longer includes reading. The audit log and the CSV export also
+  need `workspace:update`.
+- The role the call needs on the target, listed under [Permissions](#permissions).
+- The IDs of the workspace, project and, for a folder, file or model, the item itself.
+
+Every GraphQL call goes to **POST** `/graphql` with:
+
+```bash
+Authorization: Bearer YOUR_TOKEN
+```
+
+## Address a project, folder or file
+
+Every call takes an `AccessNodeInput`:
+
+| Field       | Value                                                          |
+| ----------- | -------------------------------------------------------------- |
+| `type`      | `WORKSPACE`, `PROJECT` or `DOCUMENT` (a folder, file or model) |
+| `id`        | The workspace, project or document ID                          |
+| `projectId` | Required for `DOCUMENT`: the project that holds it             |
+
+A node you cannot read is reported as not found, whether or not it exists.
+
+Roles are referred to by ID: `owner`, `editor`, `viewer`, a workspace role such as
+`workspace:member`, or a custom role's `custom:` ID. Subjects are an `AccessSubjectInput` with
+`type` (`USER`, `GROUP`, `LINK` or `PUBLIC`) and `id`.
+
+## Read who has access
+
+`Query.access` answers "who has access and why" for one node.
+
+```graphql
+query WhoHasAccess($node: AccessNodeInput!) {
+  access(node: $node) {
+    restricted
+    holders {
+      subject {
+        type
+        id
+        user {
+          name
+        }
+        group {
+          name
+        }
+        link {
+          label
+          lastChars
+        }
+      }
+      role {
+        id
+        name
+      }
+      via {
+        type
+        id
+        name
+      }
+      source
+      group {
+        name
+      }
+      grantedBy {
+        name
+      }
+      createdAt
+      expiresAt
+    }
+    restrictedDocuments {
+      id
+      name
+    }
+    permissions {
+      canShare {
+        authorized
+        message
+      }
+      canRestrict {
+        authorized
+        message
+      }
+      canCreateLink {
+        authorized
+        message
+      }
+    }
+  }
+}
+```
+
+Variables example:
+
+```json
+{
+  "node": { "type": "DOCUMENT", "id": "your-folder-id", "projectId": "your-project-id" }
+}
+```
+
+- `holders` lists everyone who can read the node, nearest role first. `via` is where the role was
+  given: the node itself or a folder, project or workspace above it.
+- `source` is `GRANT`, `GROUP`, `CREATOR`, `LINK` or `PUBLIC`. A group's role is listed once per
+  member, with the group in `group`.
+- Links appear only for callers who can share the node.
+- `restrictedDocuments` is filled for a `PROJECT`: the restricted folders and files inside it that
+  you can read.
+- `holdersBelow` (on a `PROJECT`) counts the people, groups and links holding access to folders and
+  files inside it.
+
+## Change access
+
+All changes sit under `Mutation.accessMutations`. Each one returns the node's updated
+`NodeAccess`, and each is written to the workspace's audit log.
+
+### Give a role
+
+`grant` gives a person or group a role on a project or document, replacing any role they hold on
+that node. Set `expiresAt` to make the role end on a date; leave it out for no end date.
+
+```graphql
+mutation GrantFolder($input: AccessGrantInput!) {
+  accessMutations {
+    grant(input: $input) {
+      holders {
+        subject {
+          id
+        }
+        role {
+          name
+        }
+        expiresAt
+      }
+    }
+  }
+}
+```
+
+Variables example:
+
+```json
+{
+  "input": {
+    "node": { "type": "DOCUMENT", "id": "your-folder-id", "projectId": "your-project-id" },
+    "subject": { "type": "GROUP", "id": "your-group-id" },
+    "roleId": "editor",
+    "expiresAt": "2026-12-31T00:00:00Z"
+  }
+}
+```
+
+The subject must be a member or guest of the node's workspace, or one of its groups. Workspace roles
+are not set here; manage them from the workspace's members.
+
+### Change or remove a role
+
+```graphql
+mutation ChangeAndRevoke($change: AccessChangeRoleInput!, $revoke: AccessRevokeInput!) {
+  accessMutations {
+    changeRole(input: $change) {
+      id
+    }
+    revoke(input: $revoke) {
+      id
+    }
+  }
+}
+```
+
+`changeRole` takes `node`, `subject` and `roleId`. `revoke` takes `node` and `subject`, and removes
+only the role given on that node: access from a folder or project above stays.
+
+### Restrict a folder or file
+
+```graphql
+mutation Restrict($node: AccessNodeInput!) {
+  accessMutations {
+    restrict(node: $node) {
+      restricted
+    }
+  }
+}
+```
+
+`restrict` and `unrestrict` take a `DOCUMENT` node only. Lifting a restriction keeps every role given
+on and inside the folder.
+
+## Manage view links
+
+`createLink` mints a link that opens a project or document. It returns the secret once; store it
+then, because the API never shows it again.
+
+```graphql
+mutation CreateLink($input: AccessLinkCreateInput!) {
+  accessMutations {
+    createLink(input: $input) {
+      secret
+      link {
+        id
+        lastChars
+        expiresAt
+      }
+    }
+  }
+}
+```
+
+Variables example:
+
+```json
+{
+  "input": {
+    "node": { "type": "DOCUMENT", "id": "your-folder-id", "projectId": "your-project-id" },
+    "label": "Client review",
+    "expiresAt": "2026-12-31T00:00:00Z",
+    "password": "a-shared-password"
+  }
+}
+```
+
+- `roleId` defaults to `viewer`. A Viewer link needs **Editor** or above; any other role needs
+  **Owner**.
+- `additionalNodes` adds further nodes of the same project the link opens, for example the other
+  models of a federated view.
+- An expiry date never goes past the end of your own access.
+
+To change a link's label or expiry, call `updateLink`. A field you leave out stays as it is, and
+`null` clears it:
+
+```graphql
+mutation UpdateLink($input: AccessLinkUpdateInput!) {
+  accessMutations {
+    updateLink(input: $input) {
+      id
+      label
+      expiresAt
+    }
+  }
+}
+```
+
+```json
+{ "input": { "linkId": "your-link-id", "label": "Client review (extended)", "expiresAt": null } }
+```
+
+`revokeLink(linkId:)` revokes one link and returns `true`. `revokeLinks(node:)` revokes every live
+link that opens a `PROJECT` or `WORKSPACE` node or anything in it, and returns how many it revoked.
+
+To list links, read `Project.accessLinks` or `Workspace.accessLinks` (paginated with `cursor` and
+`limit`). Each `AccessLink` has `label`, `lastChars`, `role`, `nodes`, `hasPassword`, `expiresAt`,
+`lastUsedAt` and `createdBy`.
+
+## Read the audit log
+
+`Workspace.accessAuditLog` lists every change to access in a workspace, newest first. Filter it to
+one node or one subject.
+
+```graphql
+query AccessAuditLog($workspaceId: String!, $cursor: String) {
+  workspace(id: $workspaceId) {
+    accessAuditLog(limit: 50, cursor: $cursor) {
+      totalCount
+      cursor
+      items {
+        at
+        action
+        actorType
+        actor {
+          name
+        }
+        subject {
+          type
+          id
+        }
+        node {
+          type
+          id
+          name
+        }
+        previousRole {
+          name
+        }
+        role {
+          name
+        }
+      }
+    }
+  }
+}
+```
+
+`action` is one of `grant`, `revoke`, `grant.role`, `expire`, `restrict`, `unrestrict`,
+`link.create`, `link.update`, `link.revoke`, `role.create`, `role.update`, `role.delete`, `export`
+or `support.use`. `actorType` is `system` for changes Speckle makes itself, such as roles reaching
+their expiry date. Pass the returned `cursor` back for the next page.
+
+## Read roles and actions
+
+`Query.accessActions` lists every action roles are built from. Action IDs are stable.
+
+```graphql
+query RolesAndActions($workspaceId: String!) {
+  accessActions {
+    id
+    name
+    description
+    group
+  }
+  workspace(id: $workspaceId) {
+    accessRoles(resourceType: project) {
+      id
+      name
+      isBuiltIn
+      inheritsRole {
+        name
+      }
+      actions
+      effectiveActions
+      pierces
+    }
+  }
+}
+```
+
+`accessRoles(resourceType:)` takes `project` or `workspace` and lists the built-in roles of that kind
+followed by the workspace's custom roles. `actions` is what a custom role adds; `effectiveActions`
+includes everything its base role gives today. `pierces` means grants of the role reach restricted
+items. Listing roles needs custom roles turned on for the workspace.
+
+Workspace admins create, change and delete custom roles with `workspaceMutations.accessRoles`
+(`create`, `update`, `delete`). `Workspace.accessBaseRoles(resourceType:)` lists the built-in roles a
+custom role can start from.
+
+## Export access as CSV
+
+**GET** `/api/v1/access/export`
+
+| Query parameter | Value                                  |
+| --------------- | -------------------------------------- |
+| `nodeType`      | `workspace`, `project` or `document`   |
+| `nodeId`        | The workspace, project or document ID  |
+| `projectId`     | Required when `nodeType` is `document` |
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  -o access.csv \
+  "https://app.speckle.systems/api/v1/access/export?nodeType=project&nodeId=your-project-id"
+```
+
+- A `workspace` export covers every project you can read and the restricted folders and files in
+  them. A `project` export covers the project and its restricted folders and files. A `document`
+  export covers that one item.
+- The file is UTF-8 CSV with a header row. The columns match the [Access page
+  export](/workspaces/access-review#export-access-as-csv).
+- The export needs the workspace's **Security** capability (workspace admins), and each export is
+  written to the audit log.
+
+## Permissions
+
+| Call                                 | Who is authorized                                   |
+| ------------------------------------ | --------------------------------------------------- |
+| `access`                             | Anyone who can read the node                        |
+| `grant`, `changeRole`, `revoke`      | **Owner** on the node, giving roles up to their own |
+| `restrict`, `unrestrict`             | **Owner** on the document                           |
+| `createLink` with `viewer`           | **Editor** or **Owner** on the node                 |
+| `createLink` with another role       | **Owner** on the node                               |
+| `updateLink`, `revokeLink`           | **Owner** on every node the link opens              |
+| `revokeLinks`, `Project.accessLinks` | Project **Owner** or workspace admin                |
+| `Workspace.accessLinks`              | Workspace admin                                     |
+| `accessAuditLog`, CSV export         | Workspace admin                                     |
+| `accessRoles`, `accessBaseRoles`     | Workspace members, where custom roles are turned on |
+| `workspaceMutations.accessRoles`     | Workspace admin                                     |
+
+Check `access.permissions` (`canShare`, `canRestrict`, `canCreateLink`) before calling a mutation,
+and `Workspace.permissions.canReviewAccess` before reading the audit log.
+
+## Errors
+
+| Message or cause                                  | What to do                                                          |
+| ------------------------------------------------- | ------------------------------------------------------------------- |
+| Node not found                                    | Check the ID and `projectId`, and that the token's user can read it |
+| `You cannot change your own access`               | Ask another owner or admin to make the change                       |
+| Role above your own                               | Pick a role whose actions you hold on the node                      |
+| Grantee not in the workspace                      | Add the person to the workspace, or use a group of that workspace   |
+| `Only people and groups can be given access here` | Use `createLink` for links                                          |
+| Role refused for a member on a Viewer seat        | Give `viewer`, or upgrade the member's seat                         |

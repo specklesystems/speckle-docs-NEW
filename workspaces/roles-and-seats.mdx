@@ -1,173 +1,190 @@
 ---
 title: 'Roles and permissions'
-description: 'Understand the key concepts for managing permissions'
+description: 'Workspace roles, the Owner, Editor and Viewer roles on projects, folders and files, groups, custom roles, restricted folders and expiring access.'
 ---
 
 ## What are roles and permissions?
 
-Roles and permissions define what people can do in a workspace and in each
-project. This page explains both levels and how they work together.
-
-This guide explains Speckle's project roles and workspace roles. The table below gives you a high-level overview of how these combine to determine what users can do.
+Roles decide what people can do in a workspace and in everything inside it. A workspace role sets
+someone's place in the workspace. A content role (**Owner**, **Editor** or **Viewer**) sets what
+they can do on a project, a folder, a file or a model.
 
 ## Quick role map
 
-- **Workspace role** controls broad workspace access.
-- **Project role** controls actions inside a project.
-- Workspace admins manage workspace roles in **Team**.
-- Project owners manage project roles in **Collaborators**.
+- **Workspace role** (Admin, Member, Guest) controls broad workspace access.
+- **Content role** (Owner, Editor, Viewer) controls what someone can do on a project, folder, file
+  or model. The same three roles apply at every level.
+- A role given on a project or folder also applies to everything inside it.
+- **Groups** let you give a role to a set of people at once.
+- **Restricted** folders and files reach only the people given access there or inside them, plus
+  project owners and workspace admins.
+- Workspace admins manage workspace roles in **Team**. People who can share a project manage its
+  roles in project **Settings** → **Team**, and share folders and files from **Files**.
 
 <Note>
-  In the web app, project roles are shown as **Owner**, **Contributor**, and **Reviewer**. Older
-  docs and APIs may still reference legacy names (`Project owner`, `Can edit`, `Can view`) and seat
-  types.
+  The **Editor** role was called **Contributor**, and the **Viewer** role was called **Reviewer**.
+  Older docs and API clients may still use the old names; the access each one gives is the same.
 </Note>
-
-<table>
-  <thead>
-    <tr>
-      <th style={{ textAlign: 'left' }}>Workspace role</th>
-      <th>View & comment</th>
-      <th>Publish & load</th>
-      <th>Create projects</th>
-      <th>Manage workspace</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Admin</td>
-      <td style={{ textAlign: 'center' }}>
-        <Icon icon="check" iconType="solid" />
-      </td>
-      <td style={{ textAlign: 'center' }}>
-        <Icon icon="check" iconType="solid" />
-      </td>
-      <td style={{ textAlign: 'center' }}>
-        <Icon icon="check" iconType="solid" />
-      </td>
-      <td style={{ textAlign: 'center' }}>
-        <Icon icon="check" iconType="solid" />
-      </td>
-    </tr>
-    <tr>
-      <td>Member</td>
-      <td style={{ textAlign: 'center' }}>
-        <Icon icon="check" iconType="solid" />
-      </td>
-      <td style={{ textAlign: 'center' }}>
-        <Icon icon="check" iconType="solid" />
-      </td>
-      <td style={{ textAlign: 'center' }}>
-        <Icon icon="check" iconType="solid" />
-      </td>
-      <td style={{ textAlign: 'center' }}>
-        <Icon icon="xmark" iconType="solid" color="#dc2626" />
-      </td>
-    </tr>
-    <tr>
-      <td>Guest</td>
-      <td style={{ textAlign: 'center' }}>
-        <Icon icon="check" iconType="solid" />
-      </td>
-      <td style={{ textAlign: 'center' }}>
-        <Icon icon="check" iconType="solid" />
-      </td>
-      <td style={{ textAlign: 'center' }}>
-        <Icon icon="xmark" iconType="solid" color="#dc2626" />
-      </td>
-      <td style={{ textAlign: 'center' }}>
-        <Icon icon="xmark" iconType="solid" color="#dc2626" />
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<Info>
-  Guests can only view, comment, publish and load in the specific projects they are invited to.
-</Info>
 
 ## Workspace roles
 
-Workspace roles determine a user's default project access and workspace-level permissions, like inviting users and managing security settings. `Admins` can manage workspace roles from Team.
-In Team, role management is available through the **Members** and **Guests**
-tabs.
+Workspace roles set a person's default access to the workspace's projects and what they can manage
+in the workspace. Workspace admins change workspace roles in **Team**, on the **Members** and
+**Guests** tabs.
 
 <Tabs>
   <Tab title="Admin">
-    - Full ownership of the workspace, including management of members, projects, and settings. - Is
-    automatically `Owner` of all existing and new projects in the workspace. - Cannot be removed or
-    have their role changed within a project. - Can create, manage, and oversee all Speckle Automate
-    functions within the workspace.
+    - Full ownership of the workspace: members, roles, groups, settings, security and billing. - Is
+    **Owner** of every project in the workspace, including private projects and restricted folders.
+    - Reviews who has access and reads the access audit log. See [Review who has
+    access](/workspaces/access-review).
   </Tab>
   <Tab title="Member">
-    - Can access all projects in the workspace with the `Reviewer` project role, unless the project
-    is set to `Private`. - Can create and own projects. - Cannot invite new users to the workspace,
-    but can add existing workspace users as project collaborators. - Can access and use Speckle
-    Automate to create private functions (Enterprise plan only).
+    - Can view and comment on every project in the workspace that is not private. - Can create
+    projects, and is **Owner** of the projects they create. - Gets more than **Viewer** on a
+    project, or any access to a private project, only when someone gives it to them.
   </Tab>
   <Tab title="Guest">
-    - Role meant for external collaborators who only need access to select projects in the
-    workspace. - Can hold the `Contributor` project role. - Can never create new projects in the
-    workspace. - Can never hold the `Owner` project role. - Can join a workspace without adhering to
-    any domain policies or authorizing through SSO. - Cannot access or create private Speckle
-    Automate functions.
+    - Meant for external collaborators who need only some projects, folders or files. - Has no
+    access to any project until someone shares a project, folder or file with them. - A guest given
+    a folder can open that folder without being added to the whole project. - Can join a workspace
+    without meeting its domain policies or SSO.
   </Tab>
 </Tabs>
 
-## Project roles
+## Content roles: Owner, Editor and Viewer
 
-<Frame>
-  <img
-    src="/images/workspaces/roles-and-seats/collaborators-role-dropdown.png"
-    alt="Project collaborator row with the role dropdown open showing Owner, Contributor and Reviewer"
-  />
-</Frame>
+{/* IMAGE_PLACEHOLDER: Files share dialog — role menu open on a person's row showing Owner, Editor and Viewer with their descriptions. */}
 
-Project roles determine what actions a user can perform within a specific
-project. `Admins` and `Owners` can manage roles from the Collaborators tab on
-the project page.
+The same three roles apply on a project, a folder, a file or a model. A role given on a project or a
+folder carries down to everything inside it.
 
-<Tabs>
-  <Tab title="Owner">
-    - Full ownership of the project, including inviting project collaborators, managing project
-    roles, and all project settings. - The project creator is automatically the first `Owner`. -
-    Workspace admins are `Owner` on all projects in a workspace, including private projects.
-  </Tab>
-  <Tab title="Contributor">
-    - Full contribution access within the project, including creating models and versions. - Can
-    load and publish models from connected authoring tools.
-  </Tab>
-  <Tab title="Reviewer">
-    - Can review models in the web viewer, comment, and collaborate on feedback. - Cannot publish or
-    load models through connectors.
-  </Tab>
-</Tabs>
+| What you can do                                                                    | Viewer | Editor | Owner |
+| ---------------------------------------------------------------------------------- | :----: | :----: | :---: |
+| Open, list and view models, versions, views and reports                            |  Yes   |  Yes   |  Yes  |
+| Comment, and create and resolve issues                                             |  Yes   |  Yes   |  Yes  |
+| Publish versions, add, rename and move items, edit labels, views and reports       |   No   |  Yes   |  Yes  |
+| Load into connectors, download source files, export and query the data             |   No   |  Yes   |  Yes  |
+| Create view links and embeds                                                       |   No   |  Yes   |  Yes  |
+| Run workflows, automations and model checks                                        |   No   |  Yes   |  Yes  |
+| Share with people and groups, and manage every link                                |   No   |   No   |  Yes  |
+| Restrict folders and files, move items out of a restricted folder, change settings |   No   |   No   |  Yes  |
+| Delete and restore                                                                 |   No   |   No   |  Yes  |
 
-## Access defaults
+- The person who creates a folder, file or model is its **Owner**. Nobody can change that row.
+- You can give a role only up to your own. An **Editor** cannot make someone an **Owner**.
+- You cannot change your own access. Someone else has to do it.
+- A workspace member on a **Viewer** seat can be given the **Viewer** role only. In project
+  **Settings** → **Team**, picking a higher role asks you to upgrade their seat first.
 
-Project access defaults control permissions, not billing. Plans are based on the
-total number of users in a workspace.
+## Restricted folders and files
 
-If your workspace still shows legacy `seat` wording in some settings or APIs,
-use this mapping:
+A folder or file is open to everyone who can open the folder it is in. Turn on **Restricted** in its
+share dialog when only some people should reach it. A restricted folder or file reaches only:
 
-<Tabs>
-  <Tab title="Editor seat (legacy)">
-    - Equivalent to `Contributor` project permissions for Members and Guests.
-  </Tab>
-  <Tab title="Viewer seat (legacy)" id="viewer-seat">
-    - Equivalent to `Reviewer` project permissions for Members and Guests.
-  </Tab>
-</Tabs>
+- the people and groups given access to it, or to something inside it;
+- project owners;
+- workspace admins.
+
+Roles given on the project or on a folder above stop at a restricted folder. Lifting the restriction
+keeps every role given on it and inside it. Only an **Owner** can restrict a folder or lift the
+restriction. To share or restrict, see [Share folders, files and
+models](/3d-viewer/share-folders-and-files).
+
+<Note>
+  Someone given a folder in a project they are not on sees that project in their list. It shows only
+  what they can reach.
+</Note>
+
+## Groups
+
+A group is a set of workspace members and guests. Share a group on a project, folder or file with a
+role, and everyone in it gets that role there. A group's role is set where you share it, not on the
+group: the same group can be **Editor** on one project and **Viewer** on another.
+
+- Create and edit groups in **Team** → **Groups**. Select **New group**, name it, then add members
+  and guests of the workspace.
+- A group's page lists **Where this group has access**. Change or remove its role where it is shared.
+- Share a group on a project in project **Settings** → **Team** → **General access** → **Groups**, or
+  on a folder or file from its share dialog.
+- Deleting a group removes the access it gave. The delete dialog lists where that access is lost.
+
+Only workspace admins create, edit and delete groups.
+
+## Custom roles
+
+A custom role starts from a built-in role and adds actions to it. Use one when a built-in role is
+close but not quite right, such as an **Editor** who can also share.
+
+<Steps>
+  <Step title="Open Roles">
+    In workspace **Settings**, open **Roles**. Pick **Workspace** or **Project** roles.
+  </Step>
+  <Step title="Start a new role">
+    Select **New role**. Give it a **Name** and, optionally, a **Description**.
+  </Step>
+  <Step title="Choose the base role">
+    In **Based on**, pick the built-in role it starts from: **Viewer** or **Editor** for a project
+    role, **Guest** or **Member** for a workspace role.
+  </Step>
+  <Step title="Add actions">
+    Under **Actions**, turn on what the role adds. Actions marked as coming from the base are
+    already included. Select **Create role** to save.
+  </Step>
+</Steps>
+
+- A custom role follows its base role. If the base role gains an action later, the custom role
+  gains it too.
+- A custom workspace role can also turn on **Also reaches restricted projects**, so it reaches
+  private projects as workspace admins do.
+- No custom role can include **Roles and members** (authoring roles and groups, changing member
+  roles). Only workspace admins hold it.
+- Deleting a custom role asks for a replacement. Everyone holding the deleted role, and every group
+  share and pending invite naming it, moves to the replacement.
+
+Custom roles appear in the role menus in **Team** and in project **Settings** → **Team**, and when
+you invite someone. The share dialog in **Files** offers **Owner**, **Editor** and **Viewer** only.
+
+<Note>
+  Groups and custom roles are turned on per workspace. To turn them on for your workspace, contact
+  sales@speckle.systems.
+</Note>
+
+## Access that expires
+
+Access can end on a date. When a role expires, it stops counting and the change appears in the
+workspace's audit log as **Access expired**. A link stops working on its expiry date.
+
+- Links take an optional expiry date when you create or edit them. See [Share folders, files and
+  models](/3d-viewer/share-folders-and-files#create-a-view-link).
+- Roles on a project, folder or file can carry an expiry date set through the API. See [Manage
+  access with GraphQL](/developers/api/guides/manage-access).
+- Access you hand on never outlasts your own: if your access expires on a date, what you give
+  expires on that date or earlier.
+
+The **Expires** column on the workspace **Access** page shows each end date.
+
+## See who has access and why
+
+Workspace admins open **Settings** → **Access** to see who reaches each project and restricted
+folder, and why, and to export it as CSV. The **Audit log** tab lists every change to access. See
+[Review who has access](/workspaces/access-review).
+
+When Speckle support staff use [Admin Support Mode](/it-admin/support-mode) to open your workspace
+beyond their own access, each use is recorded in the audit log.
 
 ## If a user cannot do an action
 
 Use this checklist:
 
-- Cannot publish or load -> check if project role is **Contributor** or **Owner**.
-- Cannot invite users to workspace -> check if workspace role is **Admin**.
-- Cannot open a private project -> check project collaborator access in **Collaborators**.
-- User has access to workspace but not project -> add the user in that project's **Collaborators** tab.
+- Cannot publish or load → check that their role is **Editor** or **Owner** on that project, folder
+  or model.
+- Cannot share with people or restrict a folder → check that their role is **Owner** there.
+- Cannot open a folder → check whether it is **Restricted**, then give them access in its share
+  dialog.
+- Cannot open a private project → add them in project **Settings** → **Team**.
+- Cannot invite users to the workspace → check that their workspace role is **Admin**.
+- Lost access they had → check the **Audit log** for an expiry or a removed role.
 
 ## FAQ
 
