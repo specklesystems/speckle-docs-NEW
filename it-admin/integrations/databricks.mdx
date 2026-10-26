@@ -122,7 +122,7 @@ After this is enabled, users can continue with [Databricks user setup](/connecto
 
 ## What Speckle can do in Databricks
 
-**Speckle reads by default.** Browsing catalogs, schemas, and tables reads Unity Catalog and doesn't start the SQL warehouse. Speckle runs `SELECT` queries to test the connection, preview tables, and build snapshots. On Delta tables, each snapshot refresh first runs `DESCRIBE HISTORY ... LIMIT 1` and then reads the table at that version (`VERSION AS OF`). With the Databricks tools in AI chat, the chat can also read live rows and update tables, each time after the person who asked allows it.
+**Speckle reads by default.** Browsing catalogs, schemas, and tables reads Unity Catalog and doesn't start the SQL warehouse. Speckle runs `SELECT` queries to test the connection, preview tables, and build snapshots. On managed and external Delta tables, each snapshot refresh first runs `DESCRIBE HISTORY ... LIMIT 1` and then reads the table at that version (`VERSION AS OF`). If `DESCRIBE HISTORY` fails, the refresh reads the latest data without a version. With the Databricks tools in AI chat, a workspace admin can also have the chat read live rows and update tables, each time after they allow it.
 
 **Databricks SQL grants define the boundary.** Speckle can only read the catalogs, schemas, and tables you granted to the service principal, and can only update tables you granted a write privilege on.
 
@@ -130,7 +130,7 @@ After this is enabled, users can continue with [Databricks user setup](/connecto
 
 ## Let AI chat update tables
 
-If your Speckle deployment turns on the Databricks tools in AI chat, users can ask the chat to update values in an existing table, for example to write quantities from a model into a cost table. The chat can write to a table only if the service principal has a write privilege on it, and only after the person who asked allows every statement. To keep Speckle read-only, grant only the read privileges above.
+If your Speckle deployment turns on the Databricks tools in AI chat, workspace admins can ask the chat to update values in an existing table, for example to write quantities from a model into a cost table. The chat can write to a table only if the service principal has a write privilege on it, and only after the person who asked allows every statement. A workspace admin can also run the same write through the Speckle API, which shows no card but needs the same grant. To keep Speckle read-only, grant only the read privileges above.
 
 To let the chat update a table, grant `MODIFY` on it in addition to the read grants above:
 
@@ -138,19 +138,21 @@ To let the chat update a table, grant `MODIFY` on it in addition to the read gra
 GRANT MODIFY ON TABLE `speckle`.`cost`.`walls` TO `9918081b-778e-469a-a69b-acc950b08e09`;
 ```
 
-`MODIFY` lets the chat update rows and add columns. Without a write privilege, Databricks rejects the write and the table stays unchanged. The chat can write only to managed or external Delta tables.
+`MODIFY` covers the update and the new columns. Databricks' `MODIFY` also allows inserts and deletes, which Speckle never runs. Without a write privilege, Databricks rejects the write and the table stays unchanged. The chat can write only to managed or external Delta tables.
 
 A write runs these statements in order:
 
-1. `SELECT` reads the rows whose key columns match.
-2. `ALTER TABLE ... ADD COLUMNS` adds new nullable columns. It runs only when the write adds a column, and the card lists it before anything runs.
+1. `SELECT` reads the rows whose key columns match. If a key matches more than one row, the write stops here.
+2. `ALTER TABLE ... ADD COLUMNS` adds new nullable columns. It runs only when the write adds a column, and the card lists it before anything runs. Speckle can't remove a column after it adds one.
 3. `MERGE INTO ... WHEN MATCHED ... THEN UPDATE` updates the rows whose key columns match. It never inserts or deletes rows, and it skips keys that match no row.
 4. `SELECT` reads the same rows back to verify the update.
-5. `DESCRIBE HISTORY ... LIMIT 1` reads the table version that the write created.
+5. `DESCRIBE HISTORY ... LIMIT 1` reads the table's latest version, which Speckle records as the version after the write.
 
 <Tip>
-  If users never need new columns, the Databricks `UPDATE` privilege (Beta) is enough for the update
-  itself. Adding a column still needs `MODIFY`.
+  If users never need new columns, Databricks' `UPDATE` privilege is enough for the update itself,
+  on compute that supports [fine-grained DML
+  privileges](https://docs.databricks.com/aws/en/data-governance/unity-catalog/access-control/fine-grained-dml-privileges)
+  (Beta). Adding a column still needs `MODIFY`.
 </Tip>
 
 On a self-hosted Speckle Enterprise Server, your server admin turns the tools on. See [Databricks tools in the assistant](/developers/server/deployment/enterprise-license#databricks-tools-in-the-assistant).
