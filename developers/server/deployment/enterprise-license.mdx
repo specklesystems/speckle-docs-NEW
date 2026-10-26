@@ -388,6 +388,26 @@ and `reasoningEscalated` roles.
    workspace** to accept the AI terms for that workspace. The administrator can later turn **AI
    features** on or off under workspace **Settings** → **General**.
 
+#### Databricks tools in the assistant
+
+The assistant can work with a workspace's Databricks connection. It can find tables in the catalog,
+register and refresh them, read live rows, and update values in existing tables. Each action except
+finding a table waits until the person who asked allows it. The tools are off by default.
+
+The tools need the assistant above and a working Databricks integration
+(`featureFlags.databricksIntegrationEnabled`). To turn them on, set the flag in your Helm
+`values.yaml` and upgrade the deployment:
+
+```yaml
+featureFlags:
+  aiChatModuleEnabled: true
+  databricksIntegrationEnabled: true
+  aiDatabricksToolsEnabled: true
+```
+
+The flag grants no access in Databricks. A write also needs a write privilege on the table, as
+described in [Let AI chat update tables](/it-admin/integrations/databricks#let-ai-chat-update-tables).
+
 #### Dashboards
 
 <Note>

@@ -1,7 +1,7 @@
 ---
 title: 'Databricks'
 sidebarTitle: 'Databricks'
-description: 'Register read-only Databricks tables as data sources in Speckle for the AI chat and data tools.'
+description: 'Register Databricks tables as data sources in Speckle for the AI chat and data tools.'
 ---
 
 <Badge>Beta</Badge>
@@ -29,7 +29,7 @@ These steps assume an IT administrator has already connected a Databricks SQL wa
 
   </Step>
   <Step title="Choose the columns and register">
-    Pick the **columns** to include — only the columns you choose are ever read or cached — then select **Register**. Speckle validates access, reads the selected columns, and builds the first snapshot. The table now appears as a registered data source.
+    Pick the **columns** to include — only the columns you choose go into the snapshot — then select **Register**. Speckle validates access, reads the selected columns, and builds the first snapshot. The table now appears as a registered data source.
 
     <Frame>
       <img src="/images/connectors/data-warehouses/databricks_register_table.png" alt="Registering a Databricks table as a data source" />
@@ -44,29 +44,45 @@ Registered data sources are available to Speckle tools such as the **AI chat**, 
 
 ## How snapshots are stored and refreshed
 
-When you register a table, Speckle reads the columns you selected and stores a cached **snapshot** in your workspace's object storage. Tools query the snapshot rather than your live warehouse.
+When you register a table, Speckle reads the columns you selected and stores a cached **snapshot** in your workspace's object storage. Tools query the snapshot rather than your live warehouse, unless you allow a live read in AI chat.
 
-- **Automatic refresh.** A snapshot is rebuilt from the warehouse when it goes stale (default freshness window: 24 hours), the next time it's used.
-- **Manual refresh.** You can force an immediate refresh from the registered table's controls — useful right after the source data changes.
+- **Automatic refresh.** A snapshot is rebuilt from the warehouse when it goes stale (default freshness window: 24 hours), the next time it's used. If a refresh fails, Speckle keeps the last snapshot and doesn't try again automatically for 15 minutes.
+- **Manual refresh.** You can force an immediate refresh from the registered table's controls — useful right after the source data changes. A manual refresh runs even during those 15 minutes.
 - **Disconnecting.** If your IT administrator removes the Databricks connection, registered sources keep serving their **last snapshot read-only**. Reconnecting the same warehouse relinks them and resumes refreshing.
+
+## Use Databricks from AI chat
+
+<Note>
+  On a self-hosted Speckle Enterprise Server, your server administrator turns these tools on. See
+  [Databricks tools in the
+  assistant](/developers/server/deployment/enterprise-license#databricks-tools-in-the-assistant).
+</Note>
+
+When the Databricks tools are on for AI chat, the chat can find a table in the catalog, register or refresh it, read live rows, and update values in an existing table. Finding a table reads only the catalog. Every other action runs on your SQL warehouse, so the chat shows a card and waits. Select **Allow** to run the action, or **Skip** to cancel it.
+
+With these tools on, the chat doesn't rebuild a stale snapshot when it uses one. It tells you when the snapshot was taken and offers a refresh instead.
+
+### Update a table
+
+{/* IMAGE_PLACEHOLDER: AI chat — Databricks write card listing every statement, with Skip and Allow. */}
+
+Ask the chat to update values in a table, for example to write quantities from a model into a cost table. The chat updates only the rows whose key columns match. It never inserts or deletes rows, and it adds a column only when you ask for one.
+
+Before the write runs, the card lists every statement. Only the person who asked can allow it. After the write, the chat reads the rows back and reports every key that matched no row.
+
+A write works only on tables your IT administrator opened for writes. On other tables, Databricks rejects the write and the table stays unchanged. See [Let AI chat update tables](/it-admin/integrations/databricks#let-ai-chat-update-tables).
 
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Which columns does Speckle read?">
-    Only the columns you select when registering a table. Columns you don't include are never
-    queried or cached.
-  </Accordion>
-  <Accordion title="Is the data live or cached?">
-    Speckle stores a snapshot of your registered columns and refreshes it on a schedule. See [How
-    snapshots are stored and refreshed](#how-snapshots-are-stored-and-refreshed).
-  </Accordion>
-  <Accordion title="What happens if the Databricks connection is removed?">
-    Your registered sources keep serving their last cached snapshot read-only, so existing tools
-    don't break. If your IT administrator reconnects the same warehouse, refreshing resumes.
-  </Accordion>
   <Accordion title="Can Speckle modify or write to my warehouse?">
-    No. The integration is **read-only** — Speckle issues `SELECT` queries only and never writes,
-    updates, or deletes data in Databricks.
+    Only through an AI chat write that the person who asked allows. Speckle reads by default. When
+    the Databricks tools are on for AI chat, the chat can update rows in an existing table, but only
+    on tables your IT administrator opened for writes. It never inserts or deletes rows.
+  </Accordion>
+  <Accordion title="Why does a manual refresh say a refresh is already running?">
+    Another refresh of the same data source started first. Speckle waits up to 60 seconds for it to
+    finish, then stops with "A refresh of this source is already running; try again when it
+    finishes." Try again once the running refresh is done.
   </Accordion>
 </AccordionGroup>
