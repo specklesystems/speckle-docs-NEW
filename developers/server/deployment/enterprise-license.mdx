@@ -393,7 +393,7 @@ and `reasoningEscalated` roles.
 The assistant can work with a workspace's Databricks connection. It can find tables in the catalog,
 register and refresh them, read live rows, and update values in existing tables. Only workspace
 admins get the tools. Each action except finding a table waits until the person who asked allows
-it. The tools are off by default.
+it. In a chat that is shared, finding a table waits too. The tools are off by default.
 
 The tools need the assistant above, [Workspaces](#enable-workspaces), and a working Databricks
 integration (`featureFlags.databricksIntegrationEnabled`). To turn them on, set
@@ -407,9 +407,22 @@ featureFlags:
   aiDatabricksToolsEnabled: true
 ```
 
-The flag also enables the Speckle API calls the tools use, for workspace admins only. It grants no
-access in Databricks. A write also needs a write privilege on the table, as described in [Let AI chat
-update tables](/it-admin/integrations/databricks#let-ai-chat-update-tables).
+The flag also enables the Speckle API calls the tools use, for workspace admins only. Those calls
+don't wait for anyone to allow them. The flag grants no access in Databricks. A write also needs a
+write privilege on the table, as described in [Let AI chat update
+tables](/it-admin/integrations/databricks#let-ai-chat-update-tables).
+
+Turning the flag on also changes how Speckle handles Databricks data:
+
+- Only workspace admins can query Databricks data sources, in AI chat and in other tools.
+- AI chat no longer rebuilds a stale Databricks snapshot when it uses one. A workspace admin
+  refreshes it from the chat after allowing it, or from the registered table's controls.
+- A chat that holds Databricks data can be shared only after its owner confirms. See [Share a chat
+  that holds Databricks
+  data](/connectors/cloud-integrations/databricks#share-a-chat-that-holds-databricks-data).
+- Public report links no longer include Databricks data.
+
+Snowflake and Microsoft Fabric data sources are not affected.
 
 #### Dashboards
 
