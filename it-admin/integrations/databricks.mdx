@@ -16,7 +16,7 @@ This guide is for IT administrators who need to prepare Databricks and connect a
 
 If your organisation has not prepared Databricks for Speckle yet, an IT administrator (or anyone with Databricks admin access) must complete the steps below.
 
-Speckle undertakes all Databricks actions via a **service principal** you create (OAuth machine-to-machine). The SQL grants you assign to that service principal in Databricks define exactly what Speckle can read — grant only the catalogs, schemas, and tables you want to expose.
+Speckle acts in Databricks through a **service principal** you create (OAuth machine-to-machine). The SQL grants you assign to that service principal in Databricks define what Speckle can read and change. Grant only the catalogs, schemas, and tables you want to expose.
 
 ## Prepare the service principal and grants
 
@@ -64,20 +64,20 @@ Speckle undertakes all Databricks actions via a **service principal** you create
   <Step title="Grant access to the data you want to expose">
     Grant the service principal `USE CATALOG`, `USE SCHEMA`, and `SELECT` on the specific catalogs, schemas, and tables users need — plus access to the SQL warehouse. `SELECT` on a table requires `USE CATALOG` on its catalog and `USE SCHEMA` on its schema, so grant all three. To expose every table in a schema at once, grant `SELECT` on the schema instead of listing each table.
 
-    Run the grants in a Databricks SQL editor or notebook. The grantee is the service principal's **Client ID** (its Application ID, from the earlier step):
-
-    ```sql title="Grant read access to the Speckle service principal"
-    -- Replace the catalog/schema/table names and the Client ID with your own.
-    GRANT USE CATALOG ON CATALOG `speckle`                       TO `9918081b-778e-469a-a69b-acc950b08e09`;
-    GRANT USE SCHEMA  ON SCHEMA  `speckle`.`cost`                TO `9918081b-778e-469a-a69b-acc950b08e09`;
-    GRANT SELECT      ON TABLE   `speckle`.`cost`.`diamonds`     TO `9918081b-778e-469a-a69b-acc950b08e09`;
-    GRANT SELECT      ON TABLE   `speckle`.`cost`.`walls`        TO `9918081b-778e-469a-a69b-acc950b08e09`;
-    ```
+    Run the grants below in a Databricks SQL editor or notebook. The grantee is the service principal's **Client ID** (its Application ID, from the earlier step).
 
     The service principal can now read only the catalogs, schemas, and tables you granted.
 
   </Step>
 </Steps>
+
+```sql title="Grant read access to the Speckle service principal"
+-- Replace the catalog/schema/table names and the Client ID with your own.
+GRANT USE CATALOG ON CATALOG `speckle`                       TO `9918081b-778e-469a-a69b-acc950b08e09`;
+GRANT USE SCHEMA  ON SCHEMA  `speckle`.`cost`                TO `9918081b-778e-469a-a69b-acc950b08e09`;
+GRANT SELECT      ON TABLE   `speckle`.`cost`.`diamonds`     TO `9918081b-778e-469a-a69b-acc950b08e09`;
+GRANT SELECT      ON TABLE   `speckle`.`cost`.`walls`        TO `9918081b-778e-469a-a69b-acc950b08e09`;
+```
 
 ## Connect the warehouse in Speckle
 
@@ -118,13 +118,43 @@ Speckle undertakes all Databricks actions via a **service principal** you create
   or table refresh on a stopped warehouse can time out.
 </Note>
 
-<Note>
-  **Speckle is read-only in Databricks.** It only runs `SELECT` queries against tables users register and never writes, alters, or deletes data in your warehouse.
+Once the warehouse is connected, users can continue with [Databricks user setup](/connectors/cloud-integrations/databricks).
 
-**Databricks SQL grants define the boundary.** Speckle can only read catalogs, schemas, and tables you explicitly granted to the service principal — nothing more.
+## What Speckle can do in Databricks
+
+**Speckle reads by default.** Browsing catalogs, schemas, and tables reads Unity Catalog and doesn't start the SQL warehouse. Speckle runs `SELECT` queries to test the connection, preview tables, and build snapshots. On managed and external Delta tables, each snapshot refresh first runs `DESCRIBE HISTORY ... LIMIT 1` and then reads the table at that version (`VERSION AS OF`). If `DESCRIBE HISTORY` fails, the refresh reads the latest data without a version. With the Databricks tools in AI chat, a workspace admin can also have the chat read live rows, each time after they allow it.
+
+**Databricks SQL grants define the boundary.** Speckle can only read the catalogs, schemas, and tables you granted to the service principal, and can only update tables you granted a write privilege on.
+
+**With the Databricks tools on, only workspace admins can query Databricks data sources.** A chat that holds Databricks data can be shared only after its owner confirms, and public report links don't load Databricks data sources. See [Share a chat that holds Databricks data](/connectors/cloud-integrations/databricks#share-a-chat-that-holds-databricks-data).
 
 **Connection secrets are protected in Speckle.** They are encrypted in your browser before they are sent, stored encrypted at rest, and never shown again after you save the connection.
 
-</Note>
+## Let AI chat update tables
 
-After this is enabled, users can continue with [Databricks user setup](/connectors/cloud-integrations/databricks).
+If your Speckle deployment turns on the Databricks tools in AI chat, workspace admins can ask the chat to update values in an existing table. The chat waits until the admin who asked reads every statement on the card and allows the write. A workspace admin can also run the same write through the Speckle API, which shows no card. To keep Speckle read-only, grant only the read privileges above.
+
+To let the chat update a table, also grant `MODIFY` on it:
+
+```sql title="Let the Speckle service principal update one table"
+GRANT MODIFY ON TABLE `speckle`.`cost`.`walls` TO `9918081b-778e-469a-a69b-acc950b08e09`;
+```
+
+`MODIFY` covers the update and the new columns. It also allows inserts and deletes, which Speckle never runs. Without a write privilege, Databricks rejects the write and the table stays unchanged. The chat can write only to managed or external Delta tables.
+
+A write runs these statements in order:
+
+1. `SELECT` reads the rows whose key columns match. If a key matches more than one row, the write stops here.
+2. `ALTER TABLE ... ADD COLUMNS` adds new nullable columns. It runs only when the write adds a column, and the card lists it before anything runs. Speckle can't remove a column after it adds one.
+3. `MERGE INTO ... WHEN MATCHED ... THEN UPDATE` updates the rows whose key columns match. It skips keys that match no row.
+4. `SELECT` reads the same rows back to verify the update.
+5. `DESCRIBE HISTORY ... LIMIT 1` reads the table's latest version, which Speckle records as the version after the write.
+
+<Tip>
+  If users never need new columns, Databricks' `UPDATE` privilege is enough for the update itself,
+  on compute that supports [fine-grained DML
+  privileges](https://docs.databricks.com/aws/en/data-governance/unity-catalog/access-control/fine-grained-dml-privileges)
+  (Beta). Adding a column still needs `MODIFY`.
+</Tip>
+
+On a self-hosted Speckle Enterprise Server, your server admin turns the tools on. See [Databricks tools in the assistant](/developers/server/deployment/enterprise-license#databricks-tools-in-the-assistant).
