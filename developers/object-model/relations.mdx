@@ -42,16 +42,16 @@ your script's assumptions unless that host actually publishes it.
 
 These replace nested `elements` walks and most organisational Proxies.
 
-| Relation        | From → to                            | Replaces (before 2026.9)                                           | When you use it                                                                                         |
-| --------------- | ------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `SUBELEMENT`    | object → object                      | Nested DataObject `elements` (curtain wall → panels, stair → runs) | Host-to-child ownership the property store cannot encode                                                |
-| `IN_COLLECTION` | object → grouping container          | Collection tree / layer membership                                 | Authored layer, category, or collection membership                                                      |
-| `IN_MODEL`      | object → grouping container          | Source-file / federation grouping                                  | Which source model an object came from                                                                  |
-| `IN_GROUP`      | object → grouping container          | Group Proxy                                                        | Authored groups (for example Rhino or AutoCAD). Distinct from layer                                     |
-| `IN_ROOM`       | object → room object                 | Not a first-class Proxy graph                                      | Spatial occupancy (furniture, door, window → room)                                                      |
-| `IN_ASSEMBLY`   | member object → assembly object      | Host-specific nesting                                              | Fabrication membership (for example Tekla). Distinct from `SUBELEMENT`                                  |
-| `ON_LEVEL`      | object → level                       | Level Proxy                                                        | Level membership                                                                                        |
-| `IN_SYSTEM`     | object → system or network container | System / network grouping                                          | MEP system membership. Derived networks use the same relation; the container subtype distinguishes them |
+| Relation        | From → to                            | Replaces (before 2026.9)                                           | When you use it                                                                                                                                                                          |
+| --------------- | ------------------------------------ | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUBELEMENT`    | object → object                      | Nested DataObject `elements` (curtain wall → panels, stair → runs) | Host-to-child ownership the property store cannot encode                                                                                                                                 |
+| `IN_COLLECTION` | object → grouping container          | Collection tree / layer membership                                 | Authored layer, category, or collection membership                                                                                                                                       |
+| `IN_MODEL`      | object → grouping container          | Source-file / federation grouping                                  | Which source model an object came from                                                                                                                                                   |
+| `IN_GROUP`      | object → grouping container          | Group Proxy                                                        | Authored groups (Rhino, AutoCAD, Revit model groups, ETABS and TSD element groups). Distinct from layer                                                                                  |
+| `IN_ROOM`       | object → room object                 | Not a first-class Proxy graph                                      | Spatial occupancy (furniture, door, window → room)                                                                                                                                       |
+| `IN_ASSEMBLY`   | member object → assembly object      | Host-specific nesting                                              | Fabrication membership: a Tekla part in its assembly (`ord` 0 marks the main part) or a pour object in its pour unit (`ord` 0 on every member, no main part). Distinct from `SUBELEMENT` |
+| `ON_LEVEL`      | object → level                       | Level Proxy                                                        | Level membership: a Revit level, an ETABS story, a TSD horizontal construction plane                                                                                                     |
+| `IN_SYSTEM`     | object → system or network container | System / network grouping                                          | MEP system membership. Derived networks use the same relation; the container subtype distinguishes them                                                                                  |
 
 Grouping containers nest among themselves (a collection tree). That nesting is structural. It is not
 an object-to-object `elements` walk.
@@ -61,14 +61,25 @@ an object-to-object `elements` walk.
 These are new as a queryable graph. The object graph of versions published before 2026.9 has no
 Proxy equivalent.
 
-| Relation      | From → to       | Meaning                                                                                         |
-| ------------- | --------------- | ----------------------------------------------------------------------------------------------- |
-| `CONNECTS_TO` | object → object | Directed connectivity. Scope distinguishes MEP flow, opening/room adjacency, and unscoped links |
-| `HOSTED_ON`   | object → object | Hosted element → host (door or window → wall). Different from `SUBELEMENT` ownership            |
-| `BOUNDS`      | object → object | Bounding wall → room. Room footprint, not occupancy                                             |
+| Relation      | From → to       | Meaning                                                                                                                    |
+| ------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `CONNECTS_TO` | object → object | Directed connectivity. Scope distinguishes MEP flow, opening/room adjacency, and unscoped links                            |
+| `HOSTED_ON`   | object → object | Hosted element → host (door or window → wall, Tekla rebar → the part it reinforces). Different from `SUBELEMENT` ownership |
+| `BOUNDS`      | object → object | Bounding wall → room. Room footprint, not occupancy                                                                        |
 
 `CONNECTS_TO` is directed in the store. Neighborhood queries used by the product treat it as a
 one-hop connection in either direction.
+
+Structural hosts write their connectivity as unscoped `CONNECTS_TO` (`ord` 0), one edge per pair of
+objects, from the element to what it connects to:
+
+- **Analytical topology** (ETABS, Tekla Structural Designer): frame, shell, or member → each joint
+  or construction point it sits on. Joints are objects of their own; which end is I or J is a
+  property on the member, not on the edge.
+- **Fabrication connectivity** (Tekla Structures): the main part of a weld or bolt group → each
+  part it joins, and the primary part of a component → its secondary parts. Several welds or bolt
+  groups between the same two parts give one edge; counts and sizes stay on the weld and bolt
+  objects.
 
 ### Display geometry
 
@@ -187,12 +198,16 @@ for who is affected.
   </Accordion>
   <Accordion title="Can I describe an assembly and its parts with relations?">
     Yes, as a resolved structure. Parts are objects. A sub-assembly owns its parts through
-    `SUBELEMENT`, or joins them through `IN_ASSEMBLY` when membership is the point. A part used
-    many times is one definition placed by instances, each with its own transform, and a repeated
-    sub-assembly is a nested definition. Part-to-part contact is `CONNECTS_TO`, and exact bodies
-    ride `SOLID`. What does not travel is the constraint system: mates such as coincident or
-    concentric, degrees of freedom, and the solver that positions parts from them. You publish the
-    positions those constraints produced, not the constraints.
+    `SUBELEMENT`, or joins them through `IN_ASSEMBLY` when membership is the point. Tekla
+    Structures publishes the second shape, from the connector and from a `.db1` upload alike: the
+    assembly is an object, each part points at it with `IN_ASSEMBLY` (`ord` 0 on the main part),
+    and a pour unit is read the same way with `ord` 0 on every pour object. Welds and bolt groups
+    are `SUBELEMENT` children of their main part; the parts a weld, bolt group, or component joins
+    are `CONNECTS_TO` pairs. A part used many times is one definition placed by instances, each with
+    its own transform, and a repeated sub-assembly is a nested definition. Exact bodies ride
+    `SOLID`. What does not travel is the constraint system: mates such as coincident or concentric,
+    degrees of freedom, and the solver that positions parts from them. You publish the positions
+    those constraints produced, not the constraints.
   </Accordion>
   <Accordion title="Can I extend the relation topologies for my tools?">
     Yes. Store custom edges in your own parquet files, not in the relation files Speckle SDKs
