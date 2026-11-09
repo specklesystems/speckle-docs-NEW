@@ -111,8 +111,10 @@ When the user starts describing a feature, refactor, bug, or plan, suggest
 the matching entry point instead of diving into implementation: `/wayfinder`
 for big/foggy multi-session work, `/grill-me` (or `/grill-with-docs`) to
 stress-test one plan, `/prototype` when "how should it look/behave" is open,
-then `/to-spec` → `/to-tickets` → `/implement` (which calls `/code-review`).
-The full loop: `atlas/ways-of-working.md` in the speckle-atlas checkout root
+then `/to-spec` → `/to-tickets` → `/implement`. Opening a PR or marking a
+draft ready, whatever the entry point: load the `pr` skill first; it runs
+`/code-review` on code written in the session. The full loop:
+`atlas/ways-of-working.md` in the speckle-atlas checkout root
 (`../atlas/ways-of-working.md` from this repo in the standard nested layout)
 — read it before shaping non-trivial work.
 
