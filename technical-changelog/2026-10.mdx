@@ -6,9 +6,63 @@ sidebarTitle: 'October 2026'
 
 ## Web app
 
+### AI Chat
+
+- **Feature:** [Chat](/analytics/intelligence) can read a workspace's [Databricks](/connectors/cloud-integrations/databricks) tables and write values back once the requester approves the exact statements.
+
+- **Improvement:** Chat reads workbook sheets as text and queries them like tables; Excel analysis finishes with findings instead of failing silently.
+
+- **Fix:** Excel workbooks with namespace-prefixed worksheets import instead of reporting no worksheets.
+
+- **Fix:** Reference documents of an active skill are readable in chat.
+
+- **Fix:** Saved check and report links are shown during AI conversation replay.
+
+### Reports
+
+- **Feature:** [Reports](/analytics/reports) built from a workbook or CSV in the Files library keep live bindings without a model.
+
+- **Fix:** Large reports have time to finish after reasoning.
+
+- **Fix:** Aggregates recompute by summing per-model results rather than re-executing.
+
+- **Fix:** A re-run replaces the version's existing result instead of tying with it.
+
+### Projects, Models and Versions
+
+- **Fix:** Object indexes remain readable after a version's packfile is deleted.
+
+### Workspace administration
+
+- **Feature:** Workspace admins can [limit AI enablement to admins and turn off public sharing of AI conversations](/workspaces/configuration#settings-map).
+
+### Identity and access
+
+- **Improvement:** New passwords need at least 8 characters, including a digit, a lowercase and an uppercase letter.
+
+- **Fix:** A cached token validation is reused only for the exact token that produced it.
+
+### Model Viewer
+
+- **Feature:** Shift+H hides or shows the current selection. See [exploring models](/3d-viewer/exploration).
+
+- **Feature:** [Federated model](/3d-viewer/federation) cards have a one-click hide/show toggle.
+
+- **Improvement:** SQL filter buckets can be checked and unchecked like other filter values.
+
+### Presentations and Sharing
+
+- **Feature:** Replace view is restored on [saved views](/3d-viewer/saved-views).
+
 ### Dashboards
 
+- **Feature:** Calculated fields pinned as Key Facts show their value for the selected object.
+
+- **Improvement:** Widgets show their last result as soon as a dashboard opens, then switch to the live result.
+
 - **Improvement:** Automate result failures show clearer error details.
+
+- **Fix:** Deleting a calculated field removes every reference to it; a field that other fields depend on cannot be deleted.
 
 - **Fix:** New carbon assessments list every dashboard model, including models not loaded by another widget.
 
@@ -18,53 +72,43 @@ sidebarTitle: 'October 2026'
 
 - **Fix:** Filtering one of two versions of the same model no longer mixes object indexes between them.
 
+### Model Health
+
+- **Feature:** Revit warnings and model-health summaries are shown on model, version and viewer pages.
+
 ### Data Validation
 
 - **Feature:** [Validation rules](/analytics/data-validation/checks) can compare computed values.
 
 - **Fix:** Model paths are searchable when choosing check models.
 
-### Insights
-
-- **Fix:** Aggregates recompute by summing per-model results rather than re-executing.
-
-- **Fix:** A re-run replaces the version's existing result instead of tying with it.
-
-### Intelligence
-
-- **Fix:** Saved check and report links are shown during AI conversation replay.
-
-### Model Health
-
-- **Feature:** Revit warnings and model-health summaries are shown on model, version and viewer pages.
-
 ### Parameter Updater
 
 - **Feature:** The [Parameter Updater](/beta/parameter-updater) can request parameter creation for objects where the selected parameter is missing.
-
-### Saved views
-
-- **Feature:** Replace view is restored on [saved views](/3d-viewer/saved-views).
-
-### Viewer
-
-- **Feature:** [Federated model](/3d-viewer/federation) cards have a one-click hide/show toggle.
-
-- **Feature:** Shift+H hides or shows the current selection. See [exploring models](/3d-viewer/exploration).
 
 ## Server
 
 ### Enterprise Server
 
-- **Feature:** Azure Blob storage supports multipart uploads. Version 2026.9.7.
+- **Feature:** Connectors can supply a version identifier on model ingestion.
 
 - **Feature:** A planned-maintenance page is shown while the API is down.
 
-- **Feature:** Connectors can supply a version identifier on model ingestion.
+- **Feature:** Azure Blob storage supports multipart uploads. Version 2026.9.7.
 
 - **Fix:** New regions are seeded with users and workspaces again. Version 2026.9.6.
 
+### Deployment and Maintenance
+
+- **Improvement:** Request bodies and uploaded bundles compressed with Brotli are refused. Version 2026.9.11.
+
+- **Improvement:** DuckDB extensions ship in the server image, and HubSpot form requests can be turned off, so self-hosted servers need no egress to either. Version 2026.9.11.
+
+- **Fix:** Server images run Node 22.23.4, fixing CVE-2026-111497. Version 2026.9.11.
+
 ### File conversion
+
+- **Feature:** Revit conversion records views, view templates and sheets, link worksets and placements, project information and more model-health counts.
 
 - **Feature:** The Revit converter can combine a host and supplied linked models into one bundle; server and UI deployment is not established here. Version 2026.9.2.
 
@@ -76,59 +120,135 @@ sidebarTitle: 'October 2026'
 
 - **Feature:** Zipped Revit uploads are converted by unwrapping their root model. Version 2026.9.1.
 
+- **Improvement:** ETABS shells and links connect to their joints, and Tekla weld and bolt connectivity is published as relations.
+
 ### File sync
 
 - **Feature:** Earlier [ACC](/connectors/cloud-integrations/acc) file versions can be imported into a sync, dated at the source.
+
+- **Feature:** [Trimble Connect](/connectors/cloud-integrations/trimble-connect#supported-file-formats) syncs convert formats without a dedicated converter through Trimble's TrimBIM export.
+
+- **Improvement:** An ACC sync whose file was deleted in ACC pauses, says why and emails the project owners.
+
+- **Improvement:** Sync pause emails follow one recipient rule across integrations.
 
 - **Fix:** ACC, ProjectWise and Trimble sync creation no longer resubmits files whose sync was already created.
 
 ### File uploads
 
+- **Feature:** Point cloud files (LAS, LAZ, E57, PLY, PCD, PTS, PTX, XYZ and ReCap) can be uploaded, as a preview.
+
 - **Feature:** GIS file formats are accepted for [direct upload](/connectors/direct-uploads/introduction); QGIS project uploads request the project's folder zip.
 
-- **Feature:** [ETABS](/connectors/direct-uploads/introduction#upload-an-etabs-model) models can be uploaded with their analysis result files.
-
 - **Feature:** RVM files can be uploaded with linked attribute export and P&ID drawings (test flag).
+
+- **Feature:** [ETABS](/connectors/direct-uploads/introduction#upload-an-etabs-model) models can be uploaded with their analysis result files.
 
 - **Feature:** Support for uploading and converting [Solibri](/connectors/direct-uploads/introduction#solibri-smc) files.
 
 - **Feature:** Support for uploading and converting [TrimBIM](/connectors/direct-uploads/introduction#trimbim-trb) files.
 
+- **Improvement:** The maximum upload size on app.speckle.systems is 5 GB.
+
+- **Improvement:** Uploads to a model that has a sync are rejected from every client, not only hidden in the web app.
+
+- **Fix:** API uploads of Revit files without a view name are accepted.
+
 ### Self-hosted conversion
 
 - **Fix:** Azure Blob multipart uploads complete when part uploads return no ETag. Version 2026.9.4.
-
-### Server
-
-- **Fix:** Object indexes remain readable after a version's packfile is deleted.
 
 ## Integrations
 
 ### Desktop connectors
 
-- **Improvement:** Revit, Civil3D and Rhino parameters binding reports which parameters it applied and which it could not.
+- **Improvement:** An unsupported conversion is reported as a warning, not an error. Version 2026.9.4.
+
+- **Improvement:** Revit, Civil3D and Rhino parameters binding reports which parameters it applied and which it could not. Version 2026.9.3.
+
+- **Fix:** A parameter creation request on an existing parameter updates it; creations use the leaf name. Version 2026.9.3.
+
+- **Fix:** Unset parameters publish as empty rather than 0; empty strings survive the send setting. Version 2026.9.3.
+
+- **Fix:** Typed parameter values are parsed with the invariant culture. Version 2026.9.3.
 
 - **Fix:** Connectors remain compatible with 2026.9 servers older than 2026.9.9. Version 2026.9.2.
 
-- **Fix:** Typed parameter values are parsed with the invariant culture.
+### Connector deployment
 
-- **Fix:** Unset parameters publish as empty rather than 0; empty strings survive the send setting.
+- **Feature:** SketchUp reads SPECKLE_DUI_URL and the other global configuration keys. Version 2026.9.2.
 
-- **Fix:** A parameter creation request on an existing parameter updates it; creations use the leaf name.
+- **Feature:** Connectors read [OpenTelemetry settings](/connectors/connector-configuration#self-hosting-opentelemetry-collector-%2F-clickstack) from the registry. Version 2026.9.4.
+
+- **Feature:** Archicad reads SPECKLE_DUI_URL and the other [global configuration keys](/connectors/connector-configuration). Version 2026.9.1.
+
+### Cloud integrations
+
+- **Feature:** [SharePoint](/connectors/cloud-integrations/sharepoint) files can be synced to models, in beta for participating workspaces.
+
+- **Improvement:** Spaces, Room Separation Lines and Topography can be chosen as Revit categories when importing.
+
+### Revit
+
+- **Improvement:** Fitting centerlines publish as the family's own path curves. Version 2026.9.3.
+
+### Rhino
+
+- **Fix:** Published n-gon meshes are triangulated correctly. Version 2026.9.4.
+
+### Grasshopper
+
+- **Feature:** A Speckle Relation component is available in [Grasshopper](/connectors/grasshopper/grasshopper). Version 2026.9.3.
+
+- **Improvement:** Received attributed objects arrive as Speckle Objects. Version 2026.9.3.
 
 ### Archicad
 
-- **Feature:** MEP element kinds are included when [Archicad](/connectors/archicad) models are published.
+- **Feature:** Archicad 30 is supported. Version 2026.9.1.
 
-- **Fix:** Long-running ingestions stay alive and confirm publication.
+- **Feature:** MEP element kinds are included when [Archicad](/connectors/archicad) models are published. Version 2026.9.1.
 
-### Power BI
+- **Improvement:** MEP pipe and duct routes publish with their 3D body.
 
-- **Fix:** Bundle-only versions return the intended JSON-unavailable error instead of an object-download 404.
+- **Improvement:** The connector version is reported on each ingestion. Version 2026.9.1.
+
+- **Fix:** MEP element filters select the expected elements.
+
+- **Fix:** Models far from the origin publish where Archicad shows them.
+
+- **Fix:** Element type and layer filters can send lamps. Version 2026.9.1.
+
+- **Fix:** Long-running ingestions stay alive and confirm publication. Version 2026.9.1.
 
 ### SketchUp connector
 
+- **Feature:** [SketchUp](/connectors/sketchup) 2027 is supported. Version 2026.9.2.
+
+- **Improvement:** Sign-in opens the browser and no longer needs Speckle Desktop Services. Version 2026.9.2.
+
 - **Fix:** Receiving SketchUp models in Revit preserves envelope columns. Version 2026.9.1.
+
+### Power BI
+
+- **Fix:** Bundle-only versions return the intended JSON-unavailable error instead of an object-download 404. Version 2026.10.1.
+
+### Plant 3D
+
+- **Feature:** [Plant 3D](/connectors/plant3d) P&ID assets include Symbol Name and Graphical Style, and Data Manager properties are published. Version 2026.9.3.
+
+### AutoCAD
+
+- **Fix:** Received n-gon meshes are triangulated correctly. Version 2026.9.4.
+
+### ETABS
+
+- **Feature:** [ETABS](/connectors/etabs) and Tekla Structural Designer models publish volumetric display geometry. Version 2026.9.3.
+
+- **Feature:** An Everything send filter publishes the whole model. Version 2026.9.3.
+
+- **Fix:** Geometry and properties use synchronised units; result grouping no longer depends on the system culture. Version 2026.9.3.
+
+- **Fix:** Frame and shell geometry honours insertion and corner offsets, mirrored and root-filleted sections, channel handedness and saved circular paths. Version 2026.9.3.
 
 ### Tekla uploads
 
@@ -140,6 +260,8 @@ sidebarTitle: 'October 2026'
 
 ### Bundle specification
 
+- **Feature:** Revit views, link worksets and transforms, and more model-health rows are defined. Version 1.5.0.
+
 - **Feature:** In the [bundle specification](/developers/building-integrations/bundles), Revit external-link rows can say whether each linked model is included. Version 1.4.0.
 
 - **Feature:** In the [bundle specification](/developers/building-integrations/bundles), Revit warning and external-link tables and model-health summary rows are defined. Version 1.3.0.
@@ -148,12 +270,44 @@ sidebarTitle: 'October 2026'
 
 - **Improvement:** Revit warnings use a neutral warning-kind taxonomy. Version 1.4.0.
 
+### SpecklePy SDK
+
+- **Feature:** Automate helpers send and receive bundles; the JSON pipeline is deprecated. Version 2026.9.0.
+
+- **Feature:** IFC import extracts materials and classifications. Version 2026.9.0.
+
+- **Deprecation:** start_file_import is deprecated in favour of start_file_ingestion. Version 2026.9.0.
+
+- **Deprecation:** send and version.create are deprecated. Version 2026.9.0.
+
+- **Removal:** Python 3.10 is no longer supported; SpecklePy requires Python 3.11 or later. Version 2026.9.1.
+
+### Speckle C# SDK
+
+- **Feature:** Automate functions use the bundle send and receive APIs; the older API surface is deprecated. Version 2026.9.0.
+
+- **Fix:** Migration recovers from null values in older data. Version 2026.9.0.
+
 ### Viewer library
 
+- **Feature:** Point clouds can be rendered. Version 2026.10.8.
+
+- **Feature:** Progressive rendering has an automatic mode. Version 2026.10.6.
+
+- **Feature:** Model instancing and a linked-models tool are available to viewer integrators. Version 2026.10.5.
+
 - **Feature:** First-person camera controls, more robust zooming and large-model movement scaling are available to [viewer](/developers/viewer/introduction) integrators. Version 2026.10.3.
+
+- **Improvement:** A URL's models resolve in batched requests that retry when rate-limited. Version 2026.10.7.
+
+- **Fix:** Pen input no longer loses pointer events. Version 2026.10.5.
 
 - **Fix:** Ambient occlusion resets correctly after objects are hidden or shown. Version 2026.10.4.
 
 - **Fix:** Zooming over empty space no longer uses a stale forward distance. Version 2026.10.4.
 
 - **Fix:** Pinch zoom on iPad is no longer mistaken for double-tap zoom extents. Version 2026.10.3.
+
+### Automate
+
+- **Improvement:** Workspace functions are managed on one settings page, which now includes search and function creation.
