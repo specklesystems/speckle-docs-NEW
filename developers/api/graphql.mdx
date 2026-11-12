@@ -135,8 +135,8 @@ Variable: workspace ID. You can find it under Workspace Settings > General.
 
 Scripts, low-code flows (Power Automate, Zapier, n8n), and custom integrations that read element
 data through the API need to know which format a version uses. A version is either a **bundle**,
-the format that file uploads and 2026.9 connectors produce, or an **object graph**, published before
-2026.9, by an older connector, or in compatibility mode. Element queries work differently for each. For
+the format that file uploads, cloud syncs, and 2026.9 connectors produce, or an **object graph**,
+published before 2026.9 or by an older connector. Element queries work differently for each. For
 the model behind the change, see [Object model](/developers/object-model/overview) and [Data model
 migration for developers](/developers/migration/data-model-migration).
 
@@ -155,10 +155,8 @@ You can tell which format a version uses from the shape of its `referencedObject
 | A 32-character hex string (e.g. `c462dbafa995e9d1ee3c60ccb0bc1087`) | Object graph (before 2026.9) | Works                       |
 | `bundle.<projectId>.<modelId>.<versionId>`                          | Bundle (2026.9)              | **Not supported**           |
 
-Workspaces in compatibility mode, sometimes called "legacy conversions" or "legacy sync" in support
-conversations, produce the first shape for ACC sync and file uploads until **1 November 2026**. See [Compatibility mode](/it-admin/compatibility-mode) for how it is granted. Check the
-shape of `referencedObject` on the version you actually have. Do not assume it from the upload date
-or workspace settings alone.
+Check the shape of `referencedObject` on the version you actually have. Do not assume it from the
+upload date alone.
 
 ### What bundle versions don't support
 
@@ -314,9 +312,9 @@ For a version whose `referencedObject` is a hex string, `children(select:, query
 this example, we query the children of a specific object, using the GraphQL arguments select and query to filter and return specific fields. We filter for objects with the category "Structural Columns" and retrieve the following information for each child: `category`, `level`, `name`, `element ID`, `length dimension`
 
 <Warning>
-  `children(select:, query:)` works only on object graphs. Do not build new work on it: most new
-  versions are bundles, and every upload and ACC sync produces one once compatibility mode ends on
-  **1 November 2026**. Use [Read element properties](#read-element-properties) for bundle versions.
+  `children(select:, query:)` works only on object graphs. Do not build new work on it: file
+  uploads, cloud syncs, and 2026.9 connector publishes are bundles. Use [Read element
+  properties](#read-element-properties) for bundle versions.
 </Warning>
 
 ```graphql
@@ -475,13 +473,6 @@ Variables: **Project ID** & **Object ID**
     versions always have one; older versions may or may not, depending on whether they have been
     through backfill.
   </Accordion>
-  <Accordion title="My workspace has compatibility mode on. Why is object.children still failing?">
-    Compatibility mode affects new ACC syncs and file uploads; it does not change versions that
-    already exist. Confirm you are querying a version created after compatibility mode was turned
-    on, and that its `referencedObject` is a hex string, not a `bundle.` reference. Compatibility
-    mode ends on **1 November 2026** either way, so plan the move regardless. See [Compatibility
-    mode](/it-admin/compatibility-mode).
-  </Accordion>
   <Accordion title="How do I get a total element count without walking the whole properties table?">
     For bundle versions, count distinct `objectId` values in the properties export, or use an SDK's
     native accessors (see [From an SDK instead of raw HTTP](#from-an-sdk-instead-of-raw-http)).
@@ -505,9 +496,9 @@ Variables: **Project ID** & **Object ID**
   </Accordion>
   <Accordion title="Can one project have both hex-reference and bundle-reference versions?">
     Yes. Format is decided per version, when it is created, not per project or workspace. Older
-    versions and versions made while compatibility mode was active can be hex-referenced while newer
-    versions on the same model are bundle-referenced. Always check the version you are reading,
-    never assume from a sibling version or from when the project was created.
+    versions can be hex-referenced while newer versions on the same model are bundle-referenced.
+    Always check the version you are reading, never assume from a sibling version or from when the
+    project was created.
   </Accordion>
 </AccordionGroup>
 
