@@ -151,7 +151,8 @@ Typical context payload shape for ACC and ProjectWise syncs:
 ```json
 {
   "referencePoint": "internalOrigin",
-  "viewName": "3D Coordination"
+  "viewName": "3D Coordination",
+  "sendParameterNullOrEmptyStrings": false
 }
 ```
 
@@ -166,9 +167,15 @@ Typical context payload shape for ACC and ProjectWise syncs:
 - Any string matching a valid source view name
 - `null` to clear view scoping
 
+`sendParameterNullOrEmptyStrings` values (Revit files only):
+
+- `true` to keep parameters that have no value in Revit, as properties with an empty string
+- `false`, or leave the key out, to drop them
+
 <Note>
   `context` is a JSON object. Keys are integration-specific conventions, not strongly typed GraphQL
-  fields. Common keys in ACC and ProjectWise flows include `referencePoint` and `viewName`.
+  fields. Common keys in ACC and ProjectWise flows include `referencePoint`, `viewName` and
+  `sendParameterNullOrEmptyStrings`.
 </Note>
 
 ### Keys the server owns on SharePoint syncs
