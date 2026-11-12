@@ -58,13 +58,6 @@ These steps assume the Speckle integration has already been enabled on your orga
 Cloud sync accepts the same file formats as file uploads. See [Supported file
 formats](/connectors/direct-uploads/introduction#supported-file-formats).
 
-<Note>
-  ACC sync writes the 2026.9 data format. If a script or report downstream of Speckle still needs
-  the earlier format, your workspace can use compatibility mode until **1 November 2026**, and it
-  accepts fewer formats. See [Compatibility mode](/it-admin/compatibility-mode) and [Speckle's new
-  data model](/workspaces/data-model-migration).
-</Note>
-
 <Info>
   Navisworks files (`.nwc` and `.nwd`) are supported for manual upload and Forma Data Management
   sync. Many Autodesk (and other) products can export Navisworks Cache files without requiring a
@@ -93,7 +86,6 @@ A sync starts at the file version current when you create it. When the file alre
 - the version is older than the version history your plan keeps
 - you lack the permission to edit the sync
 - the sync is paused
-- the workspace runs in [compatibility mode](/it-admin/compatibility-mode)
 
 </Note>
 
@@ -124,12 +116,6 @@ Choose which Revit coordinate origin the model is aligned to: **Internal Origin*
 **Project Base Point**, **Survey Point**, or **Shared Coordinates**. If you are aligning multiple
 models, use the same reference point across related Revit syncs to avoid placement mismatches.
 
-<Warning>
-  If your workspace uses compatibility mode, do not select **Shared Coordinates**. The older
-  conversion path cannot process it and the sync fails. Use **Internal Origin**, **Project Base
-  Point**, or **Survey Point** instead.
-</Warning>
-
 ### What to publish
 
 **Publish method** is **Entire model** by default: all supported elements from the entire model
@@ -138,9 +124,9 @@ most data for analytics and dashboards.
 
 To sync only part of the model, change the publish method:
 
-- **By View**: enter a view name to sync only the elements visible in that view. The name must match
-  a view in your Revit model exactly (case-sensitive). Once you enter a view, you can also choose to
-  append rooms, areas, or both.
+- **By View**: enter a view name to sync only the host's elements visible in that view. The name
+  must match a view in the host file exactly (case-sensitive). Linked Revit models are still
+  included in full. Once you enter a view, you can also choose to append rooms, areas, or both.
 - **By Category**: pick the Revit categories to sync.
 
 <Warning>
@@ -154,6 +140,11 @@ Sync only the host Revit file: its linked Revit models come with it. Each time t
 Speckle fetches the models the host links from Forma Data Management and converts them together
 with the host into **one version of one Speckle model**, the host's. You don't select the linked
 files or create syncs for them.
+
+<Note>
+  There is no setting to leave a linked model out. **By View** limits the host file only. Each
+  linked Revit model is still converted in full, whether or not that view shows it.
+</Note>
 
 - **Which version of a link**: the version the host file was published or uploaded against.
 - **Which links**: Revit (`.rvt`) links only, up to 100 per version. Other linked or imported
