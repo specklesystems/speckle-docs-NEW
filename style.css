@@ -16,3 +16,194 @@ li .frame {
 div:has(> .frame) + div:has(> .frame) {
   margin-top: 0.75rem;
 }
+
+/* ------------------------------------------------------------------------
+   Speckle theme: match the web app (frontend-3) and speckle.community.
+   Same tokens as the forum theme (speckle-community-theme): page, sidebar
+   and card surfaces, zinc lines, a full-height sidebar flush to the left
+   with one hairline running up through the header, and a single 56px
+   header row. The primary and page background colours are set in docs.json
+   (Mintlify paints the page from it); everything else is here.
+
+   Mintlify offers no setting for the outer layout, so the layout rules
+   reach it through #sidebar, #navbar and the documented data-layout-item
+   and data-search-item hooks. If Mintlify restructures its markup these
+   stop matching and the site falls back to its stock centred layout.
+   ------------------------------------------------------------------------ */
+
+:root {
+  --sp-surface-0: #fafafa; /* page */
+  --sp-surface-1: #fcfcfc; /* sidebar */
+  --sp-border: #e4e4e7;
+  --sp-bg-elevated: #f4f4f5;
+  --sp-text-highlighted: #18181b;
+  --sp-text-muted: #71717b;
+  --sp-header-height: 56px;
+}
+
+:root.dark {
+  --sp-surface-0: #09090b;
+  --sp-surface-1: #111113;
+  --sp-border: #27272a;
+  --sp-bg-elevated: #27272a;
+  --sp-text-highlighted: #ffffff;
+  --sp-text-muted: #9f9fa9;
+}
+
+/* Sidebar: its own surface; the top fade starts from it, not white */
+#sidebar [class*='bg-linear-to-b'] {
+  background-image: linear-gradient(to bottom, var(--sp-surface-1), transparent) !important;
+}
+#sidebar [class*='bg-neutral-50'][class*='rounded-full'] {
+  background: transparent !important;
+}
+
+/* Current page: neutral pill, as on the forum */
+#sidebar li[data-active] > a {
+  background: var(--sp-bg-elevated) !important;
+  color: var(--sp-text-highlighted) !important;
+}
+
+/* Docked sidebar (Mintlify docks it from 1024px) */
+@media (min-width: 1024px) {
+  :root {
+    --mintlify-slot-header-height: calc(var(--sp-header-height) + var(--topbar-tabs-height, 0rem));
+  }
+
+  /* Full-bleed: sidebar flush left, page and "On this page" centred in
+     the remaining width */
+  div:has(> #sidebar) {
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+  }
+  #sidebar {
+    background: var(--sp-surface-1);
+    border-right: 1px solid var(--sp-border);
+  }
+  #sidebar > div {
+    left: 16px !important;
+    right: 8px !important;
+  }
+  div:has(> [data-layout-item='content']) {
+    max-width: 1184px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-inline: 48px;
+  }
+
+  /* Header: full width, 56px, one bottom hairline. Where there is a
+     sidebar, its surface and edge run up through the header. */
+  #navbar [class*='max-w-8xl'] {
+    max-width: none !important;
+  }
+  body:has(#sidebar) #navbar #navbar-transition {
+    border-bottom: 1px solid var(--sp-border) !important;
+    background: linear-gradient(
+      to right,
+      var(--sp-surface-1) 0,
+      var(--sp-surface-1) calc(var(--sidebar-width, 18rem) - 1px),
+      var(--sp-border) calc(var(--sidebar-width, 18rem) - 1px),
+      var(--sp-border) var(--sidebar-width, 18rem),
+      var(--sp-surface-0) var(--sidebar-width, 18rem)
+    ) !important;
+  }
+
+  /* Logo row: logo on the sidebar's text line (32px), then search as an
+     icon, links and the primary button at 32px */
+  #navbar div:has(> div > div > a > img.nav-logo) {
+    height: var(--sp-header-height) !important;
+    padding-left: 32px !important;
+  }
+  #navbar div:has(> div > div > a > img.nav-logo) > div {
+    border-bottom: 0 !important;
+  }
+  #navbar img.nav-logo {
+    height: 28px !important;
+  }
+  #navbar div:has(> div > div > a > img.nav-logo) > div > div:first-child {
+    flex: 1 1 auto !important;
+  }
+  #navbar div:has(> div > div > a > img.nav-logo) > div > div:nth-child(2) {
+    flex: 0 0 auto !important;
+    margin-left: auto;
+    width: 32px;
+  }
+  #navbar div:has(> div > div > a > img.nav-logo) > div > div:nth-child(3) {
+    flex: 0 0 auto !important;
+    margin-left: 16px;
+  }
+  /* Primary button at 32px: size the link itself, so the label stays
+     centred on the pill (sizing only the pill left the label 2px low) */
+  #navbar
+    div:has(> div > div > a > img.nav-logo)
+    > div
+    > div:nth-child(3)
+    a:has(> [class*='bg-primary']) {
+    height: 32px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  /* Search as a borderless 32px icon button with a 16px muted glyph, like
+     the forum's header icons and the docs' own theme toggle */
+  #search-bar-entry {
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    border: 0 !important;
+    border-radius: 6px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  #search-bar-entry:hover {
+    background: var(--sp-bg-elevated) !important;
+  }
+  #search-bar-entry [data-search-item='trigger-icon'] {
+    width: 16px !important;
+    height: 16px !important;
+    color: var(--sp-text-muted) !important;
+  }
+  #search-bar-entry:hover [data-search-item='trigger-icon'] {
+    color: var(--sp-text-highlighted) !important;
+  }
+  #search-bar-entry [data-search-item='trigger-label'],
+  #search-bar-entry [data-search-item='trigger-hint'] {
+    display: none !important;
+  }
+
+  /* Tabs start just right of the sidebar edge */
+  body:has(#sidebar) #navbar div:has(> .nav-tabs) {
+    padding-left: calc(var(--sidebar-width, 18rem) + 32px) !important;
+  }
+}
+
+/* Wide enough for the widest tab set (Developers) beside the search icon:
+   tabs move up into the logo row, giving one 56px header */
+@media (min-width: 1440px) {
+  :root,
+  body,
+  body * {
+    --topbar-tabs-height: 0rem !important;
+  }
+  body:has(.nav-tabs) #navbar div:has(> div > .nav-tabs) {
+    display: grid !important;
+  }
+  body:has(.nav-tabs) #navbar div:has(> div > .nav-tabs) > * {
+    grid-area: 1 / 1;
+  }
+  #navbar div:has(> .nav-tabs) {
+    height: var(--sp-header-height) !important;
+    pointer-events: none;
+    align-items: stretch;
+  }
+  #navbar .nav-tabs {
+    pointer-events: auto;
+  }
+  /* "On this page" sticks at Mintlify's two-row offset on tabbed sections;
+     with one header row it sits 48px low. Same offset as untabbed pages. */
+  #content-side-layout {
+    top: calc(var(--sp-header-height) + 48px) !important;
+  }
+}
