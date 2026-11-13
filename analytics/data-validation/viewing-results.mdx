@@ -1,7 +1,7 @@
 ---
 title: 'Viewing Results'
 sidebarTitle: 'Viewing Results'
-description: 'Interpret latest and historical Data Validation outcomes, including status badges and trend context.'
+description: 'Interpret Data Validation results, investigate failing objects, raise issues, export, and share results.'
 ---
 
 <Info>
@@ -19,7 +19,7 @@ There are two high-level result views used for quick status checks:
 - **Checks page cards**: check cards with score, status, trend hint, and scoped model
   count.
 
-## Practical review flow
+## Drill into a check
 
 These high-level views are a KPI heads-up layer for rules defined by your team. Use them to
 spot drift quickly, then drill into a specific check for detailed analysis.
@@ -35,12 +35,119 @@ When you open a check result page, you typically see:
 - an object-level detail table for investigation, including passing and failing objects
 
 Selecting **View result** on a model card opens that model’s detailed result, where you can
-inspect the rule-by-rule breakdown, the light 3D viewer, and the data table. Use the table
-and viewer together: selecting failing (or passing) rows focuses the matching objects in the
-viewer for triage.
+inspect the rule-by-rule breakdown, the light 3D viewer, and the data table.
 
 Threshold authoring: [Checks — Thresholds and
 status](/analytics/data-validation/checks#thresholds-and-status).
+
+## Investigate failing objects
+
+{/* IMAGE_PLACEHOLDER: Model result page — object table grouped by Level, two groups ticked, the 3D viewer isolating them with ghosted surroundings. */}
+
+Expand a rule to fill the object table with its objects, coloured by outcome. Select the rule's
+**pass** or **fail** count to list one side only. The table and the 3D viewer work together:
+what you narrow in the table is what the viewer shows.
+
+### Group by a property
+
+Select **No grouping** above the table and pick a property, such as Level or Category. Each
+group lists how many objects it holds and how many fail the rule. Objects without the property
+sit in a **(no value)** group. Select a group to open its rows; select **All groups** to go back.
+
+### Select objects
+
+Tick rows, or tick whole groups in the grouped view. The tick box in the table header selects
+everything the table shows, on every page, under the current filters; untick rows to leave them
+out. The viewer isolates what you select. Selecting more than 50,000 objects leaves the viewer
+showing the whole rule.
+
+### Show context as ghosts
+
+Select **Ghost filtered-out objects** (the ghost button in the viewer toolbar) to draw hidden
+objects as faint, colourless ghosts around the ones you selected. With a group or filter applied, the ghosts are the
+objects in the whole model that match it, for example everything on Level 3, not only the
+objects the rule checks.
+
+## Export the table
+
+Select **Export view to Excel** (the download button above the table) to save what it shows as
+an `.xlsx` file:
+the current rule, filters and open group, with the visible columns. With a rule open, the file
+starts with two extra columns:
+
+- **Status**: Pass or Fail against the rule
+- **Reason**: for failures, the value found and what the rule expected
+
+An export holds up to 50,000 rows.
+
+## Raise issues from failures
+
+{/* IMAGE_PLACEHOLDER: Raise issue dialog over the model result page — prefilled title and description, element count, Data Validation label. */}
+
+Turn failing objects into [issues](/3d-viewer/issues) so the people who fix the model can track
+them.
+
+<Steps>
+  <Step title="Select the failing objects">
+    Expand the rule, then tick rows or whole groups. Group first when you want one issue per level,
+    category or type.
+  </Step>
+  <Step title="Select Raise issue">
+    The dialog opens with a title and a description that tallies the objects' status and reasons.
+  </Step>
+  <Step title="Complete and raise">
+    Set the priority, assignee, due date and labels, then select **Raise issue**. You should see the
+    new issue in the project's issues list.
+  </Step>
+</Steps>
+
+An issue only takes the objects that fail the rule. Passing objects in your selection are left
+out, and the dialog says how many. **Raise issue** stays unavailable while your selection holds
+no failing objects, and one issue can reference up to 2,000 objects.
+
+Each issue keeps where it came from:
+
+- **In the 3D viewer**, it opens framed on its objects, with the rule as a filter (failures
+  ticked and coloured) and, when you selected whole groups, the group as a second filter.
+- **In check results**, open the issue from the project's **Issues** page and select **Open in
+  check results** to return to this rule, with the grouping, filters and selection you raised it
+  from.
+- **Label:** every issue gets the workspace label **Data Validation**. If the workspace has no
+  such label and you can't create labels, the issue is raised without it.
+
+You need permission to create issues in the project.
+
+## Share results
+
+{/* IMAGE_PLACEHOLDER: Share check results dialog — "Anyone with the link" selected, "What to share" options, and the "Anyone with the link will see" list. */}
+
+Select **Share** on a check or a model result to choose who can open it:
+
+- **Project members**: everyone in the project, signed in. Copy the link to send it.
+- **Anyone with the link**: a read-only snapshot that opens without signing in. Choose what to
+  share (**This result only** or **The whole check, as it is now**), optionally add a password
+  and an expiry (24 hours, 7 days or 30 days), then select **Create link**.
+
+The dialog lists what recipients will and won't see before you create the link. They see the
+check's score and every rule's outcome, failing and passing objects in a 3D viewer, and every
+object and property in the shared versions. They don't see other models, versions or checks,
+the project, its members or its comments.
+
+<Warning>
+  A public link shows every object and property in the shared versions, not only what the rules
+  check. Share it only with people who may see that model data.
+</Warning>
+
+A public link is a snapshot: later runs, rule edits and new versions don't change it. Revoke
+it from the same dialog at any time. Recipients can investigate the results and export BCF;
+they can't export the table or raise issues. Only project contributors can create a public
+link.
+
+### Export BCF
+
+BCF export from a validation result packages failing objects into topics with viewpoints so
+coordinators can triage outside Speckle. Use it when your issue workflow expects BCF; it does
+not replace fixing property data in the authoring tool.
 
 ## Result states
 
@@ -69,8 +176,9 @@ breakdown.
   <Step title="Compare with history">
     Confirm whether failures are regressions, recurring debt, or resolved trends.
   </Step>
-  <Step title="Share and coordinate">
-    If external coordination tooling is used, include BCF export in handoff.
+  <Step title="Hand off the failures">
+    Raise issues from the failing objects, or share the result or export BCF for people outside the
+    project.
   </Step>
 </Steps>
 
@@ -81,16 +189,10 @@ Before you retune rules, confirm:
    if you need different behaviour).
 3. Failures cluster by model or timeframe (data drift) versus looking like sporadic noise.
 
-## Model and version context
+## Check the model and version
 
 Plans cap how many models attach. Every row references explicit version ids plus trigger and
 timestamp—carry that context when debating trends.
-
-## Coordination handoff
-
-BCF export from a validation result packages failing objects into topics with viewpoints so
-coordinators can triage outside Speckle. Use it when your issue workflow expects BCF; it does
-not replace fixing property data in the authoring tool.
 
 ## FAQ
 
@@ -102,6 +204,15 @@ not replace fixing property data in the authoring tool.
   <Accordion title="Can warning thresholds be customized?">
     Yes. Warning and pass thresholds can be configured globally and per rule in the authoring flow.
     See [Thresholds and status](/analytics/data-validation/checks#thresholds-and-status).
+  </Accordion>
+  <Accordion title="Why does an issue leave out some of the objects I selected?">
+    Issues only take objects that fail the rule. Passing objects in your selection are left out, and
+    the dialog says how many. If objects you expected to fail pass, review the rule rather than
+    raising an issue.
+  </Accordion>
+  <Accordion title="What happens to a public link when the check runs again?">
+    Nothing. A public link is a snapshot of the results when you created it. Create a new link to
+    share a later run.
   </Accordion>
   <Accordion title="Should I use latest only or history only?">
     Use both. Latest helps with immediate action; history helps with governance and trend
