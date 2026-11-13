@@ -1,0 +1,124 @@
+---
+title: 'Review who has access'
+sidebarTitle: 'Access review'
+description: 'See who can reach each project and restricted folder and why, export it as CSV, and read the audit log of every access change in a workspace.'
+---
+
+Use the **Access** page for a periodic access review, an audit, or when someone asks "who can see
+this project?". It shows who reaches each project and restricted folder in the workspace, through
+which role, and since when. Its **Audit log** tab lists every change to that access.
+
+Only workspace admins can open the **Access** page, along with anyone whose custom workspace role
+includes **Security**.
+
+<Note>
+  Workspaces are available on Speckle Cloud and on Speckle Enterprise Server. For self-hosted setup,
+  see [Enterprise license](/developers/server/deployment/enterprise-license#enable-workspaces).
+</Note>
+
+## Open the Access page
+
+{/* IMAGE_PLACEHOLDER: Workspace Settings → Access — Projects tab with one project expanded, showing the Who, Role, Why, Since, Granted by and Expires columns, and the Export CSV button. */}
+
+<Steps>
+  <Step title="Open workspace settings">
+    In the workspace, select **Settings**. Under **Members & access**, select **Access**.
+  </Step>
+  <Step title="Find a project">
+    On the **Projects** tab, search for a project, or type a name in **Filter by person or group**.
+  </Step>
+  <Step title="Expand the project">
+    Select a project's row. You should see everyone who reaches it, nearest role first.
+  </Step>
+</Steps>
+
+## Read who has access and why
+
+Each row is one way one person, group or link reaches the project:
+
+| Column         | What it shows                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Who**        | The person, the group, a link (by its label), or **Anyone with the link** for public projects                 |
+| **Role**       | The role that reaches it: Owner, Editor, Viewer, a workspace role or a custom role                            |
+| **Why**        | How the role arrives and where it was given, such as **Direct · Here** or **Group Structure · Project Alpha** |
+| **Since**      | When the role was given                                                                                       |
+| **Granted by** | Who gave it                                                                                                   |
+| **Expires**    | When it ends, or **Never**                                                                                    |
+
+In **Why**, the first part is how the access arrives: **Direct**, a group's name, **Created it**,
+**Link** or **Anyone with the link**. The second part is where it was given: **Here** for the item
+itself, or the name of the project, folder or workspace above it.
+
+A person in a group appears once per group, with the group named in **Why**. A person can appear on
+several rows when they reach the same item in several ways.
+
+### Restricted folders
+
+Under a project's people, **Restricted folders** lists every restricted folder inside it. Expand a
+folder to see who reaches it. Only the people given access there or inside it, project owners and
+workspace admins appear. See [Restrict a folder or
+file](/3d-viewer/share-folders-and-files#restrict-a-folder-or-file).
+
+<Note>
+  Folders that are not restricted reach the same people as the project, plus anyone given access to
+  them. To see the second group for one folder, open its share dialog in **Files**.
+</Note>
+
+## Export access as CSV
+
+Select **Export CSV** at the top of the **Access** page. The file lists every project in the
+workspace and every restricted folder in them, one row per person, group or link and the way they
+reach it. It opens in Excel and other spreadsheet tools.
+
+The columns are:
+
+- `nodeType`, `nodeId`, `nodeName`: the project or folder.
+- `subjectType`, `subjectId`, `subjectName`, `subjectEmail`: who has access.
+- `role`, `roleId`: their role there.
+- `source`, `groupName`: how the access arrives.
+- `viaNodeType`, `viaNodeId`, `viaNodeName`: where the role was given.
+- `grantedBy`, `createdAt`, `expiresAt`: who gave it, when, and when it ends.
+
+Each export is recorded in the audit log as **Exported access**. To export one project or folder, or
+to run the export from a script, see [Export access as
+CSV](/developers/api/guides/manage-access#export-access-as-csv).
+
+## Read the audit log
+
+{/* IMAGE_PLACEHOLDER: Workspace Settings → Access — Audit log tab with the When, By, Change, Who, Item and Role columns. */}
+
+Open the **Audit log** tab on the **Access** page. It lists every change to access in the workspace,
+newest first, with **When**, **By**, **Change**, **Who**, **Item** and **Role**. Type a name in
+**Filter by person or group** to narrow it.
+
+The log records:
+
+- roles given, changed and removed (**Gave access**, **Changed role**, **Removed access**);
+- roles that ran out (**Access expired**), shown with **Speckle** as the actor;
+- folders and files restricted and lifted (**Restricted**, **Lifted restriction**);
+- links created, changed and revoked (**Created link**, **Changed link**, **Revoked link**);
+- custom roles created, changed and deleted (**Created role**, **Changed role definition**,
+  **Deleted role**);
+- access exports (**Exported access**);
+- each time Speckle support staff use [Admin Support Mode](/it-admin/support-mode) to open a
+  project or the workspace beyond their own access.
+
+A **Role** cell such as `Viewer → Editor` shows a role change. An item you cannot open shows as **An
+item you cannot see**. Entries cannot be edited or deleted.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can project owners review access?">
+    Not on this page. Project owners see who reaches a project in project **Settings** → **Team** →
+    **General access**, and who reaches a folder or file in its share dialog. The **Access** page,
+    CSV export and audit log are for workspace admins.
+  </Accordion>
+  <Accordion title="Why does someone appear twice on the same project?">
+    They reach it in more than one way, for example directly and through a group. Each row shows one
+    way in **Why**. Removing one keeps the others.
+  </Accordion>
+  <Accordion title="Who is Speckle in the By column?">
+    Changes made by Speckle itself, such as access that expired on its end date.
+  </Accordion>
+</AccordionGroup>
