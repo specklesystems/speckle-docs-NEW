@@ -1,0 +1,28 @@
+# The sample is standalone: each language folder is its own project with its own
+# dependencies, and copies out cleanly. mise is a convenience for working on all
+# three inside the Speckle stack; each README section gives the plain commands.
+
+[tools]
+node = "22.17.1"
+pnpm = "10.30.3"
+python = "3.12"
+dotnet = "8"
+
+[tasks."check:python"]
+description = "Python: install and run the query tests"
+dir = "python"
+run = ["python -m pip install -q -r requirements.txt", "python -m unittest -v test_properties"]
+
+[tasks."check:typescript"]
+description = "TypeScript: install, typecheck, test, build"
+dir = "typescript"
+run = ["pnpm install", "pnpm typecheck", "pnpm test", "pnpm build"]
+
+[tasks."check:csharp"]
+description = "C#: build the function and run the query tests"
+dir = "csharp"
+run = ["dotnet build BundlePropertiesFunction.csproj", "dotnet test tests/BundlePropertiesTests.csproj"]
+
+[tasks.check]
+description = "All three languages, plus the shared-query check (in the Python tests)"
+depends = ["check:python", "check:typescript", "check:csharp"]

@@ -43,7 +43,8 @@ developers](/developers/migration/data-model-migration).
   `bundle` extra. See [Migrate a specklepy script](/developers/sdks/python/migrate-to-2026-9).
 - **GraphQL and REST.** On a 2026.9 version, `referencedObject` starts with `bundle.`, the objects
   endpoints return 404, and `object.children` filtering, `totalChildrenCount`, and JSON geometry
-  are not available. Read element properties from the version's EAV query endpoint instead. See
+  are not available, and the properties export (`eav/query`, `eav/download`) serves object-graph
+  versions only. Read element properties from the version's bundle files instead. See
   [Get element data from a version](/developers/api/graphql#get-element-data-from-a-version).
 - **Viewer package.** `@speckle/viewer` has no published loader for bundles, so an app that
   constructs a `Viewer` and a loader renders nothing for 2026.9 versions. Embeds of the hosted
@@ -72,9 +73,10 @@ developers](/developers/migration/data-model-migration).
   (`pip install "specklepy[bundle]==2026.9.0b3"`) and use
   `operations.receive3`. An older specklepy gets a 404 on versions published by a 2026.9 connector.
   See [Migrate a specklepy script](/developers/sdks/python/migrate-to-2026-9).
-- **Replace `object.children` queries.** Move filters to the EAV query endpoint. Cloud syncs and
-  file uploads produce bundle versions that `object.children` cannot query. See [Get element data
-  from a version](/developers/api/graphql#get-element-data-from-a-version).
+- **Replace `object.children` queries and properties exports.** Read bundle versions from their
+  bundle files. Cloud syncs, file uploads, and 2026.9 connectors produce bundle versions that
+  neither `object.children` nor the properties export can read. See [Get element data from a
+  version](/developers/api/graphql#get-element-data-from-a-version).
 - **Move Viewer and objectloader apps to bundles.** Render bundles with the bundle-loading sample,
   or read the bundle directly in a data-only app. See [Load bundles in your Viewer
   app](/developers/viewer/loading-bundles).
