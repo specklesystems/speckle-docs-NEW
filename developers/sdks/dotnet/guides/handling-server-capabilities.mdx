@@ -101,7 +101,7 @@ public void EnsureAuthorised(); // throws WorkspacePermissionException if author
 
 Call `EnsureAuthorised()` as a guard clause instead of hand-rolling an `if (!result.authorized) throw ...` at every call site.
 
-### Telling "Not Allowed" Apart From "Server Doesn't Support This"
+### Telling "Not Allowed" Apart From "Server Does Not Support This"
 
 This is the part that's easy to get wrong with a blanket `catch`. A server old enough to predate a permission field (like `canCreateIngestion`, added in server 3.0.11) doesn't return `authorized: false` — its GraphQL schema doesn't have the field at all, so the query fails at the schema-validation level. That surfaces as `AggregateException` wrapping a `SpeckleGraphQLInvalidQueryException`, which is structurally different from `WorkspacePermissionException` (thrown directly by `EnsureAuthorised()` when a capable server says no).
 

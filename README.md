@@ -74,6 +74,7 @@ Pull requests run [`.github/workflows/docs-pr-checks.yml`](.github/workflows/doc
 - **Format and lint** — `pnpm format:check:changed` + `pnpm lint:md:changed` (PR files only; **blocking**)
 - **Mintlify validate** — `pnpm valid` (full site; **blocking**)
 - **Broken links** — `pnpm check-links` (anchors + redirects + Snippet links; full site; **blocking**)
+  - Mintlify keeps apostrophes in heading anchors (`## Who's affected` → `#who’s-affected`). Headings are worded without apostrophes, and the `heading-no-apostrophes` markdownlint rule fails any that slip in.
 - **Missing assets** — `pnpm check:assets` (local image and download files; **blocking**)
 - **Structure** — redirects, orphans, image framing (**blocking**)
 - **Accessibility** — `pnpm check:a11y` (`mint a11y`; full site; **blocking**)
