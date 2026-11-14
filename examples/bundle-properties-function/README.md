@@ -2,7 +2,8 @@
 
 Sample code that returns a 2026.9 **bundle** version's properties as JSON, for tools
 that cannot read Parquet themselves: Power Automate, Zapier, n8n Cloud. It runs as an
-Azure Function in Python, TypeScript, or C#. Copy the language you need.
+Azure Function in Python, TypeScript, or C#, and on AWS Lambda in Python or TypeScript. Copy
+the language and host you need.
 
 The rows have the same columns as the properties export (`eav/query`) returns for
 earlier versions, so a flow built on the export can switch with little change:
@@ -92,11 +93,33 @@ leaves `AzureWebJobsStorage` empty.
 DuckDB downloads its `httpfs` extension the first time it reads a URL, so the host
 needs outbound access to `extensions.duckdb.org`.
 
+## Run it on AWS Lambda
+
+The Python and TypeScript folders also carry a Lambda handler for a [function
+URL](https://docs.aws.amazon.com/lambda/latest/dg/urls-configuration.html):
+`python/lambda_function.py` and `typescript/src/lambda.ts`. A function URL with auth type `NONE` is
+public, so the handler only answers callers that send the shared key in an `x-api-key` header.
+
+1. Build the package on Linux, or for Linux, because DuckDB ships native binaries:
+
+   | Language   | Package                                                                                                                                                                                                   | Handler                          |
+   | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+   | Python     | `pip install -r requirements.txt -t package --platform manylinux2014_x86_64 --only-binary=:all: --python-version 3.12`, then zip the contents of `package/` with `lambda_function.py` and `properties.py` | `lambda_function.lambda_handler` |
+   | TypeScript | `pnpm install --prod && pnpm build` in a Linux x86_64 shell, then zip `dist/`, `node_modules/`, and `package.json`                                                                                        | `dist/src/lambda.handler`        |
+
+2. Create the function on Python 3.12 or Node.js 22 (x86_64), upload the zip, and set the handler.
+   Give it at least 1024 MB of memory and a 60-second timeout.
+3. Set the environment variables `SPECKLE_TOKEN` and `FUNCTION_KEY` (a long random string), plus
+   `SPECKLE_URL` for your own server.
+4. Create a function URL with auth type `NONE`.
+
+Callers POST the same JSON body as above, with the header `x-api-key: <FUNCTION_KEY>`.
+
 ## Call it from Power Automate
 
 Deploy the function, store the token as the application setting `SPECKLE_TOKEN`, then
 add an **HTTP** action to the flow that POSTs the JSON body above to the function URL
-(with its function key). Parse the response as JSON and filter the rows as you would
+(with its function key, or the `x-api-key` header on Lambda). Parse the response as JSON and filter the rows as you would
 the properties export.
 
 The function returns every property of every object. On a large model, add a `WHERE`
