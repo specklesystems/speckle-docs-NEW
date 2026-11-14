@@ -217,16 +217,59 @@ How you read element properties depends on the version's format, not on your too
 </Tabs>
 
 Properties are in the bundle's `eav` files: object identity in `.eav.objects.parquet`, property
-paths in `.eav.paths.parquet`, and one row per object, path, and value in `.eav.eav.parquet`. To
-reproduce the "every `IfcDoor`" filter, find the rows whose path is `ifcType` and whose value is
-`IfcDoor`, then read the other rows for those objects. The file layout is in [What a bundle
-contains](/developers/building-integrations/bundles#what-a-bundle-contains), and the full load
-sequence, including how to merge type-level properties, is in [Load a bundle in your own
+paths in `.eav.paths.parquet`, and one row per object, path, and value in `.eav.eav.parquet`. The
+file layout is in [What a bundle contains](/developers/building-integrations/bundles#what-a-bundle-contains).
+
+#### Query a bundle with DuckDB
+
+[DuckDB](https://duckdb.org) reads Parquet over HTTPS, so it can query the presigned URLs directly
+with no download step. This is the recommended route for scripts, notebooks, and self-hosted
+automation tools.
+
+<Steps>
+  <Step title="List the artifacts">
+    Call the artifacts endpoint above. The outcome is one entry per file, each with a `name` and a
+    presigned `url` valid for one hour.
+  </Step>
+  <Step title="Pick the three eav files">
+    Find the URLs whose `name` ends in `.eav.objects.parquet`, `.eav.paths.parquet`, and
+    `.eav.eav.parquet`. Match on the ending, not on a name built from the version id.
+  </Step>
+  <Step title="Join and filter">
+    Run the query below with the three URLs. The outcome is every property of every `IfcDoor`, one
+    row per property, keyed by `application_id`.
+  </Step>
+</Steps>
+
+```sql
+INSTALL httpfs;
+LOAD httpfs;
+
+WITH props AS (
+  SELECT o.application_id, p.path,
+         e.value_string, e.value_double, e.value_boolean, e.unit
+  FROM read_parquet('EAV_URL') e
+  JOIN read_parquet('PATHS_URL') p USING (path_index)
+  JOIN read_parquet('OBJECTS_URL') o USING (object_index)
+)
+SELECT *
+FROM props
+WHERE application_id IN (
+  SELECT application_id FROM props
+  WHERE path = 'ifcType' AND value_string = 'IfcDoor'
+)
+ORDER BY application_id, path;
+```
+
+Read numbers from `value_double` before `value_string`: numeric rows can carry the number as text
+too. Type-level properties (most Revit type parameters) live in the `types` files and are not in
+this result; the merge is in [Load a bundle in your own
 code](/developers/building-integrations/load).
 
 <Note>
-  Reading a bundle needs code that reads Parquet, so most low-code tools cannot do it on their own.
-  See the FAQ below.
+  Tools that cannot run DuckDB or read Parquet, such as Power Automate, Zapier, and n8n Cloud,
+  cannot read bundle versions directly. Self-hosted n8n can, with external modules enabled. See the
+  FAQ below.
 </Note>
 
 ### Properties export for object-graph versions
@@ -480,9 +523,8 @@ Variables: **Project ID** & **Object ID**
     n8n is a partial exception: its Code node cannot import external npm packages on n8n Cloud, so
     the same limitation applies there, but a self-hosted n8n instance can read Parquet if you enable
     external modules (`NODE_FUNCTION_ALLOW_EXTERNAL`) or install a community node built for it. That
-    is a deliberate setup step, not the default. For bundle versions there is no plain-JSON route,
-    so a low-code flow needs a step that runs code to read the bundle. See [Read element
-    properties](#read-element-properties).
+    is a deliberate setup step, not the default. Tools that cannot run DuckDB or read Parquet cannot
+    read bundle versions directly. See [Query a bundle with DuckDB](#query-a-bundle-with-duckdb).
   </Accordion>
   <Accordion title="How do I decide between the properties export and reading the bundle?">
     The version's format decides it. For a bundle version, read the bundle; the properties export
