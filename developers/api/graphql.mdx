@@ -216,360 +216,154 @@ How you read element properties depends on the version's format, not on your too
   </Tab>
 </Tabs>
 
-Properties are in the bundle's `eav` files: object identity in `.eav.objects.parquet`, property
-paths in `.eav.paths.parquet`, and one row per object, path, and value in `.eav.eav.parquet`. The
-file layout is in [What a bundle contains](/developers/building-integrations/bundles#what-a-bundle-contains).
+Properties are in the bundle's `eav` Parquet files. Five of them hold everything the properties
+export returns:
 
-#### Query a bundle with DuckDB
+| File ends in               | Holds                               | Key columns                          |
+| -------------------------- | ----------------------------------- | ------------------------------------ |
+| `.eav.objects.parquet`     | One row per object                  | `object_index`, `application_id`     |
+| `.eav.paths.parquet`       | Property paths, stored once         | `path_index`, `path`                 |
+| `.eav.eav.parquet`         | One row per object, path, and value | `object_index`, `path_index`, values |
+| `.eav.type_eav.parquet`    | One row per type, path, and value   | `type_index`, `path_index`, values   |
+| `.eav.object_type.parquet` | Which type each object has          | `object_index`, `type_index`         |
 
-[DuckDB](https://duckdb.org) reads Parquet over HTTPS, so it can query the presigned URLs directly
-with no download step. This is the recommended route for scripts, notebooks, and self-hosted
-automation tools.
+The values are `value_string`, `value_double`, and `value_boolean`, plus `unit`. To get every
+property of every object:
 
-<Steps>
-  <Step title="List the artifacts">
-    Call the artifacts endpoint above. The outcome is one entry per file, each with a `name` and a
-    presigned `url` valid for one hour.
-  </Step>
-  <Step title="Pick the three eav files">
-    Find the URLs whose `name` ends in `.eav.objects.parquet`, `.eav.paths.parquet`, and
-    `.eav.eav.parquet`. Match on the ending, not on a name built from the version id.
-  </Step>
-  <Step title="Join and filter">
-    Run the query below with the three URLs. The outcome is every property of every `IfcDoor`, one
-    row per property, keyed by `application_id`.
-  </Step>
-</Steps>
+1. Join `eav` to `paths` on `path_index` for the property names.
+2. Join `object_type` to `type_eav` on `type_index`, and add those rows to each object, so objects
+   carry their type's properties (most Revit type parameters live there).
+3. Join to `objects` on `object_index` to key each row by `application_id`.
+
+The full layout is in [What a bundle
+contains](/developers/building-integrations/bundles#what-a-bundle-contains).
+
+#### Query a bundle
+
+Any Parquet reader can do those joins: pyarrow or Polars in Python, hyparquet in TypeScript,
+Parquet.Net in .NET. Power BI and Excel can load Parquet files with Power Query. Speckle's examples
+use [DuckDB](https://duckdb.org), because the same SQL runs in every language and it reads the
+presigned URLs directly, with no download step.
+
+This query returns one row per property in the same columns as the [properties
+export](#properties-export-for-object-graph-versions), with `object_id` holding the object's
+`applicationId`. Replace each `{placeholder}` with the URL of the file it names:
 
 ```sql
-INSTALL httpfs;
-LOAD httpfs;
-
 WITH props AS (
-  SELECT o.application_id, p.path,
-         e.value_string, e.value_double, e.value_boolean, e.unit
-  FROM read_parquet('EAV_URL') e
-  JOIN read_parquet('PATHS_URL') p USING (path_index)
-  JOIN read_parquet('OBJECTS_URL') o USING (object_index)
+  SELECT object_index, path_index, value_string, value_double, value_boolean, unit
+  FROM read_parquet('{eav}')
+  UNION ALL
+  SELECT ot.object_index, te.path_index, te.value_string, te.value_double, te.value_boolean, te.unit
+  FROM read_parquet('{object_type}') ot
+  JOIN read_parquet('{type_eav}') te USING (type_index)
 )
-SELECT *
-FROM props
-WHERE application_id IN (
-  SELECT application_id FROM props
-  WHERE path = 'ifcType' AND value_string = 'IfcDoor'
-)
-ORDER BY application_id, path;
+SELECT o.application_id AS object_id,
+       p.path,
+       COALESCE(pr.value_string, CAST(pr.value_double AS VARCHAR),
+                CAST(pr.value_boolean AS VARCHAR)) AS value_text,
+       pr.value_double AS value_num,
+       CASE WHEN pr.value_double IS NOT NULL THEN 'number'
+            WHEN pr.value_boolean IS NOT NULL THEN 'boolean'
+            ELSE 'string' END AS type,
+       pr.unit AS units
+FROM props pr
+JOIN read_parquet('{paths}') p USING (path_index)
+JOIN read_parquet('{objects}') o USING (object_index)
+ORDER BY object_id, path
 ```
 
-Read numbers from `value_double` before `value_string`: numeric rows can carry the number as text
-too. Type-level properties (most Revit type parameters) live in the `types` files and are not in
-this result; the merge is in [Load a bundle in your own
-code](/developers/building-integrations/load).
+To keep only some objects, wrap the query and filter it. For example, every `IfcDoor`:
 
-<Note>
-  Tools that cannot run DuckDB or read Parquet, such as Power Automate, Zapier, and n8n Cloud,
-  cannot read bundle versions directly. Self-hosted n8n can, with external modules enabled. For the
-  others, see [From Power Automate, Zapier, or n8n Cloud](#from-power-automate-zapier-or-n8n-cloud).
-</Note>
-
-#### From Power Automate, Zapier, or n8n Cloud
-
-These tools can call an HTTP endpoint, so put the DuckDB step in a small function they call: an
-Azure Function, an AWS Lambda, or anything else that runs Python, Node.js, or .NET. The function
-below lists the version's artifacts, reads its properties with DuckDB, and returns JSON rows with the
-same columns as the [properties export](#properties-export-for-object-graph-versions): `object_id` (the object's
-`applicationId`), `path`, `value_text`, `value_num`, `type`, and `units`. Type-level properties are
-merged in, so each object carries its type parameters too.
-
-<Steps>
-  <Step title="Create the function">
-    Create an HTTP-triggered function with the code below. For Python, add `azure-functions`,
-    `duckdb`, and `requests` to `requirements.txt`. For TypeScript (Node.js 20 or later), install
-    `@azure/functions` and `@duckdb/node-api`. For C# (.NET 8 isolated worker), add
-    `Microsoft.Azure.Functions.Worker.Extensions.Http` and `DuckDB.NET.Data.Full`. The outcome is an endpoint that takes a project,
-    model, and version id.
-  </Step>
-  <Step title="Store your token">
-    Add your Speckle token as the application setting `SPECKLE_TOKEN`, so it never passes through
-    the flow. The token needs read access to the project.
-  </Step>
-  <Step title="Call it from your flow">
-    Add an **HTTP** action that POSTs `{"projectId": "...", "modelId": "...", "versionId": "..."}`
-    to the function URL, then parse the response as JSON. The outcome is one row per property, which
-    you filter exactly as you would the properties export.
-  </Step>
-</Steps>
+```sql
+WITH result AS (/* the query above */)
+SELECT * FROM result
+WHERE object_id IN (
+  SELECT object_id FROM result WHERE path = 'ifcType' AND value_text = 'IfcDoor'
+)
+```
 
 <Tabs>
   <Tab title="Python">
-    ```python function_app.py
-    import json
-    import os
+    ```python
+    import duckdb, requests
 
-    import azure.functions as func
-    import duckdb
-    import requests
-
-    SPECKLE_URL = "https://app.speckle.systems"
-
-    SUFFIXES = {
-        "eav": ".eav.eav.parquet",
-        "paths": ".eav.paths.parquet",
-        "objects": ".eav.objects.parquet",
-        "type_eav": ".eav.type_eav.parquet",
-        "object_type": ".eav.object_type.parquet",
-    }
-
-    SQL = """
-    WITH props AS (
-      SELECT object_index, path_index, value_string, value_double, value_boolean, unit,
-             internal_definition_name
-      FROM read_parquet('{eav}')
-      UNION ALL
-      SELECT ot.object_index, te.path_index, te.value_string, te.value_double, te.value_boolean,
-             te.unit, te.internal_definition_name
-      FROM read_parquet('{object_type}') ot
-      JOIN read_parquet('{type_eav}') te USING (type_index)
+    files = requests.get(ARTIFACTS_URL, headers={"Authorization": f"Bearer {TOKEN}"}).json()["files"]
+    url = lambda suffix: next(f["url"] for f in files if f["name"].endswith(suffix))
+    sql = QUERY.format(
+        eav=url(".eav.eav.parquet"), paths=url(".eav.paths.parquet"),
+        objects=url(".eav.objects.parquet"), type_eav=url(".eav.type_eav.parquet"),
+        object_type=url(".eav.object_type.parquet"),
     )
-    SELECT o.application_id AS object_id,
-           p.path,
-           COALESCE(pr.value_string, CAST(pr.value_double AS VARCHAR),
-                    CAST(pr.value_boolean AS VARCHAR)) AS value_text,
-           pr.value_double AS value_num,
-           CASE WHEN pr.value_double IS NOT NULL THEN 'number'
-                WHEN pr.value_boolean IS NOT NULL THEN 'boolean'
-                ELSE 'string' END AS type,
-           pr.unit AS units
-    FROM props pr
-    JOIN read_parquet('{paths}') p USING (path_index)
-    JOIN read_parquet('{objects}') o USING (object_index)
-    ORDER BY object_id, path
-    """
-
-    app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
-
-
-    @app.route(route="properties", methods=["POST"])
-    def properties(req: func.HttpRequest) -> func.HttpResponse:
-        body = req.get_json()
-        response = requests.get(
-            f"{SPECKLE_URL}/api/v2/projects/{body['projectId']}/models/{body['modelId']}"
-            f"/versions/{body['versionId']}/artifacts",
-            headers={"Authorization": f"Bearer {os.environ['SPECKLE_TOKEN']}"},
-            timeout=30,
-        )
-        response.raise_for_status()
-        files = response.json()["files"]
-
-        urls = {}
-        for key, suffix in SUFFIXES.items():
-            url = next(f["url"] for f in files if f["name"].endswith(suffix))
-            urls[key] = url.replace("'", "''")
-
-        con = duckdb.connect()
-        con.execute("INSTALL httpfs; LOAD httpfs;")
-        cursor = con.execute(SQL.format(**urls))
-        columns = [c[0] for c in cursor.description]
-        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        return func.HttpResponse(json.dumps(rows), mimetype="application/json")
+    con = duckdb.connect()
+    con.execute("INSTALL httpfs")
+    con.execute("LOAD httpfs")
+    rows = con.execute(sql).fetchall()
     ```
 
   </Tab>
   <Tab title="TypeScript">
-    ```ts src/functions/properties.ts
-    import { app, type HttpRequest, type HttpResponseInit } from '@azure/functions'
+    ```ts
     import { DuckDBInstance } from '@duckdb/node-api'
 
-    const SPECKLE_URL = 'https://app.speckle.systems'
-
-    const SUFFIXES = {
-      eav: '.eav.eav.parquet',
-      paths: '.eav.paths.parquet',
-      objects: '.eav.objects.parquet',
-      type_eav: '.eav.type_eav.parquet',
-      object_type: '.eav.object_type.parquet'
-    } as const
-    type EavFile = keyof typeof SUFFIXES
-
-    const buildSql = (u: Record<EavFile, string>) => `
-    WITH props AS (
-      SELECT object_index, path_index, value_string, value_double, value_boolean, unit,
-             internal_definition_name
-      FROM read_parquet('${u.eav}')
-      UNION ALL
-      SELECT ot.object_index, te.path_index, te.value_string, te.value_double, te.value_boolean,
-             te.unit, te.internal_definition_name
-      FROM read_parquet('${u.object_type}') ot
-      JOIN read_parquet('${u.type_eav}') te USING (type_index)
+    const { files } = await (await fetch(ARTIFACTS_URL, { headers: { Authorization: `Bearer ${TOKEN}` } })).json()
+    const url = (suffix: string) => files.find((f: { name: string }) => f.name.endsWith(suffix)).url
+    const sql = ['eav', 'paths', 'objects', 'type_eav', 'object_type'].reduce(
+      (text, key) => text.replaceAll(`{${key}}`, url(`.eav.${key}.parquet`)),
+      QUERY
     )
-    SELECT o.application_id AS object_id,
-           p.path,
-           COALESCE(pr.value_string, CAST(pr.value_double AS VARCHAR),
-                    CAST(pr.value_boolean AS VARCHAR)) AS value_text,
-           pr.value_double AS value_num,
-           CASE WHEN pr.value_double IS NOT NULL THEN 'number'
-                WHEN pr.value_boolean IS NOT NULL THEN 'boolean'
-                ELSE 'string' END AS type,
-           pr.unit AS units
-    FROM props pr
-    JOIN read_parquet('${u.paths}') p USING (path_index)
-    JOIN read_parquet('${u.objects}') o USING (object_index)
-    ORDER BY object_id, path`
-
-    app.http('properties', {
-      methods: ['POST'],
-      authLevel: 'function',
-      handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
-        const { projectId, modelId, versionId } = (await req.json()) as Record<string, string>
-        const response = await fetch(
-          `${SPECKLE_URL}/api/v2/projects/${projectId}/models/${modelId}/versions/${versionId}/artifacts`,
-          { headers: { Authorization: `Bearer ${process.env.SPECKLE_TOKEN}` } }
-        )
-        if (!response.ok) return { status: response.status, body: await response.text() }
-        const { files } = (await response.json()) as { files: { name: string; url: string }[] }
-
-        const urls = {} as Record<EavFile, string>
-        for (const [key, suffix] of Object.entries(SUFFIXES) as [EavFile, string][]) {
-          const file = files.find((f) => f.name.endsWith(suffix))
-          if (!file) return { status: 404, body: `Version has no ${suffix} file` }
-          urls[key] = file.url.replace(/'/g, "''")
-        }
-
-        const instance = await DuckDBInstance.create(':memory:')
-        const conn = await instance.connect()
-        try {
-          await conn.run('INSTALL httpfs; LOAD httpfs;')
-          const reader = await conn.runAndReadAll(buildSql(urls))
-          return { jsonBody: reader.getRowObjectsJson() }
-        } finally {
-          conn.closeSync()
-          instance.closeSync()
-        }
-      }
-    })
+    const conn = await (await DuckDBInstance.create(':memory:')).connect()
+    await conn.run('INSTALL httpfs')
+    await conn.run('LOAD httpfs')
+    const rows = (await conn.runAndReadAll(sql)).getRowObjectsJson()
     ```
 
   </Tab>
   <Tab title="C#">
-    ```csharp Properties.cs
-    using System.Net;
-    using System.Net.Http.Headers;
-    using System.Net.Http.Json;
-    using System.Text.Json;
+    ```csharp
     using DuckDB.NET.Data;
-    using Microsoft.Azure.Functions.Worker;
-    using Microsoft.Azure.Functions.Worker.Http;
+    using System.Net.Http.Json;
 
-    public record PropertiesRequest(string ProjectId, string ModelId, string VersionId);
+    var artifacts = await http.GetFromJsonAsync<ArtifactList>(artifactsUrl); // Bearer token on http
+    string Url(string key) => artifacts!.Files.First(f => f.Name.EndsWith($".eav.{key}.parquet")).Url;
+    var sql = new[] { "eav", "paths", "objects", "type_eav", "object_type" }
+        .Aggregate(Query, (text, key) => text.Replace($"{{{key}}}", Url(key)));
 
-    public record ArtifactFile(string Name, string Url);
-
-    public record ArtifactList(List<ArtifactFile> Files);
-
-    public class Properties
-    {
-        private const string SpeckleUrl = "https://app.speckle.systems";
-        private static readonly HttpClient Http = new();
-        private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-
-        private static readonly Dictionary<string, string> Suffixes = new()
-        {
-            ["eav"] = ".eav.eav.parquet",
-            ["paths"] = ".eav.paths.parquet",
-            ["objects"] = ".eav.objects.parquet",
-            ["type_eav"] = ".eav.type_eav.parquet",
-            ["object_type"] = ".eav.object_type.parquet",
-        };
-
-        private const string Sql = """
-            WITH props AS (
-              SELECT object_index, path_index, value_string, value_double, value_boolean, unit,
-                     internal_definition_name
-              FROM read_parquet('{eav}')
-              UNION ALL
-              SELECT ot.object_index, te.path_index, te.value_string, te.value_double, te.value_boolean,
-                     te.unit, te.internal_definition_name
-              FROM read_parquet('{object_type}') ot
-              JOIN read_parquet('{type_eav}') te USING (type_index)
-            )
-            SELECT o.application_id AS object_id,
-                   p.path,
-                   COALESCE(pr.value_string, CAST(pr.value_double AS VARCHAR),
-                            CAST(pr.value_boolean AS VARCHAR)) AS value_text,
-                   pr.value_double AS value_num,
-                   CASE WHEN pr.value_double IS NOT NULL THEN 'number'
-                        WHEN pr.value_boolean IS NOT NULL THEN 'boolean'
-                        ELSE 'string' END AS type,
-                   pr.unit AS units
-            FROM props pr
-            JOIN read_parquet('{paths}') p USING (path_index)
-            JOIN read_parquet('{objects}') o USING (object_index)
-            ORDER BY object_id, path
-            """;
-
-        [Function("properties")]
-        public async Task<HttpResponseData> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
-        {
-            var body = JsonSerializer.Deserialize<PropertiesRequest>(
-                await new StreamReader(req.Body).ReadToEndAsync(), Json)!;
-
-            using var request = new HttpRequestMessage(
-                HttpMethod.Get,
-                $"{SpeckleUrl}/api/v2/projects/{body.ProjectId}/models/{body.ModelId}" +
-                $"/versions/{body.VersionId}/artifacts");
-            request.Headers.Authorization = new AuthenticationHeaderValue(
-                "Bearer", Environment.GetEnvironmentVariable("SPECKLE_TOKEN"));
-            using var response = await Http.SendAsync(request);
-            response.EnsureSuccessStatusCode();
-            var artifacts = (await response.Content.ReadFromJsonAsync<ArtifactList>(Json))!;
-
-            var sql = Sql;
-            foreach (var (key, suffix) in Suffixes)
-            {
-                var file = artifacts.Files.FirstOrDefault(f => f.Name.EndsWith(suffix));
-                if (file is null)
-                {
-                    var notFound = req.CreateResponse(HttpStatusCode.NotFound);
-                    await notFound.WriteStringAsync($"Version has no {suffix} file");
-                    return notFound;
-                }
-                sql = sql.Replace($"{{{key}}}", file.Url.Replace("'", "''"));
-            }
-
-            using var connection = new DuckDBConnection("DataSource=:memory:");
-            connection.Open();
-            using var command = connection.CreateCommand();
-            command.CommandText = "INSTALL httpfs";
-            command.ExecuteNonQuery();
-            command.CommandText = "LOAD httpfs";
-            command.ExecuteNonQuery();
-            command.CommandText = sql;
-
-            var rows = new List<Dictionary<string, object?>>();
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                var row = new Dictionary<string, object?>();
-                for (var i = 0; i < reader.FieldCount; i++)
-                {
-                    row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                }
-                rows.Add(row);
-            }
-
-            var ok = req.CreateResponse(HttpStatusCode.OK);
-            await ok.WriteAsJsonAsync(rows);
-            return ok;
-        }
-    }
+    using var connection = new DuckDBConnection("DataSource=:memory:");
+    connection.Open();
+    using var command = connection.CreateCommand();
+    command.CommandText = "INSTALL httpfs";
+    command.ExecuteNonQuery();
+    command.CommandText = "LOAD httpfs";
+    command.ExecuteNonQuery();
+    command.CommandText = sql;
+    using var reader = command.ExecuteReader();
     ```
 
   </Tab>
 </Tabs>
 
-The function returns the whole properties table, like the export. On a large model, add a `WHERE`
-clause to the query so the flow receives only the rows it needs.
+In each, the artifacts URL is the endpoint above, and the query is the SQL above. The complete
+version of each, with error handling and tests, is in the example below.
+
+#### From Power Automate, Zapier, or n8n Cloud
+
+These tools can call an HTTP endpoint but cannot read Parquet, so put the query in a small function
+they call. [examples/bundle-properties-function](https://github.com/specklesystems/speckle-docs-new/tree/main/examples/bundle-properties-function)
+is that function as an Azure Function in Python, TypeScript, and C#. It takes a project, model, and
+version id, and returns the rows above as JSON. Its README covers running it locally, deploying it,
+and calling it from a Power Automate **HTTP** action. Take the directory on its own:
+
+```bash
+git clone --filter=blob:none --sparse --depth 1 \
+  https://github.com/specklesystems/speckle-docs-new.git
+cd speckle-docs-new
+git sparse-checkout set examples/bundle-properties-function
+```
+
+Because the rows match the properties export's columns, a flow that filtered the export filters this
+the same way. The function returns every property of every object; on a large model, add a `WHERE`
+clause to its query so the flow receives only the rows it needs.
 
 ### Properties export for object-graph versions
 
