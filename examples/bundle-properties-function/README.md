@@ -7,14 +7,15 @@ Azure Function in Python, TypeScript, or C#. Copy the language you need.
 The rows have the same columns as the properties export (`eav/query`) returns for
 earlier versions, so a flow built on the export can switch with little change:
 
-| Column       | Holds                                                            |
-| ------------ | ---------------------------------------------------------------- |
-| `object_id`  | The object's `applicationId` (an IFC GlobalId, a Revit UniqueId) |
-| `path`       | The property path, such as `ifcType` or `Dimensions.Area`        |
-| `value_text` | The value as text, for every row                                 |
-| `value_num`  | The value as a number, for numeric rows                          |
-| `type`       | `string`, `number`, or `boolean`                                 |
-| `units`      | The producer's unit label, where it gave one                     |
+| Column                     | Holds                                                            |
+| -------------------------- | ---------------------------------------------------------------- |
+| `object_id`                | The object's `applicationId` (an IFC GlobalId, a Revit UniqueId) |
+| `path`                     | The property path, such as `ifcType` or `Dimensions.Area`        |
+| `value_text`               | The value as text, for every row                                 |
+| `value_num`                | The value as a number, for numeric rows                          |
+| `type`                     | `string`, `number`, or `boolean`                                 |
+| `units`                    | The producer's unit label, where it gave one                     |
+| `internal_definition_name` | The property's internal definition name, when available          |
 
 Type-level properties (Revit type parameters, IFC type properties) are merged in, so
 each object carries its type's properties too.

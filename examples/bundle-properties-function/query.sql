@@ -3,10 +3,10 @@
 -- {eav}, {paths}, {objects}, {type_eav} and {object_type} are the locations of
 -- the version's .eav.*.parquet files: presigned URLs or local paths.
 WITH props AS (
-  SELECT object_index, path_index, value_string, value_double, value_boolean, unit
+  SELECT object_index, path_index, value_string, value_double, value_boolean, unit, internal_definition_name
   FROM read_parquet('{eav}')
   UNION ALL
-  SELECT ot.object_index, te.path_index, te.value_string, te.value_double, te.value_boolean, te.unit
+  SELECT ot.object_index, te.path_index, te.value_string, te.value_double, te.value_boolean, te.unit, te.internal_definition_name
   FROM read_parquet('{object_type}') ot
   JOIN read_parquet('{type_eav}') te USING (type_index)
 )
@@ -18,7 +18,8 @@ SELECT o.application_id AS object_id,
        CASE WHEN pr.value_double IS NOT NULL THEN 'number'
             WHEN pr.value_boolean IS NOT NULL THEN 'boolean'
             ELSE 'string' END AS type,
-       pr.unit AS units
+       pr.unit AS units,
+       pr.internal_definition_name
 FROM props pr
 JOIN read_parquet('{paths}') p USING (path_index)
 JOIN read_parquet('{objects}') o USING (object_index)

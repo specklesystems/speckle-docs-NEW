@@ -9,9 +9,9 @@ public sealed class BundlePropertiesTests : IDisposable
     {
         ["objects"] = "SELECT * FROM (VALUES (0, 'door-1'), (1, 'wall-1')) t(object_index, application_id)",
         ["paths"] = "SELECT * FROM (VALUES (0, 'ifcType'), (1, 'name'), (2, 'Dimensions.Area'), (3, 'Fire Rating'), (4, 'IsExternal')) t(path_index, path)",
-        ["eav"] = "SELECT * FROM (VALUES (0, 0, 'IfcDoor', NULL::DOUBLE, NULL::BOOLEAN, NULL), (0, 1, 'Door-01', NULL, NULL, NULL), (0, 2, '1.8', 1.8, NULL, 'm2'), (1, 0, 'IfcWall', NULL, NULL, NULL), (1, 4, NULL, NULL, true, NULL)) t(object_index, path_index, value_string, value_double, value_boolean, unit)",
+        ["eav"] = "SELECT * FROM (VALUES (0, 0, 'IfcDoor', NULL::DOUBLE, NULL::BOOLEAN, NULL, 'door-type-definition'), (0, 1, 'Door-01', NULL, NULL, NULL, 'door-name-definition'), (0, 2, '1.8', 1.8, NULL, 'm2', 'area-definition'), (1, 0, 'IfcWall', NULL, NULL, NULL, 'wall-type-definition'), (1, 4, NULL, NULL, true, NULL, 'external-definition')) t(object_index, path_index, value_string, value_double, value_boolean, unit, internal_definition_name)",
         ["types"] = "SELECT * FROM (VALUES (0, 'door-type')) t(type_index, type_key)",
-        ["type_eav"] = "SELECT * FROM (VALUES (0, 3, 'FR60', NULL::DOUBLE, NULL::BOOLEAN, NULL)) t(type_index, path_index, value_string, value_double, value_boolean, unit)",
+        ["type_eav"] = "SELECT * FROM (VALUES (0, 3, 'FR60', NULL::DOUBLE, NULL::BOOLEAN, NULL, 'fire-rating-definition')) t(type_index, path_index, value_string, value_double, value_boolean, unit, internal_definition_name)",
         ["object_type"] = "SELECT * FROM (VALUES (0, 0)) t(object_index, type_index)",
     };
 
@@ -39,7 +39,7 @@ public sealed class BundlePropertiesTests : IDisposable
     public void RowsUseThePropertiesExportColumns()
     {
         var rows = BundleProperties.VersionProperties(_files);
-        Assert.Equal(["object_id", "path", "value_text", "value_num", "type", "units"], rows[0].Keys);
+        Assert.Equal(["object_id", "path", "value_text", "value_num", "type", "units", "internal_definition_name"], rows[0].Keys);
     }
 
     [Fact]
@@ -50,6 +50,7 @@ public sealed class BundlePropertiesTests : IDisposable
             .ToList();
         Assert.Equal(4, door.Count);
         Assert.Equal("FR60", door.Single(r => (string?)r["path"] == "Fire Rating")["value_text"]);
+        Assert.Equal("fire-rating-definition", door.Single(r => (string?)r["path"] == "Fire Rating")["internal_definition_name"]);
     }
 
     [Fact]

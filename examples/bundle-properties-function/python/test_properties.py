@@ -18,15 +18,16 @@ TABLES = {
     "paths": "SELECT * FROM (VALUES (0, 'ifcType'), (1, 'name'), (2, 'Dimensions.Area'), "
     "(3, 'Fire Rating'), (4, 'IsExternal')) t(path_index, path)",
     "eav": "SELECT * FROM (VALUES "
-    "(0, 0, 'IfcDoor', NULL::DOUBLE, NULL::BOOLEAN, NULL), "
-    "(0, 1, 'Door-01', NULL, NULL, NULL), "
-    "(0, 2, '1.8', 1.8, NULL, 'm2'), "
-    "(1, 0, 'IfcWall', NULL, NULL, NULL), "
-    "(1, 4, NULL, NULL, true, NULL)"
-    ") t(object_index, path_index, value_string, value_double, value_boolean, unit)",
+    "(0, 0, 'IfcDoor', NULL::DOUBLE, NULL::BOOLEAN, NULL, 'door-type-definition'), "
+    "(0, 1, 'Door-01', NULL, NULL, NULL, 'door-name-definition'), "
+    "(0, 2, '1.8', 1.8, NULL, 'm2', 'area-definition'), "
+    "(1, 0, 'IfcWall', NULL, NULL, NULL, 'wall-type-definition'), "
+    "(1, 4, NULL, NULL, true, NULL, 'external-definition')"
+    ") t(object_index, path_index, value_string, value_double, value_boolean, unit, internal_definition_name)",
     "types": "SELECT * FROM (VALUES (0, 'door-type')) t(type_index, type_key)",
-    "type_eav": "SELECT * FROM (VALUES (0, 3, 'FR60', NULL::DOUBLE, NULL::BOOLEAN, NULL)) "
-    "t(type_index, path_index, value_string, value_double, value_boolean, unit)",
+    "type_eav": "SELECT * FROM (VALUES (0, 3, 'FR60', NULL::DOUBLE, NULL::BOOLEAN, NULL, "
+    "'fire-rating-definition')) "
+    "t(type_index, path_index, value_string, value_double, value_boolean, unit, internal_definition_name)",
     "object_type": "SELECT * FROM (VALUES (0, 0)) t(object_index, type_index)",
 }
 
@@ -58,13 +59,14 @@ class VersionPropertiesTest(unittest.TestCase):
         rows = version_properties(self.files)
         self.assertEqual(
             list(rows[0]),
-            ["object_id", "path", "value_text", "value_num", "type", "units"],
+            ["object_id", "path", "value_text", "value_num", "type", "units", "internal_definition_name"],
         )
 
     def test_type_properties_are_merged_into_the_object(self):
         rows = version_properties(self.files)
         door = {r["path"]: r for r in rows if r["object_id"] == "door-1"}
         self.assertEqual(door["Fire Rating"]["value_text"], "FR60")
+        self.assertEqual(door["Fire Rating"]["internal_definition_name"], "fire-rating-definition")
         self.assertEqual(len(door), 4)
 
     def test_values_are_typed(self):
