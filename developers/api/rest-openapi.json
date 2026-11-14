@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Speckle Server REST API",
-    "description": "REST API for Speckle Server. Use this API to upload and download objects, check object existence, and interact with your Speckle projects programmatically.",
+    "description": "REST API for Speckle Server. The object endpoints serve object graphs on every Speckle server, including the open-source server. The bundle and properties endpoints exist on Speckle Cloud and Speckle Enterprise Server 2026.9 and later, not on the open-source server.",
     "version": "1.0.0",
     "contact": {
       "name": "Speckle Support",
@@ -74,7 +74,11 @@
           "id": "9b2cdb21da092dbd3558a4bc55b2cf7e",
           "speckle_type": "Base",
           "totalChildrenCount": 0,
-          "numbers": [0.04667752874618203, 0.16370857295385177, 0.1008153029515465]
+          "numbers": [
+            0.04667752874618203,
+            0.16370857295385177,
+            0.1008153029515465
+          ]
         }
       },
       "ObjectArray": {
@@ -105,9 +109,11 @@
     "/api/diff/{projectId}": {
       "post": {
         "summary": "Check if the Server Contains a List of Objects",
-        "description": "This method is useful for optimizing uploads, so that objects that are already in the project are not uploaded for every commit. Returns a dictionary mapping object IDs to boolean values indicating whether each object exists on the server.",
+        "description": "This method is useful for optimizing uploads, so that objects that are already in the project are not uploaded for every commit. Returns a dictionary mapping object IDs to boolean values indicating whether each object exists on the server. On Speckle Cloud and Speckle Enterprise Server 2026.9 and later, this endpoint no longer checks existence: it reports every object as absent, so clients upload their full graph. Speckle Cloud removes it on 26 November 2026 (announced with a `Sunset` header). On the open-source Speckle Server it is current.",
         "operationId": "checkObjectsExist",
-        "tags": ["Objects"],
+        "tags": [
+          "Objects"
+        ],
         "parameters": [
           {
             "name": "projectId",
@@ -125,7 +131,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["objects"],
+                "required": [
+                  "objects"
+                ],
                 "properties": {
                   "objects": {
                     "$ref": "#/components/schemas/ObjectIdArray"
@@ -178,9 +186,11 @@
     "/objects/{projectId}": {
       "post": {
         "summary": "Upload a Batch of Objects",
-        "description": "Upload a batch of objects to a project. The batch is sent as multipart-encoded file content. Multiple batches can be sent in the same request as multiple files.",
+        "description": "Upload a batch of objects to a project. The batch is sent as multipart-encoded file content. Multiple batches can be sent in the same request as multiple files. On Speckle Cloud and Speckle Enterprise Server 2026.9 and later, this endpoint is deprecated: every response carries `Deprecation` and `Warning` headers, and it writes object graphs only. On the open-source Speckle Server it is current. To publish to Speckle Cloud, publish through ingestions instead.",
         "operationId": "uploadObjects",
-        "tags": ["Objects"],
+        "tags": [
+          "Objects"
+        ],
         "parameters": [
           {
             "name": "projectId",
@@ -257,9 +267,11 @@
     "/objects/{projectId}/{objectId}/single": {
       "get": {
         "summary": "Download a Single Object",
-        "description": "Download a single object by its ID. Returns only the specified object without its children.",
+        "description": "Download a single object by its ID. Returns only the specified object without its children. Public projects need no token. On Speckle Cloud and Speckle Enterprise Server 2026.9 and later, this endpoint is deprecated: every response carries `Deprecation` and `Warning` headers, and it serves object-graph versions only. On the open-source Speckle Server it is current. A bundle reference (`bundle.<projectId>.<modelId>.<versionId>`) returns **404** with `error: \"BUNDLE_REFERENCE_NOT_FOUND\"`: read bundle versions with the artifacts endpoints instead.",
         "operationId": "getSingleObject",
-        "tags": ["Objects"],
+        "tags": [
+          "Objects"
+        ],
         "parameters": [
           {
             "name": "projectId",
@@ -312,17 +324,25 @@
             }
           },
           "404": {
-            "description": "Object not found"
+            "description": "No such object, or the object id is a bundle reference (`BUNDLE_REFERENCE_NOT_FOUND`)."
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ]
       }
     },
     "/api/getobjects/{projectId}": {
       "post": {
         "summary": "Download a List of Objects",
-        "description": "Download multiple objects by their IDs. This method is useful when optimizing downloads: Get the root object without children, check the children ids in the local cache and then request only the new objects with this method. The response format depends on the Accept header.",
+        "description": "Download multiple objects by their IDs. This method is useful when optimizing downloads: Get the root object without children, check the children ids in the local cache and then request only the new objects with this method. The response format depends on the Accept header. On Speckle Cloud and Speckle Enterprise Server 2026.9 and later, this endpoint is deprecated: every response carries `Deprecation` and `Warning` headers, and it serves object-graph versions only. On the open-source Speckle Server it is current. A bundle reference (`bundle.<projectId>.<modelId>.<versionId>`) returns **404** with `error: \"BUNDLE_REFERENCE_NOT_FOUND\"`: read bundle versions with the artifacts endpoints instead.",
         "operationId": "getObjects",
-        "tags": ["Objects"],
+        "tags": [
+          "Objects"
+        ],
         "parameters": [
           {
             "name": "projectId",
@@ -339,7 +359,10 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["application/json", "text/plain"],
+              "enum": [
+                "application/json",
+                "text/plain"
+              ],
               "default": "application/json"
             },
             "description": "Response format: 'application/json' returns a JSON array, 'text/plain' returns tab-separated values (object_id\\tobject_content)"
@@ -351,7 +374,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["objects"],
+                "required": [
+                  "objects"
+                ],
                 "properties": {
                   "objects": {
                     "$ref": "#/components/schemas/ObjectIdArray"
@@ -422,9 +447,11 @@
     "/objects/{projectId}/{objectId}": {
       "get": {
         "summary": "Download an Object and All its Children",
-        "description": "Download an object and all of its children recursively. The response format depends on the Accept header.",
+        "description": "Download an object and all of its children recursively. The response format depends on the Accept header. Public projects need no token. On Speckle Cloud and Speckle Enterprise Server 2026.9 and later, this endpoint is deprecated: every response carries `Deprecation` and `Warning` headers, and it serves object-graph versions only. On the open-source Speckle Server it is current. A bundle reference (`bundle.<projectId>.<modelId>.<versionId>`) returns **404** with `error: \"BUNDLE_REFERENCE_NOT_FOUND\"`: read bundle versions with the artifacts endpoints instead.",
         "operationId": "getObjectWithChildren",
-        "tags": ["Objects"],
+        "tags": [
+          "Objects"
+        ],
         "parameters": [
           {
             "name": "projectId",
@@ -450,7 +477,10 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["application/json", "text/plain"],
+              "enum": [
+                "application/json",
+                "text/plain"
+              ],
               "default": "application/json"
             },
             "description": "Response format: 'application/json' returns a JSON array, 'text/plain' returns tab-separated values (object_id\\tobject_content)"
@@ -494,14 +524,514 @@
             }
           },
           "404": {
-            "description": "Object not found"
+            "description": "No such object, or the object id is a bundle reference (`BUNDLE_REFERENCE_NOT_FOUND`)."
           }
         },
         "x-mint": {
           "content": "## Response Format\n\n- If `Accept` is `text/plain`, each line of the output contains 1 object in the format: `{object_id}\\t{object_content}`\n- If `Accept` is `application/json`, the output is a JSON representation of an array of objects."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ]
+      }
+    },
+    "/api/v2/projects/{projectId}/models/{modelId}/versions/{versionId}/artifacts": {
+      "get": {
+        "summary": "List a Version's Bundle Files",
+        "operationId": "getVersionArtifacts",
+        "tags": [
+          "Bundles"
+        ],
+        "description": "Returns a presigned GET URL, valid for one hour, for every file of a bundle version. Fetch the files from storage directly. Public projects need no token; others need read access, and a token's resource access rules must cover the model or version. Versions older than the workspace plan's history limit are refused. Available on Speckle Cloud and Speckle Enterprise Server 2026.9 and later; not on the open-source Speckle Server.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The project id."
+          },
+          {
+            "name": "modelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The model id."
+          },
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The version id."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A presigned GET URL per bundle file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "files"
+                  ],
+                  "properties": {
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "url",
+                          "expiresAt"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "The file name, such as `<versionId>.eav.eav.parquet`. Match files by the end of the name."
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "Presigned GET URL. Fetch it without the Authorization header."
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "geometryStream": {
+                      "type": "object",
+                      "required": [
+                        "path"
+                      ],
+                      "description": "Present when the bundle has a viewer `.dat` file: the server-relative path of the geometry-stream WebSocket.",
+                      "properties": {
+                        "path": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid token for a non-public project."
+          },
+          "403": {
+            "description": "The token cannot read this project, model or version, or the version is beyond the workspace history limit."
+          },
+          "404": {
+            "description": "No such project or version, or the version is not a bundle."
+          }
+        }
+      }
+    },
+    "/api/v2/projects/{projectId}/models/{modelId}/artifacts": {
+      "get": {
+        "summary": "List a Model's Latest Bundle Files",
+        "operationId": "getModelArtifacts",
+        "tags": [
+          "Bundles"
+        ],
+        "description": "As the version endpoint, for the model's latest version. Public projects need no token; others need read access, and a token's resource access rules must cover the model or version. Versions older than the workspace plan's history limit are refused. Available on Speckle Cloud and Speckle Enterprise Server 2026.9 and later; not on the open-source Speckle Server.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The project id."
+          },
+          {
+            "name": "modelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The model id."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A presigned GET URL per bundle file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "files"
+                  ],
+                  "properties": {
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "url",
+                          "expiresAt"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "The file name, such as `<versionId>.eav.eav.parquet`. Match files by the end of the name."
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "Presigned GET URL. Fetch it without the Authorization header."
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "geometryStream": {
+                      "type": "object",
+                      "required": [
+                        "path"
+                      ],
+                      "description": "Present when the bundle has a viewer `.dat` file: the server-relative path of the geometry-stream WebSocket.",
+                      "properties": {
+                        "path": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid token for a non-public project."
+          },
+          "403": {
+            "description": "The token cannot read this project, model or version, or the version is beyond the workspace history limit."
+          },
+          "404": {
+            "description": "No such project, or the model's latest version is not a bundle."
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/query": {
+      "post": {
+        "summary": "Export a Version's Properties",
+        "operationId": "exportVersionProperties",
+        "tags": [
+          "Properties"
+        ],
+        "description": "Exports every indexed property of every object in the version, one row per property, as JSON, CSV or Parquet, as a file attachment. JSON and CSV are gzip-encoded when `Accept-Encoding` includes gzip; Parquet never is. The body takes no filters. Public projects need no token; others need read access, and a token's resource access rules must cover the model or version. Versions older than the workspace plan's history limit are refused. Available on Speckle Cloud and Speckle Enterprise Server 2026.9 and later; not on the open-source Speckle Server. Serves object-graph versions only: a bundle version returns **404** with `\"Version not found or has no EAV artefact\"`; read its properties from the bundle's `eav` files instead.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The project id."
+          },
+          {
+            "name": "modelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The model id."
+          },
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The version id."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "json",
+                      "csv",
+                      "parquet"
+                    ],
+                    "default": "json"
+                  }
+                }
+              },
+              "example": {
+                "format": "json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The properties, as a file attachment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "object_id": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "value_text": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "value_num": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "units": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "internal_definition_name": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/vnd.apache.parquet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path parameters or body."
+          },
+          "401": {
+            "description": "No valid token for a non-public project."
+          },
+          "403": {
+            "description": "The token cannot read this project, model or version, or the version is beyond the workspace history limit."
+          },
+          "404": {
+            "description": "No such project or version, or the version has no properties database (bundle versions)."
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/download": {
+      "get": {
+        "summary": "Download a Version's Properties Database",
+        "operationId": "downloadVersionProperties",
+        "tags": [
+          "Properties"
+        ],
+        "description": "Streams the version's properties as a DuckDB database: gzip-encoded when `Accept-Encoding` includes gzip (with `X-Estimated-Content-Length`), otherwise raw. Public projects need no token; others need read access, and a token's resource access rules must cover the model or version. Versions older than the workspace plan's history limit are refused. Available on Speckle Cloud and Speckle Enterprise Server 2026.9 and later; not on the open-source Speckle Server. Serves object-graph versions only: a bundle version returns **404** with `\"Version not found or has no EAV artefact\"`; read its properties from the bundle's `eav` files instead.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The project id."
+          },
+          {
+            "name": "modelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The model id."
+          },
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The version id."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The DuckDB properties database.",
+            "headers": {
+              "X-Estimated-Content-Length": {
+                "description": "Approximate gzip-encoded size, sent with gzip encoding.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid token for a non-public project."
+          },
+          "403": {
+            "description": "The token cannot read this project, model or version, or the version is beyond the workspace history limit."
+          },
+          "404": {
+            "description": "No such project or version, or the version has no properties database (bundle versions)."
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{projectId}/models/{modelId}/eav/download": {
+      "get": {
+        "summary": "Download a Model's Latest Properties Database",
+        "operationId": "downloadModelProperties",
+        "tags": [
+          "Properties"
+        ],
+        "description": "As the version download, for the model's latest version. Public projects need no token; others need read access, and a token's resource access rules must cover the model or version. Versions older than the workspace plan's history limit are refused. Available on Speckle Cloud and Speckle Enterprise Server 2026.9 and later; not on the open-source Speckle Server. Serves object-graph versions only: a bundle version returns **404** with `\"Version not found or has no EAV artefact\"`; read its properties from the bundle's `eav` files instead.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The project id."
+          },
+          {
+            "name": "modelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The model id."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The DuckDB properties database.",
+            "headers": {
+              "X-Estimated-Content-Length": {
+                "description": "Approximate gzip-encoded size, sent with gzip encoding.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid token for a non-public project."
+          },
+          "403": {
+            "description": "The token cannot read this project, model or version, or the version is beyond the workspace history limit."
+          },
+          "404": {
+            "description": "No such project, or the model's latest version has no properties database (bundle versions)."
+          }
         }
       }
     }
   }
 }
-
