@@ -83,11 +83,12 @@ version you want so its id appears.
 The function only has to be reachable over HTTPS and able to run Python, Node.js, or .NET. Pick
 the host your organisation already uses:
 
-| You build flows in  | Simplest place for the function                                                                                                                                                                            |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Power Automate      | [Azure Functions](#on-azure-functions): it sits with your other Microsoft services, and the sample deploys as it is.                                                                                       |
-| Zapier or n8n Cloud | [AWS Lambda](#on-aws-lambda), which the sample also supports, or any serverless host you already have, such as Google Cloud Run functions ([adapt the sample](#on-another-host)).                          |
-| Self-hosted n8n     | No separate function: run the query in a **Code** node, if your n8n admin enables external modules and installs `@duckdb/node-api`. The TypeScript sample's `src/properties.ts` is the code to start from. |
+| You build flows in     | Simplest place for the function                                                                                                                                                                            |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Power Automate (cloud) | [Azure Functions](#on-azure-functions): it sits with your other Microsoft services, and the sample deploys as it is.                                                                                       |
+| Power Automate Desktop | No function: a [PowerShell script on the same machine](#on-power-automate-desktop) writes the properties to a CSV file.                                                                                    |
+| Zapier or n8n Cloud    | [AWS Lambda](#on-aws-lambda), which the sample also supports, or any serverless host you already have, such as Google Cloud Run functions ([adapt the sample](#on-another-host)).                          |
+| Self-hosted n8n        | No separate function: run the query in a **Code** node, if your n8n admin enables external modules and installs `@duckdb/node-api`. The TypeScript sample's `src/properties.ts` is the code to start from. |
 
 If your flow feeds a Power BI or Excel report rather than an automation, you may not need a function
 at all: Power Query can load the bundle's Parquet files directly.
@@ -185,6 +186,44 @@ the key, which every request sends as an `x-api-key` header.
 </Tabs>
 
 You should see one row per property of every element in the version, as in the example above.
+
+## On Power Automate Desktop
+
+A desktop flow runs on a Windows machine, so it needs no function: a PowerShell script on that
+machine fetches the version's files, runs the query, and writes the properties to a CSV file the
+flow reads.
+
+Set up the machine once:
+
+1. Download the DuckDB command-line tool for Windows from [duckdb.org](https://duckdb.org/install/)
+   and unzip `duckdb.exe` to a folder such as `C:\speckle`.
+2. Save
+   [Get-BundleProperties.ps1](https://raw.githubusercontent.com/specklesystems/speckle-docs-new/refs/heads/main/examples/bundle-properties-function/powershell/Get-BundleProperties.ps1)
+   and
+   [query.sql](https://raw.githubusercontent.com/specklesystems/speckle-docs-new/refs/heads/main/examples/bundle-properties-function/query.sql)
+   to the same folder.
+3. Store the token for the Windows account that runs the flow, then restart Power Automate Desktop
+   so it sees the new variable:
+
+   ```powershell
+   setx SPECKLE_TOKEN "YOUR_TOKEN"
+   ```
+
+Then build the flow:
+
+1. Add **Run DOS command** with the command below, using your IDs and folder.
+2. Add **Read from CSV file** on the output file, with **First line contains column names** turned
+   on. Each property becomes a row of a data table.
+3. Filter the rows with **Filter data table**. For example, `path` equals `ifcType` and
+   `value_text` equals `IfcDoor` gives one row per door.
+
+```text Command
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\speckle\Get-BundleProperties.ps1 -ProjectId PROJECT_ID -ModelId MODEL_ID -VersionId VERSION_ID -OutFile C:\speckle\properties.csv -DuckDb C:\speckle\duckdb.exe
+```
+
+If the script fails, **Run DOS command** puts the reason in `CommandErrorOutput` and a non-zero
+`CommandExitCode`; check them before reading the file. End `-OutFile` in `.json` instead to get the
+same JSON rows as the function returns.
 
 ## Troubleshooting
 
