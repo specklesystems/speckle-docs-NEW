@@ -3,7 +3,8 @@
 Sample code that returns a 2026.9 **bundle** version's properties as JSON, for tools
 that cannot read Parquet themselves: Power Automate, Zapier, n8n Cloud. It runs as an
 Azure Function in Python, TypeScript, or C#, and on AWS Lambda in Python or TypeScript. Copy
-the language and host you need.
+the language and host you need. For Power Automate Desktop, `powershell/` writes the same rows
+to a file with no function at all.
 
 The rows have the same columns as the properties export (`eav/query`) returns for
 earlier versions, so a flow built on the export can switch with little change:
@@ -125,6 +126,23 @@ the properties export.
 The function returns every property of every object. On a large model, add a `WHERE`
 clause to the query so the flow receives only the rows it needs.
 
+## Run it on Power Automate Desktop
+
+A desktop flow runs on a Windows machine, so it can skip the function.
+`powershell/Get-BundleProperties.ps1` lists the version's files, downloads the five `eav` files,
+and runs `query.sql` over them with the [DuckDB command-line tool](https://duckdb.org/install/),
+writing a CSV or JSON file. Reading local files means DuckDB needs no extension download. It reads
+the token from `SPECKLE_TOKEN` and finds `query.sql` beside the script or one folder up.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File powershell\Get-BundleProperties.ps1 `
+  -ProjectId PROJECT_ID -ModelId MODEL_ID -VersionId VERSION_ID `
+  -OutFile C:\speckle\properties.csv -DuckDb C:\speckle\duckdb.exe
+```
+
+The flow runs the same command in a **Run DOS command** action, then reads the file with **Read
+from CSV file**. The guide has the flow steps.
+
 ## Check it
 
 Each language has tests that build a small bundle on the fly and run the query over
@@ -137,3 +155,6 @@ mise run check:python     # or one language
 
 Before publishing a change, also run the function once against a real version: the
 tests read local files, not presigned URLs.
+
+The PowerShell script has no tests of its own: it runs the same `query.sql`. Run it once against a
+real version with `pwsh` and `duckdb` on your `PATH`, on any OS.
