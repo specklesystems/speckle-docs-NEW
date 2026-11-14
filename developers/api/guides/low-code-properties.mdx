@@ -1,0 +1,164 @@
+---
+title: Use model properties in Power Automate, Zapier, or n8n
+sidebarTitle: Properties in low-code tools
+description: Get every element property of a Speckle model version as JSON in a Power Automate, Zapier, or n8n flow, by calling a small Azure Function that reads the version's bundle.
+---
+
+Use this guide if you build automations in Power Automate, Zapier, or n8n Cloud and want the
+properties of a Speckle model in your flow: every element's type, name, dimensions, and parameters,
+as rows you can filter, count, and send on.
+
+Models uploaded to Speckle since the 2026.9 release are stored as **bundles**: Parquet files that
+low-code tools cannot read. The properties export your flow may already call (`eav/query`) serves
+only versions in the earlier format. This guide adds one small function between your flow and
+Speckle. Your flow sends it a project, model, and version id; it returns the version's properties
+as JSON, in the same columns as the properties export.
+
+<Info>
+  You need someone who can deploy an Azure Function once: a developer, or anyone comfortable with
+  the Azure portal or a terminal. After that, building and changing the flow is all low-code.
+</Info>
+
+## How it works
+
+1. Your flow's HTTP action POSTs `{"projectId", "modelId", "versionId"}` to the function's URL.
+2. The function asks Speckle for the version's files and reads the property files directly. Your
+   Speckle token stays in the function's settings, never in the flow.
+3. Your flow gets one row per property of every element, as JSON it can parse and filter.
+
+Each row looks like this:
+
+```json
+{
+  "object_id": "0Jgy8odqv9EeWIex0hC4$r",
+  "path": "ifcType",
+  "value_text": "IfcSpace",
+  "value_num": null,
+  "type": "string",
+  "units": null,
+  "internal_definition_name": null
+}
+```
+
+| Field                      | Holds                                                               |
+| -------------------------- | ------------------------------------------------------------------- |
+| `object_id`                | The element's id from the source file (an IFC GlobalId, a Revit id) |
+| `path`                     | The property name, such as `ifcType` or `Dimensions.Area`           |
+| `value_text`               | The value as text, on every row                                     |
+| `value_num`                | The value as a number, on numeric rows                              |
+| `type`                     | `string`, `number`, or `boolean`                                    |
+| `units`                    | The unit, where the source gave one                                 |
+| `internal_definition_name` | The property's internal definition name, when available             |
+
+Type properties (Revit type parameters, IFC type properties) are included, so each element carries
+its type's properties too.
+
+## Prerequisites
+
+- A Speckle personal access token with the `streams:read` scope, from a user who can read the
+  project ([Building with PATs](/developers/authentication/pats))
+- An Azure subscription where you can create a Function App
+- Power Automate with the premium **HTTP** action, Zapier with **Webhooks by Zapier**, or n8n
+
+<Note>
+  This works on Speckle Cloud and Speckle Enterprise Server 2026.9 and later. The open-source
+  Speckle Server has no bundles: there, keep using the [properties
+  export](/developers/api/rest#properties-export).
+</Note>
+
+## Find your IDs
+
+Open the model version in Speckle and read the IDs from the address bar:
+
+```
+https://app.speckle.systems/projects/{projectId}/models/{modelId}@{versionId}
+```
+
+If the address has no `@{versionId}`, the viewer is showing the latest version. Open the specific
+version you want so its id appears.
+
+## As the person who deploys the function
+
+You do this once. The function is a ready-made sample in Python, TypeScript, and C#:
+[examples/bundle-properties-function](https://github.com/specklesystems/speckle-docs-new/tree/main/examples/bundle-properties-function).
+Pick the language your team maintains; they behave the same.
+
+### Deploy it
+
+Get just the sample folder, then publish one language folder to a Function App, for example with
+the Azure Functions Core Tools:
+
+```bash
+git clone --filter=blob:none --sparse --depth 1 \
+  https://github.com/specklesystems/speckle-docs-new.git
+cd speckle-docs-new
+git sparse-checkout set examples/bundle-properties-function
+cd examples/bundle-properties-function/python
+func azure functionapp publish YOUR_FUNCTION_APP
+```
+
+For Python, create the Function App on Python 3.12. The sample's README covers running it locally
+first, and the TypeScript and C# folders.
+
+### Add the token
+
+In the Azure portal, open the Function App, go to **Settings → Environment variables**, and add:
+
+| Name            | Value                                 |
+| --------------- | ------------------------------------- |
+| `SPECKLE_TOKEN` | The personal access token             |
+| `SPECKLE_URL`   | Only for your own server: its address |
+
+Then open the `properties` function, copy its **function URL**, and give it to the flow builder. The
+URL ends in `?code=...`, the key that lets a flow call it, so share it as a secret.
+
+## As the flow builder
+
+You need the function URL from whoever deployed it, and the three IDs.
+
+<Tabs>
+  <Tab title="Power Automate">
+    1. Add an **HTTP** action. Set **Method** to `POST`, **URI** to the function URL, and a header
+       `Content-Type: application/json`.
+    2. Set **Body** to the IDs, as shown below.
+    3. Add **Parse JSON** with **Content** set to the HTTP action's **Body**. Generate the schema
+       from the example row above, wrapped in `[ ]`.
+    4. Add **Filter array** on the parsed body. For example, `path` equals `ifcType` and
+       `value_text` equals `IfcDoor` gives one row per door. Use their `object_id` values in a
+       second **Filter array** to pick out the rest of their properties.
+
+    ```json Body
+    { "projectId": "PROJECT_ID", "modelId": "MODEL_ID", "versionId": "VERSION_ID" }
+    ```
+
+  </Tab>
+  <Tab title="Zapier">
+    1. Add a **Webhooks by Zapier** action with the **POST** event.
+    2. Set **URL** to the function URL and **Payload Type** to `json`.
+    3. Under **Data**, add `projectId`, `modelId`, and `versionId`.
+    4. Filter the returned rows in a **Filter** or **Code by Zapier** step.
+  </Tab>
+  <Tab title="n8n">
+    1. Add an **HTTP Request** node with **Method** `POST` and **URL** the function URL.
+    2. Turn on **Send Body**, set **Body Content Type** to `JSON`, and add the three IDs as fields.
+    3. Each returned row becomes an item; filter them with a **Filter** node.
+  </Tab>
+</Tabs>
+
+You should see one row per property of every element in the version, as in the example above.
+
+## Troubleshooting
+
+| What you see                                | What it means                                                                                                                                                     |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `401` or `403`                              | The function's token is missing, expired, or lacks access to that project. Check `SPECKLE_TOKEN`.                                                                 |
+| `404` from the function                     | The version is in the earlier format, not a bundle. For those versions, call the [properties export](/developers/api/rest#properties-export) directly, as before. |
+| `Version has no .eav.type_eav.parquet file` | The version's bundle is incomplete. Republish the model and try the new version.                                                                                  |
+| Slow, or your flow runs out of memory       | The function returns every property of every element. Narrow it: add a `WHERE` clause to the function's query so only the rows you need come back.                |
+
+## Without Azure
+
+The function is one way to run the query. Anything that runs Python, Node.js, or .NET can do the
+same: an AWS Lambda, a container, a scheduled script. The query and how to read a bundle are in
+[Get element data from a version](/developers/api/graphql#get-element-data-from-a-version). Power
+BI and Excel can load the bundle's Parquet files themselves with Power Query.

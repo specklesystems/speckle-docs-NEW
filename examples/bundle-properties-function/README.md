@@ -20,8 +20,11 @@ earlier versions, so a flow built on the export can switch with little change:
 Type-level properties (Revit type parameters, IFC type properties) are merged in, so
 each object carries its type's properties too.
 
-The guide is [Get element data from a
-version](https://docs.speckle.systems/developers/api/graphql#get-element-data-from-a-version).
+The guides are [Use model properties in Power Automate, Zapier, or
+n8n](https://docs.speckle.systems/developers/api/guides/low-code-properties) for flow builders, and
+[Get element data from a
+version](https://docs.speckle.systems/developers/api/graphql#get-element-data-from-a-version) for
+the query itself.
 
 ## How it works
 
