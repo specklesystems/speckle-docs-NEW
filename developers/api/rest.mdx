@@ -3,87 +3,105 @@ title: API reference
 description: 'REST API reference for Speckle Server'
 ---
 
-This REST API reference is provided for developers who need direct access to REST endpoints. However, we strongly recommend using our [SDKs](../sdks) or the [GraphQL API](./graphql) instead, as they provide safeguards against common mistakes and a more intuitive developer experience.
-
-## Overview
+This REST API reference is for developers who need direct access to REST endpoints. Most use cases
+are better served by the [SDKs](../sdks) or the [GraphQL API](./graphql), which handle
+authentication, retries, and the version formats for you.
 
 <Warning>
-  We strongly recommend using our [SDKs](../sdks) first, and the [GraphQL API](./graphql) second,
-  before considering the REST API. While the REST API is fully stable, using it directly presents
-  many opportunities for user error that can lead to undesirable outcomes such as zombie objects.
-  The SDKs provide a safer, more intuitive interface with proper error handling and safeguards,
-  while the GraphQL API offers better flexibility and type safety than raw REST endpoints.
+  Use the [SDKs](../sdks) first and the [GraphQL API](./graphql) second. Calling the REST endpoints
+  directly leaves error handling, batching, and format checks to you, and mistakes there can leave
+  orphaned objects behind.
 </Warning>
 
-Our Speckle Server offers both a [GraphQL API](./graphql) and a REST API. This REST API documentation is provided for reference purposes only. Most use cases are better served by our SDKs or the GraphQL API.
+## Which endpoints your server has
+
+Speckle runs as Speckle Cloud, as Speckle Enterprise Server, and as the [open-source Speckle
+Server](https://github.com/specklesystems/speckle-server). Not every endpoint exists on all three:
+
+| Endpoints                                               | Speckle Cloud, Enterprise Server 2026.9+ | Open-source Speckle Server |
+| ------------------------------------------------------- | ---------------------------------------- | -------------------------- |
+| [Object endpoints](#object-endpoints) (`/objects/...`)  | Deprecated: object graphs only           | Current                    |
+| [Bundle endpoints](#bundle-endpoints) (`.../artifacts`) | Current                                  | Not available              |
+| [Properties export](#properties-export) (`.../eav/...`) | Object-graph versions only               | Not available              |
+
+The open-source server does not support 2026.9, so it has no bundle versions; see [Server
+introduction](/developers/server/introduction).
 
 ## Authentication
 
-All REST API endpoints require authentication using a personal access token. Include it in your requests:
+Send a personal access token as a bearer token:
 
 ```bash
 Authorization: Bearer YOUR_TOKEN
 ```
 
-Get your personal access token from your Speckle profile settings. For self-hosted instances, replace the domain with your server's address.
+Create one in your Speckle profile settings with the `streams:read` scope for the read endpoints.
+Reads on a public project need no token. For any other project, the token's user needs read access
+to it.
 
 ## Base URL
 
-The base URL format is:
-
-```
-https://YOUR_SERVER_URL/api
-```
-
-For Speckle Cloud, use:
+Paths in this reference are relative to your server's address:
 
 ```
 https://app.speckle.systems
 ```
 
-## Available Endpoints
+For a self-hosted server, replace that with your server's address. Some paths start with `/api` and
+the object endpoints do not; use each path as written.
 
-The following GET endpoints are documented below. Each endpoint page includes detailed request/response schemas, examples, and an interactive API playground:
+## Object endpoints
 
-- **[Get Single Object](GET /objects/{projectId}/{objectId}/single)** - Download a single object without its children
-- **[Get Object with Children](GET /objects/{projectId}/{objectId})** - Download an object and all of its children recursively
+- **[Get Single Object](GET /objects/{projectId}/{objectId}/single)**: download a single object
+  without its children
+- **[Get Object with Children](GET /objects/{projectId}/{objectId})**: download an object and all
+  of its children recursively
 
-These object endpoints serve object graphs only. See [Bundle versions](#bundle-versions) for the
-endpoints that serve bundle data.
+These endpoints serve object graphs. On Speckle Cloud and Speckle Enterprise Server 2026.9 and
+later they are deprecated, and every response carries `Deprecation` and `Warning` headers. A
+bundle version's `referencedObject` (`bundle.<projectId>.<modelId>.<versionId>`) sent to them
+returns **404** with `error: "BUNDLE_REFERENCE_NOT_FOUND"`. Treat that as "this version is a
+bundle", never as an empty model, and read it with the [bundle endpoints](#bundle-endpoints).
 
 <Info>
-  POST endpoints have been removed from this documentation. For uploading objects and other write
-  operations, please use our [SDKs](../sdks) or the [GraphQL API](./graphql).
+  The object upload, batch download, and existence-check (`/api/diff`) endpoints are not listed
+  here: write with the [SDKs](../sdks) or the [GraphQL API](./graphql). On Speckle Cloud, publish
+  through [ingestions](/developers/migration/publish-through-ingestions). Speckle Cloud removes
+  `/api/diff` on 26 November 2026.
 </Info>
 
-## Bundle versions
+## Bundle endpoints
 
-A version is either a bundle or an object graph (published before 2026.9, or by an older connector).
-The object endpoints above do not apply to bundles: sending a bundle
-version's `referencedObject` (`bundle.<projectId>.<modelId>.<versionId>`) to them returns **404**
-with `error: "BUNDLE_REFERENCE_NOT_FOUND"`. Treat that as "this version is a bundle," never as an
-empty model.
+A version is either a bundle or an object graph (published before 2026.9, or by an older
+connector). Read a bundle version from its files:
 
-For a bundle version, read the bundle files:
+- **[List a Version's Bundle Files](GET /api/v2/projects/{projectId}/models/{modelId}/versions/{versionId}/artifacts)**:
+  Presigned URLs, valid for one hour, to every file of the version's bundle
+- **[List a Model's Latest Bundle Files](GET /api/v2/projects/{projectId}/models/{modelId}/artifacts)**:
+  The same, for the model's latest version
 
-| Endpoint                                                                           | Returns                                                          |
-| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `GET /api/v2/projects/{projectId}/models/{modelId}/versions/{versionId}/artifacts` | Presigned URLs to the version's bundle files                     |
-| `GET /api/v2/projects/{projectId}/models/{modelId}/artifacts`                      | Presigned URLs to the bundle files of the model's latest version |
+Fetch the presigned URLs without the `Authorization` header. Match files by the end of their names,
+such as `.eav.eav.parquet`. How to read the properties from them, including a worked function for
+tools that cannot read Parquet, is in [Get element data from a
+version](/developers/api/graphql#get-element-data-from-a-version). The full bundle load sequence is
+in [Load a bundle in your own code](/developers/building-integrations/load).
 
-For an object-graph version, the properties export endpoints return the version's properties table:
+## Properties export
 
-| Endpoint                                                                              | Returns                                                                 |
-| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `POST /api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/query`   | Every indexed property on every element, as JSON (`{"format": "json"}`) |
-| `GET /api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/download` | The same properties table as a plain download                           |
-| `GET /api/v1/projects/{projectId}/models/{modelId}/eav/download`                      | The properties table of the model's latest version                      |
+For an object-graph version, the properties export returns the version's properties table, one row
+per property:
 
-The properties export endpoints return **404** with `"Version not found or has no EAV artefact"` for
-a bundle version. How to tell the formats apart and how to read each are in [Get element data from
-a version](/developers/api/graphql#get-element-data-from-a-version). The full bundle load sequence
-is in [Load a bundle in your own code](/developers/building-integrations/load).
+- **[Export a Version's Properties](POST /api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/query)**:
+  As JSON, CSV, or Parquet (`{"format": "json"}`)
+- **[Download a Version's Properties Database](GET /api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/download)**:
+  The same table as a DuckDB database
+- **[Download a Model's Latest Properties Database](GET /api/v1/projects/{projectId}/models/{modelId}/eav/download)**:
+  The same, for the model's latest version
 
-## Interactive API Playground
+For a bundle version these return **404** with `"Version not found or has no EAV artefact"`. Read a
+bundle version's properties from its `eav` files with the [bundle endpoints](#bundle-endpoints).
 
-Each endpoint page includes an interactive API playground where you can test requests directly in your browser. The playground uses the authentication and server configuration from the OpenAPI specification.
+## Interactive API playground
+
+Each endpoint page includes a playground where you can send requests from your browser, using the
+authentication and server settings above.
