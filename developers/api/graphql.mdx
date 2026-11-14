@@ -268,9 +268,110 @@ code](/developers/building-integrations/load).
 
 <Note>
   Tools that cannot run DuckDB or read Parquet, such as Power Automate, Zapier, and n8n Cloud,
-  cannot read bundle versions directly. Self-hosted n8n can, with external modules enabled. See the
-  FAQ below.
+  cannot read bundle versions directly. Self-hosted n8n can, with external modules enabled. For the
+  others, see [From Power Automate, Zapier, or n8n Cloud](#from-power-automate-zapier-or-n8n-cloud).
 </Note>
+
+#### From Power Automate, Zapier, or n8n Cloud
+
+These tools can call an HTTP endpoint, so put the DuckDB step in a small function they call: an
+Azure Function, an AWS Lambda, or anything else that runs Python. The function below lists the
+version's artifacts, reads its properties with DuckDB, and returns JSON rows with the same columns as
+the [properties export](#properties-export-for-object-graph-versions): `object_id` (the object's
+`applicationId`), `path`, `value_text`, `value_num`, `type`, and `units`. Type-level properties are
+merged in, so each object carries its type parameters too.
+
+<Steps>
+  <Step title="Create the function">
+    Create a Python HTTP-triggered function with the code below, and add `azure-functions`,
+    `duckdb`, and `requests` to `requirements.txt`. The outcome is an endpoint that takes a project,
+    model, and version id.
+  </Step>
+  <Step title="Store your token">
+    Add your Speckle token as the application setting `SPECKLE_TOKEN`, so it never passes through
+    the flow. The token needs read access to the project.
+  </Step>
+  <Step title="Call it from your flow">
+    Add an **HTTP** action that POSTs `{"projectId": "...", "modelId": "...", "versionId": "..."}`
+    to the function URL, then parse the response as JSON. The outcome is one row per property, which
+    you filter exactly as you would the properties export.
+  </Step>
+</Steps>
+
+```python function_app.py
+import json
+import os
+
+import azure.functions as func
+import duckdb
+import requests
+
+SPECKLE_URL = "https://app.speckle.systems"
+
+SUFFIXES = {
+    "eav": ".eav.eav.parquet",
+    "paths": ".eav.paths.parquet",
+    "objects": ".eav.objects.parquet",
+    "type_eav": ".eav.type_eav.parquet",
+    "object_type": ".eav.object_type.parquet",
+}
+
+SQL = """
+WITH props AS (
+  SELECT object_index, path_index, value_string, value_double, value_boolean, unit,
+         internal_definition_name
+  FROM read_parquet('{eav}')
+  UNION ALL
+  SELECT ot.object_index, te.path_index, te.value_string, te.value_double, te.value_boolean,
+         te.unit, te.internal_definition_name
+  FROM read_parquet('{object_type}') ot
+  JOIN read_parquet('{type_eav}') te USING (type_index)
+)
+SELECT o.application_id AS object_id,
+       p.path,
+       COALESCE(pr.value_string, CAST(pr.value_double AS VARCHAR),
+                CAST(pr.value_boolean AS VARCHAR)) AS value_text,
+       pr.value_double AS value_num,
+       CASE WHEN pr.value_double IS NOT NULL THEN 'number'
+            WHEN pr.value_boolean IS NOT NULL THEN 'boolean'
+            ELSE 'string' END AS type,
+       pr.unit AS units
+FROM props pr
+JOIN read_parquet('{paths}') p USING (path_index)
+JOIN read_parquet('{objects}') o USING (object_index)
+ORDER BY object_id, path
+"""
+
+app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
+
+
+@app.route(route="properties", methods=["POST"])
+def properties(req: func.HttpRequest) -> func.HttpResponse:
+    body = req.get_json()
+    response = requests.get(
+        f"{SPECKLE_URL}/api/v2/projects/{body['projectId']}/models/{body['modelId']}"
+        f"/versions/{body['versionId']}/artifacts",
+        headers={"Authorization": f"Bearer {os.environ['SPECKLE_TOKEN']}"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    files = response.json()["files"]
+
+    urls = {}
+    for key, suffix in SUFFIXES.items():
+        url = next(f["url"] for f in files if f["name"].endswith(suffix))
+        urls[key] = url.replace("'", "''")
+
+    con = duckdb.connect()
+    con.execute("INSTALL httpfs; LOAD httpfs;")
+    cursor = con.execute(SQL.format(**urls))
+    columns = [c[0] for c in cursor.description]
+    rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    return func.HttpResponse(json.dumps(rows), mimetype="application/json")
+```
+
+The function returns the whole properties table, like the export. On a large model, add a `WHERE`
+clause to the query so the flow receives only the rows it needs.
 
 ### Properties export for object-graph versions
 
@@ -526,7 +627,8 @@ Variables: **Project ID** & **Object ID**
     the same limitation applies there, but a self-hosted n8n instance can read Parquet if you enable
     external modules (`NODE_FUNCTION_ALLOW_EXTERNAL`) or install a community node built for it. That
     is a deliberate setup step, not the default. Tools that cannot run DuckDB or read Parquet cannot
-    read bundle versions directly. See [Query a bundle with DuckDB](#query-a-bundle-with-duckdb).
+    read bundle versions directly; call a small function that does. See [From Power Automate,
+    Zapier, or n8n Cloud](#from-power-automate-zapier-or-n8n-cloud).
   </Accordion>
   <Accordion title="How do I decide between the properties export and reading the bundle?">
     The version's format decides it. For a bundle version, read the bundle; the properties export
