@@ -64,19 +64,25 @@ version's `referencedObject` (`bundle.<projectId>.<modelId>.<versionId>`) to the
 with `error: "BUNDLE_REFERENCE_NOT_FOUND"`. Treat that as "this version is a bundle," never as an
 empty model.
 
-For a bundle version, use these endpoints instead:
+For a bundle version, read the bundle files:
 
-| Endpoint                                                                              | Returns                                                                   |
-| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `POST /api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/query`   | Every indexed property on every element, as JSON (`{"format": "json"}`)   |
-| `GET /api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/download` | The same properties table as a plain download                             |
-| `GET /api/v1/projects/{projectId}/models/{modelId}/eav/download`                      | The properties table of the model's latest version                        |
-| `GET /api/v2/projects/{projectId}/models/{modelId}/versions/{versionId}/artifacts`    | Presigned URLs to the version's bundle files, for code that reads Parquet |
+| Endpoint                                                                           | Returns                                                          |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `GET /api/v2/projects/{projectId}/models/{modelId}/versions/{versionId}/artifacts` | Presigned URLs to the version's bundle files                     |
+| `GET /api/v2/projects/{projectId}/models/{modelId}/artifacts`                      | Presigned URLs to the bundle files of the model's latest version |
 
-The properties export takes no filter parameters, so you filter the rows yourself. How to tell the
-formats apart, how to filter the export, and when to read the bundle directly instead are in [Get
-element data from a version](/developers/api/graphql#get-element-data-from-a-version). The full
-bundle load sequence is in [Load a bundle in your own code](/developers/building-integrations/load).
+For an object-graph version, the properties export endpoints return the version's properties table:
+
+| Endpoint                                                                              | Returns                                                                 |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `POST /api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/query`   | Every indexed property on every element, as JSON (`{"format": "json"}`) |
+| `GET /api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/download` | The same properties table as a plain download                           |
+| `GET /api/v1/projects/{projectId}/models/{modelId}/eav/download`                      | The properties table of the model's latest version                      |
+
+The properties export endpoints return **404** with `"Version not found or has no EAV artefact"` for
+a bundle version. How to tell the formats apart and how to read each are in [Get element data from
+a version](/developers/api/graphql#get-element-data-from-a-version). The full bundle load sequence
+is in [Load a bundle in your own code](/developers/building-integrations/load).
 
 ## Interactive API Playground
 
