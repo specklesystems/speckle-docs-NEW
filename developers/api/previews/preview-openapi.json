@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Speckle Preview Service API",
-    "description": "REST API for generating preview images of Speckle models and versions. The preview service generates image previews asynchronously and caches them for fast retrieval.",
+    "description": "Preview images and videos of Speckle projects, models, versions, and objects. The paths keep the server's original names: `streamId` is the project id, `branchName` the model name, and `commitId` the version id.",
     "version": "1.0.0",
     "contact": {
       "name": "Speckle Support",
@@ -19,43 +19,36 @@
       "description": "Self-hosted instance (replace with your server URL)"
     }
   ],
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {}
+  ],
   "components": {
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "Personal access token. Required for private projects. Get your token from your Speckle profile settings."
-      }
-    },
-    "schemas": {
-      "Error": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string"
-          },
-          "statusCode": {
-            "type": "integer"
-          }
-        }
+        "description": "Personal access token with the `streams:read` scope. Only needed for private projects."
       }
     }
   },
-  "security": [
-    {
-      "bearerAuth": []
-    }
-  ],
   "paths": {
     "/preview/{streamId}": {
       "get": {
-        "summary": "Get Project Preview",
-        "description": "Returns a preview image for the latest version in a project. If no preview exists, a placeholder image is returned.",
+        "summary": "Get a Project's Latest Preview",
         "operationId": "getProjectPreview",
         "tags": [
           "Previews"
         ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "description": "The preview of the project's newest version on any model. Public projects need no token; otherwise send a token with read access to the project. On Speckle Cloud and Speckle Enterprise Server, a token restricted to particular models or versions must also cover the version the preview comes from. The response is an image even when there is nothing to show: a project, model or version without a preview gets a placeholder PNG, and the first request for an object without a preview queues its render. While a render is queued, running, or failed, the placeholder carries `X-Preview-Error: true` and is not cached. Append `/{angle}` to pick another image of the same preview; see the endpoint's angle variant. Add `?postprocess=og` for a 1200×627 Open Graph image with the project name over the preview.",
         "parameters": [
           {
             "name": "streamId",
@@ -64,29 +57,46 @@
             "schema": {
               "type": "string"
             },
-            "description": "Project ID (legacy name: streamId)"
+            "description": "The project id."
           },
           {
-            "name": "angle",
+            "name": "postprocess",
             "in": "query",
             "required": false,
             "schema": {
               "type": "string",
               "enum": [
-                "iso",
-                "top",
-                "front",
-                "side"
+                "og"
               ]
             },
-            "description": "Optional view angle for the preview"
+            "description": "`og` returns a 1200×627 Open Graph image with the project name over the preview."
           }
         ],
         "responses": {
           "200": {
-            "description": "Preview image (PNG)",
+            "description": "The preview: a PNG, or a WebM video for the `spin` key. A placeholder PNG when there is no preview yet.",
+            "headers": {
+              "X-Preview-Error": {
+                "description": "`true` when the body is a placeholder.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Preview-Error-Code": {
+                "description": "`PREVIEW_NOT_FOUND` (no finished render yet) or `ANGLE_NOT_FOUND` (the preview has no such key).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/webm": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -95,7 +105,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Invalid or missing authentication token",
+            "description": "No valid token for a non-public project. Speckle Cloud and Enterprise Server answer with this status and a placeholder image; the open-source server answers 200 with an error image.",
             "content": {
               "image/png": {
                 "schema": {
@@ -106,7 +116,7 @@
             }
           },
           "403": {
-            "description": "Forbidden - Insufficient permissions",
+            "description": "The token cannot read the project, or is restricted to other models or versions.",
             "content": {
               "image/png": {
                 "schema": {
@@ -117,7 +127,7 @@
             }
           },
           "404": {
-            "description": "Project not found or no preview available",
+            "description": "No such project. On Speckle Cloud and Enterprise Server, also an archived project or a missing preview file.",
             "content": {
               "image/png": {
                 "schema": {
@@ -127,20 +137,23 @@
               }
             }
           }
-        },
-        "x-mint": {
-          "content": "## Notes\n\nThe API endpoints use `streamId` in the URL path for backward compatibility. In modern Speckle terminology, this refers to a project ID.\n\nIf no preview exists for the project, a placeholder image is returned instead of an error."
         }
       }
     },
-    "/preview/{streamId}/branches/{branchName}": {
+    "/preview/{streamId}/{angle}": {
       "get": {
-        "summary": "Get Model Preview",
-        "description": "Returns a preview image for the latest version in a model (branch). If no preview exists, a placeholder image is returned.",
-        "operationId": "getModelPreview",
+        "summary": "Get a Project's Latest Preview at an Angle",
+        "operationId": "getProjectPreviewAtAngle",
         "tags": [
           "Previews"
         ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "description": "The preview of the project's newest version on any model. Public projects need no token; otherwise send a token with read access to the project. On Speckle Cloud and Speckle Enterprise Server, a token restricted to particular models or versions must also cover the version the preview comes from. The response is an image even when there is nothing to show: a project, model or version without a preview gets a placeholder PNG, and the first request for an object without a preview queues its render. While a render is queued, running, or failed, the placeholder carries `X-Preview-Error: true` and is not cached.",
         "parameters": [
           {
             "name": "streamId",
@@ -149,7 +162,121 @@
             "schema": {
               "type": "string"
             },
-            "description": "Project ID (legacy name: streamId)"
+            "description": "The project id."
+          },
+          {
+            "name": "angle",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The preview key. On Speckle Cloud and Speckle Enterprise Server: `0` (the still image), `spin` (a WebM turntable video), or `all` (a stitched sprite, on previews without a video). On the open-source Speckle Server: `0` to `23` (24 angles around the model) or `all` (all of them in one sprite)."
+          },
+          {
+            "name": "postprocess",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "og"
+              ]
+            },
+            "description": "`og` returns a 1200×627 Open Graph image with the project name over the preview."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The preview: a PNG, or a WebM video for the `spin` key. A placeholder PNG when there is no preview yet.",
+            "headers": {
+              "X-Preview-Error": {
+                "description": "`true` when the body is a placeholder.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Preview-Error-Code": {
+                "description": "`PREVIEW_NOT_FOUND` (no finished render yet) or `ANGLE_NOT_FOUND` (the preview has no such key).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/webm": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid token for a non-public project. Speckle Cloud and Enterprise Server answer with this status and a placeholder image; the open-source server answers 200 with an error image.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token cannot read the project, or is restricted to other models or versions.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such project. On Speckle Cloud and Enterprise Server, also an archived project or a missing preview file.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/preview/{streamId}/branches/{branchName}": {
+      "get": {
+        "summary": "Get a Model's Latest Preview",
+        "operationId": "getModelPreview",
+        "tags": [
+          "Previews"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "description": "The preview of the newest version of the model with this name. Public projects need no token; otherwise send a token with read access to the project. On Speckle Cloud and Speckle Enterprise Server, a token restricted to particular models or versions must also cover the version the preview comes from. The response is an image even when there is nothing to show: a project, model or version without a preview gets a placeholder PNG, and the first request for an object without a preview queues its render. While a render is queued, running, or failed, the placeholder carries `X-Preview-Error: true` and is not cached. Append `/{angle}` to pick another image of the same preview; see the endpoint's angle variant. Add `?postprocess=og` for a 1200×627 Open Graph image with the project name over the preview.",
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The project id."
           },
           {
             "name": "branchName",
@@ -158,29 +285,46 @@
             "schema": {
               "type": "string"
             },
-            "description": "Model name (legacy name: branchName)"
+            "description": "The model name. URL-encode the `/` of a nested model name."
           },
           {
-            "name": "angle",
+            "name": "postprocess",
             "in": "query",
             "required": false,
             "schema": {
               "type": "string",
               "enum": [
-                "iso",
-                "top",
-                "front",
-                "side"
+                "og"
               ]
             },
-            "description": "Optional view angle for the preview"
+            "description": "`og` returns a 1200×627 Open Graph image with the project name over the preview."
           }
         ],
         "responses": {
           "200": {
-            "description": "Preview image (PNG)",
+            "description": "The preview: a PNG, or a WebM video for the `spin` key. A placeholder PNG when there is no preview yet.",
+            "headers": {
+              "X-Preview-Error": {
+                "description": "`true` when the body is a placeholder.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Preview-Error-Code": {
+                "description": "`PREVIEW_NOT_FOUND` (no finished render yet) or `ANGLE_NOT_FOUND` (the preview has no such key).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/webm": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -189,7 +333,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Invalid or missing authentication token",
+            "description": "No valid token for a non-public project. Speckle Cloud and Enterprise Server answer with this status and a placeholder image; the open-source server answers 200 with an error image.",
             "content": {
               "image/png": {
                 "schema": {
@@ -200,7 +344,7 @@
             }
           },
           "403": {
-            "description": "Forbidden - Insufficient permissions",
+            "description": "The token cannot read the project, or is restricted to other models or versions.",
             "content": {
               "image/png": {
                 "schema": {
@@ -211,7 +355,7 @@
             }
           },
           "404": {
-            "description": "Model not found or no preview available",
+            "description": "No such project. On Speckle Cloud and Enterprise Server, also an archived project or a missing preview file.",
             "content": {
               "image/png": {
                 "schema": {
@@ -221,20 +365,23 @@
               }
             }
           }
-        },
-        "x-mint": {
-          "content": "## Notes\n\nThe `branchName` parameter refers to a model name in modern Speckle terminology."
         }
       }
     },
-    "/preview/{streamId}/commits/{commitId}": {
+    "/preview/{streamId}/branches/{branchName}/{angle}": {
       "get": {
-        "summary": "Get Version Preview",
-        "description": "Returns a preview image for a specific version (commit). If no preview exists, a placeholder image is returned.",
-        "operationId": "getVersionPreview",
+        "summary": "Get a Model's Latest Preview at an Angle",
+        "operationId": "getModelPreviewAtAngle",
         "tags": [
           "Previews"
         ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "description": "The preview of the newest version of the model with this name. Public projects need no token; otherwise send a token with read access to the project. On Speckle Cloud and Speckle Enterprise Server, a token restricted to particular models or versions must also cover the version the preview comes from. The response is an image even when there is nothing to show: a project, model or version without a preview gets a placeholder PNG, and the first request for an object without a preview queues its render. While a render is queued, running, or failed, the placeholder carries `X-Preview-Error: true` and is not cached.",
         "parameters": [
           {
             "name": "streamId",
@@ -243,7 +390,130 @@
             "schema": {
               "type": "string"
             },
-            "description": "Project ID (legacy name: streamId)"
+            "description": "The project id."
+          },
+          {
+            "name": "branchName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The model name. URL-encode the `/` of a nested model name."
+          },
+          {
+            "name": "angle",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The preview key. On Speckle Cloud and Speckle Enterprise Server: `0` (the still image), `spin` (a WebM turntable video), or `all` (a stitched sprite, on previews without a video). On the open-source Speckle Server: `0` to `23` (24 angles around the model) or `all` (all of them in one sprite)."
+          },
+          {
+            "name": "postprocess",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "og"
+              ]
+            },
+            "description": "`og` returns a 1200×627 Open Graph image with the project name over the preview."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The preview: a PNG, or a WebM video for the `spin` key. A placeholder PNG when there is no preview yet.",
+            "headers": {
+              "X-Preview-Error": {
+                "description": "`true` when the body is a placeholder.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Preview-Error-Code": {
+                "description": "`PREVIEW_NOT_FOUND` (no finished render yet) or `ANGLE_NOT_FOUND` (the preview has no such key).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/webm": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid token for a non-public project. Speckle Cloud and Enterprise Server answer with this status and a placeholder image; the open-source server answers 200 with an error image.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token cannot read the project, or is restricted to other models or versions.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such project. On Speckle Cloud and Enterprise Server, also an archived project or a missing preview file.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/preview/{streamId}/commits/{commitId}": {
+      "get": {
+        "summary": "Get a Version's Preview",
+        "operationId": "getVersionPreview",
+        "tags": [
+          "Previews"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "description": "The preview of a specific version. Public projects need no token; otherwise send a token with read access to the project. On Speckle Cloud and Speckle Enterprise Server, a token restricted to particular models or versions must also cover the version the preview comes from. The response is an image even when there is nothing to show: a project, model or version without a preview gets a placeholder PNG, and the first request for an object without a preview queues its render. While a render is queued, running, or failed, the placeholder carries `X-Preview-Error: true` and is not cached. Append `/{angle}` to pick another image of the same preview; see the endpoint's angle variant. Add `?postprocess=og` for a 1200×627 Open Graph image with the project name over the preview.",
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The project id."
           },
           {
             "name": "commitId",
@@ -252,29 +522,46 @@
             "schema": {
               "type": "string"
             },
-            "description": "Version ID (legacy name: commitId)"
+            "description": "The version id."
           },
           {
-            "name": "angle",
+            "name": "postprocess",
             "in": "query",
             "required": false,
             "schema": {
               "type": "string",
               "enum": [
-                "iso",
-                "top",
-                "front",
-                "side"
+                "og"
               ]
             },
-            "description": "Optional view angle for the preview"
+            "description": "`og` returns a 1200×627 Open Graph image with the project name over the preview."
           }
         ],
         "responses": {
           "200": {
-            "description": "Preview image (PNG)",
+            "description": "The preview: a PNG, or a WebM video for the `spin` key. A placeholder PNG when there is no preview yet.",
+            "headers": {
+              "X-Preview-Error": {
+                "description": "`true` when the body is a placeholder.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Preview-Error-Code": {
+                "description": "`PREVIEW_NOT_FOUND` (no finished render yet) or `ANGLE_NOT_FOUND` (the preview has no such key).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/webm": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -283,7 +570,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Invalid or missing authentication token",
+            "description": "No valid token for a non-public project. Speckle Cloud and Enterprise Server answer with this status and a placeholder image; the open-source server answers 200 with an error image.",
             "content": {
               "image/png": {
                 "schema": {
@@ -294,7 +581,7 @@
             }
           },
           "403": {
-            "description": "Forbidden - Insufficient permissions",
+            "description": "The token cannot read the project, or is restricted to other models or versions.",
             "content": {
               "image/png": {
                 "schema": {
@@ -305,7 +592,7 @@
             }
           },
           "404": {
-            "description": "Version not found or no preview available",
+            "description": "No such project. On Speckle Cloud and Enterprise Server, also an archived project or a missing preview file.",
             "content": {
               "image/png": {
                 "schema": {
@@ -315,20 +602,23 @@
               }
             }
           }
-        },
-        "x-mint": {
-          "content": "## Notes\n\nThe `commitId` parameter refers to a version ID in modern Speckle terminology."
         }
       }
     },
-    "/preview/{streamId}/objects/{objectId}": {
+    "/preview/{streamId}/commits/{commitId}/{angle}": {
       "get": {
-        "summary": "Get Object Preview",
-        "description": "Returns a preview image for a specific object. If no preview exists, a placeholder image is returned.",
-        "operationId": "getObjectPreview",
+        "summary": "Get a Version's Preview at an Angle",
+        "operationId": "getVersionPreviewAtAngle",
         "tags": [
           "Previews"
         ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "description": "The preview of a specific version. Public projects need no token; otherwise send a token with read access to the project. On Speckle Cloud and Speckle Enterprise Server, a token restricted to particular models or versions must also cover the version the preview comes from. The response is an image even when there is nothing to show: a project, model or version without a preview gets a placeholder PNG, and the first request for an object without a preview queues its render. While a render is queued, running, or failed, the placeholder carries `X-Preview-Error: true` and is not cached.",
         "parameters": [
           {
             "name": "streamId",
@@ -337,38 +627,64 @@
             "schema": {
               "type": "string"
             },
-            "description": "Project ID (legacy name: streamId)"
+            "description": "The project id."
           },
           {
-            "name": "objectId",
+            "name": "commitId",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string"
             },
-            "description": "Object ID"
+            "description": "The version id."
           },
           {
             "name": "angle",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The preview key. On Speckle Cloud and Speckle Enterprise Server: `0` (the still image), `spin` (a WebM turntable video), or `all` (a stitched sprite, on previews without a video). On the open-source Speckle Server: `0` to `23` (24 angles around the model) or `all` (all of them in one sprite)."
+          },
+          {
+            "name": "postprocess",
             "in": "query",
             "required": false,
             "schema": {
               "type": "string",
               "enum": [
-                "iso",
-                "top",
-                "front",
-                "side"
+                "og"
               ]
             },
-            "description": "Optional view angle for the preview"
+            "description": "`og` returns a 1200×627 Open Graph image with the project name over the preview."
           }
         ],
         "responses": {
           "200": {
-            "description": "Preview image (PNG)",
+            "description": "The preview: a PNG, or a WebM video for the `spin` key. A placeholder PNG when there is no preview yet.",
+            "headers": {
+              "X-Preview-Error": {
+                "description": "`true` when the body is a placeholder.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Preview-Error-Code": {
+                "description": "`PREVIEW_NOT_FOUND` (no finished render yet) or `ANGLE_NOT_FOUND` (the preview has no such key).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/webm": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -377,7 +693,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Invalid or missing authentication token",
+            "description": "No valid token for a non-public project. Speckle Cloud and Enterprise Server answer with this status and a placeholder image; the open-source server answers 200 with an error image.",
             "content": {
               "image/png": {
                 "schema": {
@@ -388,7 +704,7 @@
             }
           },
           "403": {
-            "description": "Forbidden - Insufficient permissions",
+            "description": "The token cannot read the project, or is restricted to other models or versions.",
             "content": {
               "image/png": {
                 "schema": {
@@ -399,7 +715,244 @@
             }
           },
           "404": {
-            "description": "Object not found or no preview available",
+            "description": "No such project. On Speckle Cloud and Enterprise Server, also an archived project or a missing preview file.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/preview/{streamId}/objects/{objectId}": {
+      "get": {
+        "summary": "Get an Object's Preview",
+        "operationId": "getObjectPreview",
+        "tags": [
+          "Previews"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "description": "The preview rendered for an object id. The first request for an object without a preview queues its render. Public projects need no token; otherwise send a token with read access to the project. On Speckle Cloud and Speckle Enterprise Server, a token restricted to particular models or versions must also cover the version the preview comes from. The response is an image even when there is nothing to show: a project, model or version without a preview gets a placeholder PNG, and the first request for an object without a preview queues its render. While a render is queued, running, or failed, the placeholder carries `X-Preview-Error: true` and is not cached. Append `/{angle}` to pick another image of the same preview; see the endpoint's angle variant. Add `?postprocess=og` for a 1200×627 Open Graph image with the project name over the preview.",
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The project id."
+          },
+          {
+            "name": "objectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The object id."
+          },
+          {
+            "name": "postprocess",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "og"
+              ]
+            },
+            "description": "`og` returns a 1200×627 Open Graph image with the project name over the preview."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The preview: a PNG, or a WebM video for the `spin` key. A placeholder PNG when there is no preview yet.",
+            "headers": {
+              "X-Preview-Error": {
+                "description": "`true` when the body is a placeholder.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Preview-Error-Code": {
+                "description": "`PREVIEW_NOT_FOUND` (no finished render yet) or `ANGLE_NOT_FOUND` (the preview has no such key).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/webm": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid token for a non-public project. Speckle Cloud and Enterprise Server answer with this status and a placeholder image; the open-source server answers 200 with an error image.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token cannot read the project, or is restricted to other models or versions.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such project. On Speckle Cloud and Enterprise Server, also an archived project or a missing preview file.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/preview/{streamId}/objects/{objectId}/{angle}": {
+      "get": {
+        "summary": "Get an Object's Preview at an Angle",
+        "operationId": "getObjectPreviewAtAngle",
+        "tags": [
+          "Previews"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "description": "The preview rendered for an object id. The first request for an object without a preview queues its render. Public projects need no token; otherwise send a token with read access to the project. On Speckle Cloud and Speckle Enterprise Server, a token restricted to particular models or versions must also cover the version the preview comes from. The response is an image even when there is nothing to show: a project, model or version without a preview gets a placeholder PNG, and the first request for an object without a preview queues its render. While a render is queued, running, or failed, the placeholder carries `X-Preview-Error: true` and is not cached.",
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The project id."
+          },
+          {
+            "name": "objectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The object id."
+          },
+          {
+            "name": "angle",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The preview key. On Speckle Cloud and Speckle Enterprise Server: `0` (the still image), `spin` (a WebM turntable video), or `all` (a stitched sprite, on previews without a video). On the open-source Speckle Server: `0` to `23` (24 angles around the model) or `all` (all of them in one sprite)."
+          },
+          {
+            "name": "postprocess",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "og"
+              ]
+            },
+            "description": "`og` returns a 1200×627 Open Graph image with the project name over the preview."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The preview: a PNG, or a WebM video for the `spin` key. A placeholder PNG when there is no preview yet.",
+            "headers": {
+              "X-Preview-Error": {
+                "description": "`true` when the body is a placeholder.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Preview-Error-Code": {
+                "description": "`PREVIEW_NOT_FOUND` (no finished render yet) or `ANGLE_NOT_FOUND` (the preview has no such key).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/webm": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid token for a non-public project. Speckle Cloud and Enterprise Server answer with this status and a placeholder image; the open-source server answers 200 with an error image.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token cannot read the project, or is restricted to other models or versions.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such project. On Speckle Cloud and Enterprise Server, also an archived project or a missing preview file.",
             "content": {
               "image/png": {
                 "schema": {
