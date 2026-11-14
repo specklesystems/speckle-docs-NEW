@@ -58,11 +58,11 @@ You need the [Azure Functions Core Tools](https://learn.microsoft.com/azure/azur
    `python`, `node`, or `dotnet-isolated`.
 2. Start the function:
 
-   | Language   | In the folder | Commands                                             |
-   | ---------- | ------------- | ---------------------------------------------------- |
-   | Python     | `python/`     | `pip install -r requirements.txt`, then `func start` |
-   | TypeScript | `typescript/` | `pnpm install && pnpm build`, then `func start`      |
-   | C#         | `csharp/`     | `func start`                                         |
+   | Language   | In the folder | Commands                                        |
+   | ---------- | ------------- | ----------------------------------------------- |
+   | Python     | `python/`     | See below, then `func start`                    |
+   | TypeScript | `typescript/` | `pnpm install && pnpm build`, then `func start` |
+   | C#         | `csharp/`     | `func start`                                    |
 
 3. Call it:
 
@@ -71,6 +71,20 @@ You need the [Azure Functions Core Tools](https://learn.microsoft.com/azure/azur
      -H "Content-Type: application/json" \
      -d '{"projectId": "PROJECT_ID", "modelId": "MODEL_ID", "versionId": "VERSION_ID"}'
    ```
+
+For Python, run the function from a virtual environment on Python 3.10 to 3.12.
+Otherwise `func` uses whichever Python is first on your `PATH`, and stops if that
+version is newer than it supports:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+While it runs, the host reports `Unable to create client for AzureWebJobsStorage`. That
+is expected: an HTTP-triggered function does not need Azure Storage, so the example
+leaves `AzureWebJobsStorage` empty.
 
 DuckDB downloads its `httpfs` extension the first time it reads a URL, so the host
 needs outbound access to `extensions.duckdb.org`.

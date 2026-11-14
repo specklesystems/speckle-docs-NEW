@@ -39,7 +39,7 @@ public sealed class BundlePropertiesTests : IDisposable
     public void RowsUseThePropertiesExportColumns()
     {
         var rows = BundleProperties.VersionProperties(_files);
-        Assert.Equal(["object_id", "path", "value_text", "value_num", "type", "units", "internal_definition_name"], rows[0].Keys);
+        Assert.Equal(new[] { "object_id", "path", "value_text", "value_num", "type", "units", "internal_definition_name" }, rows[0].Keys);
     }
 
     [Fact]
