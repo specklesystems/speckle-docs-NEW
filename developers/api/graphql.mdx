@@ -171,16 +171,32 @@ properties](#read-element-properties) for what to use instead.
   nothing to look up.
 - **Reading geometry as JSON** (the `data` field): bundle geometry is stored in a binary format read
   by the Viewer and SDKs, not served as a JSON payload.
+- **The properties export** (`.../eav/query` and `.../eav/download`): it serves object-graph
+  versions only. For a bundle version it returns **404** with `"Version not found or has no EAV
+artefact"`.
 
 ### Read element properties
 
-For an object graph, one GraphQL query can filter elements by property and select just the fields
-you need. For a bundle, the properties export endpoint returns every indexed property instead.
+How you read element properties depends on the version's format, not on your tooling.
+
+- **Bundle:** read the version's bundle files. List them with the artifacts endpoint, which returns
+  presigned URLs to the version's parquet files, then read only the columns and rows you need.
+- **Object graph:** filter and select with [`object.children`](#query-an-object-graph-with-object-children),
+  or download the whole properties table with the [properties export](#properties-export-for-object-graph-versions).
+
 `PROJECT_ID`, `MODEL_ID`, `VERSION_ID`, the referenced object id, and your token are already known.
 
 <Tabs>
-  <Tab title="Prior to 2026.9">
-    ```graphql Prior to 2026.9
+  <Tab title="Bundle">
+    ```bash Bundle
+    curl \
+      "https://app.speckle.systems/api/v2/projects/PROJECT_ID/models/MODEL_ID/versions/VERSION_ID/artifacts" \
+      -H "Authorization: Bearer YOUR_TOKEN"
+    ```
+
+  </Tab>
+  <Tab title="Object graph">
+    ```graphql Object graph
     query ($myQuery: [JSONObject!]) {
       project(id: "PROJECT_ID") {
         object(id: "REFERENCED_OBJECT") {
@@ -198,20 +214,33 @@ you need. For a bundle, the properties export endpoint returns every indexed pro
     ```
 
   </Tab>
-  <Tab title="2026.9">
-    ```bash 2026.9
-    curl -X POST \
-      "https://app.speckle.systems/api/v1/projects/PROJECT_ID/models/MODEL_ID/versions/VERSION_ID/eav/query" \
-      -H "Authorization: Bearer YOUR_TOKEN" \
-      -H "Content-Type: application/json" \
-      -d '{"format": "json"}'
-    ```
-
-  </Tab>
 </Tabs>
 
-The properties export returns every indexed property on every element, one row per property,
-rather than a pre-filtered result:
+Properties are in the bundle's `eav` files: object identity in `.eav.objects.parquet`, property
+paths in `.eav.paths.parquet`, and one row per object, path, and value in `.eav.eav.parquet`. To
+reproduce the "every `IfcDoor`" filter, find the rows whose path is `ifcType` and whose value is
+`IfcDoor`, then read the other rows for those objects. The file layout is in [What a bundle
+contains](/developers/building-integrations/bundles#what-a-bundle-contains), and the full load
+sequence, including how to merge type-level properties, is in [Load a bundle in your own
+code](/developers/building-integrations/load).
+
+<Note>
+  Reading a bundle needs code that reads Parquet, so most low-code tools cannot do it on their own.
+  See the FAQ below.
+</Note>
+
+### Properties export for object-graph versions
+
+For an object-graph version, the properties export returns every indexed property on every
+element, one row per property, rather than a pre-filtered result:
+
+```bash
+curl -X POST \
+  "https://app.speckle.systems/api/v1/projects/PROJECT_ID/models/MODEL_ID/versions/VERSION_ID/eav/query" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"format": "json"}'
+```
 
 ```json
 [
@@ -247,52 +276,21 @@ To reproduce the "every `IfcDoor`" filter from the object-graph query, filter th
   </Step>
   <Step title="Group by objectId">
     Group the result by `objectId` to get one record per door with its properties. The outcome
-    matches what `select` used to return, without the size limit.
+    matches what `select` returns, without the size limit.
   </Step>
 </Steps>
 
 In a low-code tool, that is two filter steps in sequence: two **Filter array** actions in Power
-Automate, or two **Filter** nodes in n8n. No custom code, just more steps than the single GraphQL
-query it replaces.
+Automate, or two **Filter** nodes in n8n.
 
 There is also a `GET .../versions/{versionId}/eav/download` variant for a plain download, and a
-`GET .../models/{modelId}/eav/download` variant that always serves the latest version.
+`GET .../models/{modelId}/eav/download` variant that serves the model's latest version. Both serve
+object-graph versions only, like the export.
 
 <Note>
   The properties export does not accept filter parameters. It always returns the whole properties
   table, and you filter after receiving it. That is fine at door-count scale, and slow on a model
   with hundreds of thousands of elements.
-</Note>
-
-### Payload size, and moving to the bundle directly
-
-Losing `select` and `query` does not break anything: you still end up with the same elements once
-you have filtered client-side. It does change what "minimal" means. The object-graph query returned
-exactly the fields you asked for, for exactly the elements that matched. The properties export
-returns everything: every indexed property, on every element, every time you call it. That is a
-fixed cost that scales with model size, not with how much of the model you wanted.
-
-For a one-off check, or a model with a few hundred elements, that cost does not matter. For
-something that runs repeatedly against a large model, such as a nightly flow or a live dashboard,
-downloading and re-filtering the full properties table on every run is the wrong shape for the job,
-even though it works.
-
-At that point, do not look for a lighter version of the JSON export; there is none. Stop treating
-the version as "a JSON payload to filter" and read its bundle directly:
-
-```
-GET /api/v2/projects/{projectId}/models/{modelId}/versions/{versionId}/artifacts
-```
-
-This returns presigned URLs to the version's parquet files: the same data the properties export
-flattens into JSON, structured for reading only the columns and rows you need. The SDK paths below
-read these files directly, which is why they scale where the JSON export does not. The full load
-sequence is in [Load a bundle in your own code](/developers/building-integrations/load).
-
-<Note>
-  Reading the bundle directly needs code that reads Parquet, so it does not suit most low-code
-  tools. Those are what the properties export is for. Self-hosted n8n is a partial exception; see
-  the FAQ below.
 </Note>
 
 ### From an SDK instead of raw HTTP
@@ -450,8 +448,8 @@ Variables: **Project ID** & **Object ID**
   <Accordion title="Why did my object.children query suddenly return null?">
     The version you queried is a bundle. Check whether `referencedObject` is a `bundle.` reference
     (see [Tell the two formats apart](#tell-the-two-formats-apart)). This is not a bug or a
-    temporary gap: server-side filtering over the object tree does not apply to bundles. Use the
-    [properties export](#read-element-properties) instead.
+    temporary gap: server-side filtering over the object tree does not apply to bundles. Read the
+    bundle instead; see [Read element properties](#read-element-properties).
   </Accordion>
   <Accordion title="Can I still use object.children for versions created before 2026.9?">
     Yes, unchanged. Nothing in this section affects a version whose `referencedObject` is a hex
@@ -466,33 +464,31 @@ Variables: **Project ID** & **Object ID**
     query the version it names. Do not fire the read on a timer or a webhook that is not tied to
     ingestion completion.
   </Accordion>
-  <Accordion title="Does the properties export only work for bundle versions?">
-    No. It works for any version that already has a properties artifact built, hex-referenced or
-    bundle-referenced. It returns 404 with `"Version not found or has no EAV artefact"` if that
-    version has not had one built yet, which is a different failure from "wrong format." Bundle
-    versions always have one; older versions may or may not, depending on whether they have been
-    through backfill.
+  <Accordion title="Does the properties export work for bundle versions?">
+    No. The properties export serves object-graph versions only. For a bundle version it returns 404
+    with `"Version not found or has no EAV artefact"`; read the bundle instead (see [Read element
+    properties](#read-element-properties)). An object-graph version whose properties table has not
+    been built yet returns the same 404.
   </Accordion>
   <Accordion title="How do I get a total element count without walking the whole properties table?">
-    For bundle versions, count distinct `objectId` values in the properties export, or use an SDK's
-    native accessors (see [From an SDK instead of raw HTTP](#from-an-sdk-instead-of-raw-http)).
+    For bundle versions, count the rows in the version's `.eav.objects.parquet` file, or use an
+    SDK's native accessors (see [From an SDK instead of raw
+    HTTP](#from-an-sdk-instead-of-raw-http)).
   </Accordion>
   <Accordion title="Can a low-code tool like Power Automate, Zapier, or n8n read the bundle artifacts directly?">
     Not natively, in most cases. Power Automate and Zapier have no built-in way to parse Parquet.
     n8n is a partial exception: its Code node cannot import external npm packages on n8n Cloud, so
     the same limitation applies there, but a self-hosted n8n instance can read Parquet if you enable
     external modules (`NODE_FUNCTION_ALLOW_EXTERNAL`) or install a community node built for it. That
-    is a deliberate setup step, not the default. The properties export exists so low-code tools have
-    a plain-JSON option that works everywhere, with no extra configuration. See [Payload size, and
-    moving to the bundle directly](#payload-size-and-moving-to-the-bundle-directly).
+    is a deliberate setup step, not the default. For bundle versions there is no plain-JSON route,
+    so a low-code flow needs a step that runs code to read the bundle. See [Read element
+    properties](#read-element-properties).
   </Accordion>
-  <Accordion title="How do I decide between the JSON properties export and reading the bundle directly?">
-    Two questions decide it: can your integration run code that reads Parquet, and does it run
-    repeatedly against a large model? If either answer is no (a low-code flow, a one-off check, a
-    small model), use the JSON properties export. It is simpler and the overhead does not matter. If
-    both are yes (a script or service running on a schedule against a model with many thousands of
-    elements), read the bundle directly. See [Payload size, and moving to the bundle
-    directly](#payload-size-and-moving-to-the-bundle-directly).
+  <Accordion title="How do I decide between the properties export and reading the bundle?">
+    The version's format decides it. For a bundle version, read the bundle; the properties export
+    does not serve it. For an object-graph version, use the properties export or `object.children`.
+    Check `referencedObject` on the version you are reading (see [Tell the two formats
+    apart](#tell-the-two-formats-apart)).
   </Accordion>
   <Accordion title="Can one project have both hex-reference and bundle-reference versions?">
     Yes. Format is decided per version, when it is created, not per project or workspace. Older
