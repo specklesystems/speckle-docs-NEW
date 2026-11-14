@@ -1,10 +1,10 @@
 ---
 title: Use model properties in Power Automate, Zapier, or n8n
-sidebarTitle: Properties in low-code tools
-description: Get every element property of a Speckle model version as JSON in a Power Automate, Zapier, or n8n flow, by calling a small Azure Function that reads the version's bundle.
+sidebarTitle: Low-code flows
+description: Get every element property of a Speckle model version as JSON in a Power Automate, Zapier, or n8n flow, by calling a small web function that reads the version's bundle.
 ---
 
-Use this guide if you build automations in Power Automate, Zapier, or n8n Cloud and want the
+Use this guide if you build automations in Power Automate, Zapier, or n8n and want the
 properties of a Speckle model in your flow: every element's type, name, dimensions, and parameters,
 as rows you can filter, count, and send on.
 
@@ -15,8 +15,9 @@ Speckle. Your flow sends it a project, model, and version id; it returns the ver
 as JSON, in the same columns as the properties export.
 
 <Info>
-  You need someone who can deploy an Azure Function once: a developer, or anyone comfortable with
-  the Azure portal or a terminal. After that, building and changing the flow is all low-code.
+  Someone has to set the function up once: a developer, or anyone comfortable deploying a small
+  piece of code. Where it runs depends on the tools you already use; see [Choose where it
+  runs](#choose-where-it-runs). After that, building and changing the flow is all low-code.
 </Info>
 
 ## How it works
@@ -57,7 +58,7 @@ its type's properties too.
 
 - A Speckle personal access token with the `streams:read` scope, from a user who can read the
   project ([Building with PATs](/developers/authentication/pats))
-- An Azure subscription where you can create a Function App
+- Somewhere to run the function; see [Choose where it runs](#choose-where-it-runs)
 - Power Automate with the premium **HTTP** action, Zapier with **Webhooks by Zapier**, or n8n
 
 <Note>
@@ -77,13 +78,27 @@ https://app.speckle.systems/projects/{projectId}/models/{modelId}@{versionId}
 If the address has no `@{versionId}`, the viewer is showing the latest version. Open the specific
 version you want so its id appears.
 
+## Choose where it runs
+
+The function only has to be reachable over HTTPS and able to run Python, Node.js, or .NET. Pick
+the host your organisation already uses:
+
+| You build flows in  | Simplest place for the function                                                                                                                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Power Automate      | [Azure Functions](#on-azure-functions): it sits with your other Microsoft services, and the sample deploys as it is.                                                                                       |
+| Zapier or n8n Cloud | [AWS Lambda](#on-aws-lambda), which the sample also supports, or any serverless host you already have, such as Google Cloud Run functions ([adapt the sample](#on-another-host)).                          |
+| Self-hosted n8n     | No separate function: run the query in a **Code** node, if your n8n admin enables external modules and installs `@duckdb/node-api`. The TypeScript sample's `src/properties.ts` is the code to start from. |
+
+If your flow feeds a Power BI or Excel report rather than an automation, you may not need a function
+at all: Power Query can load the bundle's Parquet files directly.
+
 ## As the person who deploys the function
 
 You do this once. The function is a ready-made sample in Python, TypeScript, and C#:
 [examples/bundle-properties-function](https://github.com/specklesystems/speckle-docs-new/tree/main/examples/bundle-properties-function).
 Pick the language your team maintains; they behave the same.
 
-### Deploy it
+### On Azure Functions
 
 Get just the sample folder, then publish one language folder to a Function App, for example with
 the Azure Functions Core Tools:
@@ -100,9 +115,8 @@ func azure functionapp publish YOUR_FUNCTION_APP
 For Python, create the Function App on Python 3.12. The sample's README covers running it locally
 first, and the TypeScript and C# folders.
 
-### Add the token
-
-In the Azure portal, open the Function App, go to **Settings → Environment variables**, and add:
+Then add the token. In the Azure portal, open the Function App, go to **Settings → Environment
+variables**, and add:
 
 | Name            | Value                                 |
 | --------------- | ------------------------------------- |
@@ -112,14 +126,37 @@ In the Azure portal, open the Function App, go to **Settings → Environment var
 Then open the `properties` function, copy its **function URL**, and give it to the flow builder. The
 URL ends in `?code=...`, the key that lets a flow call it, so share it as a secret.
 
+### On AWS Lambda
+
+The Python and TypeScript folders include a Lambda handler for a function URL. Package the folder
+for Linux, create the function on Python 3.12 or Node.js 22, and set `SPECKLE_TOKEN` and a
+`FUNCTION_KEY` of your choosing as environment variables. The sample's README has the exact package
+commands, handler names, and memory settings.
+
+Create a function URL with auth type `NONE`: the handler only answers requests that carry the
+`FUNCTION_KEY` in an `x-api-key` header. Give the flow builder the URL and the key, and share both as
+secrets.
+
+### On another host
+
+Each sample keeps the query apart from the Azure wrapper: `python/properties.py`,
+`typescript/src/properties.ts`, and `csharp/BundleProperties.cs` run anywhere. On another host,
+copy that file and write the host's own HTTP handler around it: read the three IDs from the request
+body, fetch the version's file list from Speckle with the token, pass the files to the query, and
+return the rows as JSON. The Azure and Lambda handlers in the same folder are 30-line models to follow.
+
+Keep the token in the host's secret settings as `SPECKLE_TOKEN`, and protect the URL with the
+host's own key or authentication, since anyone with it can read the model's properties.
+
 ## As the flow builder
 
-You need the function URL from whoever deployed it, and the three IDs.
+You need the function URL from whoever deployed it, and the three IDs. On AWS Lambda you also need
+the key, which every request sends as an `x-api-key` header.
 
 <Tabs>
   <Tab title="Power Automate">
     1. Add an **HTTP** action. Set **Method** to `POST`, **URI** to the function URL, and a header
-       `Content-Type: application/json`.
+       `Content-Type: application/json`. On AWS Lambda, add the header `x-api-key` too.
     2. Set **Body** to the IDs, as shown below.
     3. Add **Parse JSON** with **Content** set to the HTTP action's **Body**. Generate the schema
        from the example row above, wrapped in `[ ]`.
@@ -133,13 +170,15 @@ You need the function URL from whoever deployed it, and the three IDs.
 
   </Tab>
   <Tab title="Zapier">
-    1. Add a **Webhooks by Zapier** action with the **POST** event.
+    1. Add a **Webhooks by Zapier** action with the **POST** event. On AWS Lambda, add `x-api-key`
+       under **Headers**.
     2. Set **URL** to the function URL and **Payload Type** to `json`.
     3. Under **Data**, add `projectId`, `modelId`, and `versionId`.
     4. Filter the returned rows in a **Filter** or **Code by Zapier** step.
   </Tab>
   <Tab title="n8n">
-    1. Add an **HTTP Request** node with **Method** `POST` and **URL** the function URL.
+    1. Add an **HTTP Request** node with **Method** `POST` and **URL** the function URL. On AWS
+       Lambda, turn on **Send Headers** and add `x-api-key`.
     2. Turn on **Send Body**, set **Body Content Type** to `JSON`, and add the three IDs as fields.
     3. Each returned row becomes an item; filter them with a **Filter** node.
   </Tab>
@@ -155,10 +194,3 @@ You should see one row per property of every element in the version, as in the e
 | `404` from the function                     | The version is in the earlier format, not a bundle. For those versions, call the [properties export](/developers/api/rest#properties-export) directly, as before. |
 | `Version has no .eav.type_eav.parquet file` | The version's bundle is incomplete. Republish the model and try the new version.                                                                                  |
 | Slow, or your flow runs out of memory       | The function returns every property of every element. Narrow it: add a `WHERE` clause to the function's query so only the rows you need come back.                |
-
-## Without Azure
-
-The function is one way to run the query. Anything that runs Python, Node.js, or .NET can do the
-same: an AWS Lambda, a container, a scheduled script. The query and how to read a bundle are in
-[Get element data from a version](/developers/api/graphql#get-element-data-from-a-version). Power
-BI and Excel can load the bundle's Parquet files themselves with Power Query.
