@@ -275,16 +275,17 @@ code](/developers/building-integrations/load).
 #### From Power Automate, Zapier, or n8n Cloud
 
 These tools can call an HTTP endpoint, so put the DuckDB step in a small function they call: an
-Azure Function, an AWS Lambda, or anything else that runs Python. The function below lists the
-version's artifacts, reads its properties with DuckDB, and returns JSON rows with the same columns as
-the [properties export](#properties-export-for-object-graph-versions): `object_id` (the object's
+Azure Function, an AWS Lambda, or anything else that runs Python or Node.js. The function below
+lists the version's artifacts, reads its properties with DuckDB, and returns JSON rows with the same
+columns as the [properties export](#properties-export-for-object-graph-versions): `object_id` (the object's
 `applicationId`), `path`, `value_text`, `value_num`, `type`, and `units`. Type-level properties are
 merged in, so each object carries its type parameters too.
 
 <Steps>
   <Step title="Create the function">
-    Create a Python HTTP-triggered function with the code below, and add `azure-functions`,
-    `duckdb`, and `requests` to `requirements.txt`. The outcome is an endpoint that takes a project,
+    Create an HTTP-triggered function with the code below. For Python, add `azure-functions`,
+    `duckdb`, and `requests` to `requirements.txt`. For TypeScript (Node.js 20 or later), install
+    `@azure/functions` and `@duckdb/node-api`. The outcome is an endpoint that takes a project,
     model, and version id.
   </Step>
   <Step title="Store your token">
@@ -298,77 +299,157 @@ merged in, so each object carries its type parameters too.
   </Step>
 </Steps>
 
-```python function_app.py
-import json
-import os
+<Tabs>
+  <Tab title="Python">
+    ```python function_app.py
+    import json
+    import os
 
-import azure.functions as func
-import duckdb
-import requests
+    import azure.functions as func
+    import duckdb
+    import requests
 
-SPECKLE_URL = "https://app.speckle.systems"
+    SPECKLE_URL = "https://app.speckle.systems"
 
-SUFFIXES = {
-    "eav": ".eav.eav.parquet",
-    "paths": ".eav.paths.parquet",
-    "objects": ".eav.objects.parquet",
-    "type_eav": ".eav.type_eav.parquet",
-    "object_type": ".eav.object_type.parquet",
-}
+    SUFFIXES = {
+        "eav": ".eav.eav.parquet",
+        "paths": ".eav.paths.parquet",
+        "objects": ".eav.objects.parquet",
+        "type_eav": ".eav.type_eav.parquet",
+        "object_type": ".eav.object_type.parquet",
+    }
 
-SQL = """
-WITH props AS (
-  SELECT object_index, path_index, value_string, value_double, value_boolean, unit,
-         internal_definition_name
-  FROM read_parquet('{eav}')
-  UNION ALL
-  SELECT ot.object_index, te.path_index, te.value_string, te.value_double, te.value_boolean,
-         te.unit, te.internal_definition_name
-  FROM read_parquet('{object_type}') ot
-  JOIN read_parquet('{type_eav}') te USING (type_index)
-)
-SELECT o.application_id AS object_id,
-       p.path,
-       COALESCE(pr.value_string, CAST(pr.value_double AS VARCHAR),
-                CAST(pr.value_boolean AS VARCHAR)) AS value_text,
-       pr.value_double AS value_num,
-       CASE WHEN pr.value_double IS NOT NULL THEN 'number'
-            WHEN pr.value_boolean IS NOT NULL THEN 'boolean'
-            ELSE 'string' END AS type,
-       pr.unit AS units
-FROM props pr
-JOIN read_parquet('{paths}') p USING (path_index)
-JOIN read_parquet('{objects}') o USING (object_index)
-ORDER BY object_id, path
-"""
-
-app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
-
-
-@app.route(route="properties", methods=["POST"])
-def properties(req: func.HttpRequest) -> func.HttpResponse:
-    body = req.get_json()
-    response = requests.get(
-        f"{SPECKLE_URL}/api/v2/projects/{body['projectId']}/models/{body['modelId']}"
-        f"/versions/{body['versionId']}/artifacts",
-        headers={"Authorization": f"Bearer {os.environ['SPECKLE_TOKEN']}"},
-        timeout=30,
+    SQL = """
+    WITH props AS (
+      SELECT object_index, path_index, value_string, value_double, value_boolean, unit,
+             internal_definition_name
+      FROM read_parquet('{eav}')
+      UNION ALL
+      SELECT ot.object_index, te.path_index, te.value_string, te.value_double, te.value_boolean,
+             te.unit, te.internal_definition_name
+      FROM read_parquet('{object_type}') ot
+      JOIN read_parquet('{type_eav}') te USING (type_index)
     )
-    response.raise_for_status()
-    files = response.json()["files"]
+    SELECT o.application_id AS object_id,
+           p.path,
+           COALESCE(pr.value_string, CAST(pr.value_double AS VARCHAR),
+                    CAST(pr.value_boolean AS VARCHAR)) AS value_text,
+           pr.value_double AS value_num,
+           CASE WHEN pr.value_double IS NOT NULL THEN 'number'
+                WHEN pr.value_boolean IS NOT NULL THEN 'boolean'
+                ELSE 'string' END AS type,
+           pr.unit AS units
+    FROM props pr
+    JOIN read_parquet('{paths}') p USING (path_index)
+    JOIN read_parquet('{objects}') o USING (object_index)
+    ORDER BY object_id, path
+    """
 
-    urls = {}
-    for key, suffix in SUFFIXES.items():
-        url = next(f["url"] for f in files if f["name"].endswith(suffix))
-        urls[key] = url.replace("'", "''")
+    app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
-    con = duckdb.connect()
-    con.execute("INSTALL httpfs; LOAD httpfs;")
-    cursor = con.execute(SQL.format(**urls))
-    columns = [c[0] for c in cursor.description]
-    rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
-    return func.HttpResponse(json.dumps(rows), mimetype="application/json")
-```
+
+    @app.route(route="properties", methods=["POST"])
+    def properties(req: func.HttpRequest) -> func.HttpResponse:
+        body = req.get_json()
+        response = requests.get(
+            f"{SPECKLE_URL}/api/v2/projects/{body['projectId']}/models/{body['modelId']}"
+            f"/versions/{body['versionId']}/artifacts",
+            headers={"Authorization": f"Bearer {os.environ['SPECKLE_TOKEN']}"},
+            timeout=30,
+        )
+        response.raise_for_status()
+        files = response.json()["files"]
+
+        urls = {}
+        for key, suffix in SUFFIXES.items():
+            url = next(f["url"] for f in files if f["name"].endswith(suffix))
+            urls[key] = url.replace("'", "''")
+
+        con = duckdb.connect()
+        con.execute("INSTALL httpfs; LOAD httpfs;")
+        cursor = con.execute(SQL.format(**urls))
+        columns = [c[0] for c in cursor.description]
+        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        return func.HttpResponse(json.dumps(rows), mimetype="application/json")
+    ```
+
+  </Tab>
+  <Tab title="TypeScript">
+    ```ts src/functions/properties.ts
+    import { app, type HttpRequest, type HttpResponseInit } from '@azure/functions'
+    import { DuckDBInstance } from '@duckdb/node-api'
+
+    const SPECKLE_URL = 'https://app.speckle.systems'
+
+    const SUFFIXES = {
+      eav: '.eav.eav.parquet',
+      paths: '.eav.paths.parquet',
+      objects: '.eav.objects.parquet',
+      type_eav: '.eav.type_eav.parquet',
+      object_type: '.eav.object_type.parquet'
+    } as const
+    type EavFile = keyof typeof SUFFIXES
+
+    const buildSql = (u: Record<EavFile, string>) => `
+    WITH props AS (
+      SELECT object_index, path_index, value_string, value_double, value_boolean, unit,
+             internal_definition_name
+      FROM read_parquet('${u.eav}')
+      UNION ALL
+      SELECT ot.object_index, te.path_index, te.value_string, te.value_double, te.value_boolean,
+             te.unit, te.internal_definition_name
+      FROM read_parquet('${u.object_type}') ot
+      JOIN read_parquet('${u.type_eav}') te USING (type_index)
+    )
+    SELECT o.application_id AS object_id,
+           p.path,
+           COALESCE(pr.value_string, CAST(pr.value_double AS VARCHAR),
+                    CAST(pr.value_boolean AS VARCHAR)) AS value_text,
+           pr.value_double AS value_num,
+           CASE WHEN pr.value_double IS NOT NULL THEN 'number'
+                WHEN pr.value_boolean IS NOT NULL THEN 'boolean'
+                ELSE 'string' END AS type,
+           pr.unit AS units
+    FROM props pr
+    JOIN read_parquet('${u.paths}') p USING (path_index)
+    JOIN read_parquet('${u.objects}') o USING (object_index)
+    ORDER BY object_id, path`
+
+    app.http('properties', {
+      methods: ['POST'],
+      authLevel: 'function',
+      handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
+        const { projectId, modelId, versionId } = (await req.json()) as Record<string, string>
+        const response = await fetch(
+          `${SPECKLE_URL}/api/v2/projects/${projectId}/models/${modelId}/versions/${versionId}/artifacts`,
+          { headers: { Authorization: `Bearer ${process.env.SPECKLE_TOKEN}` } }
+        )
+        if (!response.ok) return { status: response.status, body: await response.text() }
+        const { files } = (await response.json()) as { files: { name: string; url: string }[] }
+
+        const urls = {} as Record<EavFile, string>
+        for (const [key, suffix] of Object.entries(SUFFIXES) as [EavFile, string][]) {
+          const file = files.find((f) => f.name.endsWith(suffix))
+          if (!file) return { status: 404, body: `Version has no ${suffix} file` }
+          urls[key] = file.url.replace(/'/g, "''")
+        }
+
+        const instance = await DuckDBInstance.create(':memory:')
+        const conn = await instance.connect()
+        try {
+          await conn.run('INSTALL httpfs; LOAD httpfs;')
+          const reader = await conn.runAndReadAll(buildSql(urls))
+          return { jsonBody: reader.getRowObjectsJson() }
+        } finally {
+          conn.closeSync()
+          instance.closeSync()
+        }
+      }
+    })
+    ```
+
+  </Tab>
+</Tabs>
 
 The function returns the whole properties table, like the export. On a large model, add a `WHERE`
 clause to the query so the flow receives only the rows it needs.
