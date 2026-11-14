@@ -63,7 +63,7 @@ For workspaces that do not use SSO, [Domain protection](/workspaces/domain-prote
 
 ## Workspace, project, and guest permissioning
 
-Speckle uses a two-level access model. Full role definitions and current behavior live in [Roles and Permissions](/workspaces/roles-and-seats). The summary below is a conceptual orientation only.
+Speckle gives roles at the workspace level and on each project, folder, file and model. Full role definitions and current behavior live in [Roles and Permissions](/workspaces/roles-and-seats). The summary below is a conceptual orientation only.
 
 ### Workspace roles
 
@@ -71,11 +71,17 @@ Speckle uses a two-level access model. Full role definitions and current behavio
 - **Member** — Access to non-private projects in the workspace and the ability to create projects.
 - **Guest** — Project-scoped external collaborator. Cannot create projects. Cannot hold the Owner project role. Not required to use SSO.
 
-### Project roles
+### Content roles
 
-- **Owner** — Manages collaborators, settings, and visibility.
-- **Contributor** — Publishes and loads model versions.
-- **Reviewer** — Reads, comments, and reviews. Cannot publish.
+The same three roles apply on a project, a folder, a file or a model, and carry down to everything
+inside it.
+
+- **Owner** — Shares, restricts, manages settings and visibility, deletes.
+- **Editor** (formerly Contributor) — Publishes and loads model versions, edits, creates view links.
+- **Viewer** (formerly Reviewer) — Reads, comments, and reviews. Cannot publish or load.
+
+Roles can also go to **groups** of workspace members and guests, and can carry an expiry date.
+Workspaces with custom roles turned on can define roles that add actions to a built-in role.
 
 ### How effective access is determined
 
@@ -83,9 +89,10 @@ A user's effective access to data inside a project depends on three things toget
 
 1. Workspace role — does the user reach the workspace at all?
 2. Project visibility — Workspace, Private, or Public.
-3. Project role — what the user can do inside that project.
+3. Roles given to the user, or to their groups, on the project or on a folder above the item.
+4. Restricted folders — roles given above a restricted folder stop at it.
 
-Workspace admins are project Owners on every project, including private ones. This is intentional and supports administrative recovery, audit, and access removal.
+Workspace admins are project Owners on every project, including private ones and restricted folders. Project Owners also reach every restricted folder in their project. This is intentional and supports administrative recovery, audit, and access removal.
 
 For project structure and visibility controls, see [Projects](/workspaces/projects) and [Configuration](/workspaces/configuration#project-configuration).
 
@@ -101,32 +108,32 @@ Visibility is set at the project level and applies to the entire project. Public
 
 ## Public links and external sharing
 
-This section describes the surface area for external access and how administrators retain control. Operational steps live in [Share your Models](/3d-viewer/sharing) and [Configuration](/workspaces/configuration#project-configuration).
+This section describes the surface area for external access and how administrators retain control. Operational steps live in [Share your Models](/3d-viewer/sharing), [Share folders, files and models](/3d-viewer/share-folders-and-files) and [Configuration](/workspaces/configuration#project-configuration).
 
 ### What "public" means
 
 A public project exposes that project's content to anyone who has the project URL. There is no sign-in requirement for read access in this state. This is a project-level setting, not a per-link setting.
 
-A share token is a separate mechanism. Tokens provide scoped, read-only access to a specific project for a defined audience. Tokens are commonly used for:
+A view link is a separate mechanism. A link gives read-only access to the model, folder, file or feature content it opens, for a defined audience. Links are commonly used for:
 
 - Embedded viewers in presentations and dashboards.
 - External review without granting workspace membership.
 - Read-only Power BI and similar integrations.
 
-### Token controls
+### Link controls
 
-Share tokens support:
+Links support:
 
 - **Expiry dates** so links stop working automatically after a defined time.
 - **Optional passwords** so recipients must authenticate before the model loads.
-- **Internal labels** so administrators can identify what each token was issued for.
+- **Internal labels** so administrators can identify what each link was issued for.
 
 ### Administrative visibility and revocation
 
-- Issued share tokens are listed in **Project settings → Tokens**.
-- Project Owners and Workspace Admins can revoke tokens at any time.
-- Revocation takes effect immediately for new requests using that token.
-- Changing a project's visibility from Public to Workspace or Private removes anonymous access via the project URL. Existing share tokens continue to operate under their own controls until they are revoked.
+- Issued links are listed in **Project settings → Links**, and for the whole workspace in workspace **Settings → Links**.
+- Project Owners and Workspace Admins can revoke links at any time, whoever created them. A link keeps working after its creator loses access, until it is revoked or expires.
+- Revocation takes effect immediately for new requests using that link.
+- Changing a project's visibility from Public to Workspace or Private removes anonymous access via the project URL. The visibility dialog offers to revoke every link to the project; links you keep continue to operate under their own controls until they are revoked.
 
 ### Public links to AI conversations
 
@@ -140,20 +147,22 @@ Treat external sharing as governed access, not as one-off convenience URLs. The 
 
 - Apply expiry dates to external links by default.
 - Require passwords for sensitive or externally distributed links.
-- Label tokens with owner and purpose.
-- Review active tokens on a fixed cadence.
-- Revoke tokens when the access purpose ends.
+- Label links with owner and purpose.
+- Review active links on a fixed cadence.
+- Revoke links when the access purpose ends.
 
 ## Auditability and access visibility
 
 The current administrative visibility surfaces are:
 
-- **Project collaborators** in the project's **Collaborators** tab.
-- **Workspace members and guests** in **Settings → Team**.
-- **Active share tokens** in **Project settings → Tokens**.
+- **Who has access and why** in workspace **Settings → Access**: every project and restricted folder, each person, group and link that reaches it, through which role, since when, granted by whom and until when. Workspace admins can export it as CSV. See [Review who has access](/workspaces/access-review).
+- **Access audit log** on the **Audit log** tab of the same page: roles given, changed, removed and expired; folders restricted and lifted; links created, changed and revoked; custom roles edited; access exports; and each use of [Admin Support Mode](/it-admin/support-mode) beyond the support user's own access. Entries cannot be edited or deleted.
+- **Project team** in project **Settings → Team**.
+- **Workspace members, guests and groups** in **Team**.
+- **Active links** in **Project settings → Links** and workspace **Settings → Links**.
 - **Active automations and live syncs** in **Project settings → Automations** and on the project home.
 
-Speckle does not publish a documented general-purpose audit log or formal log retention period. Audit and evidence requirements for Enterprise customers are handled through commercial and security reviews. Customers requiring logging or evidence beyond what the product UI exposes should request scope confirmation via [support@speckle.systems](mailto:support@speckle.systems).
+The access audit log covers access changes only. Speckle does not publish a formal log retention period. Customers requiring logging or evidence beyond what the product UI exposes should request scope confirmation via [support@speckle.systems](mailto:support@speckle.systems).
 
 For SSO-driven session termination, see [Configure backchannel logout](/workspaces/sso#configure-backchannel-logout).
 

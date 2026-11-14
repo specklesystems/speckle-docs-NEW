@@ -1,0 +1,168 @@
+---
+title: 'Upgrading to the new access model'
+description: 'Operator guide for the server release that moves every role, group, share link and token limit into one access model: the one-way backfill migrations, removed GraphQL APIs, token scope changes and the new meaning of dynamicRolesEnabled.'
+sidebarTitle: 'Access model'
+tag: 'Enterprise'
+noindex: true
+---
+
+<Note>
+  This page is unlisted: it does not appear in the docs navigation, search, or the sitemap. It is
+  part of the [self-hosted upgrade guide](/developers/server/upgrades/introduction). Bookmark both.
+</Note>
+
+<Note>
+  This upgrade applies to Speckle Enterprise Server. For license setup, see [License
+  Key](/developers/server/deployment/enterprise-license#license-key) in the Enterprise deployment
+  guide.
+</Note>
+
+<Warning>
+  This page covers the first server release that ships the new access model. That release follows
+  2026.9, and its version number is added here when it ships. Read the page before you upgrade to
+  any release after 2026.9.
+</Warning>
+
+This release moves who-can-access-what into one model. Every project role, workspace role,
+group membership, share link, embed link and token limit moves into new access tables when the
+server starts. From then on, the server reads and writes access only there.
+
+What users see changes too: **Contributor** and **Reviewer** become **Editor** and **Viewer**,
+folders and files can be shared and restricted, project and workspace **Settings** → **Tokens**
+becomes **Settings** → **Links**, and workspace admins get an **Access** page with an audit log.
+See [Roles and permissions](/workspaces/roles-and-seats) and [Review who has
+access](/workspaces/access-review).
+
+The upgrade needs no new infrastructure and changes no chart defaults. Its database migrations
+are one-way once anyone changes access, and it removes GraphQL APIs that integrations may call.
+
+## Before you upgrade
+
+<Steps>
+  <Step title="Take a database backup">
+    The access migrations run automatically at startup. Follow the [server maintenance
+    guide](/developers/server/deployment/backup-upgrade-restore). You should end with a backup of
+    the main database dated just before the upgrade.
+  </Step>
+  <Step title="Find integrations that call removed APIs">
+    Check your scripts and integrations against [Removed GraphQL APIs](#removed-graphql-apis). Each
+    removed field has a replacement in the same release, so you can update them together.
+  </Step>
+  <Step title="Find tokens that write without reading">
+    A token with `streams:write` and not `streams:read` can no longer read. Ask the owners of such
+    tokens to create new ones with both scopes. See [Token scopes](#token-scopes).
+  </Step>
+</Steps>
+
+## What the migrations do
+
+The migrations create the access tables on the main database and backfill them from the old
+stores in one step:
+
+- **Roles**: built-in roles become rows; custom workspace roles keep their IDs and inherit their
+  base role.
+- **Project and workspace roles** become grants. `stream:contributor` maps to **Editor** and
+  `stream:reviewer` to **Viewer**; API responses keep returning the `stream:*` IDs.
+- **Private projects** become restricted. Public projects get a **Viewer** grant for everyone.
+- **Groups**: a group's role moves from its members to where it is shared. A group whose members
+  held different roles is split into one group per role. The most common role keeps the group;
+  each other role gets a new group named `<name> · <role>`.
+- **Share and embed links** for models, dashboards, presentations, reports and chats become links
+  with the same ID and secret, so every existing URL keeps working.
+- **API tokens** keep their scopes. Their resource limits move into a per-token ceiling. A token
+  whose stored limits cannot be read loses access to every project, and the case is recorded in
+  the access audit log.
+
+The backfill then checks that everyone reaches exactly what they reached before, in both
+directions. If anything differs, the migration fails and rolls back, and the server does not
+start. Send the server logs from that start to Speckle support.
+
+The old tables (`stream_acl`, `workspace_acl`, the group tables, `workspace_role_definitions`, the
+share and embed token tables and `token_resource_access`) stay in the database. The server no
+longer reads or writes them.
+
+### Rollback is one-way
+
+<Warning>
+  Once anyone grants, revokes or restricts anything, rolling back is lossy. Rolling back the image
+  or the migrations deletes every grant and falls back to the frozen old tables: access revoked
+  since the upgrade comes back, and access given since the upgrade is lost. A pre-upgrade backup
+  loses everything written since the upgrade. Plan to move forward, not back.
+</Warning>
+
+The access audit log is append-only and is not removed by a rollback.
+
+## Removed GraphQL APIs
+
+| Removed                                                                                                  | Use instead                                                                                                                               |
+| -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `Project.shareTokens`, `Workspace.shareTokens`                                                           | `Project.accessLinks`, `Workspace.accessLinks`                                                                                            |
+| `Query.shareTokenById`                                                                                   | `Query.accessLink(id:)`                                                                                                                   |
+| `sharingMutations.createEmbedShareToken`                                                                 | `accessMutations.createLink` on a model, with `additionalNodes` for further models                                                        |
+| `sharingMutations.createDashboardShareToken`                                                             | `accessMutations.createDashboardLink`                                                                                                     |
+| `sharingMutations.createPresentationShareToken`                                                          | No replacement. Existing presentation links keep working and appear in `accessLinks`                                                      |
+| `sharingMutations.updateShareToken`                                                                      | `accessMutations.updateLink` (label and expiry; a link's password cannot be changed)                                                      |
+| `sharingMutations.revokeProjectShareTokens`, `revokeWorkspaceShareTokens`                                | `accessMutations.revokeLinks(node:)`, or `revokeLinks: true` in `ProjectUpdateInput`                                                      |
+| `ShareToken.loadActivity`, `ShareToken.permissions`                                                      | `AccessLink.loadActivity`, `AccessLink.canUpdate` and `canRevoke`                                                                         |
+| `canListShareTokens`, `canRevokeAllShareTokens` on project and workspace permissions                     | `canManageLinks` on project and workspace permissions                                                                                     |
+| `ProjectPermissionChecks.canCreateEmbedTokens`                                                           | `access(node:).permissions.canCreateLink`, or `Document.permissions.canCreateLink`                                                        |
+| `Workspace.roleDefinitions`, `Workspace.baseRoleOptions`, `workspaceMutations.roleDefinitions`           | `Workspace.accessRoles`, `Workspace.accessBaseRoles`, `workspaceMutations.accessRoles`                                                    |
+| `Workspace.grantableFeatures`                                                                            | `Query.accessActions`                                                                                                                     |
+| `workspaceMutations.groups.setMemberRole`, `roleId` on group members                                     | Group members carry no role. Give the group a role where it is shared, with `accessMutations.grant` or `changeRole` and a `GROUP` subject |
+| `projectMutations.groups.attach`, `detach`, `Project.attachedGroups`, `canAttachGroup`, `canDetachGroup` | `accessMutations.grant` and `revoke` with a `GROUP` subject; `access(node:).holders`; `access(node:).permissions.canShare`                |
+| `WorkspaceGroup.roleComposition`, `WorkspaceGroup.attachedProjects`                                      | `WorkspaceGroup.shares`                                                                                                                   |
+
+Two more changes can break a strict client:
+
+- `workspaceMutations.groups.create` and `addMembers` take `userIds` instead of `members` with a
+  role each.
+- `PublicShareTokenInfo.sourceType` and `sourceId`, returned by `shareTokenInfo`, are now nullable.
+  They are `null` for a link to a project, folder, file or model.
+
+`sharingMutations.revokeShareToken` remains for links minted by reports and chats. The full access
+API is in [Manage access with GraphQL](/developers/api/guides/manage-access).
+
+## Token scopes
+
+- **Scopes no longer imply each other.** `streams:write` used to include reading; it no longer
+  does. A token with `streams:write` alone loses read access at the upgrade. Speckle's default apps
+  request both scopes and are not affected.
+- **Scopes cap actions, roles decide where.** Each scope translates into the actions it allows,
+  and a token never does more than its owner can. See [Choose
+  scopes](/developers/authentication/pats#choose-scopes).
+
+## dynamicRolesEnabled now gates authoring only
+
+`featureFlags.dynamicRolesEnabled` (`FF_DYNAMIC_ROLES_ENABLED`) still requires
+`workspacesModuleEnabled`. Its meaning changes:
+
+- **On**: workspace admins can author custom roles and groups (the role and group APIs and UI), and
+  authored roles are offered when assigning roles.
+- **Off**: authoring is unavailable. Grants that already hold a custom role, or that were given to
+  a group, keep giving that access.
+
+Turning the flag off no longer takes access away. To remove access given through custom roles or
+groups, revoke the grants or delete the groups while the flag is on.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="The server does not start after the upgrade. What happened?">
+    The backfill check most likely found a difference between who reached what before and after, and
+    rolled the migration back. Nothing was written to the access tables. Keep the logs from that
+    start and contact Speckle support; do not edit the old tables to force it through.
+  </Accordion>
+  <Accordion title="Do existing share and embed links keep working?">
+    Yes. They keep their ID and secret, so their URLs open as before. They now appear in project and
+    workspace **Settings** → **Links**, where owners and admins can edit or revoke them.
+  </Accordion>
+  <Accordion title="Some groups now have names ending in a role. Why?">
+    Those groups had members holding different roles. The backfill split them so that each group
+    holds one role where it is shared, without changing anyone's access. You can rename or merge
+    them afterwards.
+  </Accordion>
+  <Accordion title="An integration fails with read errors after the upgrade. Why?">
+    Its token most likely has `streams:write` without `streams:read`. Create a new token with both
+    scopes.
+  </Accordion>
+</AccordionGroup>
