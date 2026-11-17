@@ -22,7 +22,7 @@ Server](https://github.com/specklesystems/speckle-server). Not every endpoint ex
 | ------------------------------------------------------- | ---------------------------------------- | -------------------------- |
 | [Object endpoints](#object-endpoints) (`/objects/...`)  | Deprecated: object graphs only           | Current                    |
 | [Bundle endpoints](#bundle-endpoints) (`.../artifacts`) | Current                                  | Not available              |
-| [Properties export](#properties-export) (`.../eav/...`) | Object-graph versions only               | Not available              |
+| [Properties export](#properties-export) (`.../eav/...`) | Current                                  | Not available              |
 
 The open-source server does not support 2026.9, so it has no bundle versions; see [Server
 introduction](/developers/server/introduction).
@@ -90,8 +90,7 @@ in [Load a bundle in your own code](/developers/building-integrations/load).
 
 ## Properties export
 
-For an object-graph version, the properties export returns the version's properties table, one row
-per property:
+The properties export returns a version's properties table, one row per property:
 
 - **[Export a Version's Properties](POST /api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/query)**:
   As JSON, CSV, or Parquet (`{"format": "json"}`)
@@ -100,8 +99,35 @@ per property:
 - **[Download a Model's Latest Properties Database](GET /api/v1/projects/{projectId}/models/{modelId}/eav/download)**:
   The same, for the model's latest version
 
-For a bundle version these return **404** with `"Version not found or has no EAV artefact"`. Read a
-bundle version's properties from its `eav` files with the [bundle endpoints](#bundle-endpoints).
+The export serves bundle and object-graph versions in the same columns. With `{"format": "json"}`
+it returns an array of rows:
+
+```json
+[
+  {
+    "object_id": "2N1qr8Hb5D9xXyz0aBcDeF",
+    "path": "ifcType",
+    "value_text": "IfcDoor",
+    "value_num": null,
+    "type": "string",
+    "units": null,
+    "internal_definition_name": null
+  },
+  {
+    "object_id": "2N1qr8Hb5D9xXyz0aBcDeF",
+    "path": "Dimensions.Area",
+    "value_text": "1.8",
+    "value_num": 1.8,
+    "type": "number",
+    "units": "m2",
+    "internal_definition_name": null
+  }
+]
+```
+
+It always returns the whole table. To read only some properties of a bundle version, read its `eav`
+files with the [bundle endpoints](#bundle-endpoints). The two downloads serve object-graph versions
+only: for a bundle version they return **404** with `"Version not found or has no EAV artefact"`.
 
 ## Interactive API playground
 
