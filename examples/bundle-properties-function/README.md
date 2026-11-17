@@ -6,8 +6,12 @@ Azure Function in Python, TypeScript, or C#, and on AWS Lambda in Python or Type
 the language and host you need. For Power Automate Desktop, `powershell/` writes the same rows
 to a file with no function at all.
 
-The rows have the same columns as the properties export (`eav/query`) returns for
-earlier versions, so a flow built on the export can switch with little change:
+Most flows do not need it: the properties export (`eav/query`) returns these rows for every
+version, bundle or not, and a flow can call it directly. Use this sample to filter the rows
+before they leave your environment, by adding a `WHERE` clause to the query, which the export
+cannot do.
+
+The rows have the same columns as the properties export:
 
 | Column                     | Holds                                                            |
 | -------------------------- | ---------------------------------------------------------------- |
@@ -121,7 +125,7 @@ Callers POST the same JSON body as above, with the header `x-api-key: <FUNCTION_
 Deploy the function, store the token as the application setting `SPECKLE_TOKEN`, then
 add an **HTTP** action to the flow that POSTs the JSON body above to the function URL
 (with its function key, or the `x-api-key` header on Lambda). Parse the response as JSON and filter the rows as you would
-the properties export.
+the properties export's.
 
 The function returns every property of every object. On a large model, add a `WHERE`
 clause to the query so the flow receives only the rows it needs.

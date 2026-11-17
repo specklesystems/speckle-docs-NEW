@@ -1,45 +1,51 @@
 ---
 title: Use model properties in Power Automate, Zapier, or n8n
 sidebarTitle: Low-code flows
-description: Get every element property of a Speckle model version as JSON in a Power Automate, Zapier, or n8n flow, by calling a small web function that reads the version's bundle.
+description: Get every element property of a Speckle model version as JSON in a Power Automate, Zapier, or n8n flow, from the properties export.
 ---
 
 Use this guide if you build automations in Power Automate, Zapier, or n8n and want the
 properties of a Speckle model in your flow: every element's type, name, dimensions, and parameters,
 as rows you can filter, count, and send on.
 
-Models uploaded to Speckle since the 2026.9 release are stored as **bundles**: Parquet files that
-low-code tools cannot read. The properties export your flow may already call (`eav/query`) serves
-only versions in the earlier format. This guide adds one small function between your flow and
-Speckle. Your flow sends it a project, model, and version id; it returns the version's properties
-as JSON, in the same columns as the properties export.
-
-<Info>
-  Someone has to set the function up once: a developer, or anyone comfortable deploying a small
-  piece of code. Where it runs depends on the tools you already use; see [Choose where it
-  runs](#choose-where-it-runs). After that, building and changing the flow is all low-code.
-</Info>
+Your flow calls the **properties export** (`eav/query`) with an HTTP action and gets the version's
+properties as JSON. It serves every version, whether it was published before or after 2026.9. To
+filter the rows before they reach your flow, [run the query yourself](#run-the-query-yourself)
+instead.
 
 ## How it works
 
-1. Your flow's HTTP action POSTs `{"projectId", "modelId", "versionId"}` to the function's URL.
-2. The function asks Speckle for the version's files and reads the property files directly. Your
-   Speckle token stays in the function's settings, never in the flow.
-3. Your flow gets one row per property of every element, as JSON it can parse and filter.
+1. Your flow's HTTP action POSTs `{"format": "json"}` to the version's properties export, with your
+   Speckle token.
+2. Speckle returns one row per property of every element, as JSON your flow can parse and filter.
 
-Each row looks like this:
+The response is a JSON array with one object per property. Two rows of a door look like this:
 
 ```json
-{
-  "object_id": "0Jgy8odqv9EeWIex0hC4$r",
-  "path": "ifcType",
-  "value_text": "IfcSpace",
-  "value_num": null,
-  "type": "string",
-  "units": null,
-  "internal_definition_name": null
-}
+[
+  {
+    "object_id": "2N1qr8Hb5D9xXyz0aBcDeF",
+    "path": "ifcType",
+    "value_text": "IfcDoor",
+    "value_num": null,
+    "type": "string",
+    "units": null,
+    "internal_definition_name": null
+  },
+  {
+    "object_id": "2N1qr8Hb5D9xXyz0aBcDeF",
+    "path": "Dimensions.Area",
+    "value_text": "1.8",
+    "value_num": 1.8,
+    "type": "number",
+    "units": "m2",
+    "internal_definition_name": null
+  }
+]
 ```
+
+Every property of an element shares its `object_id`, so filtering on one row's `object_id` gives
+the element's other properties.
 
 | Field                      | Holds                                                               |
 | -------------------------- | ------------------------------------------------------------------- |
@@ -58,13 +64,11 @@ its type's properties too.
 
 - A Speckle personal access token with the `streams:read` scope, from a user who can read the
   project ([Building with PATs](/developers/authentication/pats))
-- Somewhere to run the function; see [Choose where it runs](#choose-where-it-runs)
 - Power Automate with the premium **HTTP** action, Zapier with **Webhooks by Zapier**, or n8n
 
 <Note>
-  This works on Speckle Cloud and Speckle Enterprise Server 2026.9 and later. The open-source
-  Speckle Server has no bundles: there, keep using the [properties
-  export](/developers/api/rest#properties-export).
+  The properties export is available on Speckle Cloud and Speckle Enterprise Server 2026.9 and
+  later, not on the open-source Speckle Server.
 </Note>
 
 ## Find your IDs
@@ -78,7 +82,76 @@ https://app.speckle.systems/projects/{projectId}/models/{modelId}@{versionId}
 If the address has no `@{versionId}`, the viewer is showing the latest version. Open the specific
 version you want so its id appears.
 
-## Choose where it runs
+## Call the properties export from your flow
+
+The export's address for a version is:
+
+```text
+https://app.speckle.systems/api/v1/projects/{projectId}/models/{modelId}/versions/{versionId}/eav/query
+```
+
+On your own Speckle Enterprise Server, use its address in place of `app.speckle.systems`.
+
+Every request sends three headers:
+
+| Header            | Value                                                          |
+| ----------------- | -------------------------------------------------------------- |
+| `Authorization`   | `Bearer YOUR_TOKEN`                                            |
+| `Content-Type`    | `application/json`                                             |
+| `Accept-Encoding` | `identity`, so the JSON arrives as text rather than compressed |
+
+<Tabs>
+  <Tab title="Power Automate">
+    1. Add an **HTTP** action. Set **Method** to `POST`, **URI** to the export's address, and the
+       three headers above. In the action's **Settings**, turn on **Secure inputs** so the token is
+       hidden from run history.
+    2. Set **Body** to `{"format": "json"}`.
+    3. Add **Parse JSON** with **Content** set to the HTTP action's **Body**. Generate the schema
+       from the example above.
+    4. Add **Filter array** on the parsed body. For example, `path` equals `ifcType` and
+       `value_text` equals `IfcDoor` gives one row per door. Use their `object_id` values in a
+       second **Filter array** to pick out the rest of their properties.
+  </Tab>
+  <Tab title="Zapier">
+    1. Add a **Webhooks by Zapier** action with the **POST** event.
+    2. Set **URL** to the export's address and **Payload Type** to `json`.
+    3. Under **Data**, add `format` with the value `json`. Under **Headers**, add `Authorization` and
+       `Accept-Encoding`.
+    4. Filter the returned rows in a **Filter** or **Code by Zapier** step.
+  </Tab>
+  <Tab title="n8n">
+    1. Add an **HTTP Request** node with **Method** `POST` and **URL** the export's address.
+    2. Set **Authentication** to a **Header Auth** credential named `Authorization` with the value
+       `Bearer YOUR_TOKEN`, so the token stays in n8n's credential store.
+    3. Turn on **Send Headers** and add `Accept-Encoding: identity`. Turn on **Send Body**, set **Body
+       Content Type** to `JSON`, and add the field `format` with the value `json`.
+    4. Each returned row becomes an item; filter them with a **Filter** node.
+  </Tab>
+</Tabs>
+
+You should see one row per property of every element in the version, as in the example above.
+
+<Note>
+  The export takes no filters: it always returns the whole properties table, and your flow filters
+  after receiving it. That is fine at door-count scale, and slow on a model with hundreds of
+  thousands of elements. For those, [run the query yourself](#run-the-query-yourself) and filter
+  first.
+</Note>
+
+## Run the query yourself
+
+Models published since 2026.9 are stored as **bundles**, whose properties are Parquet files. Instead
+of the export, you can run the same query over those files yourself, in a small function or on a
+Power Automate Desktop machine. Do this to filter the rows before they reach your flow, or to keep
+the model data inside your own environment. It returns the same rows as the export, and works for
+bundle versions only.
+
+The function takes `{"projectId", "modelId", "versionId"}`, asks Speckle for the version's files,
+and runs the query over them. Your Speckle token stays in the function's settings, never in the
+flow. Someone sets the function up once: a developer, or anyone comfortable deploying a small piece
+of code. After that, building and changing the flow is all low-code.
+
+### Choose where it runs
 
 The function only has to be reachable over HTTPS and able to run Python, Node.js, or .NET. Pick
 the host your organisation already uses:
@@ -93,13 +166,13 @@ the host your organisation already uses:
 If your flow feeds a Power BI or Excel report rather than an automation, you may not need a function
 at all: Power Query can load the bundle's Parquet files directly.
 
-## As the person who deploys the function
+### As the person who deploys the function
 
 You do this once. The function is a ready-made sample in Python, TypeScript, and C#:
 [examples/bundle-properties-function](https://github.com/specklesystems/speckle-docs-new/tree/main/examples/bundle-properties-function).
 Pick the language your team maintains; they behave the same.
 
-### On Azure Functions
+#### On Azure Functions
 
 Get just the sample folder, then publish one language folder to a Function App, for example with
 the Azure Functions Core Tools:
@@ -127,7 +200,7 @@ variables**, and add:
 Then open the `properties` function, copy its **function URL**, and give it to the flow builder. The
 URL ends in `?code=...`, the key that lets a flow call it, so share it as a secret.
 
-### On AWS Lambda
+#### On AWS Lambda
 
 The Python and TypeScript folders include a Lambda handler for a function URL. Package the folder
 for Linux, create the function on Python 3.12 or Node.js 22, and set `SPECKLE_TOKEN` and a
@@ -138,7 +211,7 @@ Create a function URL with auth type `NONE`: the handler only answers requests t
 `FUNCTION_KEY` in an `x-api-key` header. Give the flow builder the URL and the key, and share both as
 secrets.
 
-### On another host
+#### On another host
 
 Each sample keeps the query apart from the Azure wrapper: `python/properties.py`,
 `typescript/src/properties.ts`, and `csharp/BundleProperties.cs` run anywhere. On another host,
@@ -149,7 +222,7 @@ return the rows as JSON. The Azure and Lambda handlers in the same folder are 30
 Keep the token in the host's secret settings as `SPECKLE_TOKEN`, and protect the URL with the
 host's own key or authentication, since anyone with it can read the model's properties.
 
-## As the flow builder
+### As the flow builder
 
 You need the function URL from whoever deployed it, and the three IDs. On AWS Lambda you also need
 the key, which every request sends as an `x-api-key` header.
@@ -160,7 +233,7 @@ the key, which every request sends as an `x-api-key` header.
        `Content-Type: application/json`. On AWS Lambda, add the header `x-api-key` too.
     2. Set **Body** to the IDs, as shown below.
     3. Add **Parse JSON** with **Content** set to the HTTP action's **Body**. Generate the schema
-       from the example row above, wrapped in `[ ]`.
+       from the example above.
     4. Add **Filter array** on the parsed body. For example, `path` equals `ifcType` and
        `value_text` equals `IfcDoor` gives one row per door. Use their `object_id` values in a
        second **Filter array** to pick out the rest of their properties.
@@ -187,7 +260,7 @@ the key, which every request sends as an `x-api-key` header.
 
 You should see one row per property of every element in the version, as in the example above.
 
-## On Power Automate Desktop
+### On Power Automate Desktop
 
 A desktop flow runs on a Windows machine, so it needs no function: a PowerShell script on that
 machine fetches the version's files, runs the query, and writes the properties to a CSV file the
@@ -227,9 +300,11 @@ same JSON rows as the function returns.
 
 ## Troubleshooting
 
-| What you see                                | What it means                                                                                                                                                     |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `401` or `403`                              | The function's token is missing, expired, or lacks access to that project. Check `SPECKLE_TOKEN`.                                                                 |
-| `404` from the function                     | The version is in the earlier format, not a bundle. For those versions, call the [properties export](/developers/api/rest#properties-export) directly, as before. |
-| `Version has no .eav.type_eav.parquet file` | The version's bundle is incomplete. Republish the model and try the new version.                                                                                  |
-| Slow, or your flow runs out of memory       | The function returns every property of every element. Narrow it: add a `WHERE` clause to the function's query so only the rows you need come back.                |
+| What you see                                            | What it means                                                                                                                        |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `401` or `403`                                          | The token is missing, expired, or lacks access to that project. For a function, check its `SPECKLE_TOKEN`.                           |
+| `404` with `"Version not found or has no EAV artefact"` | Check the three IDs. A version uploaded moments ago has no properties until processing finishes; try again in a minute.              |
+| The body is unreadable binary                           | The response came back compressed. Add the header `Accept-Encoding: identity`.                                                       |
+| `404` from the function                                 | The version was published before 2026.9 and has no bundle. Call the [properties export](#call-the-properties-export-from-your-flow). |
+| `Version has no .eav.type_eav.parquet file`             | The version's bundle is incomplete. Republish the model and try the new version.                                                     |
+| Slow, or your flow runs out of memory                   | Every property of every element came back. [Run the query yourself](#run-the-query-yourself) with a `WHERE` clause to narrow it.     |

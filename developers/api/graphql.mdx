@@ -171,18 +171,19 @@ properties](#read-element-properties) for what to use instead.
   nothing to look up.
 - **Reading geometry as JSON** (the `data` field): bundle geometry is stored in a binary format read
   by the Viewer and SDKs, not served as a JSON payload.
-- **The properties export** (`.../eav/query` and `.../eav/download`): it serves object-graph
-  versions only. For a bundle version it returns **404** with `"Version not found or has no EAV
-artefact"`.
+- **The properties downloads** (`.../eav/download`): they serve object-graph versions only. For a
+  bundle version they return **404** with `"Version not found or has no EAV artefact"`. The
+  [properties export](#properties-export) (`.../eav/query`) serves both formats.
 
 ### Read element properties
 
 How you read element properties depends on the version's format, not on your tooling.
 
 - **Bundle:** read the version's bundle files. List them with the artifacts endpoint, which returns
-  presigned URLs to the version's parquet files, then read only the columns and rows you need.
+  presigned URLs to the version's parquet files, then read only the columns and rows you need. Or
+  download the whole properties table with the [properties export](#properties-export).
 - **Object graph:** filter and select with [`object.children`](#query-an-object-graph-with-object-children),
-  or download the whole properties table with the [properties export](#properties-export-for-object-graph-versions).
+  or download the whole properties table with the [properties export](#properties-export).
 
 `PROJECT_ID`, `MODEL_ID`, `VERSION_ID`, the referenced object id, and your token are already known.
 
@@ -246,7 +247,7 @@ use [DuckDB](https://duckdb.org), because the same SQL runs in every language an
 presigned URLs directly, with no download step.
 
 This query returns one row per property in the same columns as the [properties
-export](#properties-export-for-object-graph-versions), with `object_id` holding the object's
+export](#properties-export), with `object_id` holding the object's
 `applicationId`. Replace each `{placeholder}` with the URL of the file it names:
 
 ```sql
@@ -352,8 +353,9 @@ version of each, with error handling and tests, is in the example below.
 For a step-by-step setup aimed at flow builders, see [Use model properties in low-code
 tools](/developers/api/guides/low-code-properties).
 
-These tools can call an HTTP endpoint but cannot read Parquet, so put the query in a small function
-they call. [examples/bundle-properties-function](https://github.com/specklesystems/speckle-docs-new/tree/main/examples/bundle-properties-function)
+These tools can call an HTTP endpoint but cannot read Parquet. They can call the [properties
+export](#properties-export) directly, which returns the whole properties table as JSON. To filter
+before the rows reach the flow, put the query above in a small function they call instead. [examples/bundle-properties-function](https://github.com/specklesystems/speckle-docs-new/tree/main/examples/bundle-properties-function)
 is that function as an Azure Function in Python, TypeScript, and C#. It takes a project, model, and
 version id, and returns the rows above as JSON. Its README covers running it locally, deploying it,
 and calling it from a Power Automate **HTTP** action. Take the directory on its own:
@@ -369,10 +371,10 @@ Because the rows match the properties export's columns, a flow that filtered the
 the same way. The function returns every property of every object; on a large model, add a `WHERE`
 clause to its query so the flow receives only the rows it needs.
 
-### Properties export for object-graph versions
+### Properties export
 
-For an object-graph version, the properties export returns every indexed property on every
-element, one row per property, rather than a pre-filtered result:
+For any version, bundle or object graph, the properties export returns every indexed property on
+every element, one row per property, rather than a pre-filtered result:
 
 ```bash
 curl -X POST \
@@ -426,8 +428,8 @@ In a low-code tool, that is two filter steps in sequence: two **Filter array** a
 Automate, or two **Filter** nodes in n8n.
 
 There is also a `GET .../versions/{versionId}/eav/download` variant for a plain download, and a
-`GET .../models/{modelId}/eav/download` variant that serves the model's latest version. Both serve
-object-graph versions only, like the export.
+`GET .../models/{modelId}/eav/download` variant that serves the model's latest version. Unlike the export,
+both serve object-graph versions only.
 
 <Note>
   The properties export does not accept filter parameters. It always returns the whole properties
@@ -607,10 +609,10 @@ Variables: **Project ID** & **Object ID**
     ingestion completion.
   </Accordion>
   <Accordion title="Does the properties export work for bundle versions?">
-    No. The properties export serves object-graph versions only. For a bundle version it returns 404
-    with `"Version not found or has no EAV artefact"`; read the bundle instead (see [Read element
-    properties](#read-element-properties)). An object-graph version whose properties table has not
-    been built yet returns the same 404.
+    Yes. `eav/query` returns the same columns for bundle and object-graph versions. The
+    `eav/download` variants serve object-graph versions only, and return 404 with `"Version not
+    found or has no EAV artefact"` for a bundle version. A version still being processed returns the
+    same 404 from both.
   </Accordion>
   <Accordion title="How do I get a total element count without walking the whole properties table?">
     For bundle versions, count the rows in the version's `.eav.objects.parquet` file, or use an
@@ -622,15 +624,16 @@ Variables: **Project ID** & **Object ID**
     n8n is a partial exception: its Code node cannot import external npm packages on n8n Cloud, so
     the same limitation applies there, but a self-hosted n8n instance can read Parquet if you enable
     external modules (`NODE_FUNCTION_ALLOW_EXTERNAL`) or install a community node built for it. That
-    is a deliberate setup step, not the default. Tools that cannot run DuckDB or read Parquet cannot
-    read bundle versions directly; call a small function that does. See [From Power Automate,
-    Zapier, or n8n Cloud](#from-power-automate-zapier-or-n8n-cloud).
+    is a deliberate setup step, not the default. Tools that cannot run DuckDB or read Parquet can
+    call the [properties export](#properties-export) instead, or a small function that reads the
+    bundle. See [From Power Automate, Zapier, or n8n
+    Cloud](#from-power-automate-zapier-or-n8n-cloud).
   </Accordion>
   <Accordion title="How do I decide between the properties export and reading the bundle?">
-    The version's format decides it. For a bundle version, read the bundle; the properties export
-    does not serve it. For an object-graph version, use the properties export or `object.children`.
-    Check `referencedObject` on the version you are reading (see [Tell the two formats
-    apart](#tell-the-two-formats-apart)).
+    How much of the table you need decides it. The properties export always returns every property
+    of every element, for either format. To read only some columns or rows of a bundle version, read
+    the bundle; for an object-graph version, use `object.children`. Check `referencedObject` on the
+    version you are reading (see [Tell the two formats apart](#tell-the-two-formats-apart)).
   </Accordion>
   <Accordion title="Can one project have both hex-reference and bundle-reference versions?">
     Yes. Format is decided per version, when it is created, not per project or workspace. Older

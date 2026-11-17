@@ -760,7 +760,7 @@
         "tags": [
           "Properties"
         ],
-        "description": "Exports every indexed property of every object in the version, one row per property, as JSON, CSV or Parquet, as a file attachment. JSON and CSV are gzip-encoded when `Accept-Encoding` includes gzip; Parquet never is. The body takes no filters. Public projects need no token; others need read access, and a token's resource access rules must cover the model or version. Versions older than the workspace plan's history limit are refused. Available on Speckle Cloud and Speckle Enterprise Server 2026.9 and later; not on the open-source Speckle Server. Serves object-graph versions only: a bundle version returns **404** with `\"Version not found or has no EAV artefact\"`; read its properties from the bundle's `eav` files instead.",
+        "description": "Exports every indexed property of every object in the version, one row per property, as JSON, CSV or Parquet, as a file attachment. JSON and CSV are gzip-encoded when `Accept-Encoding` includes gzip; Parquet never is. The body takes no filters. Public projects need no token; others need read access, and a token's resource access rules must cover the model or version. Versions older than the workspace plan's history limit are refused. Available on Speckle Cloud and Speckle Enterprise Server 2026.9 and later; not on the open-source Speckle Server. Serves bundle and object-graph versions, in the same columns. Bundle versions include their type properties (Revit type parameters, IFC type properties) on each object.",
         "security": [
           {
             "bearerAuth": []
@@ -870,7 +870,27 @@
                       }
                     }
                   }
-                }
+                },
+                "example": [
+                  {
+                    "object_id": "2N1qr8Hb5D9xXyz0aBcDeF",
+                    "path": "ifcType",
+                    "value_text": "IfcDoor",
+                    "value_num": null,
+                    "type": "string",
+                    "units": null,
+                    "internal_definition_name": null
+                  },
+                  {
+                    "object_id": "2N1qr8Hb5D9xXyz0aBcDeF",
+                    "path": "Dimensions.Area",
+                    "value_text": "1.8",
+                    "value_num": 1.8,
+                    "type": "number",
+                    "units": "m2",
+                    "internal_definition_name": null
+                  }
+                ]
               },
               "text/csv": {
                 "schema": {
@@ -895,7 +915,7 @@
             "description": "The token cannot read this project, model or version, or the version is beyond the workspace history limit."
           },
           "404": {
-            "description": "No such project or version, or the version has no properties database (bundle versions)."
+            "description": "No such project or version, or the version's properties are not ready yet (it is still being processed)."
           }
         }
       }
@@ -907,7 +927,7 @@
         "tags": [
           "Properties"
         ],
-        "description": "Streams the version's properties as a DuckDB database: gzip-encoded when `Accept-Encoding` includes gzip (with `X-Estimated-Content-Length`), otherwise raw. Public projects need no token; others need read access, and a token's resource access rules must cover the model or version. Versions older than the workspace plan's history limit are refused. Available on Speckle Cloud and Speckle Enterprise Server 2026.9 and later; not on the open-source Speckle Server. Serves object-graph versions only: a bundle version returns **404** with `\"Version not found or has no EAV artefact\"`; read its properties from the bundle's `eav` files instead.",
+        "description": "Streams the version's properties as a DuckDB database: gzip-encoded when `Accept-Encoding` includes gzip (with `X-Estimated-Content-Length`), otherwise raw. Public projects need no token; others need read access, and a token's resource access rules must cover the model or version. Versions older than the workspace plan's history limit are refused. Available on Speckle Cloud and Speckle Enterprise Server 2026.9 and later; not on the open-source Speckle Server. Serves object-graph versions only: a bundle version returns **404** with `\"Version not found or has no EAV artefact\"`; export its properties with `eav/query` instead, or read the bundle's `eav` files.",
         "security": [
           {
             "bearerAuth": []
@@ -982,7 +1002,7 @@
         "tags": [
           "Properties"
         ],
-        "description": "As the version download, for the model's latest version. Public projects need no token; others need read access, and a token's resource access rules must cover the model or version. Versions older than the workspace plan's history limit are refused. Available on Speckle Cloud and Speckle Enterprise Server 2026.9 and later; not on the open-source Speckle Server. Serves object-graph versions only: a bundle version returns **404** with `\"Version not found or has no EAV artefact\"`; read its properties from the bundle's `eav` files instead.",
+        "description": "As the version download, for the model's latest version. Public projects need no token; others need read access, and a token's resource access rules must cover the model or version. Versions older than the workspace plan's history limit are refused. Available on Speckle Cloud and Speckle Enterprise Server 2026.9 and later; not on the open-source Speckle Server. Serves object-graph versions only: a bundle version returns **404** with `\"Version not found or has no EAV artefact\"`; export its properties with `eav/query` instead, or read the bundle's `eav` files.",
         "security": [
           {
             "bearerAuth": []
