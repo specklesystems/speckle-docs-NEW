@@ -56,7 +56,7 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 
 | Doc                                 | Load first for                                                                           |
 | ----------------------------------- | ---------------------------------------------------------------------------------------- |
-| `docs/agents/connectors.md`         | ANY work under `connectors/`                                                             |
+| `docs/agents/connectors.md`         | ANY work under `connectors/`, or updating connector release/version data                 |
 | `docs/agents/sdk-dotnet.md`         | ANY work under `developers/sdks/dotnet/`                                                 |
 | `docs/agents/sdk-python.md`         | ANY work under `developers/sdks/python/`                                                 |
 | `docs/agents/persona-audience.md`   | writing or restructuring developer or IT admin pages, or a page for a multi-role feature |
