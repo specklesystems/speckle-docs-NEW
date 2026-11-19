@@ -514,6 +514,17 @@ helm repo update
 
 Now we can deploy NGINX to our kubernetes cluster. The additional annotation allows CertManager, deployed in the [previous step](#certificate-manager), to advise NGINX which certificate to use for https connections. Replace `${YOUR_CLUSTER_CONTEXT_NAME}` with the name of your cluster.
 
+<Warning>
+  The nginx inside community ingress-nginx is affected by
+  [CVE-2026-123007](https://www.cve.org/CVERecord?id=CVE-2026-123007) and
+  [CVE-2026-123633](https://www.cve.org/CVERecord?id=CVE-2026-123633) (HTTP/2) and
+  [CVE-2026-118899](https://www.cve.org/CVERecord?id=CVE-2026-118899) (TLS 1.3). Community
+  ingress-nginx is archived and will not ship a fixed release, so the values below keep HTTP/2 and
+  TLS 1.3 off until this guide moves to a supported ingress controller. If you already run
+  ingress-nginx, add `use-http2: "false"` and `ssl-protocols: "TLSv1.2"` under `controller.config`
+  in your existing values and upgrade the release.
+</Warning>
+
 ```shell
 cat <<'EOF' | helm upgrade ingress-nginx ingress-nginx/ingress-nginx \
         --install --create-namespace \
@@ -526,8 +537,8 @@ controller:
   publishService:
     enabled: true
   config:
-    http2-max-concurrent-streams: "512"
-    use-http2: "true"
+    use-http2: "false"
+    ssl-protocols: "TLSv1.2"
     keep-alive-requests: "1000"
 EOF
 ```
