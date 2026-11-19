@@ -106,8 +106,7 @@ See [Publish linked models from the Revit connector](#publish-linked-models-from
 
 Sync only the host Revit file. Each time the sync runs, Speckle finds the models the host links,
 downloads them from Forma Data Management and converts them with the host. You don't create syncs
-for the linked files. How Speckle finds them depends on the kind of link: see [Cloud model links and
-local links](#cloud-model-links-and-local-links).
+for the linked files.
 
 ### Choose which linked models to convert
 
@@ -188,74 +187,3 @@ connector doesn't need to find them anywhere.
 - **Read only**: linked elements can't be edited from Speckle, for example in the parameter editor.
 - **With the setting off**, the links are left out and the publish report lists a warning for each
   one.
-
-## Cloud model links and local links
-
-Revit stores two kinds of Revit links, and Speckle finds them differently in a sync.
-
-| Link kind        | What the link points to                                   | **Saved Path** in Manage Links |
-| ---------------- | --------------------------------------------------------- | ------------------------------ |
-| Cloud model link | A cloud model in Autodesk Docs                            | `Autodesk Docs://…`            |
-| Local link       | A `.rvt` file on a local or network drive, such as `C:\…` | A drive or network path        |
-
-### Cloud model links
-
-A cloud model link names the linked cloud model in Autodesk Docs, so Speckle downloads exactly that
-model. Speckle uses the links Forma Data Management lists for the host. When it lists none for a
-cloud model that has links, Speckle reads them from the host file instead.
-
-- The linked model can sit in any folder of the project.
-- The Autodesk account connected to the integration must be able to open it.
-- Publish the host after you add or change a link. Speckle syncs the published version, not what
-  you synchronized with central.
-
-### Local links
-
-A local link points at a file on someone's computer or network, which Speckle can't reach. Upload
-the linked file to the same Forma Data Management project, and Speckle finds it by name:
-
-1. Speckle reads the host's link names from the host file.
-2. It looks for a `.rvt` with the same name in the host's folder.
-3. A link not found there is searched for in the folders above the host, each with its subfolders.
-
-A link with two or more same-named files at the nearest level that has one is left out rather than
-guessed. Links in another Forma Data Management project are not found.
-
-<Note>
-  A **cloud model** host with local links is published without links, and Speckle converts it alone.
-  Upload the linked files as cloud models, then use **Reload From** in Manage Links to point each
-  link at its cloud model, and publish the host again.
-</Note>
-
-## When Forma Data Management records local links
-
-When a host and its linked files are uploaded, Forma Data Management can record the links between
-them. Speckle uses those records first:
-
-| Forma Data Management…        | Speckle converts                                                                  |
-| ----------------------------- | --------------------------------------------------------------------------------- |
-| records the host's links      | the recorded links, at the versions recorded with the host                        |
-| records no links for the host | the links named in the host file, found by name as in [Local links](#local-links) |
-
-Either way, the sync finds the linked files that are in the project, so you don't need to upload
-them in a particular way.
-
-## FAQ
-
-<AccordionGroup>
-  <Accordion title="Why is a linked model missing from my version?">
-    Check the [Health](/3d-viewer/exploration#model-health) panel for which links were left out.
-    Common causes: you left it out under **Linked models**; it isn't a Revit file; it's a local link
-    whose file isn't in the project, or whose name matches more than one file; or the Autodesk
-    account connected to the integration can't open it. Fix the cause, then select **Trigger now**
-    on the host's sync.
-  </Accordion>
-  <Accordion title="Can I get a linked model as its own Speckle model?">
-    Yes. Create a separate sync for the linked file, or upload it on its own. It gets its own
-    Speckle model and version history, and it still appears inside the host's versions.
-  </Accordion>
-  <Accordion title="Does leaving a link out also hide it in Revit?">
-    No. **Linked models** only changes what Speckle converts. The host file in Forma Data Management
-    is not changed.
-  </Accordion>
-</AccordionGroup>
