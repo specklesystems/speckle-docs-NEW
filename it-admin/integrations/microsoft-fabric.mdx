@@ -64,7 +64,7 @@ Speckle reads Microsoft Fabric through a Microsoft Entra **service principal** y
   recreate it there if needed.
 </Warning>
 
-The SQL connection string belongs to the Fabric workspace. Every Warehouse and Lakehouse in the same workspace shares it, and the database name selects the item.
+The SQL connection string belongs to the Fabric workspace. Every Warehouse and Lakehouse in the same workspace shares it, so one connection in Speckle can read all of them.
 
 ## Connect the Warehouse or Lakehouse in Speckle
 
@@ -81,7 +81,7 @@ You need to be a workspace admin in Speckle.
     Fill in:
     - **Name** — a label for the connection list, e.g. `Production warehouse`.
     - **SQL endpoint server** — the SQL connection string, e.g. `xxxxxxxx-xxxxxxxx.datawarehouse.fabric.microsoft.com` (host name only, no port or prefix).
-    - **Database** — the name of the Warehouse or Lakehouse, exactly as Fabric shows it. Names with spaces work.
+    - **Database** (optional, under **Limit to one item**) — leave it blank to browse every Warehouse and Lakehouse in the Fabric workspace. Enter the name of one Warehouse or Lakehouse, exactly as Fabric shows it, to limit the connection to that item.
     - **Tenant ID** — the **Directory (tenant) ID** of the app registration.
     - **Client ID** — the **Application (client) ID** of the app registration.
     - **Client secret** — the secret's **Value**.
@@ -99,7 +99,7 @@ You need to be a workspace admin in Speckle.
   </Step>
 </Steps>
 
-One connection reads one Warehouse or Lakehouse. To expose another one, select **Add connection** and enter its name as the **Database**. Items in the same Fabric workspace use the same **SQL endpoint server**.
+One connection reads every Warehouse and Lakehouse in a Fabric workspace that the service principal can read, unless you limit it with **Database**. To read another Fabric workspace, select **Add connection** and enter that workspace's **SQL endpoint server**.
 
 Once a connection works, users can continue with [Microsoft Fabric user setup](/connectors/cloud-integrations/microsoft-fabric).
 
@@ -107,7 +107,7 @@ Once a connection works, users can continue with [Microsoft Fabric user setup](/
 
 **Speckle only reads.** It lists schemas, tables, and views, previews rows, and runs `SELECT` queries on the columns users chose when they registered a table. Nothing is written to Fabric.
 
-**The workspace role defines the boundary.** A workspace role, Viewer included, lets the service principal read every Warehouse and SQL analytics endpoint in that Fabric workspace. Each Speckle connection reads the one Warehouse or Lakehouse it names, and a Speckle workspace admin can add connections for other items the service principal can reach. To limit what Speckle can read, keep the data you want to expose in a dedicated Fabric workspace and give the service principal a role only there.
+**The workspace role defines the boundary.** A workspace role, Viewer included, lets the service principal read every Warehouse and SQL analytics endpoint in that Fabric workspace. A Speckle connection lists all of them unless its **Database** field limits it to one. To limit what Speckle can read, keep the data you want to expose in a dedicated Fabric workspace and give the service principal a role only there.
 
 **Speckle connects from its servers to Fabric.** The SQL connection uses TCP port 1433 with TLS encryption. Speckle also calls `login.microsoftonline.com` and `api.fabric.microsoft.com` over HTTPS to sign in as the service principal and to call the Fabric API.
 
@@ -136,9 +136,9 @@ Once a connection works, users can continue with [Microsoft Fabric user setup](/
     the SQL connection string from that same item.
   </Accordion>
   <Accordion title="The connection works but nothing is listed">
-    Check that **Database** is the name of the Warehouse or Lakehouse, not of the workspace. For a
-    Lakehouse, a new table can take a short while to appear in the SQL analytics endpoint, so wait a
-    moment and reload the page.
+    If you filled in **Database**, check that it is the name of the Warehouse or Lakehouse, not of
+    the workspace. For a Lakehouse, a new table can take a short while to appear in the SQL
+    analytics endpoint, so wait a moment and reload the page.
   </Accordion>
   <Accordion title="Speckle reports that the Fabric capacity is paused">
     Resume the capacity that the Fabric workspace runs on and try again. A capacity that was just
