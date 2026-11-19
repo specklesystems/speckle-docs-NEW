@@ -106,6 +106,49 @@ repo-local trackers with their own conventions are unaffected. Claiming is
 the only transition this rule owns — later states (review, done) belong to
 the PR flow.
 
+# UI scope: build what was asked
+
+When a change touches UI, build what the person asked for. Everything else you notice (a tidier header, a chart, a new panel, a renamed route) goes in the hand-back as a one-line suggestion. When the repo has a product page (frontend-3: `packages/frontend-3/docs/product/why.md`), read it first.
+
+When the person approves a list in one go ("do everything"), answer once before building: each item's user job, and what outside the app could break (links, public APIs, other repos). Build on their next go, and quote what they asked for under **Asked in chat** in the PR body.
+
+# User-facing copy
+
+Apply this standard across product messages, help, documentation, support
+replies, investigation summaries, release notes, and digests. Match the
+reader's knowledge while keeping the facts precise.
+
+- Name the public product, feature, or setting the reader can find. Verify
+  the name in the relevant public documentation or released interface.
+  Internal project names, repository names, staff names, and test-account
+  references do not establish public names or compatibility requirements.
+- Separate schema or format versions from application releases, dependency
+  versions, and deployment environments. Verify each identifier against its
+  owner: the versioned schema or specification, the published release and
+  tagged source, the dependency manifest, or deployment evidence. A package
+  pin proves a dependency version, not that a feature reached customers.
+- When compatibility determines the next step, name the affected component
+  and the exact verified release or schema boundary. Avoid "old", "new",
+  "latest", or "legacy" as the only distinction. Do not infer a boundary for
+  every connector, platform, or server from one component's release.
+- State what happened, what the reader can do next, and the condition for
+  that action to work. Explain necessary technical terms once. Keep exact
+  public function names, error codes, and version identifiers when the
+  reader needs them to act; plain language must not erase those facts.
+- Keep an authoritative source with each version, availability, or naming
+  claim in the review evidence. Link it in support replies or documentation
+  when useful; product messages need not contain the research trail.
+- If evidence is missing or conflicting, do not invent a name or number.
+  In interactive work, request the missing evidence. In constrained or
+  headless work, use only the permitted inputs, omit unsupported claims,
+  and record any unresolved fact in the internal report. Treat a customer's
+  wording or a merged PR as a report, not proof of a public release.
+
+Use the same verified public name and meaning across domains. Resolve
+conflicts against the owning source rather than copying internal glossary labels into user-facing text. Keep raw diagnostic
+queries, identifiers, and staff context in the appropriate internal report;
+prepare a separate reader-facing explanation when needed.
+
 # Ways of working (Speckle stack)
 
 When the user starts describing a feature, refactor, bug, or plan, suggest
@@ -113,8 +156,7 @@ the matching entry point instead of diving into implementation: `/wayfinder`
 for big/foggy multi-session work, `/grill-me` (or `/grill-with-docs`) to
 stress-test one plan, `/prototype` when "how should it look/behave" is open,
 then `/to-spec` → `/to-tickets` → `/implement`. Opening a PR or marking a
-draft ready, whatever the entry point: load the `pr` skill first; it runs
-`/code-review` on code written in the session. The full loop:
+draft ready, whatever the entry point: load the `pr` skill first. The full loop:
 `atlas/ways-of-working.md` in the speckle-atlas checkout root
 (`../atlas/ways-of-working.md` from this repo in the standard nested layout)
 — read it before shaping non-trivial work.
