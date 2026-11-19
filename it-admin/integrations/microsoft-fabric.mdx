@@ -1,0 +1,171 @@
+---
+title: 'Enable Microsoft Fabric Integration'
+sidebarTitle: 'Microsoft Fabric'
+description: 'IT administrator setup steps to prepare Microsoft Fabric and connect a Warehouse or Lakehouse in Speckle.'
+---
+
+import { BetaAccessLink } from '/snippets/components/BetaAccess.jsx'
+
+<Badge>Beta</Badge>
+
+This guide is for IT administrators who need to prepare Microsoft Fabric and connect a Warehouse or Lakehouse in Speckle before users can register tables and query them in AI chat and data tools.
+
+<Note>
+  The Microsoft Fabric integration is in **Beta** and is enabled per workspace. If you don't see
+  Microsoft Fabric under your project's **Integrations**, <BetaAccessLink />.
+</Note>
+
+If your organisation has not prepared Microsoft Fabric for Speckle yet, the steps below need three roles, which can be one person or several:
+
+- Someone who can register an application in **Microsoft Entra ID**.
+- A **Fabric administrator**, to check one tenant setting.
+- An **Admin** or **Member** of the Fabric workspace that holds the data.
+
+Speckle reads Microsoft Fabric through a Microsoft Entra **service principal** you create (an app registration with a client secret). The role you give that service principal on a Fabric workspace defines what Speckle can read. Speckle reads tables and views from a **Warehouse**, or from a **Lakehouse** through its SQL analytics endpoint, and never writes to Fabric.
+
+## Prepare the service principal and workspace
+
+<Steps>
+  <Step title="Register an app in Microsoft Entra ID">
+    In the Microsoft Entra admin center, go to **Entra ID \> App registrations** and select **New registration**. Enter a name you will recognise later, for example `speckle-fabric`, and select **Register**.
+
+    On the app's **Overview** page, copy the **Application (client) ID** and the **Directory (tenant) ID**.
+
+  </Step>
+  <Step title="Create a client secret">
+    On the app registration, open **Certificates & secrets \> Client secrets** and select **New client secret**. Add a description, choose an expiry, and select **Add**.
+
+    Copy the secret's **Value** now and store it securely. Microsoft Entra shows it only once. The **Secret ID** next to it is not the secret, and Speckle cannot use it.
+
+  </Step>
+  <Step title="Allow service principals in Fabric">
+    As a Fabric administrator, open the Fabric admin portal, go to **Tenant settings**, and find **Service principals can call Fabric public APIs** under **Developer settings**. Some Microsoft pages still call it **Service principals can use Fabric APIs**. Make sure it is enabled.
+
+    If the setting applies only to specific security groups, add the app to one of those groups. The service principal is now allowed to connect to Fabric.
+
+  </Step>
+  <Step title="Give the service principal a workspace role">
+    Open the Fabric workspace that holds the Warehouse or Lakehouse and select **Manage access**. Select **Add people or groups**, search for the app by its name, choose the **Viewer** role, and select **Add**.
+
+    The app is listed with the Viewer role. Viewer is enough for Speckle.
+
+  </Step>
+  <Step title="Copy the SQL connection string">
+    Open the **Settings** of the Warehouse, or of the Lakehouse's SQL analytics endpoint, and open the **SQL connection string** page. Copy the value. It looks like `xxxxxxxx-xxxxxxxx.datawarehouse.fabric.microsoft.com`.
+
+    Note the name of the Warehouse or Lakehouse as well. You now have everything Speckle asks for.
+
+  </Step>
+</Steps>
+
+<Warning>
+  Items in **My workspace** cannot be shared with a service principal. Keep the Warehouse or
+  Lakehouse in a regular Fabric workspace. Fabric cannot move an item between workspaces, so
+  recreate it there if needed.
+</Warning>
+
+The SQL connection string belongs to the Fabric workspace. Every Warehouse and Lakehouse in the same workspace shares it, and the database name selects the item.
+
+## Connect the Warehouse or Lakehouse in Speckle
+
+You need to be a workspace admin in Speckle.
+
+<Steps>
+  <Step title="Open the Microsoft Fabric integration">
+    In Speckle, open your project's **Integrations \> Microsoft Fabric** and select **Connect to Microsoft Fabric**.
+
+    The connection form opens.
+
+  </Step>
+  <Step title="Enter your connection details">
+    Fill in:
+    - **Name** — a label for the connection list, e.g. `Production warehouse`.
+    - **SQL endpoint server** — the SQL connection string, e.g. `xxxxxxxx-xxxxxxxx.datawarehouse.fabric.microsoft.com` (host name only, no port or prefix).
+    - **Database** — the name of the Warehouse or Lakehouse, exactly as Fabric shows it. Names with spaces work.
+    - **Tenant ID** — the **Directory (tenant) ID** of the app registration.
+    - **Client ID** — the **Application (client) ID** of the app registration.
+    - **Client secret** — the secret's **Value**.
+
+    Your connection details are ready to save.
+
+  </Step>
+  <Step title="Save">
+    Select **Add connection**. The connection is now stored for your workspace, and Speckle lists the schemas of the Warehouse or Lakehouse.
+  </Step>
+  <Step title="Test the connection">
+    Open the settings of the connection, next to the connection list at the top of the page, and select **Test connection**. Speckle runs a `SELECT 1` round-trip against the SQL endpoint.
+
+    You should see a success message with the response time, or an error explaining what failed.
+
+  </Step>
+</Steps>
+
+One connection reads one Warehouse or Lakehouse. To expose another one, select **Add connection** and enter its name as the **Database**. Items in the same Fabric workspace use the same **SQL endpoint server**.
+
+Once a connection works, users can continue with [Microsoft Fabric user setup](/connectors/cloud-integrations/microsoft-fabric).
+
+## What Speckle can do in Microsoft Fabric
+
+**Speckle only reads.** It lists schemas, tables, and views, previews rows, and runs `SELECT` queries on the columns users chose when they registered a table. Nothing is written to Fabric.
+
+**The workspace role defines the boundary.** A workspace role, Viewer included, lets the service principal read every Warehouse and SQL analytics endpoint in that Fabric workspace. Each Speckle connection reads the one Warehouse or Lakehouse it names, and a Speckle workspace admin can add connections for other items the service principal can reach. To limit what Speckle can read, keep the data you want to expose in a dedicated Fabric workspace and give the service principal a role only there.
+
+**Speckle connects from its servers to Fabric.** The SQL connection uses TCP port 1433 with TLS encryption. Speckle also calls `login.microsoftonline.com` and `api.fabric.microsoft.com` over HTTPS to sign in as the service principal and to call the Fabric API.
+
+**The Fabric capacity must be running.** The workspace needs a Fabric capacity, and a paused capacity refuses connections. A trial capacity works.
+
+**Connection secrets are protected in Speckle.** The client secret is encrypted in your browser before it is sent, stored encrypted at rest, and never shown again after you save the connection.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="I cannot find the tenant settings in Fabric">
+    Only a Fabric administrator can see or change tenant settings. Ask a Fabric administrator to
+    check **Service principals can call Fabric public APIs** for you. Microsoft describes the ways
+    to reach the page in [How to get to the tenant
+    settings](https://learn.microsoft.com/en-us/fabric/admin/about-tenant-settings#how-to-get-to-the-tenant-settings).
+  </Accordion>
+  <Accordion title="Sign-in fails with an invalid client secret">
+    The **Client secret** field holds the **Secret ID** instead of the secret's **Value**, or the
+    secret has expired. Create a new client secret in Microsoft Entra ID, open the connection's
+    settings in Speckle, and enter the new **Value**.
+  </Accordion>
+  <Accordion title="The connection cannot be established although the IDs are correct">
+    The service principal has no role on the Fabric workspace that the **SQL endpoint server**
+    belongs to. Most often the Warehouse or Lakehouse is in **My workspace**, or the role was given
+    on a different workspace. Add the app as Viewer on the workspace that holds the item, and copy
+    the SQL connection string from that same item.
+  </Accordion>
+  <Accordion title="The connection works but nothing is listed">
+    Check that **Database** is the name of the Warehouse or Lakehouse, not of the workspace. For a
+    Lakehouse, a new table can take a short while to appear in the SQL analytics endpoint, so wait a
+    moment and reload the page.
+  </Accordion>
+  <Accordion title="Speckle reports that the Fabric capacity is paused">
+    Resume the capacity that the Fabric workspace runs on and try again. A capacity that was just
+    resumed can take a couple of minutes to accept connections. Registered tables keep serving their
+    last snapshot until a refresh succeeds.
+  </Accordion>
+</AccordionGroup>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can Speckle modify or write to my Warehouse or Lakehouse?">
+    No. Speckle is read-only in Microsoft Fabric. It only runs `SELECT` queries against the schemas,
+    tables, and views users browse or register and never writes, alters, or deletes data.
+  </Accordion>
+  <Accordion title="What controls which Fabric data Speckle can read?">
+    The service principal's role on the Fabric workspace. Speckle can only read Warehouses and
+    Lakehouses in workspaces where you gave the service principal a role — nothing more.
+  </Accordion>
+  <Accordion title="What happens when the client secret expires?">
+    Refreshes and browsing fail until you replace it. Registered tables keep serving their last
+    snapshot. Create a new client secret in Microsoft Entra ID and enter its **Value** in the
+    connection's settings in Speckle.
+  </Accordion>
+  <Accordion title="How are Microsoft Fabric connection secrets protected?">
+    Connection secrets are encrypted in your browser before they are sent, stored encrypted at rest,
+    and never shown again after you save the connection.
+  </Accordion>
+</AccordionGroup>
