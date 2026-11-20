@@ -14,6 +14,7 @@ Speckle's documentation site, built with Mintlify. This file is the only always-
 - **Tooling:** `pnpm` for every script and dependency (`packageManager` pins the version), Node 22. `mise.toml` tasks: `mise run install|dev|validate|check-links|example-check|agents-sync`.
 - **Checks:** `pnpm check` is the CI gate: Prettier + markdownlint on changed files, `mint validate`, structure (redirects, orphans, framing, assets), broken links, a11y. Pre-commit (Husky) runs Prettier + markdownlint on staged files.
 - **Before a docs PR:** run the `docs-page-review` skill on every written or revised page, then `docs-ci-ready`.
+- **Writing a page:** start with that skill's load list: Audience and voice, Page elements, Content rules, the Area docs row for the path, and `docs/agents/persona-audience.md` when the row says so. A Docs ticket from another repo names the reader and the UI surfaces. It does not replace this list. When the ticket and Audience and voice disagree, Audience and voice wins.
 - **Technical changelog:** weekly changelog checks, monthly changelog pages, release-note reconciliation, and merge/release docs audits use `technical-changelog`.
 - **Area docs are not auto-loaded.** When a path you read, plan or edit matches a row under [Area docs](#area-docs), load that doc first, however small the task.
 - **Product truth:** document what exists today. Verify stale UI labels, operators, plan gates or enums against `../speckle-server-internal` (FE3 = `packages/frontend-3`); multi-page parity audits use `docs-product-capability-sweep`.
