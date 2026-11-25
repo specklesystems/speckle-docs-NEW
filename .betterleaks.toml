@@ -1,0 +1,32 @@
+# Betterleaks secret scanner config, used by the `secret-scan` workflow. The built-in
+# rules apply (`[extend]` below); `filter` only discards findings, and a finding is
+# discarded when the expression is true.
+#
+# Setting `filter` replaces the built-in global filter instead of adding to it
+# (betterleaks 1.10.0). Its discards of placeholder values such as `$VAR` no longer
+# apply; each built-in rule's own filter still does.
+title = "speckle-docs-NEW betterleaks config"
+
+filter = '''
+let path = attributes["path"];
+let rule = finding["rule_id"];
+let secret = finding["secret"];
+let line = finding["line"];
+let generic = rule in ["generic-api-key", "generic-credential-uri", "generic-password"];
+
+// Credentials of the local dev stack, as the self-hosting guide shows them.
+(generic && secret in ["admin", "minioadmin", "speckle"])
+
+// Placeholders in examples: `YOUR_TOKEN` and `your-...`.
+|| ((rule == "curl-auth-header" && matchesAny(secret, [`^[A-Z_]+$`])) || (rule == "generic-password" && matchesAny(secret, [`^your-`])))
+
+// rpc_secret of the single-node Garage in the self-hosting guide. Each pinned value
+// below is also excepted in this file, which the scan reads too.
+|| (rule == "generic-api-key" && secret == "5a3e2c6d8f0b1e4a7c9d2f5b8e1a4c7d0f3b6e9a2c5d8f1b4e7a0c3d6f9b2e5a" && ((matchesAny(line, [`^\s*rpc_secret = `]) && matchesAny(path, [`^developers/server/getting-started\.mdx$`])) || matchesAny(path, [`^\.betterleaks\.toml$`])))
+
+// Mixpanel project token of the docs site: sent by every browser, public by design.
+|| (rule == "generic-api-key" && secret == "acd87c5a50b56df91a795e999812a3a4" && ((matchesAny(line, [`"projectToken"`]) && matchesAny(path, [`^docs\.json$`])) || matchesAny(path, [`^\.betterleaks\.toml$`])))
+'''
+
+[extend]
+useDefault = true
