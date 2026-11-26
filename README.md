@@ -90,7 +90,7 @@ bash scripts/enable-required-pr-checks.sh
 
 Scheduled / manual ([`.github/workflows/docs-scheduled-checks.yml`](.github/workflows/docs-scheduled-checks.yml)):
 
-- **External links** — `pnpm check-links:external` (flaky; not on PRs)
+- **External links** — `pnpm check-links:external` (flaky; not on PRs). A vendor URL that browsers open, but Node's link check cannot follow, takes `{/* link-check-allow: https://example.com/path */}` in that file. The check retries that URL with a normal `Accept-Language` and still fails it on an HTTP error or a retry that does not return 2xx.
 - **Agent readiness score** — `mint score` when repo variable `DOCS_SITE_URL` is set
 
 #### Pre-commit (format / lint)
