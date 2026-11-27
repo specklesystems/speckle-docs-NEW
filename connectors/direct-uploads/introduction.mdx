@@ -1,6 +1,6 @@
 ---
 title: Direct uploads
-description: 'Upload files directly to your Speckle projects and view them in your browser—no desktop software or connector needed. Supported formats, Tekla Structures, Vectorworks, Solibri, TrimBIM, ETABS, AVEVA Review, and GIS uploads.'
+description: 'Upload files directly to your Speckle projects and view them in your browser—no desktop software or connector needed. Supported formats, Tekla Structures, Vectorworks, Solibri, TrimBIM, ETABS, Tekla Structural Designer, AVEVA Review, and GIS uploads.'
 ---
 
 import CoordinationWorkflowRevit from '/snippets/connectors/coordination-workflow-revit.mdx'
@@ -110,6 +110,7 @@ Connect](/connectors/cloud-integrations/trimble-connect#supported-file-formats).
 | Solibri                            | .smc                                                                     | Supported     |
 | TrimBIM                            | .trb                                                                     | Supported     |
 | ETABS                              | .edb                                                                     | Supported     |
+| Tekla Structural Designer          | .tsmd                                                                    | Supported     |
 | AVEVA Review                       | .rvm                                                                     | Supported     |
 | GeoPackage                         | .gpkg                                                                    | Supported     |
 | GeoJSON                            | .geojson, .geojsonl                                                      | Supported     |
@@ -342,6 +343,42 @@ If a TrimBIM upload fails:
 | --------------------------------------------- | ------------------------------------------------------------------------------ |
 | TrimBIM version _number_ is not supported yet | Export the model again from a current Trimble application, or contact support. |
 | Not a TrimBIM file                            | Check that the file is a TrimBIM file, not another file renamed to `.trb`.     |
+
+### Tekla Structural Designer (TSMD)
+
+Upload a Tekla Structural Designer model (`.tsmd`) to publish the structure, its loads and its
+saved analysis and design results, without opening Tekla Structural Designer or installing a
+connector.
+
+What is published:
+
+- Beams, columns and braces as solids drawn from their sections, slabs and walls, and the nodes
+  they connect to, grouped by level and by the groups saved in the model.
+- Each object's name, type and properties, such as its section, material and construction type.
+- Supports, grid lines, and pad bases and pile caps under columns.
+- Load cases, combinations, and the loads on members, slabs and nodes.
+- Analysis results and design checks, as saved with the model. Open them in the viewer under
+  **Browse**, in the `structural_results` table.
+
+Properties and results are published in the units the model displays.
+
+An upload reads the data saved in the file. It does not open Tekla Structural Designer, rerun the
+analysis or recalculate the design. To publish results, analyse and design the model, then save it
+before you upload it.
+
+These parts of the model are not published yet:
+
+- Slab openings and column drops.
+- Plated and compound sections, which arrive as lines with their properties.
+- Planar, level, settlement, temperature and wind loads.
+
+If a Tekla Structural Designer upload fails:
+
+| Message                                                   | What to do                                                                                     |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| This file was saved by an older Tekla Structural Designer | Open the model in a newer Tekla Structural Designer release, save it, and upload it again.     |
+| Not a Tekla Structural Designer model (.tsmd)             | Check that the file is a Tekla Structural Designer model, not another file renamed to `.tsmd`. |
+| The file comes from a newer Tekla Structural Designer     | Contact Speckle support.                                                                       |
 
 ### Upload a Revit model with linked models
 
