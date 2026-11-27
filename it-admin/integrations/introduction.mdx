@@ -4,7 +4,7 @@ sidebarTitle: 'Introduction'
 description: 'How Speckle cloud integrations authenticate, what they can see, and what they never do — for IT administrators governing a CDE or data platform.'
 ---
 
-This page explains what is common to every Speckle cloud integration before you enable a specific one. It is written for administrators who govern access on the source side — an Autodesk hub, a ProjectWise datasource, a Microsoft 365 organization, a Databricks or Snowflake account — and need to know what Speckle will and will not be able to reach.
+This page explains what is common to every Speckle cloud integration before you enable a specific one. It is written for administrators who govern access on the source side — an Autodesk hub, a ProjectWise datasource, a Microsoft 365 organization, a Databricks or Snowflake account, a Microsoft Fabric tenant — and need to know what Speckle will and will not be able to reach.
 
 ## The rule that applies everywhere
 
@@ -12,14 +12,14 @@ This page explains what is common to every Speckle cloud integration before you 
 
 Two consequences follow:
 
-- **You govern in your own tools.** Access reviews, revocation, and scoping happen in Autodesk admin, ProjectWise, Unity Catalog, or Snowflake roles — the places your team already audits. Speckle adds nothing that needs a parallel policy.
+- **You govern in your own tools.** Access reviews, revocation, and scoping happen in Autodesk admin, ProjectWise, Unity Catalog, Snowflake roles, or Fabric workspace roles — the places your team already audits. Speckle adds nothing that needs a parallel policy.
 - **Nothing is crawled.** Speckle does not index your hub, datasource, catalog, or lake. It reads only the specific files or tables a user selects, only when a sync or query runs, and only if the identity is permitted to read them.
 
 ## Two kinds of integration
 
 |                          | Syncs                                                                                                               | Subscriptions                                                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Source**               | BIM and CAD files in a CDE — Autodesk Forma Data Management (ACC), Bentley ProjectWise, Trimble Connect, SharePoint | Tables and views in a data platform — Databricks, Snowflake                                                     |
+| **Source**               | BIM and CAD files in a CDE — Autodesk Forma Data Management (ACC), Bentley ProjectWise, Trimble Connect, SharePoint | Tables and views in a data platform — Databricks, Snowflake, Microsoft Fabric                                   |
 | **What Speckle does**    | Reads the file, converts it into Speckle objects, and stores the result in the Speckle project                      | Registers the table and runs `SELECT` queries against it on demand                                              |
 | **Where the data lives** | A converted copy lives in Speckle; the source file is untouched                                                     | Data stays in your platform; Speckle stores the query results it needs to render a view or answer a question    |
 | **Direction**            | Read only. Speckle never writes back to the CDE                                                                     | Read only by default. On Databricks, a workspace admin can have AI chat update tables you grant write access to |
@@ -83,10 +83,11 @@ This is where the integrations differ, and it determines where you scope access.
 | **SharePoint**                           | Speckle's Microsoft Entra app, which a Microsoft admin approves once with read-only access to every site, plus the user's own Microsoft account for browsing | The sites and files that user can open in SharePoint. Background checks and downloads run as Speckle's app                                                             |
 | **Databricks**                           | A service principal you create, with SQL grants you assign                                                                                                   | Whatever the service principal has `SELECT` on, the same for every user in the Speckle workspace. With the AI chat Databricks tools on, only workspace admins reach it |
 | **Snowflake**                            | A service user you create, with a role you grant                                                                                                             | Whatever the role can read — the same for every user in the Speckle workspace                                                                                          |
+| **Microsoft Fabric**                     | A Microsoft Entra service principal you create, with a role on the Fabric workspace                                                                          | Whatever the service principal can read in the Warehouses and Lakehouses you connect — the same for every user in the Speckle workspace                                |
 
 **For ACC, permissions are per user and follow the user.** If Sarah is a member of two hubs — full read on one, a single project on the other — she can sync anything she can read across both, and nothing else. Change her Autodesk permissions and her Speckle reach changes with them. There is nothing for you to enable beyond registering the Speckle integration on the hub once.
 
-**For Databricks and Snowflake, permissions are per workspace and follow the service identity.** Everyone in the Speckle workspace sees the same set of tables: the ones you granted. This is deliberate — it lets you publish a curated, governed surface (specific schemas, views with row filtering applied on your side) without mirroring individual user entitlements into Speckle. If different teams need different data, use separate Speckle workspaces with separate service identities.
+**For Databricks, Snowflake, and Microsoft Fabric, permissions are per workspace and follow the service identity.** Everyone in the Speckle workspace sees the same set of tables: the ones you granted. This is deliberate — it lets you publish a curated, governed surface (specific schemas, views with row filtering applied on your side) without mirroring individual user entitlements into Speckle. If different teams need different data, use separate Speckle workspaces with separate service identities.
 
 **ProjectWise is both.** The service account must be added to a project for it to be reachable at all, and within that the user's own ProjectWise permissions still apply.
 
@@ -100,7 +101,7 @@ This is where the integrations differ, and it determines where you scope access.
 ## What Speckle never does
 
 - **Write back to a sync source.** No sync integration modifies, uploads, or deletes anything in the source platform. Sync scopes are read-only by design. In ACC, the requested scopes are `account:read`, `user-profile:read`, `data:read`, `data:search`, `bucket:read`, `viewables:read`, and `openid`.
-- **Write to a warehouse without your grant.** Speckle never writes to Snowflake. On Databricks, Speckle updates rows and adds columns only in tables where you granted a write privilege, and only when a workspace admin asks for it, in AI chat or through the API. In AI chat, the admin sees every statement on a card and allows the write first. Speckle never inserts or deletes rows.
+- **Write to a warehouse without your grant.** Speckle never writes to Snowflake or Microsoft Fabric. On Databricks, Speckle updates rows and adds columns only in tables where you granted a write privilege, and only when a workspace admin asks for it, in AI chat or through the API. In AI chat, the admin sees every statement on a card and allows the write first. Speckle never inserts or deletes rows.
 - **Crawl or enumerate beyond the identity's permissions.** Speckle lists only what the identity can list, and only when a user opens the browser view or asks AI chat to find a table.
 - **Escalate.** Speckle cannot request broader access on a user's behalf; broadening access is always an action you take in your own admin console.
 - **Expose credentials.** Service principal secrets and private keys are encrypted in the browser before they are sent, stored encrypted at rest, and never displayed again after you save them.
@@ -110,6 +111,8 @@ This is where the integrations differ, and it determines where you scope access.
 For **ACC**, if you want tighter control than per-user inheritance, create a dedicated Autodesk account with access to only the projects you want synced and have users sign in to Speckle with it.
 
 For **Databricks and Snowflake**, treat the service identity as a publishing surface. Grant it access to a dedicated schema or set of views rather than to raw tables, and apply any row- or column-level policies on your side. Speckle only ever sees what the query returns. On Databricks, grant `MODIFY` only on the tables users should update from AI chat. See [Let AI chat update tables](/it-admin/integrations/databricks#let-ai-chat-update-tables).
+
+For **Microsoft Fabric**, a workspace role lets the service principal read every Warehouse and SQL analytics endpoint in that Fabric workspace. Keep the data you want to expose in a dedicated Fabric workspace and give the service principal a role only there.
 
 For **ProjectWise**, add the service account only to the projects that need syncing; unlisted projects are invisible regardless of user permissions.
 
@@ -132,6 +135,9 @@ For **SharePoint**, the approval cannot be scoped to sites. To stop all access, 
   </Card>
   <Card title="Snowflake" icon="database" href="/it-admin/integrations/snowflake">
     Create a service user, role, and key-pair credentials
+  </Card>
+  <Card title="Microsoft Fabric" icon="database" href="/it-admin/integrations/microsoft-fabric">
+    Create a service principal and give it a workspace role
   </Card>
 </CardGroup>
 
